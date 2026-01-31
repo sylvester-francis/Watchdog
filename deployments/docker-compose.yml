@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: watchdog-db
+    environment:
+      POSTGRES_USER: watchdog
+      POSTGRES_PASSWORD: watchdog
+      POSTGRES_DB: watchdog
+    ports:
+      - "5432:5432"
+    volumes:
+      - watchdog_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U watchdog -d watchdog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  hub:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.hub
+    container_name: watchdog-hub
+    environment:
+      DATABASE_URL: postgres://watchdog:watchdog@postgres:5432/watchdog?sslmode=disable
+      PORT: 8080
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-me-in-production-32chars!}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Uncomment for production backup
+  # backup:
+  #   image: prodrigestivill/postgres-backup-local
+  #   container_name: watchdog-backup
+  #   environment:
+  #     POSTGRES_HOST: postgres
+  #     POSTGRES_DB: watchdog
+  #     POSTGRES_USER: watchdog
+  #     POSTGRES_PASSWORD: watchdog
+  #     SCHEDULE: "@daily"
+  #     BACKUP_KEEP_DAYS: 7
+  #   volumes:
+  #     - ./backups:/backups
+  #   depends_on:
+  #     - postgres
+
+volumes:
+  watchdog_data:
