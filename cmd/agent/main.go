@@ -104,11 +104,11 @@ type AgentConfig struct {
 
 // Agent represents the monitoring agent.
 type Agent struct {
-	config     AgentConfig
-	conn       *Connection
-	tasks      map[string]*Task
-	logger     *slog.Logger
-	stopCh     chan struct{}
+	config AgentConfig
+	conn   *Connection
+	tasks  map[string]*Task
+	logger *slog.Logger
+	stopCh chan struct{}
 }
 
 // NewAgent creates a new agent instance.
@@ -168,7 +168,9 @@ func (a *Agent) handleMessage(msg *Message) {
 	case MsgTypeTask:
 		a.handleTask(msg)
 	case MsgTypePing:
-		a.conn.SendPong()
+		if err := a.conn.SendPong(); err != nil {
+			a.logger.Error("failed to send pong", slog.String("error", err.Error()))
+		}
 	default:
 		a.logger.Debug("received message", slog.String("type", msg.Type))
 	}

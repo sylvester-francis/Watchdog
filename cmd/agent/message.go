@@ -28,7 +28,12 @@ type Message struct {
 func NewMessage(msgType string, payload any) *Message {
 	var rawPayload json.RawMessage
 	if payload != nil {
-		data, _ := json.Marshal(payload)
+		data, err := json.Marshal(payload)
+		if err != nil {
+			// Payload types are known at compile time and should always be marshalable.
+			// A failure here indicates a programming error.
+			panic("failed to marshal message payload: " + err.Error())
+		}
 		rawPayload = data
 	}
 

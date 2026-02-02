@@ -9,14 +9,14 @@ import (
 )
 
 const (
-	// AES-256 requires a 32-byte key
+	// AES-256 requires a 32-byte key.
 	aesKeySize = 32
-	// GCM standard nonce size
+	// GCM standard nonce size.
 	gcmNonceSize = 12
 )
 
 var (
-	ErrInvalidKeySize    = errors.New("encryption key must be 32 bytes for AES-256")
+	ErrInvalidKeySize     = errors.New("encryption key must be 32 bytes for AES-256")
 	ErrCiphertextTooShort = errors.New("ciphertext too short")
 )
 

@@ -35,7 +35,7 @@ func NewPasswordHasher() *PasswordHasher {
 }
 
 // Hash generates an Argon2id hash of the password.
-// Returns a string in the format: $argon2id$v=19$m=65536,t=3,p=4$<salt>$<hash>
+// Returns a string in the format: $argon2id$v=19$m=65536,t=3,p=4$<salt>$<hash>.
 func (h *PasswordHasher) Hash(password string) (string, error) {
 	salt := make([]byte, argon2SaltLen)
 	if _, err := rand.Read(salt); err != nil {
@@ -94,7 +94,7 @@ type argon2Params struct {
 	keyLen  uint32
 }
 
-func (h *PasswordHasher) decodeHash(encodedHash string) (*argon2Params, []byte, []byte, error) {
+func (h *PasswordHasher) decodeHash(encodedHash string) (params *argon2Params, salt, hash []byte, err error) {
 	parts := strings.Split(encodedHash, "$")
 	if len(parts) != 6 {
 		return nil, nil, nil, ErrInvalidHash
@@ -105,28 +105,30 @@ func (h *PasswordHasher) decodeHash(encodedHash string) (*argon2Params, []byte, 
 	}
 
 	var version int
-	if _, err := fmt.Sscanf(parts[2], "v=%d", &version); err != nil {
+	if _, scanErr := fmt.Sscanf(parts[2], "v=%d", &version); scanErr != nil {
 		return nil, nil, nil, ErrInvalidHash
 	}
 	if version != argon2.Version {
 		return nil, nil, nil, ErrIncompatibleVersion
 	}
 
-	var params argon2Params
-	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &params.memory, &params.time, &params.threads); err != nil {
+	params = &argon2Params{}
+	if _, scanErr := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &params.memory, &params.time, &params.threads); scanErr != nil {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
+	salt, err = base64.RawStdEncoding.DecodeString(parts[4])
 	if err != nil {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
+	hash, err = base64.RawStdEncoding.DecodeString(parts[5])
 	if err != nil {
 		return nil, nil, nil, ErrInvalidHash
 	}
+
+	// #nosec G115 - hash length is always small (32 bytes for argon2id).
 	params.keyLen = uint32(len(hash))
 
-	return &params, salt, hash, nil
+	return params, salt, hash, nil
 }

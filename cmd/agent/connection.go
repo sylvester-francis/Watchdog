@@ -39,7 +39,10 @@ func NewConnection(url, apiKey, version string, logger *slog.Logger) (*Connectio
 		HandshakeTimeout: 10 * time.Second,
 	}
 
-	conn, _, err := dialer.Dial(url, nil)
+	conn, resp, err := dialer.Dial(url, nil)
+	if resp != nil && resp.Body != nil {
+		resp.Body.Close()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
@@ -212,12 +215,16 @@ func (c *Connection) writeMessage(msg *Message) error {
 		return err
 	}
 
-	c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	if err := c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		return err
+	}
 	return c.conn.WriteMessage(websocket.TextMessage, data)
 }
 
 func (c *Connection) readMessage() (*Message, error) {
-	c.conn.SetReadDeadline(time.Now().Add(90 * time.Second))
+	if err := c.conn.SetReadDeadline(time.Now().Add(90 * time.Second)); err != nil {
+		return nil, err
+	}
 
 	_, data, err := c.conn.ReadMessage()
 	if err != nil {

@@ -117,7 +117,7 @@ func (t *Task) runCheck() {
 func (t *Task) checkHTTP(ctx context.Context) (status, errMsg string) {
 	client := &http.Client{
 		Timeout: time.Duration(t.payload.Timeout) * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return fmt.Errorf("too many redirects")
 			}
@@ -125,7 +125,7 @@ func (t *Task) checkHTTP(ctx context.Context) (status, errMsg string) {
 		},
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.payload.Target, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.payload.Target, http.NoBody)
 	if err != nil {
 		return StatusError, fmt.Sprintf("invalid URL: %s", err.Error())
 	}
@@ -162,7 +162,7 @@ func (t *Task) checkTCP(ctx context.Context) (status, errMsg string) {
 		}
 		return StatusDown, err.Error()
 	}
-	defer conn.Close()
+	conn.Close()
 
 	return StatusUp, ""
 }
@@ -207,17 +207,17 @@ type Checker interface {
 type HTTPChecker struct{}
 
 // Check performs an HTTP GET request.
-func (c *HTTPChecker) Check(ctx context.Context, target string, timeout time.Duration) (string, int, string) {
+func (c *HTTPChecker) Check(ctx context.Context, target string, timeout time.Duration) (status string, latencyMs int, errMsg string) {
 	start := time.Now()
 
 	client := &http.Client{Timeout: timeout}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, http.NoBody)
 	if err != nil {
 		return StatusError, 0, err.Error()
 	}
 
 	resp, err := client.Do(req)
-	latencyMs := int(time.Since(start).Milliseconds())
+	latencyMs = int(time.Since(start).Milliseconds())
 
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
@@ -238,12 +238,12 @@ func (c *HTTPChecker) Check(ctx context.Context, target string, timeout time.Dur
 type TCPChecker struct{}
 
 // Check performs a TCP connection attempt.
-func (c *TCPChecker) Check(ctx context.Context, target string, timeout time.Duration) (string, int, string) {
+func (c *TCPChecker) Check(ctx context.Context, target string, timeout time.Duration) (status string, latencyMs int, errMsg string) {
 	start := time.Now()
 
 	dialer := net.Dialer{Timeout: timeout}
 	conn, err := dialer.DialContext(ctx, "tcp", target)
-	latencyMs := int(time.Since(start).Milliseconds())
+	latencyMs = int(time.Since(start).Milliseconds())
 
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
