@@ -1,0 +1,57 @@
+# Gremlins Mutation Testing Configuration
+# https://gremlins.dev/latest/
+
+# Timeout for each test run
+timeout: 10s
+
+# Number of workers for parallel mutation testing
+workers: 4
+
+# Threshold for mutation score (percentage of killed mutants)
+threshold: 0.7
+
+# Packages to mutate
+packages:
+  - "./internal/core/domain/..."
+  - "./internal/crypto/..."
+  - "./internal/core/realtime/..."
+  - "./internal/adapters/http/middleware/..."
+
+# Exclude patterns
+exclude:
+  - "**/*_test.go"
+  - "**/mock_*.go"
+  - "**/mocks/**"
+
+# Mutant operators to use
+mutants:
+  arithmetic:
+    enabled: true
+  conditionals:
+    enabled: true
+  conditionals_boundary:
+    enabled: true
+  increment:
+    enabled: true
+  invert_negatives:
+    enabled: true
+  bitwise:
+    enabled: true
+  assignment:
+    enabled: true
+  statement_removal:
+    enabled: true
+
+# Output configuration
+output:
+  # Format: text, json, html
+  format: text
+  # Coverage threshold display
+  show_diff: true
+
+# Integration settings
+integration:
+  # Run go test with coverage
+  coverage: true
+  # Build tags
+  tags: []

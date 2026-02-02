@@ -1,4 +1,4 @@
-.PHONY: help dev dev-hub dev-agent build build-hub build-agent test lint fmt migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools
+.PHONY: help dev dev-hub dev-agent build build-hub build-agent test test-short test-coverage test-mutation test-mutation-report lint fmt migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools
 
 # Default target
 help:
@@ -25,9 +25,12 @@ help:
 	@echo "  make docker-build - Build Docker images"
 	@echo ""
 	@echo "Quality:"
-	@echo "  make test         - Run all tests"
-	@echo "  make lint         - Run linter"
-	@echo "  make fmt          - Format code"
+	@echo "  make test              - Run all tests with race detection"
+	@echo "  make test-short        - Run quick tests"
+	@echo "  make test-coverage     - Generate HTML coverage report"
+	@echo "  make test-mutation     - Run mutation tests with Gremlins"
+	@echo "  make lint              - Run linter"
+	@echo "  make fmt               - Format code"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make deps         - Download Go dependencies"
@@ -90,10 +93,21 @@ docker-logs:
 test:
 	go test -v -race -cover ./...
 
+test-short:
+	go test -short ./...
+
 test-coverage:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report: coverage.html"
+
+test-mutation:
+	@command -v gremlins > /dev/null || (echo "Installing gremlins..." && go install github.com/go-gremlins/gremlins/cmd/gremlins@latest)
+	gremlins unleash --config .gremlins.yaml
+
+test-mutation-report:
+	@command -v gremlins > /dev/null || (echo "Installing gremlins..." && go install github.com/go-gremlins/gremlins/cmd/gremlins@latest)
+	gremlins unleash --config .gremlins.yaml --output html
 
 lint:
 	@command -v golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
@@ -114,6 +128,7 @@ install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
 	@echo "Done! All tools installed."
 
 # Cleanup
