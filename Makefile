@@ -1,4 +1,4 @@
-.PHONY: help dev dev-hub dev-agent build build-hub build-agent test test-short test-coverage test-mutation test-mutation-report lint fmt migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools
+.PHONY: help dev dev-hub dev-agent build build-hub build-agent test test-short test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools pre-commit-install pre-commit-run
 
 # Default target
 help:
@@ -30,11 +30,16 @@ help:
 	@echo "  make test-coverage     - Generate HTML coverage report"
 	@echo "  make test-mutation     - Run mutation tests with Gremlins"
 	@echo "  make lint              - Run linter"
+	@echo "  make lint-fix          - Run linter with auto-fix"
 	@echo "  make fmt               - Format code"
+	@echo "  make sec               - Run security scan (gosec)"
+	@echo "  make vuln              - Check for vulnerabilities"
 	@echo ""
 	@echo "Setup:"
-	@echo "  make deps         - Download Go dependencies"
-	@echo "  make install-tools - Install development tools"
+	@echo "  make deps              - Download Go dependencies"
+	@echo "  make install-tools     - Install development tools"
+	@echo "  make pre-commit-install - Install pre-commit hooks"
+	@echo "  make pre-commit-run    - Run pre-commit on all files"
 
 # Variables
 BINARY_DIR := bin
@@ -113,9 +118,21 @@ lint:
 	@command -v golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
 	golangci-lint run ./...
 
+lint-fix:
+	@command -v golangci-lint > /dev/null || (echo "Installing golangci-lint..." && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest)
+	golangci-lint run --fix ./...
+
 fmt:
 	go fmt ./...
 	goimports -w .
+
+sec:
+	@command -v gosec > /dev/null || (echo "Installing gosec..." && go install github.com/securego/gosec/v2/cmd/gosec@latest)
+	gosec -quiet ./...
+
+vuln:
+	@command -v govulncheck > /dev/null || (echo "Installing govulncheck..." && go install golang.org/x/vuln/cmd/govulncheck@latest)
+	govulncheck ./...
 
 # Setup
 deps:
@@ -129,7 +146,17 @@ install-tools:
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
 	@echo "Done! All tools installed."
+
+pre-commit-install:
+	@command -v pre-commit > /dev/null || (echo "Please install pre-commit: pip install pre-commit" && exit 1)
+	pre-commit install
+
+pre-commit-run:
+	@command -v pre-commit > /dev/null || (echo "Please install pre-commit: pip install pre-commit" && exit 1)
+	pre-commit run --all-files
 
 # Cleanup
 clean:
