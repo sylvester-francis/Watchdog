@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/sylvester/watchdog/internal/core/domain"
 )
 
