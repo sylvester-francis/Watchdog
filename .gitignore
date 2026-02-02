@@ -6,6 +6,7 @@ tmp/
 CLAUDE.md
 gemini.md
 docs/PLAN.md
+tasks.md
 
 # Environment
 .env

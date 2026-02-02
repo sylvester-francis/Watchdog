@@ -3,7 +3,6 @@
 [![CI](https://github.com/sylvester/watchdog/actions/workflows/ci.yml/badge.svg)](https://github.com/sylvester/watchdog/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/sylvester/watchdog/actions/workflows/codeql.yml/badge.svg)](https://github.com/sylvester/watchdog/actions/workflows/codeql.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sylvester/watchdog)](https://goreportcard.com/report/github.com/sylvester/watchdog)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 **Infrastructure Assurance for Hybrid Environments**
 
@@ -275,4 +274,4 @@ Agents connect via WebSocket and communicate using JSON messages:
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
+This software is proprietary. All rights reserved.
