@@ -91,6 +91,7 @@ func TestHub_SendToAgent_NotConnected(t *testing.T) {
 }
 
 func TestHub_RunAndStop(t *testing.T) {
+	t.Parallel()
 	logger := newTestLogger()
 	hub := NewHub(logger)
 
@@ -115,6 +116,7 @@ func TestHub_RegisterUnregister_Channels(t *testing.T) {
 }
 
 func TestHub_Broadcast_Empty(t *testing.T) {
+	t.Parallel()
 	logger := newTestLogger()
 	hub := NewHub(logger)
 	hub.Run()
@@ -139,6 +141,7 @@ func TestDefaultClientConfig(t *testing.T) {
 }
 
 func TestHub_MultipleStops(t *testing.T) {
+	t.Parallel()
 	logger := newTestLogger()
 	hub := NewHub(logger)
 	hub.Run()

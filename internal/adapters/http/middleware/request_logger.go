@@ -43,7 +43,7 @@ func RequestLogger(logger *slog.Logger) echo.MiddlewareFunc {
 			duration := time.Since(start)
 			status := c.Response().Status
 
-			requestID, _ := c.Get(RequestIDKey).(string)
+			requestID := GetRequestID(c)
 
 			logAttrs := []any{
 				slog.String("request_id", requestID),
