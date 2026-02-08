@@ -1,0 +1,121 @@
+/* WatchDog Custom Styles */
+
+/* Smooth transitions for all interactive elements */
+.transition-smooth {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Pulse animation for online status indicators */
+@keyframes pulse-dot {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+.animate-pulse-dot {
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Loading spinner */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* HTMX loading indicator */
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+/* Focus styles */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #3B82F6;
+}
+
+/* Scrollbar styling for dark mode */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1F2937;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4B5563;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6B7280;
+}
+
+/* Toast notifications */
+.toast {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    z-index: 100;
+    animation: slide-in 0.3s ease-out;
+}
+
+.toast-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    color: #10B981;
+}
+
+.toast-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #EF4444;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    backdrop-filter: blur(4px);
+}
+
+/* Table hover effects */
+table tbody tr:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+}
+
+/* Card hover effects */
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
