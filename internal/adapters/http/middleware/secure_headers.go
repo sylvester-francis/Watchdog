@@ -23,7 +23,7 @@ func SecureHeaders() echo.MiddlewareFunc {
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
 			// Content Security Policy
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'")
+			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'")
 
 			// Permissions Policy (formerly Feature-Policy)
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
@@ -45,7 +45,7 @@ func SecureHeadersStrict() echo.MiddlewareFunc {
 			h.Set("X-Content-Type-Options", "nosniff")
 			h.Set("X-Frame-Options", "DENY")
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'")
+			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'")
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
 			// HSTS - enforce HTTPS for 1 year, include subdomains
