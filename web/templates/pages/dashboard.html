@@ -3,149 +3,185 @@
 {{end}}
 
 {{define "content"}}
-<!-- Stats Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- Stats Row: 4 equal cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <!-- Total Monitors -->
-    <div class="bg-card border border-border rounded-lg p-5">
+    <div class="bg-card border border-border rounded-lg p-5 animate-fade-in-up stagger-1">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-muted-foreground">Total Monitors</p>
-                <p class="text-2xl font-semibold text-foreground mt-1">{{.Stats.TotalMonitors}}</p>
+                <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Monitors</p>
+                <p class="text-2xl font-semibold text-foreground mt-1 font-mono" data-count-target="{{.Stats.TotalMonitors}}">0</p>
             </div>
-            <div class="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
+            <div class="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                <i data-lucide="activity" class="w-5 h-5 text-accent"></i>
             </div>
         </div>
     </div>
 
     <!-- Monitors Up -->
-    <div class="bg-card border border-border rounded-lg p-5">
+    <div class="bg-card border border-border rounded-lg p-5 animate-fade-in-up stagger-2">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-muted-foreground">Up</p>
-                <p class="text-2xl font-semibold text-emerald-400 mt-1">{{.Stats.MonitorsUp}}</p>
+                <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Up</p>
+                <p class="text-2xl font-semibold text-emerald-400 mt-1 font-mono" data-count-target="{{.Stats.MonitorsUp}}">0</p>
             </div>
             <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
             </div>
         </div>
     </div>
 
     <!-- Monitors Down -->
-    <div class="bg-card border border-border rounded-lg p-5">
+    <div class="bg-card border {{if gt .Stats.MonitorsDown 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-5 animate-fade-in-up stagger-3">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-muted-foreground">Down</p>
-                <p class="text-2xl font-semibold {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-foreground{{end}} mt-1">{{.Stats.MonitorsDown}}</p>
+                <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Down</p>
+                <p class="text-2xl font-semibold {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-foreground{{end}} mt-1 font-mono" data-count-target="{{.Stats.MonitorsDown}}">0</p>
             </div>
             <div class="w-10 h-10 {{if gt .Stats.MonitorsDown 0}}bg-red-500/10{{else}}bg-muted{{end}} rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-muted-foreground{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+                <i data-lucide="x-circle" class="w-5 h-5 {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
             </div>
         </div>
     </div>
 
     <!-- Active Incidents -->
-    <div class="bg-card border {{if gt .Stats.ActiveIncidents 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-5">
+    <div class="bg-card border {{if gt .Stats.ActiveIncidents 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-5 animate-fade-in-up stagger-4">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-muted-foreground">Active Incidents</p>
-                <p class="text-2xl font-semibold {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-foreground{{end}} mt-1">{{.Stats.ActiveIncidents}}</p>
+                <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Incidents</p>
+                <p class="text-2xl font-semibold {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-foreground{{end}} mt-1 font-mono" data-count-target="{{.Stats.ActiveIncidents}}">0</p>
             </div>
             <div class="w-10 h-10 {{if gt .Stats.ActiveIncidents 0}}bg-red-500/10{{else}}bg-muted{{end}} rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-muted-foreground{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
+                <i data-lucide="alert-triangle" class="w-5 h-5 {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Monitor Overview -->
-{{if .Monitors}}
-<div class="bg-card border border-border rounded-lg mb-6">
-    <div class="px-5 py-4 border-b border-border flex items-center justify-between">
-        <h2 class="text-sm font-medium text-foreground">Monitors</h2>
-        <a href="/monitors" class="text-xs text-muted-foreground hover:text-foreground transition-smooth">View all</a>
-    </div>
-
-    <!-- Status Bar -->
-    <div class="px-5 py-4 border-b border-border">
-        <div class="flex items-center space-x-4 mb-3">
-            <div class="flex items-center space-x-1.5">
-                <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
-                <span class="text-xs text-muted-foreground">{{.Stats.MonitorsUp}} up</span>
+<!-- Bento Row 2: Monitor Health (8 cols) + Response Time (4 cols) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+    <!-- Monitor Health — wide card -->
+    <div class="lg:col-span-8 bg-card border border-border rounded-lg animate-fade-in-up" style="animation-delay: 0.25s;">
+        <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="heart-pulse" class="w-4 h-4 text-accent"></i>
+                <h2 class="text-sm font-medium text-foreground">Monitor Health</h2>
             </div>
-            <div class="flex items-center space-x-1.5">
-                <div class="w-2 h-2 rounded-full bg-red-400"></div>
-                <span class="text-xs text-muted-foreground">{{.Stats.MonitorsDown}} down</span>
-            </div>
-            {{if gt (sub .Stats.TotalMonitors (add .Stats.MonitorsUp .Stats.MonitorsDown)) 0}}
-            <div class="flex items-center space-x-1.5">
-                <div class="w-2 h-2 rounded-full bg-zinc-500"></div>
-                <span class="text-xs text-muted-foreground">{{sub .Stats.TotalMonitors (add .Stats.MonitorsUp .Stats.MonitorsDown)}} unknown</span>
-            </div>
-            {{end}}
-        </div>
-        <div class="w-full h-2 bg-muted rounded-full overflow-hidden flex">
-            {{if gt .Stats.TotalMonitors 0}}
-            {{if gt .Stats.MonitorsUp 0}}
-            <div class="bg-emerald-400 h-full" style="width: calc({{.Stats.MonitorsUp}} / {{.Stats.TotalMonitors}} * 100%)"></div>
-            {{end}}
-            {{if gt .Stats.MonitorsDown 0}}
-            <div class="bg-red-400 h-full" style="width: calc({{.Stats.MonitorsDown}} / {{.Stats.TotalMonitors}} * 100%)"></div>
-            {{end}}
-            {{end}}
-        </div>
-    </div>
-
-    <!-- Monitor Grid -->
-    <div class="p-5">
-        <div class="flex flex-wrap gap-2">
-            {{range .Monitors}}
-            <a href="/monitors/{{.ID}}" class="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-xs transition-smooth
-                {{if eq (print .Status) "up"}}bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20
-                {{else if eq (print .Status) "down"}}bg-red-500/10 text-red-400 hover:bg-red-500/20
-                {{else}}bg-muted text-muted-foreground hover:bg-muted/80{{end}}">
-                <div class="w-1.5 h-1.5 rounded-full
-                    {{if eq (print .Status) "up"}}bg-emerald-400 animate-pulse-dot
-                    {{else if eq (print .Status) "down"}}bg-red-400
-                    {{else}}bg-zinc-500{{end}}"></div>
-                <span>{{.Name}}</span>
+            <a href="/monitors" class="text-xs text-muted-foreground hover:text-foreground transition-smooth flex items-center space-x-1">
+                <span>View all</span>
+                <i data-lucide="arrow-right" class="w-3 h-3"></i>
             </a>
+        </div>
+
+        {{if .Monitors}}
+        <!-- Uptime Bar (Better Stack style) -->
+        <div class="px-5 py-4 border-b border-border">
+            <div class="flex items-center space-x-4 mb-3">
+                <div class="flex items-center space-x-1.5">
+                    <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                    <span class="text-xs text-muted-foreground font-mono">{{.Stats.MonitorsUp}} up</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                    <span class="text-xs text-muted-foreground font-mono">{{.Stats.MonitorsDown}} down</span>
+                </div>
+                {{if gt (sub .Stats.TotalMonitors (add .Stats.MonitorsUp .Stats.MonitorsDown)) 0}}
+                <div class="flex items-center space-x-1.5">
+                    <div class="w-2 h-2 rounded-full bg-zinc-500"></div>
+                    <span class="text-xs text-muted-foreground font-mono">{{sub .Stats.TotalMonitors (add .Stats.MonitorsUp .Stats.MonitorsDown)}} unknown</span>
+                </div>
+                {{end}}
+            </div>
+            <div class="w-full h-2.5 bg-muted rounded-full overflow-hidden flex gap-px">
+                {{if gt .Stats.TotalMonitors 0}}
+                {{if gt .Stats.MonitorsUp 0}}
+                <div class="bg-emerald-500 h-full rounded-sm transition-all duration-500" style="width: calc({{.Stats.MonitorsUp}} / {{.Stats.TotalMonitors}} * 100%)"></div>
+                {{end}}
+                {{if gt .Stats.MonitorsDown 0}}
+                <div class="bg-red-500 h-full rounded-sm transition-all duration-500" style="width: calc({{.Stats.MonitorsDown}} / {{.Stats.TotalMonitors}} * 100%)"></div>
+                {{end}}
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Monitor Chip Grid with Sparklines -->
+        <div class="p-5">
+            <div class="flex flex-wrap gap-2">
+                {{range .Sparklines}}
+                <a href="/monitors/{{.MonitorID}}"
+                   class="inline-flex items-center space-x-2 px-3 py-2 rounded-lg text-xs transition-smooth border
+                    {{if eq .Status "up"}}border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10
+                    {{else if eq .Status "down"}}border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10
+                    {{else}}border-border bg-muted/30 text-muted-foreground hover:bg-muted/50{{end}}">
+                    <div class="w-1.5 h-1.5 rounded-full shrink-0
+                        {{if eq .Status "up"}}bg-emerald-400 animate-pulse-dot
+                        {{else if eq .Status "down"}}bg-red-400
+                        {{else}}bg-zinc-500{{end}}"></div>
+                    <span class="truncate max-w-[100px]">{{.Name}}</span>
+                    {{if .Latencies}}
+                    <canvas id="spark-{{.MonitorID}}" class="w-16 h-5 shrink-0"></canvas>
+                    {{end}}
+                </a>
+                {{end}}
+            </div>
+        </div>
+        {{else}}
+        <div class="p-8 text-center">
+            <i data-lucide="activity" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2"></i>
+            <p class="text-sm text-muted-foreground">No monitors configured yet.</p>
+            <a href="/monitors/new" class="inline-flex items-center space-x-1 mt-2 text-xs text-accent hover:text-accent/80 transition-smooth">
+                <i data-lucide="plus" class="w-3 h-3"></i>
+                <span>Add a monitor</span>
+            </a>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Response Time Chart — narrow card -->
+    <div class="lg:col-span-4 bg-card border border-border rounded-lg animate-fade-in-up" style="animation-delay: 0.3s;">
+        <div class="px-5 py-4 border-b border-border flex items-center space-x-2">
+            <i data-lucide="timer" class="w-4 h-4 text-accent"></i>
+            <h2 class="text-sm font-medium text-foreground">Response Time</h2>
+        </div>
+        <div class="p-5">
+            {{if .Sparklines}}
+            <div class="h-48">
+                <canvas id="latency-trend-chart"></canvas>
+            </div>
+            <p class="text-[10px] text-muted-foreground mt-2 text-center">Average latency across all monitors (last 20 checks)</p>
+            {{else}}
+            <div class="h-48 flex items-center justify-center">
+                <p class="text-sm text-muted-foreground">No data yet</p>
+            </div>
             {{end}}
         </div>
     </div>
 </div>
-{{end}}
 
-<!-- Two Column: Agents + Incidents -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Bento Row 3: Agents (6 cols) + Incidents (6 cols) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <!-- Agents -->
-    <div class="bg-card border border-border rounded-lg">
-        <div class="px-5 py-4 border-b border-border">
+    <div class="bg-card border border-border rounded-lg animate-fade-in-up" style="animation-delay: 0.35s;">
+        <div class="px-5 py-4 border-b border-border flex items-center space-x-2">
+            <i data-lucide="server" class="w-4 h-4 text-accent"></i>
             <h2 class="text-sm font-medium text-foreground">Agents</h2>
+            <span class="ml-auto text-xs text-muted-foreground font-mono">{{.Stats.OnlineAgents}}/{{.Stats.TotalAgents}} online</span>
         </div>
-        <div class="p-5" hx-ext="sse" sse-connect="/sse/events">
+        <div class="p-4" hx-ext="sse" sse-connect="/sse/events">
             {{if .Agents}}
-            <div class="space-y-3" id="agents-grid">
+            <div class="space-y-2" id="agents-grid">
                 {{range .Agents}}
-                <div id="agent-{{.ID}}" class="flex items-center justify-between p-3 rounded-md bg-muted/30 border border-border" sse-swap="agent-status:{{.ID}}">
+                <div id="agent-{{.ID}}" class="flex items-center justify-between p-3 rounded-lg bg-card-elevated border border-border/50 transition-smooth hover:border-border" sse-swap="agent-status:{{.ID}}">
                     <div class="flex items-center space-x-3">
                         <div class="w-2 h-2 rounded-full {{if .IsOnline}}bg-emerald-400 animate-pulse-dot{{else}}bg-zinc-500{{end}}"></div>
                         <div>
                             <p class="text-sm font-medium text-foreground">{{.Name}}</p>
-                            <p class="text-xs text-muted-foreground">
-                                {{if .LastSeenAt}}Last seen {{formatTimeAgo .LastSeenAt}}{{else}}Never connected{{end}}
+                            <p class="text-[11px] text-muted-foreground">
+                                {{if .LastSeenAt}}{{formatTimeAgo .LastSeenAt}}{{else}}Never connected{{end}}
                             </p>
                         </div>
                     </div>
-                    <span class="text-xs px-2 py-0.5 rounded-md
+                    <span class="text-xs px-2 py-0.5 rounded-md font-mono
                         {{if .IsOnline}}bg-emerald-500/15 text-emerald-400{{else}}bg-muted text-muted-foreground{{end}}">
                         {{.Status}}
                     </span>
@@ -154,6 +190,7 @@
             </div>
             {{else}}
             <div class="text-center py-8">
+                <i data-lucide="server" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2"></i>
                 <p class="text-sm text-muted-foreground">No agents deployed yet.</p>
             </div>
             {{end}}
@@ -161,29 +198,34 @@
     </div>
 
     <!-- Active Incidents -->
-    <div class="bg-card border border-border rounded-lg">
+    <div class="bg-card border border-border rounded-lg animate-fade-in-up" style="animation-delay: 0.4s;">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
-            <h2 class="text-sm font-medium text-foreground">Active Incidents</h2>
+            <div class="flex items-center space-x-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-accent{{end}}"></i>
+                <h2 class="text-sm font-medium text-foreground">Active Incidents</h2>
+            </div>
             {{if .ActiveIncidents}}
-            <a href="/incidents" class="text-xs text-muted-foreground hover:text-foreground transition-smooth">View all</a>
+            <a href="/incidents" class="text-xs text-muted-foreground hover:text-foreground transition-smooth flex items-center space-x-1">
+                <span>View all</span>
+                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </a>
             {{end}}
         </div>
-        <div class="divide-y divide-border">
+        <div class="divide-y divide-border/50">
             {{if .IncidentsWithMonitors}}
             {{range .IncidentsWithMonitors}}
-            <div class="px-5 py-3 flex items-center justify-between">
+            <div class="px-5 py-3 flex items-center justify-between transition-smooth hover:bg-card-elevated">
                 <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 rounded-md {{if eq (print .Incident.Status) "open"}}bg-red-500/10{{else}}bg-yellow-500/10{{end}} flex items-center justify-center">
-                        <svg class="w-4 h-4 {{if eq (print .Incident.Status) "open"}}text-red-400{{else}}text-yellow-400{{end}}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
+                    <div class="w-8 h-8 rounded-lg {{if eq (print .Incident.Status) "open"}}bg-red-500/10{{else}}bg-yellow-500/10{{end}} flex items-center justify-center">
+                        <i data-lucide="{{if eq (print .Incident.Status) "open"}}alert-circle{{else}}clock{{end}}"
+                           class="w-4 h-4 {{if eq (print .Incident.Status) "open"}}text-red-400{{else}}text-yellow-400{{end}}"></i>
                     </div>
                     <div>
                         <p class="text-sm font-medium text-foreground">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</p>
-                        <p class="text-xs text-muted-foreground">{{formatTimeAgo .Incident.StartedAt}}</p>
+                        <p class="text-[11px] text-muted-foreground">{{formatTimeAgo .Incident.StartedAt}}</p>
                     </div>
                 </div>
-                <span class="text-xs px-2 py-0.5 rounded-md
+                <span class="text-xs px-2 py-0.5 rounded-md font-mono
                     {{if eq (print .Incident.Status) "open"}}bg-red-500/15 text-red-400
                     {{else}}bg-yellow-500/15 text-yellow-400{{end}}">
                     {{.Incident.Status}}
@@ -192,13 +234,64 @@
             {{end}}
             {{else}}
             <div class="px-5 py-8 text-center">
-                <svg class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+                <i data-lucide="check-circle-2" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2"></i>
                 <p class="text-sm text-muted-foreground">No active incidents</p>
             </div>
             {{end}}
         </div>
     </div>
 </div>
+
+<!-- Sparkline + Chart Data -->
+{{if .Sparklines}}
+<script type="application/json" id="sparkline-data">{{toJSON .Sparklines}}</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var sparklineEl = document.getElementById('sparkline-data');
+    if (!sparklineEl) return;
+
+    try {
+        var sparklines = JSON.parse(sparklineEl.textContent);
+
+        // Build per-monitor sparklines
+        for (var i = 0; i < sparklines.length; i++) {
+            var s = sparklines[i];
+            if (s.Latencies && s.Latencies.length > 0) {
+                var color = s.Status === 'up' ? '#22c55e' : (s.Status === 'down' ? '#ef4444' : '#6366f1');
+                createSparkline('spark-' + s.MonitorID, s.Latencies, color);
+            }
+        }
+
+        // Build aggregate latency trend chart
+        // Average each position across monitors that have data
+        var maxLen = 0;
+        for (var j = 0; j < sparklines.length; j++) {
+            if (sparklines[j].Latencies && sparklines[j].Latencies.length > maxLen) {
+                maxLen = sparklines[j].Latencies.length;
+            }
+        }
+
+        if (maxLen > 0) {
+            var avgLatencies = [];
+            for (var k = 0; k < maxLen; k++) {
+                var sum = 0;
+                var count = 0;
+                for (var m = 0; m < sparklines.length; m++) {
+                    if (sparklines[m].Latencies && k < sparklines[m].Latencies.length) {
+                        sum += sparklines[m].Latencies[k];
+                        count++;
+                    }
+                }
+                avgLatencies.push(count > 0 ? Math.round(sum / count) : 0);
+            }
+
+            var labels = avgLatencies.map(function(_, idx) { return idx + 1; });
+            createLatencyChart('latency-trend-chart', labels, avgLatencies);
+        }
+    } catch(e) {
+        // Silently ignore parse errors
+    }
+});
+</script>
+{{end}}
 {{end}}
