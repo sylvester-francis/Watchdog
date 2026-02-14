@@ -236,14 +236,16 @@ func (m *MockMonitorRepository) CountByUserID(ctx context.Context, userID uuid.U
 
 // MockIncidentRepository is a mock implementation of ports.IncidentRepository.
 type MockIncidentRepository struct {
-	CreateFn             func(ctx context.Context, incident *domain.Incident) error
-	GetByIDFn            func(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
-	GetByMonitorIDFn     func(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
-	GetOpenByMonitorIDFn func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
-	GetActiveIncidentsFn func(ctx context.Context) ([]*domain.Incident, error)
-	UpdateFn             func(ctx context.Context, incident *domain.Incident) error
-	AcknowledgeFn        func(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
-	ResolveFn            func(ctx context.Context, id uuid.UUID) error
+	CreateFn               func(ctx context.Context, incident *domain.Incident) error
+	GetByIDFn              func(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
+	GetByMonitorIDFn       func(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
+	GetOpenByMonitorIDFn   func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	GetActiveIncidentsFn   func(ctx context.Context) ([]*domain.Incident, error)
+	GetResolvedIncidentsFn func(ctx context.Context) ([]*domain.Incident, error)
+	GetAllIncidentsFn      func(ctx context.Context) ([]*domain.Incident, error)
+	UpdateFn               func(ctx context.Context, incident *domain.Incident) error
+	AcknowledgeFn          func(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
+	ResolveFn              func(ctx context.Context, id uuid.UUID) error
 }
 
 func (m *MockIncidentRepository) Create(ctx context.Context, incident *domain.Incident) error {
@@ -277,6 +279,20 @@ func (m *MockIncidentRepository) GetOpenByMonitorID(ctx context.Context, monitor
 func (m *MockIncidentRepository) GetActiveIncidents(ctx context.Context) ([]*domain.Incident, error) {
 	if m.GetActiveIncidentsFn != nil {
 		return m.GetActiveIncidentsFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockIncidentRepository) GetResolvedIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	if m.GetResolvedIncidentsFn != nil {
+		return m.GetResolvedIncidentsFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockIncidentRepository) GetAllIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	if m.GetAllIncidentsFn != nil {
+		return m.GetAllIncidentsFn(ctx)
 	}
 	return nil, nil
 }
