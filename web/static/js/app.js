@@ -6,47 +6,77 @@ document.addEventListener('DOMContentLoaded', function() {
     htmx.config.defaultSettleDelay = 0;
 
     document.body.addEventListener('htmx:beforeRequest', function(event) {
-        const target = event.detail.elt;
-        if (target.querySelector('.htmx-indicator')) {
-            target.querySelector('.htmx-indicator').classList.remove('hidden');
-        }
+        var target = event.detail.elt;
+        var indicator = target.querySelector('.htmx-indicator');
+        if (indicator) indicator.classList.remove('hidden');
     });
 
     document.body.addEventListener('htmx:afterRequest', function(event) {
-        const target = event.detail.elt;
-        if (target.querySelector('.htmx-indicator')) {
-            target.querySelector('.htmx-indicator').classList.add('hidden');
-        }
+        var target = event.detail.elt;
+        var indicator = target.querySelector('.htmx-indicator');
+        if (indicator) indicator.classList.add('hidden');
     });
 
-    document.body.addEventListener('htmx:responseError', function(event) {
+    document.body.addEventListener('htmx:responseError', function() {
         showToast('An error occurred. Please try again.', 'error');
+    });
+
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    // Re-init Lucide after HTMX swaps (new elements may have data-lucide attrs)
+    document.body.addEventListener('htmx:afterSwap', function() {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     });
 });
 
 // Toast Notification System
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
+function showToast(message, type) {
+    type = type || 'success';
+    var container = document.getElementById('toast-container');
     if (!container) return;
 
-    const toast = document.createElement('div');
-    toast.className = 'toast-enter flex items-center space-x-3 px-4 py-3 rounded-lg border shadow-lg max-w-sm';
+    var toast = document.createElement('div');
+    toast.className = 'toast-enter relative flex items-center space-x-3 px-4 py-3 rounded-lg border shadow-lg max-w-sm overflow-hidden';
+
+    var iconName = 'check-circle';
+    var colorClasses = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400';
+    var progressColor = 'bg-emerald-400';
 
     if (type === 'error') {
-        toast.classList.add('bg-red-500/10', 'border-red-500/20', 'text-red-400');
+        iconName = 'x-circle';
+        colorClasses = 'bg-red-500/10 border-red-500/20 text-red-400';
+        progressColor = 'bg-red-400';
     } else if (type === 'warning') {
-        toast.classList.add('bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-400');
-    } else {
-        toast.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
+        iconName = 'alert-triangle';
+        colorClasses = 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400';
+        progressColor = 'bg-yellow-400';
     }
 
-    toast.innerHTML = `<span class="text-sm">${message}</span>`;
+    toast.className += ' ' + colorClasses;
+    toast.innerHTML =
+        '<i data-lucide="' + iconName + '" class="w-4 h-4 shrink-0"></i>' +
+        '<span class="text-sm flex-1">' + message + '</span>' +
+        '<button onclick="this.parentElement.remove()" class="shrink-0 p-0.5 rounded hover:bg-white/10 transition-smooth">' +
+        '<i data-lucide="x" class="w-3 h-3"></i>' +
+        '</button>' +
+        '<div class="absolute bottom-0 left-0 h-0.5 toast-progress ' + progressColor + '"></div>';
+
     container.appendChild(toast);
 
-    setTimeout(() => {
+    // Init icons in this toast
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons({ nodes: [toast] });
+    }
+
+    setTimeout(function() {
         toast.classList.remove('toast-enter');
         toast.classList.add('toast-exit');
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(function() { toast.remove(); }, 300);
     }, 4000);
 }
 
@@ -56,10 +86,10 @@ function confirmAction(message) {
 }
 
 // SSE Connection Management
-let sseConnection = null;
-let sseReconnectAttempts = 0;
-const maxReconnectAttempts = 5;
-const reconnectDelay = 3000;
+var sseConnection = null;
+var sseReconnectAttempts = 0;
+var maxReconnectAttempts = 5;
+var reconnectDelay = 3000;
 
 function connectSSE() {
     if (sseConnection) {
@@ -72,9 +102,8 @@ function connectSSE() {
         sseReconnectAttempts = 0;
     };
 
-    sseConnection.onerror = function(error) {
+    sseConnection.onerror = function() {
         sseConnection.close();
-
         if (sseReconnectAttempts < maxReconnectAttempts) {
             sseReconnectAttempts++;
             setTimeout(connectSSE, reconnectDelay);
@@ -82,22 +111,22 @@ function connectSSE() {
     };
 
     sseConnection.addEventListener('agent-status', function(event) {
-        const data = JSON.parse(event.data);
+        var data = JSON.parse(event.data);
         updateAgentStatus(data);
     });
 
     sseConnection.addEventListener('incident-count', function(event) {
-        const data = JSON.parse(event.data);
+        var data = JSON.parse(event.data);
         updateIncidentCount(data.count);
     });
 }
 
 function updateAgentStatus(agent) {
-    const agentElement = document.getElementById(`agent-${agent.id}`);
+    var agentElement = document.getElementById('agent-' + agent.id);
     if (!agentElement) return;
 
-    const statusDot = agentElement.querySelector('.w-2.h-2');
-    const statusBadge = agentElement.querySelector('span[class*="text-xs"]');
+    var statusDot = agentElement.querySelector('.w-2.h-2');
+    var statusBadge = agentElement.querySelector('span[class*="text-xs"]');
 
     if (agent.status === 'online') {
         if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot';
@@ -115,7 +144,7 @@ function updateAgentStatus(agent) {
 }
 
 function updateIncidentCount(count) {
-    const incidentBadge = document.querySelector('[href="/incidents"] .bg-destructive\\/20');
+    var incidentBadge = document.querySelector('[href="/incidents"] .bg-destructive\\/20');
     if (count > 0) {
         if (incidentBadge) {
             incidentBadge.textContent = count;
@@ -130,13 +159,45 @@ if (document.querySelector('[sse-connect]') || window.location.pathname === '/da
     // SSE is handled by HTMX sse extension
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        const modals = document.querySelectorAll('[id$="-modal"]:not(.hidden)');
-        modals.forEach(modal => modal.classList.add('hidden'));
-    }
-});
+// Keyboard shortcuts — two-key sequences (g then d/m/i)
+(function() {
+    var pendingG = false;
+    var pendingTimer = null;
+
+    document.addEventListener('keydown', function(event) {
+        // Skip when user is typing in inputs/textareas
+        var tag = event.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.target.isContentEditable) {
+            return;
+        }
+
+        // Escape closes modals
+        if (event.key === 'Escape') {
+            var modals = document.querySelectorAll('[id$="-modal"]:not(.hidden)');
+            modals.forEach(function(modal) { modal.classList.add('hidden'); });
+            return;
+        }
+
+        if (event.key === 'g' && !event.metaKey && !event.ctrlKey) {
+            pendingG = true;
+            clearTimeout(pendingTimer);
+            pendingTimer = setTimeout(function() { pendingG = false; }, 500);
+            return;
+        }
+
+        if (pendingG) {
+            pendingG = false;
+            clearTimeout(pendingTimer);
+            if (event.key === 'd') {
+                window.location.href = '/dashboard';
+            } else if (event.key === 'm') {
+                window.location.href = '/monitors';
+            } else if (event.key === 'i') {
+                window.location.href = '/incidents';
+            }
+        }
+    });
+})();
 
 // Close modal when clicking backdrop
 document.addEventListener('click', function(event) {
@@ -147,26 +208,42 @@ document.addEventListener('click', function(event) {
 
 // Format relative time
 function formatTimeAgo(timestamp) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
+    var date = new Date(timestamp);
+    var now = new Date();
+    var diff = now - date;
 
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
+    var seconds = Math.floor(diff / 1000);
+    var minutes = Math.floor(seconds / 60);
+    var hours = Math.floor(minutes / 60);
+    var days = Math.floor(hours / 24);
 
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
+    if (days > 0) return days + 'd ago';
+    if (hours > 0) return hours + 'h ago';
+    if (minutes > 0) return minutes + 'm ago';
     return 'just now';
 }
 
 // Utility: Copy to clipboard
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
+    navigator.clipboard.writeText(text).then(function() {
         showToast('Copied to clipboard');
-    }).catch(() => {
+    }).catch(function() {
         showToast('Failed to copy', 'error');
     });
+}
+
+// Monitor detail panel fetcher
+function loadMonitorDetail(monitorId) {
+    fetch('/api/monitors/' + monitorId + '/heartbeats?period=24h')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data && data.length > 0) {
+                var labels = data.map(function(p) { return p.Time || ''; });
+                var latencies = data.map(function(p) { return p.LatencyMs || 0; });
+                createLatencyChart('detail-latency-chart', labels, latencies);
+            }
+        })
+        .catch(function() {
+            // Silently fail — chart area stays empty
+        });
 }
