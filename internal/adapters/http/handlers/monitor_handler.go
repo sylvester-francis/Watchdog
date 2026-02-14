@@ -15,23 +15,36 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
+// MonitorWithHeartbeats holds a monitor with its sparkline and uptime data.
+type MonitorWithHeartbeats struct {
+	Monitor     *domain.Monitor
+	Agent       *domain.Agent
+	Latencies   []int
+	UptimeUp    int
+	UptimeDown  int
+	UptimeTotal int
+}
+
 // MonitorHandler handles monitor-related HTTP requests.
 type MonitorHandler struct {
-	monitorSvc ports.MonitorService
-	agentRepo  ports.AgentRepository
-	templates  *view.Templates
+	monitorSvc    ports.MonitorService
+	agentRepo     ports.AgentRepository
+	heartbeatRepo ports.HeartbeatRepository
+	templates     *view.Templates
 }
 
 // NewMonitorHandler creates a new MonitorHandler.
 func NewMonitorHandler(
 	monitorSvc ports.MonitorService,
 	agentRepo ports.AgentRepository,
+	heartbeatRepo ports.HeartbeatRepository,
 	templates *view.Templates,
 ) *MonitorHandler {
 	return &MonitorHandler{
-		monitorSvc: monitorSvc,
-		agentRepo:  agentRepo,
-		templates:  templates,
+		monitorSvc:    monitorSvc,
+		agentRepo:     agentRepo,
+		heartbeatRepo: heartbeatRepo,
+		templates:     templates,
 	}
 }
 
@@ -61,6 +74,7 @@ func (h *MonitorHandler) List(c echo.Context) error {
 
 	agentsWithMonitors := make([]AgentWithMonitors, 0, len(agents))
 	var allMonitors []*domain.Monitor
+	var monitorsWithHeartbeats []MonitorWithHeartbeats
 
 	for _, agent := range agents {
 		monitors, err := h.monitorSvc.GetMonitorsByAgent(ctx, agent.ID)
@@ -71,15 +85,44 @@ func (h *MonitorHandler) List(c echo.Context) error {
 			Agent:    agent,
 			Monitors: monitors,
 		})
-		allMonitors = append(allMonitors, monitors...)
+		for _, m := range monitors {
+			allMonitors = append(allMonitors, m)
+
+			heartbeats, err := h.heartbeatRepo.GetByMonitorID(ctx, m.ID, 20)
+			if err != nil {
+				heartbeats = nil
+			}
+			latencies := make([]int, 0, len(heartbeats))
+			up, down := 0, 0
+			for i := len(heartbeats) - 1; i >= 0; i-- {
+				hb := heartbeats[i]
+				if hb.LatencyMs != nil {
+					latencies = append(latencies, *hb.LatencyMs)
+				}
+				if hb.Status.IsSuccess() {
+					up++
+				} else {
+					down++
+				}
+			}
+			monitorsWithHeartbeats = append(monitorsWithHeartbeats, MonitorWithHeartbeats{
+				Monitor:     m,
+				Agent:       agent,
+				Latencies:   latencies,
+				UptimeUp:    up,
+				UptimeDown:  down,
+				UptimeTotal: len(heartbeats),
+			})
+		}
 	}
 
 	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
-		"Title":              "Monitors",
-		"Agents":             agents,
-		"AgentsWithMonitors": agentsWithMonitors,
-		"Monitors":           allMonitors,
-		"MonitorTypes":       domain.ValidMonitorTypeStrings(),
+		"Title":                  "Monitors",
+		"Agents":                 agents,
+		"AgentsWithMonitors":     agentsWithMonitors,
+		"Monitors":               allMonitors,
+		"MonitorsWithHeartbeats": monitorsWithHeartbeats,
+		"MonitorTypes":           domain.ValidMonitorTypeStrings(),
 	})
 }
 
