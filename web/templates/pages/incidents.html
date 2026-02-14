@@ -4,108 +4,108 @@
 
 {{define "content"}}
 <!-- Filters -->
-<div class="flex items-center justify-between mb-6">
-    <div class="flex items-center space-x-4">
-        <a href="/incidents?status=active"
-            class="px-4 py-2 rounded-lg {{if or (eq .StatusFilter "active") (eq .StatusFilter "")}}bg-gray-700 text-white{{else}}text-gray-400 hover:text-white{{end}} transition-colors">
-            Active
-        </a>
-        <a href="/incidents?status=resolved"
-            class="px-4 py-2 rounded-lg {{if eq .StatusFilter "resolved"}}bg-gray-700 text-white{{else}}text-gray-400 hover:text-white{{end}} transition-colors">
-            Resolved
-        </a>
-        <a href="/incidents?status=all"
-            class="px-4 py-2 rounded-lg {{if eq .StatusFilter "all"}}bg-gray-700 text-white{{else}}text-gray-400 hover:text-white{{end}} transition-colors">
-            All
-        </a>
-    </div>
+<div class="flex items-center space-x-1 mb-6 bg-muted rounded-lg p-1 w-fit">
+    <a href="/incidents?status=active"
+        class="px-3 py-1.5 rounded-md text-xs font-medium transition-smooth
+        {{if or (eq .StatusFilter "active") (eq .StatusFilter "")}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
+        Active
+    </a>
+    <a href="/incidents?status=resolved"
+        class="px-3 py-1.5 rounded-md text-xs font-medium transition-smooth
+        {{if eq .StatusFilter "resolved"}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
+        Resolved
+    </a>
+    <a href="/incidents?status=all"
+        class="px-3 py-1.5 rounded-md text-xs font-medium transition-smooth
+        {{if eq .StatusFilter "all"}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
+        All
+    </a>
 </div>
 
 <!-- Incidents List -->
-<div class="bg-gray-800 rounded-xl border border-gray-700">
+<div class="bg-card border border-border rounded-lg">
     {{if .IncidentsWithMonitors}}
-    <div class="divide-y divide-gray-700" id="incidents-list">
+    <div class="divide-y divide-border" id="incidents-list">
         {{range .IncidentsWithMonitors}}
         {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor}}
         {{end}}
     </div>
     {{else}}
     <div class="text-center py-16">
-        <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <h3 class="text-lg font-medium text-gray-400 mb-2">No incidents</h3>
-        <p class="text-gray-500">All systems are running smoothly.</p>
+        <h3 class="text-sm font-medium text-foreground mb-1">No incidents</h3>
+        <p class="text-sm text-muted-foreground">All systems are running smoothly.</p>
     </div>
     {{end}}
 </div>
 {{end}}
 
 {{define "incident_row"}}
-<div id="incident-{{.Incident.ID}}" class="px-6 py-4">
+<div id="incident-{{.Incident.ID}}" class="px-5 py-4 hover:bg-muted/20 transition-smooth">
     <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-            <!-- Status indicator -->
-            <div class="w-12 h-12 rounded-lg flex items-center justify-center
-                {{if eq (print .Incident.Status) "open"}}bg-red-500/10{{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/10{{else}}bg-green-500/10{{end}}">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-md flex items-center justify-center
+                {{if eq (print .Incident.Status) "open"}}bg-red-500/10
+                {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/10
+                {{else}}bg-emerald-500/10{{end}}">
                 {{if eq (print .Incident.Status) "open"}}
-                <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
                 {{else if eq (print .Incident.Status) "acknowledged"}}
-                <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                 </svg>
                 {{else}}
-                <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 {{end}}
             </div>
 
-            <!-- Incident info -->
             <div>
                 <div class="flex items-center space-x-2">
-                    <h3 class="font-medium text-white">
+                    <h3 class="text-sm font-medium text-foreground">
                         {{if .Monitor}}{{.Monitor.Name}}{{else}}Monitor{{end}}
                     </h3>
-                    <span class="px-2 py-0.5 text-xs rounded-full
-                        {{if eq (print .Incident.Status) "open"}}bg-red-500/20 text-red-400
-                        {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/20 text-yellow-400
-                        {{else}}bg-green-500/20 text-green-400{{end}}">
+                    <span class="text-xs px-1.5 py-0.5 rounded-md
+                        {{if eq (print .Incident.Status) "open"}}bg-red-500/15 text-red-400
+                        {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/15 text-yellow-400
+                        {{else}}bg-emerald-500/15 text-emerald-400{{end}}">
                         {{.Incident.Status}}
                     </span>
                 </div>
-                <div class="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                <div class="flex items-center space-x-3 text-xs text-muted-foreground mt-0.5">
                     {{if .Monitor}}
-                    <span>{{.Monitor.Target}}</span>
-                    <span>|</span>
+                    <span class="font-mono">{{.Monitor.Target}}</span>
+                    <span class="text-border">|</span>
                     {{end}}
                     <span>Started {{formatTimeAgo .Incident.StartedAt}}</span>
                     {{if .Incident.ResolvedAt}}
-                    <span>|</span>
+                    <span class="text-border">|</span>
                     <span>Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
                     {{end}}
                     {{if .Incident.TTRSeconds}}
-                    <span>|</span>
+                    <span class="text-border">|</span>
                     <span>TTR: {{.Incident.TTRSeconds}}s</span>
                     {{end}}
                 </div>
             </div>
         </div>
 
-        <!-- Actions -->
         <div class="flex items-center space-x-2">
             {{if eq (print .Incident.Status) "open"}}
             <button hx-post="/incidents/{{.Incident.ID}}/ack" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
-                class="px-3 py-1.5 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 rounded-lg text-sm transition-colors">
+                class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-smooth">
                 Acknowledge
             </button>
             {{end}}
             {{if or (eq (print .Incident.Status) "open") (eq (print .Incident.Status) "acknowledged")}}
             <button hx-post="/incidents/{{.Incident.ID}}/resolve?filter=active" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
-                class="px-3 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm transition-colors">
+                class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-smooth">
                 Resolve
             </button>
             {{end}}
