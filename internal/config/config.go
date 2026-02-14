@@ -12,6 +12,15 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Crypto   CryptoConfig
+	Notify   NotifyConfig
+}
+
+// NotifyConfig holds notification webhook configuration.
+// All fields are optional. Set a URL to activate that notifier.
+type NotifyConfig struct {
+	SlackWebhookURL   string `envconfig:"SLACK_WEBHOOK_URL"`
+	DiscordWebhookURL string `envconfig:"DISCORD_WEBHOOK_URL"`
+	WebhookURL        string `envconfig:"WEBHOOK_URL"`
 }
 
 // ServerConfig holds HTTP server configuration.
