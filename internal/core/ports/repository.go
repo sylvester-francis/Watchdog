@@ -6,8 +6,18 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
 )
+
+// UserUsageSummary holds user info with current resource counts for admin views.
+type UserUsageSummary struct {
+	Email        string
+	Plan         domain.Plan
+	AgentCount   int
+	AgentMax     int
+	MonitorCount int
+	MonitorMax   int
+}
 
 // UserRepository defines the interface for user persistence.
 type UserRepository interface {
@@ -17,6 +27,9 @@ type UserRepository interface {
 	Update(ctx context.Context, user *domain.User) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
+	Count(ctx context.Context) (int, error)
+	CountByPlan(ctx context.Context) (map[domain.Plan]int, error)
+	GetUsersNearLimits(ctx context.Context) ([]UserUsageSummary, error)
 }
 
 // AgentRepository defines the interface for agent persistence.
@@ -28,6 +41,7 @@ type AgentRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
 	UpdateLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
+	CountByUserID(ctx context.Context, userID uuid.UUID) (int, error)
 }
 
 // MonitorRepository defines the interface for monitor persistence.
@@ -39,6 +53,7 @@ type MonitorRepository interface {
 	Update(ctx context.Context, monitor *domain.Monitor) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error
+	CountByUserID(ctx context.Context, userID uuid.UUID) (int, error)
 }
 
 // IncidentRepository defines the interface for incident persistence.
@@ -62,6 +77,21 @@ type HeartbeatRepository interface {
 	GetLatestByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Heartbeat, error)
 	GetRecentFailures(ctx context.Context, monitorID uuid.UUID, count int) ([]*domain.Heartbeat, error)
 	DeleteOlderThan(ctx context.Context, before time.Time) (int64, error)
+}
+
+// UsageEventRepository defines the interface for usage event persistence.
+type UsageEventRepository interface {
+	Create(ctx context.Context, event *domain.UsageEvent) error
+	GetRecentByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.UsageEvent, error)
+	GetRecent(ctx context.Context, limit int) ([]*domain.UsageEvent, error)
+	CountByEventType(ctx context.Context, eventType domain.EventType, since time.Time) (int, error)
+}
+
+// WaitlistRepository defines the interface for waitlist signup persistence.
+type WaitlistRepository interface {
+	Create(ctx context.Context, signup *domain.WaitlistSignup) error
+	GetByEmail(ctx context.Context, email string) (*domain.WaitlistSignup, error)
+	Count(ctx context.Context) (int, error)
 }
 
 // Transactor defines the interface for database transactions.

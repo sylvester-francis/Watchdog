@@ -1,16 +1,18 @@
 package handlers
 
 import (
+	"errors"
+	"html"
 	"net/http"
 	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
-	"github.com/sylvester/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester/watchdog/internal/adapters/http/view"
-	"github.com/sylvester/watchdog/internal/core/domain"
-	"github.com/sylvester/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
 // MonitorHandler handles monitor-related HTTP requests.
@@ -77,7 +79,7 @@ func (h *MonitorHandler) List(c echo.Context) error {
 		"Agents":             agents,
 		"AgentsWithMonitors": agentsWithMonitors,
 		"Monitors":           allMonitors,
-		"MonitorTypes":       []string{"ping", "http", "tcp", "dns"},
+		"MonitorTypes":       domain.ValidMonitorTypeStrings(),
 	})
 }
 
@@ -102,7 +104,7 @@ func (h *MonitorHandler) NewForm(c echo.Context) error {
 	if c.Request().Header.Get("HX-Request") == "true" {
 		return c.Render(http.StatusOK, "monitor_form.html", map[string]interface{}{
 			"Agents":       agents,
-			"MonitorTypes": []string{"ping", "http", "tcp", "dns"},
+			"MonitorTypes": domain.ValidMonitorTypeStrings(),
 		})
 	}
 
@@ -110,7 +112,7 @@ func (h *MonitorHandler) NewForm(c echo.Context) error {
 		"Title":        "New Monitor",
 		"ShowForm":     true,
 		"Agents":       agents,
-		"MonitorTypes": []string{"ping", "http", "tcp", "dns"},
+		"MonitorTypes": domain.ValidMonitorTypeStrings(),
 	})
 }
 
@@ -135,6 +137,12 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 	if agentIDStr == "" || name == "" || monitorType == "" || target == "" {
 		return h.renderError(c, "All fields are required", userID)
 	}
+	if len(name) > 255 {
+		return h.renderError(c, "Monitor name must be 255 characters or less", userID)
+	}
+	if len(target) > 500 {
+		return h.renderError(c, "Target must be 500 characters or less", userID)
+	}
 
 	agentID, err := uuid.Parse(agentIDStr)
 	if err != nil {
@@ -153,20 +161,38 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 		return h.renderError(c, "Invalid monitor type", userID)
 	}
 
-	monitor, err := h.monitorSvc.CreateMonitor(ctx, agentID, name, mt, target)
+	monitor, err := h.monitorSvc.CreateMonitor(ctx, userID, agentID, name, mt, target)
 	if err != nil {
+		if errors.Is(err, domain.ErrMonitorLimitReached) {
+			if c.Request().Header.Get("HX-Request") == "true" {
+				return c.HTML(http.StatusForbidden, `
+					<div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+						<p class="text-yellow-400 font-medium">Monitor limit reached</p>
+						<p class="text-gray-400 text-sm mt-1">Upgrade your plan to create more monitors.</p>
+					</div>`)
+			}
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "monitor limit reached for current plan"})
+		}
 		return h.renderError(c, "Failed to create monitor", userID)
 	}
 
 	// Set interval and timeout if provided
 	if intervalStr != "" {
-		if interval, err := strconv.Atoi(intervalStr); err == nil {
-			monitor.SetInterval(interval)
+		interval, err := strconv.Atoi(intervalStr)
+		if err != nil {
+			return h.renderError(c, "Invalid interval value", userID)
+		}
+		if !monitor.SetInterval(interval) {
+			return h.renderError(c, "Interval must be between 5 and 3600 seconds", userID)
 		}
 	}
 	if timeoutStr != "" {
-		if timeout, err := strconv.Atoi(timeoutStr); err == nil {
-			monitor.SetTimeout(timeout)
+		timeout, err := strconv.Atoi(timeoutStr)
+		if err != nil {
+			return h.renderError(c, "Invalid timeout value", userID)
+		}
+		if !monitor.SetTimeout(timeout) {
+			return h.renderError(c, "Timeout must be between 1 and 60 seconds", userID)
 		}
 	}
 
@@ -229,7 +255,7 @@ func (h *MonitorHandler) EditForm(c echo.Context) error {
 
 	return c.Render(http.StatusOK, "monitor_edit.html", map[string]interface{}{
 		"Monitor":      monitor,
-		"MonitorTypes": []string{"ping", "http", "tcp", "dns"},
+		"MonitorTypes": domain.ValidMonitorTypeStrings(),
 	})
 }
 
@@ -315,13 +341,13 @@ func (h *MonitorHandler) renderError(c echo.Context, msg string, userID uuid.UUI
 	agents, _ := h.agentRepo.GetByUserID(ctx, userID)
 
 	if c.Request().Header.Get("HX-Request") == "true" {
-		return c.HTML(http.StatusBadRequest, `<div class="text-red-400">`+msg+`</div>`)
+		return c.HTML(http.StatusBadRequest, `<div class="text-red-400">`+html.EscapeString(msg)+`</div>`)
 	}
 
 	return c.Render(http.StatusBadRequest, "monitors.html", map[string]interface{}{
 		"Title":        "Monitors",
 		"Error":        msg,
 		"Agents":       agents,
-		"MonitorTypes": []string{"ping", "http", "tcp", "dns"},
+		"MonitorTypes": domain.ValidMonitorTypeStrings(),
 	})
 }

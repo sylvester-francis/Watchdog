@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/sylvester-francis/watchdog-proto/protocol"
 )
 
 // Hub maintains the set of active agent connections and broadcasts messages.
@@ -12,7 +13,7 @@ type Hub struct {
 	clients    map[uuid.UUID]*Client
 	register   chan *Client
 	unregister chan *Client
-	broadcast  chan *Message
+	broadcast  chan *protocol.Message
 	mu         sync.RWMutex
 	logger     *slog.Logger
 	stopCh     chan struct{}
@@ -25,7 +26,7 @@ func NewHub(logger *slog.Logger) *Hub {
 		clients:    make(map[uuid.UUID]*Client),
 		register:   make(chan *Client, 256),
 		unregister: make(chan *Client, 256),
-		broadcast:  make(chan *Message, 256),
+		broadcast:  make(chan *protocol.Message, 256),
 		logger:     logger,
 		stopCh:     make(chan struct{}),
 	}
@@ -76,12 +77,12 @@ func (h *Hub) Unregister(client *Client) {
 }
 
 // Broadcast sends a message to all connected clients.
-func (h *Hub) Broadcast(message *Message) {
+func (h *Hub) Broadcast(message *protocol.Message) {
 	h.broadcast <- message
 }
 
 // SendToAgent sends a message to a specific agent.
-func (h *Hub) SendToAgent(agentID uuid.UUID, message *Message) bool {
+func (h *Hub) SendToAgent(agentID uuid.UUID, message *protocol.Message) bool {
 	h.mu.RLock()
 	client, ok := h.clients[agentID]
 	h.mu.RUnlock()
@@ -161,7 +162,7 @@ func (h *Hub) unregisterClient(client *Client) {
 	}
 }
 
-func (h *Hub) broadcastMessage(message *Message) {
+func (h *Hub) broadcastMessage(message *protocol.Message) {
 	h.mu.RLock()
 	clients := make([]*Client, 0, len(h.clients))
 	for _, client := range h.clients {

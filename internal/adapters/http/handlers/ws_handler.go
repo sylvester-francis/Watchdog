@@ -1,0 +1,213 @@
+package handlers
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/labstack/echo/v4"
+
+	"github.com/sylvester-francis/watchdog-proto/protocol"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+)
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Agents connect from any origin
+	},
+}
+
+// WSHandler handles WebSocket connections from agents.
+type WSHandler struct {
+	agentAuthSvc ports.AgentAuthService
+	monitorSvc   ports.MonitorService
+	agentRepo    ports.AgentRepository
+	hub          *realtime.Hub
+	logger       *slog.Logger
+}
+
+// NewWSHandler creates a new WSHandler.
+func NewWSHandler(
+	agentAuthSvc ports.AgentAuthService,
+	monitorSvc ports.MonitorService,
+	agentRepo ports.AgentRepository,
+	hub *realtime.Hub,
+	logger *slog.Logger,
+) *WSHandler {
+	return &WSHandler{
+		agentAuthSvc: agentAuthSvc,
+		monitorSvc:   monitorSvc,
+		agentRepo:    agentRepo,
+		hub:          hub,
+		logger:       logger,
+	}
+}
+
+// HandleConnection upgrades to WebSocket, authenticates the agent, and manages the connection.
+func (h *WSHandler) HandleConnection(c echo.Context) error {
+	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		h.logger.Error("websocket upgrade failed", slog.String("error", err.Error()))
+		return err
+	}
+
+	// Authenticate: read first message within 10s
+	if err := ws.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		ws.Close()
+		return nil
+	}
+
+	_, data, err := ws.ReadMessage()
+	if err != nil {
+		ws.Close()
+		return nil
+	}
+
+	var msg protocol.Message
+	if err := json.Unmarshal(data, &msg); err != nil {
+		h.sendAuthError(ws, "invalid message format")
+		ws.Close()
+		return nil
+	}
+
+	if msg.Type != protocol.MsgTypeAuth {
+		h.sendAuthError(ws, "expected auth message")
+		ws.Close()
+		return nil
+	}
+
+	var authPayload protocol.AuthPayload
+	if err := msg.ParsePayload(&authPayload); err != nil {
+		h.sendAuthError(ws, "invalid auth payload")
+		ws.Close()
+		return nil
+	}
+
+	// Validate API key
+	agent, err := h.agentAuthSvc.ValidateAPIKey(c.Request().Context(), authPayload.APIKey)
+	if err != nil {
+		h.sendAuthError(ws, "invalid API key")
+		ws.Close()
+		return nil
+	}
+
+	// Send auth acknowledgment
+	ackMsg := protocol.NewAuthAckMessage(agent.ID.String(), agent.Name)
+	ackData, _ := json.Marshal(ackMsg)
+	if err := ws.WriteMessage(websocket.TextMessage, ackData); err != nil {
+		ws.Close()
+		return nil
+	}
+
+	// Mark agent online
+	ctx := context.Background()
+	if err := h.agentRepo.UpdateStatus(ctx, agent.ID, domain.AgentStatusOnline); err != nil {
+		h.logger.Error("failed to update agent status", slog.String("error", err.Error()))
+	}
+	if err := h.agentRepo.UpdateLastSeen(ctx, agent.ID, time.Now()); err != nil {
+		h.logger.Error("failed to update last seen", slog.String("error", err.Error()))
+	}
+
+	h.logger.Info("agent authenticated",
+		slog.String("agent_id", agent.ID.String()),
+		slog.String("agent_name", agent.Name),
+	)
+
+	// Create client and register with hub
+	client := realtime.NewClient(h.hub, ws, agent.ID, agent.Name, h.logger)
+
+	// Wire heartbeat processing: agent heartbeats -> MonitorService.ProcessHeartbeat
+	client.SetHeartbeatCallback(func(agentID uuid.UUID, payload *protocol.HeartbeatPayload) {
+		monitorID, err := uuid.Parse(payload.MonitorID)
+		if err != nil {
+			h.logger.Warn("invalid monitor ID in heartbeat", slog.String("monitor_id", payload.MonitorID))
+			return
+		}
+
+		var heartbeat *domain.Heartbeat
+		status := domain.HeartbeatStatus(payload.Status)
+		if status.IsSuccess() {
+			heartbeat = domain.NewSuccessHeartbeat(monitorID, agentID, payload.LatencyMs)
+		} else {
+			heartbeat = domain.NewFailureHeartbeat(monitorID, agentID, status, payload.ErrorMessage)
+		}
+
+		if err := h.monitorSvc.ProcessHeartbeat(ctx, heartbeat); err != nil {
+			h.logger.Error("failed to process heartbeat",
+				slog.String("monitor_id", payload.MonitorID),
+				slog.String("error", err.Error()),
+			)
+		}
+
+		// Update agent last seen
+		_ = h.agentRepo.UpdateLastSeen(ctx, agentID, time.Now())
+	})
+
+	h.hub.Register(client)
+	client.Start()
+
+	// Send monitor tasks to the agent
+	h.sendTasks(ctx, client, agent.ID)
+
+	// Block until client disconnects (readPump/writePump handle the lifecycle)
+	<-client.CloseCh()
+
+	// Mark agent offline on disconnect
+	if err := h.agentRepo.UpdateStatus(ctx, agent.ID, domain.AgentStatusOffline); err != nil {
+		h.logger.Error("failed to mark agent offline", slog.String("error", err.Error()))
+	}
+
+	h.logger.Info("agent disconnected",
+		slog.String("agent_id", agent.ID.String()),
+		slog.String("agent_name", agent.Name),
+	)
+
+	return nil
+}
+
+// sendTasks sends all enabled monitor tasks to the newly connected agent.
+func (h *WSHandler) sendTasks(ctx context.Context, client *realtime.Client, agentID uuid.UUID) {
+	monitors, err := h.monitorSvc.GetMonitorsByAgent(ctx, agentID)
+	if err != nil {
+		h.logger.Error("failed to get monitors for task distribution",
+			slog.String("agent_id", agentID.String()),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	for _, monitor := range monitors {
+		if !monitor.Enabled {
+			continue
+		}
+
+		taskMsg := protocol.NewTaskMessage(
+			monitor.ID.String(),
+			string(monitor.Type),
+			monitor.Target,
+			monitor.IntervalSeconds,
+			monitor.TimeoutSeconds,
+		)
+		client.Send(taskMsg)
+	}
+
+	h.logger.Info("tasks distributed",
+		slog.String("agent_id", agentID.String()),
+		slog.Int("count", len(monitors)),
+	)
+}
+
+func (h *WSHandler) sendAuthError(ws *websocket.Conn, msg string) {
+	errMsg := protocol.NewAuthErrorMessage(msg)
+	data, _ := json.Marshal(errMsg)
+	//nolint:errcheck // Best-effort error message before closing
+	ws.WriteMessage(websocket.TextMessage, data)
+}

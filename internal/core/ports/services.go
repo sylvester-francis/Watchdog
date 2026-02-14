@@ -5,19 +5,24 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
 )
 
-// AuthService defines the interface for authentication operations.
-type AuthService interface {
+// UserAuthService defines the interface for user authentication operations.
+type UserAuthService interface {
 	Register(ctx context.Context, email, password string) (*domain.User, error)
 	Login(ctx context.Context, email, password string) (*domain.User, error)
+}
+
+// AgentAuthService defines the interface for agent authentication and management.
+type AgentAuthService interface {
 	ValidateAPIKey(ctx context.Context, apiKey string) (*domain.Agent, error)
+	CreateAgent(ctx context.Context, userID string, name string) (*domain.Agent, string, error)
 }
 
 // MonitorService defines the interface for monitor orchestration.
 type MonitorService interface {
-	CreateMonitor(ctx context.Context, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error)
+	CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error)
 	GetMonitor(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetMonitorsByAgent(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	UpdateMonitor(ctx context.Context, monitor *domain.Monitor) error

@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
-	"github.com/sylvester/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
 // FailureThreshold is the number of consecutive failures required to trigger an incident.
@@ -17,11 +17,13 @@ const FailureThreshold = 3
 
 // MonitorService implements ports.MonitorService for monitor orchestration.
 type MonitorService struct {
-	monitorRepo   ports.MonitorRepository
-	heartbeatRepo ports.HeartbeatRepository
-	incidentRepo  ports.IncidentRepository
-	incidentSvc   ports.IncidentService
-	logger        *slog.Logger
+	monitorRepo    ports.MonitorRepository
+	heartbeatRepo  ports.HeartbeatRepository
+	incidentRepo   ports.IncidentRepository
+	incidentSvc    ports.IncidentService
+	userRepo       ports.UserRepository
+	usageEventRepo ports.UsageEventRepository
+	logger         *slog.Logger
 }
 
 // NewMonitorService creates a new MonitorService.
@@ -30,22 +32,56 @@ func NewMonitorService(
 	heartbeatRepo ports.HeartbeatRepository,
 	incidentRepo ports.IncidentRepository,
 	incidentSvc ports.IncidentService,
+	userRepo ports.UserRepository,
+	usageEventRepo ports.UsageEventRepository,
 	logger *slog.Logger,
 ) *MonitorService {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &MonitorService{
-		monitorRepo:   monitorRepo,
-		heartbeatRepo: heartbeatRepo,
-		incidentRepo:  incidentRepo,
-		incidentSvc:   incidentSvc,
-		logger:        logger,
+		monitorRepo:    monitorRepo,
+		heartbeatRepo:  heartbeatRepo,
+		incidentRepo:   incidentRepo,
+		incidentSvc:    incidentSvc,
+		userRepo:       userRepo,
+		usageEventRepo: usageEventRepo,
+		logger:         logger,
 	}
 }
 
-// CreateMonitor creates a new monitor for an agent.
-func (s *MonitorService) CreateMonitor(ctx context.Context, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error) {
+// CreateMonitor creates a new monitor for an agent, enforcing plan limits.
+func (s *MonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error) {
+	// Enforce plan limits
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("monitorService.CreateMonitor: get user: %w", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("monitorService.CreateMonitor: user not found")
+	}
+
+	limits := user.Plan.Limits()
+	if limits.MaxMonitors != -1 {
+		count, err := s.monitorRepo.CountByUserID(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("monitorService.CreateMonitor: count monitors: %w", err)
+		}
+		if count >= limits.MaxMonitors {
+			event := domain.NewUsageEvent(userID, domain.EventLimitHit, domain.ResourceMonitor, count, limits.MaxMonitors, user.Plan)
+			if err := s.usageEventRepo.Create(ctx, event); err != nil {
+				s.logger.Warn("failed to record limit_hit event", "error", err)
+			}
+			return nil, domain.ErrMonitorLimitReached
+		}
+		if float64(count) >= float64(limits.MaxMonitors)*0.8 {
+			event := domain.NewUsageEvent(userID, domain.EventApproachingLimit, domain.ResourceMonitor, count, limits.MaxMonitors, user.Plan)
+			if err := s.usageEventRepo.Create(ctx, event); err != nil {
+				s.logger.Warn("failed to record approaching_limit event", "error", err)
+			}
+		}
+	}
+
 	monitor := domain.NewMonitor(agentID, name, monitorType, target)
 
 	if err := s.monitorRepo.Create(ctx, monitor); err != nil {
