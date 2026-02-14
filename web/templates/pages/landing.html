@@ -6,23 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}}</title>
 
-    <!-- SEO Meta Tags -->
     <meta name="description" content="Deploy lightweight agents inside your network to monitor internal services, databases, and APIs. Real-time dashboard, instant alerts, zero configuration.">
     <meta name="keywords" content="monitor internal services, firewall monitoring, infrastructure monitoring, uptime monitoring, agent-based monitoring">
-
-    <!-- Open Graph -->
     <meta property="og:title" content="WatchDog - Monitor Services Behind Your Firewall">
     <meta property="og:description" content="Deploy lightweight agents to monitor internal services. Real-time dashboard, instant alerts, zero configuration.">
     <meta property="og:type" content="website">
-
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="WatchDog - Monitor Services Behind Your Firewall">
     <meta name="twitter:description" content="Deploy lightweight agents to monitor internal services. Real-time dashboard, instant alerts, zero configuration.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -34,14 +35,22 @@
                         background: '#09090b',
                         foreground: '#fafafa',
                         card: { DEFAULT: '#111113', foreground: '#fafafa' },
+                        'card-elevated': '#18181b',
                         muted: { DEFAULT: '#27272a', foreground: '#a1a1aa' },
+                        accent: { DEFAULT: '#6366f1', foreground: '#fafafa' },
                         border: '#27272a',
                         input: '#27272a',
-                        ring: '#3b82f6',
+                        ring: '#6366f1',
                         destructive: { DEFAULT: '#ef4444', foreground: '#fafafa' },
+                        success: '#22c55e',
+                        warning: '#eab308',
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+                    },
+                    backgroundImage: {
+                        'gradient-accent': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
                     },
                 }
             }
@@ -49,13 +58,13 @@
     </script>
     <style>
         .gradient-text {
-            background: linear-gradient(135deg, #3b82f6, #60a5fa, #93c5fd);
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .hero-glow {
-            background: radial-gradient(ellipse 60% 50% at 50% -10%, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+            background: radial-gradient(ellipse 60% 50% at 50% -10%, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
         }
         .card-hover {
             transition: border-color 0.2s ease, transform 0.2s ease;
@@ -64,8 +73,34 @@
             border-color: #3f3f46;
             transform: translateY(-2px);
         }
-        .step-line {
-            background: linear-gradient(90deg, transparent, #27272a 20%, #27272a 80%, transparent);
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-pulse-dot {
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes bar-grow {
+            from { height: 10%; }
+        }
+        .animate-bar {
+            animation: bar-grow 1s ease-out both;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
         }
     </style>
 </head>
@@ -75,84 +110,107 @@
     <nav class="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
         <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
             <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
+                <div class="w-8 h-8 bg-gradient-accent rounded-lg flex items-center justify-center">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-white"></i>
                 </div>
                 <span class="text-base font-semibold text-foreground">WatchDog</span>
             </div>
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-5">
+                <a href="#features" class="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">Features</a>
                 <a href="#pricing" class="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline">Pricing</a>
                 <a href="/login" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
-                <a href="/register" class="px-3 py-1.5 bg-foreground text-background hover:bg-foreground/90 text-sm font-medium rounded-md transition-colors">Sign Up</a>
+                <a href="/register" class="px-3.5 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Sign Up</a>
             </div>
         </div>
     </nav>
 
     <!-- Hero -->
     <section class="relative hero-glow">
-        <div class="max-w-4xl mx-auto px-6 pt-24 pb-20 md:pt-32 md:pb-28 text-center">
-            <!-- Badge -->
-            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full border border-border bg-card text-xs text-muted-foreground mb-8">
-                <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-                <span>Now monitoring 37+ services in production</span>
-            </div>
+        <div class="max-w-6xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-24">
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                <!-- Left: Copy -->
+                <div>
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full border border-border bg-card text-xs text-muted-foreground mb-6">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot"></div>
+                        <span>Now monitoring <span class="text-foreground font-medium font-mono">37+</span> services</span>
+                    </div>
 
-            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight mb-6">
-                Monitor Services Behind<br>
-                <span class="gradient-text">Your Firewall</span>
-            </h1>
-            <p class="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
-                Deploy lightweight agents inside your network to monitor internal services, databases, and APIs. Real-time dashboard, instant alerts, zero configuration.
-            </p>
+                    <h1 class="text-4xl md:text-5xl lg:text-[3.25rem] font-bold text-foreground leading-[1.1] tracking-tight mb-5">
+                        Monitor Services<br>Behind <span class="gradient-text">Your Firewall</span>
+                    </h1>
+                    <p class="text-base md:text-lg text-muted-foreground max-w-lg leading-relaxed mb-8">
+                        Deploy lightweight agents inside your network to monitor internal services, databases, and APIs. Real-time dashboard, instant alerts, zero configuration.
+                    </p>
 
-            <!-- Waitlist Form -->
-            <form action="/waitlist" method="POST" class="flex flex-col sm:flex-row items-center justify-center gap-2.5 max-w-md mx-auto">
-                <input type="email" name="email" required
-                    class="w-full sm:flex-1 px-3.5 py-2.5 bg-card border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
-                    placeholder="you@company.com">
-                <button type="submit"
-                    class="w-full sm:w-auto px-5 py-2.5 bg-foreground text-background hover:bg-foreground/90 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
-                    Get Early Access
-                </button>
-            </form>
+                    <form action="/waitlist" method="POST" class="flex flex-col sm:flex-row gap-2.5 max-w-md mb-4">
+                        <input type="email" name="email" required
+                            class="flex-1 px-3.5 py-2.5 bg-card border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+                            placeholder="you@company.com">
+                        <button type="submit"
+                            class="px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+                            Get Early Access
+                        </button>
+                    </form>
 
-            {{if .Success}}
-            <div class="mt-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-2 rounded-md text-xs max-w-md mx-auto">
-                {{.Success}}
-            </div>
-            {{end}}
+                    {{if .Success}}
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-2 rounded-md text-xs max-w-md mb-4">{{.Success}}</div>
+                    {{end}}
+                    {{if .Error}}
+                    <div class="bg-destructive/10 border border-destructive/20 text-destructive px-3 py-2 rounded-md text-xs max-w-md mb-4">{{.Error}}</div>
+                    {{end}}
 
-            {{if .Error}}
-            <div class="mt-4 bg-destructive/10 border border-destructive/20 text-destructive px-3 py-2 rounded-md text-xs max-w-md mx-auto">
-                {{.Error}}
-            </div>
-            {{end}}
-
-            <p class="text-xs text-muted-foreground mt-4">Free tier available. No credit card required.</p>
-        </div>
-    </section>
-
-    <!-- Terminal Preview -->
-    <section class="pb-20">
-        <div class="max-w-3xl mx-auto px-6">
-            <div class="bg-card border border-border rounded-lg overflow-hidden">
-                <div class="flex items-center space-x-2 px-4 py-3 border-b border-border">
-                    <div class="w-2.5 h-2.5 rounded-full bg-red-500/60"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/60"></div>
-                    <span class="text-xs text-muted-foreground ml-2 font-mono">terminal</span>
+                    <p class="text-xs text-muted-foreground">Free tier available. No credit card required.</p>
                 </div>
-                <div class="p-5 font-mono text-sm leading-relaxed">
-                    <div class="text-muted-foreground">$ <span class="text-foreground">./watchdog-agent -hub wss://app.watchdog.dev/ws/agent -api-key $KEY</span></div>
-                    <div class="mt-2 text-muted-foreground">[<span class="text-blue-400">INFO</span>] Connected to hub via WebSocket</div>
-                    <div class="text-muted-foreground">[<span class="text-blue-400">INFO</span>] Received 37 monitor tasks</div>
-                    <div class="text-emerald-400">[<span class="text-emerald-400">OK</span>]   PostgreSQL .................. 2ms</div>
-                    <div class="text-emerald-400">[<span class="text-emerald-400">OK</span>]   Redis ....................... 1ms</div>
-                    <div class="text-emerald-400">[<span class="text-emerald-400">OK</span>]   Nginx ....................... 4ms</div>
-                    <div class="text-red-400">[<span class="text-red-400">FAIL</span>] Vault ....................... timeout</div>
-                    <div class="text-muted-foreground">[<span class="text-yellow-400">WARN</span>] Vault: strike 1/3</div>
+
+                <!-- Right: Animated Dashboard Mockup -->
+                <div class="hidden lg:block animate-float" x-data="dashboardMockup()">
+                    <div class="bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
+                        <!-- Window chrome -->
+                        <div class="flex items-center space-x-2 px-4 py-2.5 border-b border-border bg-card-elevated">
+                            <div class="w-2.5 h-2.5 rounded-full bg-red-500/60"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/60"></div>
+                            <span class="text-[10px] text-muted-foreground ml-2 font-mono">dashboard</span>
+                        </div>
+                        <div class="p-4">
+                            <!-- Mini stats row -->
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                <div class="bg-card-elevated rounded-md p-2.5 border border-border/50">
+                                    <p class="text-[9px] text-muted-foreground uppercase">Monitors</p>
+                                    <p class="text-lg font-semibold text-foreground font-mono" x-text="monitors">37</p>
+                                </div>
+                                <div class="bg-card-elevated rounded-md p-2.5 border border-border/50">
+                                    <p class="text-[9px] text-muted-foreground uppercase">Up</p>
+                                    <p class="text-lg font-semibold text-emerald-400 font-mono" x-text="up">13</p>
+                                </div>
+                                <div class="bg-card-elevated rounded-md p-2.5 border border-border/50">
+                                    <p class="text-[9px] text-muted-foreground uppercase">Down</p>
+                                    <p class="text-lg font-semibold text-red-400 font-mono" x-text="down">24</p>
+                                </div>
+                            </div>
+                            <!-- Service status chips -->
+                            <div class="flex flex-wrap gap-1.5 mb-3">
+                                <template x-for="svc in services" :key="svc.name">
+                                    <div class="inline-flex items-center space-x-1.5 px-2 py-1 rounded-md text-[10px] border"
+                                         :class="svc.up ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400' : 'border-red-500/20 bg-red-500/5 text-red-400'">
+                                        <div class="w-1 h-1 rounded-full" :class="svc.up ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'"></div>
+                                        <span x-text="svc.name"></span>
+                                    </div>
+                                </template>
+                            </div>
+                            <!-- Mini bar chart -->
+                            <div class="bg-card-elevated rounded-md p-3 border border-border/50">
+                                <p class="text-[9px] text-muted-foreground uppercase mb-2">Response Time (ms)</p>
+                                <div class="flex items-end space-x-1 h-12">
+                                    <template x-for="(h, i) in bars" :key="i">
+                                        <div class="flex-1 rounded-sm animate-bar"
+                                             :class="h > 70 ? 'bg-red-500/60' : 'bg-accent/60'"
+                                             :style="'height: ' + h + '%; animation-delay: ' + (i * 0.05) + 's'"></div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -161,31 +219,30 @@
     <!-- How It Works -->
     <section class="py-20 border-t border-border">
         <div class="max-w-5xl mx-auto px-6">
-            <div class="text-center mb-14">
+            <div class="text-center mb-14 reveal">
                 <h2 class="text-2xl md:text-3xl font-bold text-foreground mb-3">How It Works</h2>
                 <p class="text-sm text-muted-foreground">Three steps to full visibility into your internal infrastructure.</p>
             </div>
             <div class="grid md:grid-cols-3 gap-8 relative">
-                <!-- Connecting line (hidden on mobile) -->
-                <div class="hidden md:block absolute top-10 left-1/6 right-1/6 h-px step-line"></div>
+                <div class="hidden md:block absolute top-10 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
 
-                <div class="text-center relative">
-                    <div class="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-                        <span class="text-blue-400 text-lg font-semibold">1</span>
+                <div class="text-center relative reveal" style="transition-delay: 0.1s;">
+                    <div class="w-12 h-12 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="download" class="w-5 h-5 text-accent"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">Deploy Agent</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">Install a lightweight Go binary inside your network. Single command, no config files.</p>
                 </div>
-                <div class="text-center relative">
-                    <div class="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-                        <span class="text-blue-400 text-lg font-semibold">2</span>
+                <div class="text-center relative reveal" style="transition-delay: 0.2s;">
+                    <div class="w-12 h-12 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="radar" class="w-5 h-5 text-accent"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">Agent Monitors</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">Runs ping, HTTP, TCP, and DNS checks against your services. Reports back over WebSocket.</p>
                 </div>
-                <div class="text-center relative">
-                    <div class="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-                        <span class="text-blue-400 text-lg font-semibold">3</span>
+                <div class="text-center relative reveal" style="transition-delay: 0.3s;">
+                    <div class="w-12 h-12 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="bell" class="w-5 h-5 text-accent"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">Get Alerted</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">Real-time dashboard with live status. Instant alerts via Discord, Slack, or webhooks.</p>
@@ -194,76 +251,77 @@
         </div>
     </section>
 
-    <!-- Features -->
-    <section class="py-20 border-t border-border">
+    <!-- Features Bento -->
+    <section class="py-20 border-t border-border" id="features">
         <div class="max-w-5xl mx-auto px-6">
-            <div class="text-center mb-14">
+            <div class="text-center mb-14 reveal">
                 <h2 class="text-2xl md:text-3xl font-bold text-foreground mb-3">Built for Internal Infrastructure</h2>
                 <p class="text-sm text-muted-foreground">Monitor what external tools can't reach.</p>
             </div>
-            <div class="grid md:grid-cols-3 gap-5">
-                <!-- Agent-Based -->
-                <div class="bg-card border border-border rounded-lg p-6 card-hover">
-                    <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
-                        </svg>
+            <!-- Bento grid: 6 cols -->
+            <div class="grid md:grid-cols-6 gap-4">
+                <!-- Agent-Based (4 cols) -->
+                <div class="md:col-span-4 bg-card border border-border rounded-xl p-6 card-hover reveal">
+                    <div class="flex items-start space-x-4">
+                        <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0">
+                            <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-foreground mb-2">Agent-Based Monitoring</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed">Deploy agents inside private networks, VPCs, and behind firewalls. Monitor databases, message queues, internal APIs — everything external tools can't see.</p>
+                        </div>
                     </div>
-                    <h3 class="text-sm font-semibold text-foreground mb-2">Agent-Based Monitoring</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">Deploy agents inside private networks, VPCs, and behind firewalls. Monitor what external tools can't reach.</p>
                 </div>
 
-                <!-- Real-Time Dashboard -->
-                <div class="bg-card border border-border rounded-lg p-6 card-hover">
-                    <div class="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
+                <!-- Real-Time (2 cols) -->
+                <div class="md:col-span-2 bg-card border border-border rounded-xl p-6 card-hover reveal" style="transition-delay: 0.1s;">
+                    <div class="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                        <i data-lucide="activity" class="w-5 h-5 text-accent"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">Real-Time Dashboard</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">Live status updates via WebSocket. See agent health, monitor results, and incident timelines at a glance.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Live status updates via WebSocket. Sparkline charts and uptime bars at a glance.</p>
                 </div>
 
-                <!-- Instant Alerts -->
-                <div class="bg-card border border-border rounded-lg p-6 card-hover">
+                <!-- Alerts (2 cols) -->
+                <div class="md:col-span-2 bg-card border border-border rounded-xl p-6 card-hover reveal" style="transition-delay: 0.15s;">
                     <div class="w-10 h-10 bg-yellow-500/10 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                        </svg>
+                        <i data-lucide="bell-ring" class="w-5 h-5 text-yellow-400"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">Instant Alerts</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">3-strike verification before alerting. Get notified via Discord, Slack, or custom webhooks when services go down.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">3-strike verification before alerting. Discord, Slack, or custom webhooks.</p>
                 </div>
 
-                <!-- Multi-Protocol -->
-                <div class="bg-card border border-border rounded-lg p-6 card-hover">
-                    <div class="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
+                <!-- Multi-Protocol (4 cols) -->
+                <div class="md:col-span-4 bg-card border border-border rounded-xl p-6 card-hover reveal" style="transition-delay: 0.2s;">
+                    <div class="flex items-start space-x-4">
+                        <div class="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center shrink-0">
+                            <i data-lucide="terminal" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-foreground mb-2">Multi-Protocol Checks</h3>
+                            <p class="text-sm text-muted-foreground leading-relaxed mb-3">Ping, HTTP, TCP, and DNS checks. Monitor any service your agent can reach.</p>
+                            <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground">
+                                <span class="text-emerald-400">[OK]</span> PostgreSQL <span class="text-muted-foreground/50">.........</span> <span class="text-foreground">2ms</span><br>
+                                <span class="text-emerald-400">[OK]</span> Redis <span class="text-muted-foreground/50">..............</span> <span class="text-foreground">1ms</span><br>
+                                <span class="text-red-400">[FAIL]</span> Vault <span class="text-muted-foreground/50">............</span> <span class="text-red-400">timeout</span>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-sm font-semibold text-foreground mb-2">Multi-Protocol Checks</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">Ping, HTTP, TCP, and DNS checks. Monitor databases, APIs, message queues, and any TCP service.</p>
                 </div>
 
-                <!-- Zero Config -->
-                <div class="bg-card border border-border rounded-lg p-6 card-hover">
+                <!-- Zero Config (3 cols) -->
+                <div class="md:col-span-3 bg-card border border-border rounded-xl p-6 card-hover reveal" style="transition-delay: 0.25s;">
                     <div class="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
+                        <i data-lucide="zap" class="w-5 h-5 text-orange-400"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">Zero Configuration</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">Agent requires no config file. All monitoring tasks are pushed from the hub automatically over WebSocket.</p>
                 </div>
 
-                <!-- Incident Management -->
-                <div class="bg-card border border-border rounded-lg p-6 card-hover">
+                <!-- Incidents (3 cols) -->
+                <div class="md:col-span-3 bg-card border border-border rounded-xl p-6 card-hover reveal" style="transition-delay: 0.3s;">
                     <div class="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center mb-4">
-                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
+                        <i data-lucide="flame" class="w-5 h-5 text-red-400"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">Incident Management</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">Full incident lifecycle — open, acknowledge, resolve. Track TTR and view incident history per monitor.</p>
@@ -275,46 +333,38 @@
     <!-- Pricing -->
     <section class="py-20 border-t border-border" id="pricing">
         <div class="max-w-4xl mx-auto px-6">
-            <div class="text-center mb-14">
+            <div class="text-center mb-14 reveal">
                 <h2 class="text-2xl md:text-3xl font-bold text-foreground mb-3">Simple Pricing</h2>
                 <p class="text-sm text-muted-foreground">Start free. Upgrade as you grow.</p>
             </div>
             <div class="grid md:grid-cols-3 gap-5">
                 {{range .Plans}}
-                <div class="bg-card border rounded-lg p-6 flex flex-col {{if .Highlighted}}border-blue-500/50 ring-1 ring-blue-500/20{{else}}border-border{{end}}">
+                <div class="bg-card border rounded-xl p-6 flex flex-col card-hover reveal {{if .Highlighted}}border-accent/50 ring-1 ring-accent/20{{else}}border-border{{end}}">
                     {{if .Highlighted}}
-                    <div class="text-xs font-medium text-blue-400 mb-3">Most Popular</div>
+                    <div class="text-xs font-medium text-accent mb-3">Most Popular</div>
                     {{end}}
                     <h3 class="text-base font-semibold text-foreground mb-1">{{.Name}}</h3>
-                    <div class="text-3xl font-bold text-foreground mb-5">{{.Price}}</div>
+                    <div class="text-3xl font-bold text-foreground font-mono mb-5">{{.Price}}</div>
                     <ul class="space-y-3 text-sm text-muted-foreground mb-6 flex-1">
                         <li class="flex items-center space-x-2.5">
-                            <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
                             <span>{{.Agents}}</span>
                         </li>
                         <li class="flex items-center space-x-2.5">
-                            <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
                             <span>{{.Monitors}}</span>
                         </li>
                         <li class="flex items-center space-x-2.5">
-                            <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
                             <span>Real-time dashboard</span>
                         </li>
                         <li class="flex items-center space-x-2.5">
-                            <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
                             <span>Discord, Slack &amp; Webhook alerts</span>
                         </li>
                     </ul>
                     <a href="/register"
-                        class="block text-center py-2 rounded-md text-sm font-medium transition-colors {{if .Highlighted}}bg-foreground text-background hover:bg-foreground/90{{else}}bg-muted text-foreground hover:bg-muted/80{{end}}">
+                        class="block text-center py-2.5 rounded-md text-sm font-medium transition-colors {{if .Highlighted}}bg-accent text-accent-foreground hover:bg-accent/90{{else}}bg-muted text-foreground hover:bg-muted/80{{end}}">
                         Get Started
                     </a>
                 </div>
@@ -325,7 +375,7 @@
 
     <!-- CTA -->
     <section class="py-20 border-t border-border">
-        <div class="max-w-xl mx-auto px-6 text-center">
+        <div class="max-w-xl mx-auto px-6 text-center reveal">
             <h2 class="text-2xl md:text-3xl font-bold text-foreground mb-3">Ready to start monitoring?</h2>
             <p class="text-sm text-muted-foreground mb-8">Join the waitlist and be the first to know when WatchDog launches.</p>
             <form action="/waitlist" method="POST" class="flex flex-col sm:flex-row items-center justify-center gap-2.5 max-w-md mx-auto">
@@ -333,7 +383,7 @@
                     class="w-full sm:flex-1 px-3.5 py-2.5 bg-card border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                     placeholder="you@company.com">
                 <button type="submit"
-                    class="w-full sm:w-auto px-5 py-2.5 bg-foreground text-background hover:bg-foreground/90 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+                    class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors whitespace-nowrap">
                     Join Waitlist
                 </button>
             </form>
@@ -341,23 +391,90 @@
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-border py-8">
-        <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-xs text-muted-foreground">
-            <div class="flex items-center space-x-2 mb-4 md:mb-0">
-                <div class="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
-                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
+    <footer class="border-t border-border py-10">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+                <!-- Brand -->
+                <div class="col-span-2 md:col-span-1">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <div class="w-6 h-6 bg-gradient-accent rounded flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-3 h-3 text-white"></i>
+                        </div>
+                        <span class="text-sm font-semibold text-foreground">WatchDog</span>
+                    </div>
+                    <p class="text-xs text-muted-foreground leading-relaxed">Monitor services behind your firewall with lightweight agents.</p>
                 </div>
-                <span>WatchDog</span>
+                <!-- Product -->
+                <div>
+                    <p class="text-xs font-medium text-foreground uppercase tracking-wider mb-3">Product</p>
+                    <ul class="space-y-2 text-xs text-muted-foreground">
+                        <li><a href="#features" class="hover:text-foreground transition-colors">Features</a></li>
+                        <li><a href="#pricing" class="hover:text-foreground transition-colors">Pricing</a></li>
+                        <li><a href="/login" class="hover:text-foreground transition-colors">Dashboard</a></li>
+                    </ul>
+                </div>
+                <!-- Company -->
+                <div>
+                    <p class="text-xs font-medium text-foreground uppercase tracking-wider mb-3">Company</p>
+                    <ul class="space-y-2 text-xs text-muted-foreground">
+                        <li><a href="#" class="hover:text-foreground transition-colors">About</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-colors">Blog</a></li>
+                    </ul>
+                </div>
+                <!-- Legal -->
+                <div>
+                    <p class="text-xs font-medium text-foreground uppercase tracking-wider mb-3">Legal</p>
+                    <ul class="space-y-2 text-xs text-muted-foreground">
+                        <li><a href="#" class="hover:text-foreground transition-colors">Privacy</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-colors">Terms</a></li>
+                    </ul>
+                </div>
             </div>
-            <div class="flex items-center space-x-5">
-                <a href="/login" class="hover:text-foreground transition-colors">Login</a>
-                <a href="/register" class="hover:text-foreground transition-colors">Sign Up</a>
-                <a href="#pricing" class="hover:text-foreground transition-colors">Pricing</a>
+            <div class="border-t border-border pt-6 text-xs text-muted-foreground text-center">
+                &copy; 2026 WatchDog. All rights reserved.
             </div>
         </div>
     </footer>
+
+    <!-- Scroll Reveal + Dashboard Mockup -->
+    <script>
+    // IntersectionObserver for reveals
+    document.addEventListener('DOMContentLoaded', function() {
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(function(el) {
+            observer.observe(el);
+        });
+        // Init Lucide icons
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+
+    // Alpine.js dashboard mockup data
+    function dashboardMockup() {
+        return {
+            monitors: 37,
+            up: 13,
+            down: 24,
+            services: [
+                { name: 'PostgreSQL', up: true },
+                { name: 'Redis', up: true },
+                { name: 'Nginx', up: true },
+                { name: 'Vault', up: false },
+                { name: 'RabbitMQ', up: false },
+                { name: 'Memcached', up: true },
+                { name: 'MinIO', up: false },
+                { name: 'Grafana', up: true },
+            ],
+            bars: [30, 25, 40, 35, 60, 45, 80, 55, 35, 45, 30, 75, 40, 50, 35, 25, 45, 55, 40, 30]
+        };
+    }
+    </script>
 
 </body>
 </html>
