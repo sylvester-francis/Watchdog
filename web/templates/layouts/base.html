@@ -40,10 +40,10 @@
                         card: { DEFAULT: '#111113', foreground: '#fafafa' },
                         'card-elevated': '#18181b',
                         muted: { DEFAULT: '#27272a', foreground: '#a1a1aa' },
-                        accent: { DEFAULT: '#6366f1', foreground: '#fafafa' },
+                        accent: { DEFAULT: '#3b82f6', foreground: '#fafafa' },
                         border: '#27272a',
                         input: '#27272a',
-                        ring: '#6366f1',
+                        ring: '#3b82f6',
                         destructive: { DEFAULT: '#ef4444', foreground: '#fafafa' },
                         success: '#22c55e',
                         warning: '#eab308',
@@ -56,9 +56,6 @@
                     fontFamily: {
                         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
                         mono: ['JetBrains Mono', 'Menlo', 'monospace'],
-                    },
-                    backgroundImage: {
-                        'gradient-accent': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
                     },
                 }
             }
@@ -185,7 +182,6 @@
                             <span>Search...</span>
                             <kbd class="ml-2 px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">&#8984;K</kbd>
                         </button>
-                        <span class="text-muted-foreground text-xs">Welcome</span>
                         <form action="/logout" method="POST" class="inline">
                             {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
                             <button type="submit" class="text-xs text-muted-foreground hover:text-foreground transition-smooth">
