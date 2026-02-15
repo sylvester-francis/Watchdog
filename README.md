@@ -35,37 +35,36 @@ WatchDog is a monitoring system that uses a **Private Agent** architecture to mo
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph Cloud
+        subgraph Hub["Hub Server"]
+            API["REST API"]
+            WS["WebSocket"]
+            Dash["Dashboard<br/>(Go Templates + HTMX)"]
+            DB[("PostgreSQL +<br/>TimescaleDB")]
+        end
+    end
+
+    subgraph Net["Customer Network"]
+        subgraph Agent
+            HTTP["HTTP<br/>Checker"]
+            TCP["TCP<br/>Checker"]
+            Ping["Ping<br/>Checker"]
+            DNS["DNS<br/>Checker"]
+        end
+        T1["Database"]
+        T2["Internal API"]
+        T3["Service"]
+    end
+
+    Agent -- "WebSocket<br/>(outbound only)" --> Hub
+    HTTP --> T2
+    TCP --> T1
+    Ping --> T3
 ```
-+-----------------------------------------------------------------+
-|                            CLOUD                                |
-|  +-----------------------------------------------------------+  |
-|  |                      HUB SERVER                           |  |
-|  |  +----------+  +-----------+  +------------------------+  |  |
-|  |  | REST API |  | WebSocket |  |      Dashboard         |  |  |
-|  |  +----------+  +-----------+  | (Go Templates + HTMX)  |  |  |
-|  |                               +------------------------+  |  |
-|  |  +-----------------------------------------------------+  |  |
-|  |  |          PostgreSQL + TimescaleDB                   |  |  |
-|  |  +-----------------------------------------------------+  |  |
-|  +-----------------------------------------------------------+  |
-+-----------------------------------------------------------------+
-                               ^
-                               | WebSocket (outbound only)
-                               |
-+-----------------------------------------------------------------+
-|                    CUSTOMER NETWORK                             |
-|  +-----------------------------------------------------------+  |
-|  |                       AGENT                               |  |
-|  |  +---------+  +---------+  +---------+  +---------+       |  |
-|  |  |  HTTP   |  |   TCP   |  |  Ping   |  |   DNS   |       |  |
-|  |  | Checker |  | Checker |  | Checker |  | Checker |       |  |
-|  |  +---------+  +---------+  +---------+  +---------+       |  |
-|  +-----------------------------------------------------------+  |
-|                    |              |              |              |
-|                    v              v              v              |
-|              [Database]    [Internal API]   [Service]           |
-+-----------------------------------------------------------------+
-```
+
+> [View Excalidraw source](docs/diagrams/architecture.excalidraw)
 
 The system is split across three repositories:
 
