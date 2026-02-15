@@ -134,6 +134,7 @@ func main() {
 		UserRepo:         userRepo,
 		AgentRepo:        agentRepo,
 		MonitorRepo:      monitorRepo,
+		HeartbeatRepo:    heartbeatRepo,
 		UsageEventRepo:   usageEventRepo,
 		WaitlistRepo:     waitlistRepo,
 		Hub:              hub,
