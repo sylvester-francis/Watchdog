@@ -6,10 +6,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
-	"github.com/sylvester/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester/watchdog/internal/adapters/http/view"
-	"github.com/sylvester/watchdog/internal/core/domain"
-	"github.com/sylvester/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
 // DashboardData holds the data for the dashboard template.
@@ -33,6 +33,7 @@ type DashboardHandler struct {
 	agentRepo   ports.AgentRepository
 	monitorRepo ports.MonitorRepository
 	incidentSvc ports.IncidentService
+	userRepo    ports.UserRepository
 	templates   *view.Templates
 }
 
@@ -41,12 +42,14 @@ func NewDashboardHandler(
 	agentRepo ports.AgentRepository,
 	monitorRepo ports.MonitorRepository,
 	incidentSvc ports.IncidentService,
+	userRepo ports.UserRepository,
 	templates *view.Templates,
 ) *DashboardHandler {
 	return &DashboardHandler{
 		agentRepo:   agentRepo,
 		monitorRepo: monitorRepo,
 		incidentSvc: incidentSvc,
+		userRepo:    userRepo,
 		templates:   templates,
 	}
 }
@@ -95,12 +98,42 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		}
 	}
 
+	// Fetch user plan info
+	user, err := h.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		user = &domain.User{Plan: domain.PlanFree}
+	}
+
 	return c.Render(http.StatusOK, "dashboard.html", map[string]interface{}{
 		"Title":           "Dashboard",
 		"Agents":          agents,
 		"ActiveIncidents": incidents,
 		"Stats":           stats,
+		"Plan":            user.Plan.String(),
+		"PlanLimits":      user.Plan.Limits(),
+		"IsAdmin":         user.IsAdmin,
 	})
+}
+
+// AgentResponse is the JSON representation of an agent.
+type AgentResponse struct {
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	Status     string  `json:"status"`
+	LastSeenAt *string `json:"lastSeenAt,omitempty"`
+}
+
+func toAgentResponse(agent *domain.Agent) AgentResponse {
+	ar := AgentResponse{
+		ID:     agent.ID.String(),
+		Name:   agent.Name,
+		Status: string(agent.Status),
+	}
+	if agent.LastSeenAt != nil {
+		t := agent.LastSeenAt.Format("2006-01-02T15:04:05Z07:00")
+		ar.LastSeenAt = &t
+	}
+	return ar
 }
 
 // AgentsJSON returns a JSON list of agents for HTMX requests.
@@ -117,26 +150,9 @@ func (h *DashboardHandler) AgentsJSON(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load agents"})
 	}
 
-	// Convert to a JSON-friendly format
-	type AgentResponse struct {
-		ID         string  `json:"id"`
-		Name       string  `json:"name"`
-		Status     string  `json:"status"`
-		LastSeenAt *string `json:"lastSeenAt,omitempty"`
-	}
-
 	response := make([]AgentResponse, len(agents))
 	for i, agent := range agents {
-		ar := AgentResponse{
-			ID:     agent.ID.String(),
-			Name:   agent.Name,
-			Status: string(agent.Status),
-		}
-		if agent.LastSeenAt != nil {
-			t := agent.LastSeenAt.Format("2006-01-02T15:04:05Z07:00")
-			ar.LastSeenAt = &t
-		}
-		response[i] = ar
+		response[i] = toAgentResponse(agent)
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -160,22 +176,5 @@ func (h *DashboardHandler) AgentJSON(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "agent not found"})
 	}
 
-	type AgentResponse struct {
-		ID         string  `json:"id"`
-		Name       string  `json:"name"`
-		Status     string  `json:"status"`
-		LastSeenAt *string `json:"lastSeenAt,omitempty"`
-	}
-
-	ar := AgentResponse{
-		ID:     agent.ID.String(),
-		Name:   agent.Name,
-		Status: string(agent.Status),
-	}
-	if agent.LastSeenAt != nil {
-		t := agent.LastSeenAt.Format("2006-01-02T15:04:05Z07:00")
-		ar.LastSeenAt = &t
-	}
-
-	return c.JSON(http.StatusOK, ar)
+	return c.JSON(http.StatusOK, toAgentResponse(agent))
 }

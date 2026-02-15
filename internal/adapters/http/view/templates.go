@@ -10,7 +10,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
 )
 
 // Templates implements echo.Renderer for Go templates.

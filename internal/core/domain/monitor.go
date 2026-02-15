@@ -16,6 +16,18 @@ const (
 	MonitorTypeDNS  MonitorType = "dns"
 )
 
+// ValidMonitorTypes lists all valid monitor types.
+var ValidMonitorTypes = []MonitorType{MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS}
+
+// ValidMonitorTypeStrings returns monitor types as strings (for templates).
+func ValidMonitorTypeStrings() []string {
+	out := make([]string, len(ValidMonitorTypes))
+	for i, t := range ValidMonitorTypes {
+		out[i] = string(t)
+	}
+	return out
+}
+
 // IsValid checks if the type is a valid MonitorType.
 func (t MonitorType) IsValid() bool {
 	switch t {

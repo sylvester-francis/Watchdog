@@ -16,6 +16,7 @@ tasks.md
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~

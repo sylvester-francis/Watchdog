@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/sylvester-francis/watchdog-proto/protocol"
 )
 
 // Client configuration constants.
@@ -25,16 +26,20 @@ const (
 	maxMessageSize = 512 * 1024 // 512 KB
 )
 
+// HeartbeatCallback is called when a heartbeat is received from an agent.
+type HeartbeatCallback func(agentID uuid.UUID, payload *protocol.HeartbeatPayload)
+
 // Client represents a connected agent.
 type Client struct {
-	AgentID   uuid.UUID
-	AgentName string
-	conn      *websocket.Conn
-	send      chan *Message
-	hub       *Hub
-	logger    *slog.Logger
-	closeOnce sync.Once
-	closeCh   chan struct{}
+	AgentID     uuid.UUID
+	AgentName   string
+	conn        *websocket.Conn
+	send        chan *protocol.Message
+	hub         *Hub
+	logger      *slog.Logger
+	closeOnce   sync.Once
+	closeCh     chan struct{}
+	onHeartbeat HeartbeatCallback
 }
 
 // NewClient creates a new client for the given connection.
@@ -43,11 +48,16 @@ func NewClient(hub *Hub, conn *websocket.Conn, agentID uuid.UUID, agentName stri
 		AgentID:   agentID,
 		AgentName: agentName,
 		conn:      conn,
-		send:      make(chan *Message, 256),
+		send:      make(chan *protocol.Message, 256),
 		hub:       hub,
 		logger:    logger,
 		closeCh:   make(chan struct{}),
 	}
+}
+
+// SetHeartbeatCallback sets the callback for heartbeat processing.
+func (c *Client) SetHeartbeatCallback(cb HeartbeatCallback) {
+	c.onHeartbeat = cb
 }
 
 // Start begins the read and write pumps for this client.
@@ -58,7 +68,7 @@ func (c *Client) Start() {
 
 // Send queues a message to be sent to the client.
 // Returns false if the send buffer is full or client is closed.
-func (c *Client) Send(message *Message) bool {
+func (c *Client) Send(message *protocol.Message) bool {
 	select {
 	case c.send <- message:
 		return true
@@ -91,6 +101,11 @@ func (c *Client) IsClosed() bool {
 	}
 }
 
+// CloseCh returns the close channel for waiting on disconnection.
+func (c *Client) CloseCh() <-chan struct{} {
+	return c.closeCh
+}
+
 // readPump pumps messages from the websocket connection to the hub.
 func (c *Client) readPump() {
 	defer func() {
@@ -119,7 +134,7 @@ func (c *Client) readPump() {
 			return
 		}
 
-		var msg Message
+		var msg protocol.Message
 		if err := json.Unmarshal(data, &msg); err != nil {
 			c.logger.Warn("failed to parse message",
 				slog.String("agent_id", c.AgentID.String()),
@@ -185,11 +200,11 @@ func (c *Client) writePump() {
 }
 
 // handleMessage processes incoming messages from the agent.
-func (c *Client) handleMessage(msg *Message) {
+func (c *Client) handleMessage(msg *protocol.Message) {
 	switch msg.Type {
-	case MsgTypeHeartbeat:
+	case protocol.MsgTypeHeartbeat:
 		c.handleHeartbeat(msg)
-	case MsgTypePong:
+	case protocol.MsgTypePong:
 		// Pong received, connection is alive
 		c.logger.Debug("pong received", slog.String("agent_id", c.AgentID.String()))
 	default:
@@ -201,8 +216,8 @@ func (c *Client) handleMessage(msg *Message) {
 }
 
 // handleHeartbeat processes heartbeat messages from the agent.
-func (c *Client) handleHeartbeat(msg *Message) {
-	var payload HeartbeatPayload
+func (c *Client) handleHeartbeat(msg *protocol.Message) {
+	var payload protocol.HeartbeatPayload
 	if err := msg.ParsePayload(&payload); err != nil {
 		c.logger.Warn("failed to parse heartbeat payload",
 			slog.String("agent_id", c.AgentID.String()),
@@ -218,11 +233,13 @@ func (c *Client) handleHeartbeat(msg *Message) {
 		slog.Int("latency_ms", payload.LatencyMs),
 	)
 
-	// TODO: Process heartbeat through monitor service
+	if c.onHeartbeat != nil {
+		c.onHeartbeat(c.AgentID, &payload)
+	}
 }
 
 // MessageHandler is a callback for handling messages.
-type MessageHandler func(client *Client, msg *Message)
+type MessageHandler func(client *Client, msg *protocol.Message)
 
 // ClientConfig holds client configuration.
 type ClientConfig struct {

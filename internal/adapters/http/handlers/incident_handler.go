@@ -6,10 +6,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
-	"github.com/sylvester/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester/watchdog/internal/adapters/http/view"
-	"github.com/sylvester/watchdog/internal/core/domain"
-	"github.com/sylvester/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
 // IncidentWithMonitor combines an incident with its monitor details.

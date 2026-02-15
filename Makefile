@@ -1,4 +1,4 @@
-.PHONY: help dev dev-hub dev-agent build build-hub build-agent test test-short test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools pre-commit-install pre-commit-run
+.PHONY: help dev dev-hub build build-hub test test-short test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools pre-commit-install pre-commit-run
 
 # Default target
 help:
@@ -7,12 +7,10 @@ help:
 	@echo "Development:"
 	@echo "  make dev          - Start full development environment (DB + Hub with hot reload)"
 	@echo "  make dev-hub      - Run hub with hot reload (Air)"
-	@echo "  make dev-agent    - Run agent in development mode"
 	@echo ""
 	@echo "Build:"
-	@echo "  make build        - Build both hub and agent binaries"
+	@echo "  make build        - Build hub binary"
 	@echo "  make build-hub    - Build hub binary"
-	@echo "  make build-agent  - Build agent for all platforms"
 	@echo ""
 	@echo "Database:"
 	@echo "  make migrate-up   - Apply all migrations"
@@ -44,7 +42,6 @@ help:
 # Variables
 BINARY_DIR := bin
 HUB_BINARY := $(BINARY_DIR)/hub
-AGENT_BINARY := $(BINARY_DIR)/agent
 DATABASE_URL ?= postgres://watchdog:watchdog@localhost:5432/watchdog?sslmode=disable
 
 # Development
@@ -54,21 +51,15 @@ dev-hub:
 	@command -v air > /dev/null || (echo "Installing air..." && go install github.com/air-verse/air@latest)
 	air -c .air.toml
 
-dev-agent:
-	go run ./cmd/agent/main.go
-
 docker-db:
 	docker compose -f deployments/docker-compose.yml up -d postgres
 
 # Build
-build: build-hub build-agent
+build: build-hub
 
 build-hub:
 	@mkdir -p $(BINARY_DIR)
 	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(HUB_BINARY) ./cmd/hub
-
-build-agent:
-	@./scripts/build-agent.sh
 
 # Database
 migrate-up:

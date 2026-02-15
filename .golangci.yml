@@ -80,7 +80,7 @@ linters-settings:
     locale: US
 
   goimports:
-    local-prefixes: github.com/sylvester/watchdog
+    local-prefixes: github.com/sylvester-francis/watchdog
 
   gocritic:
     enabled-tags:

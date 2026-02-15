@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
-	"github.com/sylvester/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
 // IncidentService implements ports.IncidentService for incident lifecycle management.

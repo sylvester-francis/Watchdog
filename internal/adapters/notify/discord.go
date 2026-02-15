@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
 )
 
 // Discord embed colors.

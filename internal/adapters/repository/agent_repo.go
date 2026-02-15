@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
 )
 
 // AgentRepository implements ports.AgentRepository using PostgreSQL.
@@ -177,6 +177,21 @@ func (r *AgentRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status
 	}
 
 	return nil
+}
+
+// CountByUserID returns the number of agents belonging to a user.
+func (r *AgentRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
+	q := r.db.Querier(ctx)
+
+	query := `SELECT COUNT(*) FROM agents WHERE user_id = $1`
+
+	var count int
+	err := q.QueryRow(ctx, query, userID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("agentRepo.CountByUserID(%s): %w", userID, err)
+	}
+
+	return count, nil
 }
 
 // UpdateLastSeen updates only the last_seen_at timestamp of an agent.

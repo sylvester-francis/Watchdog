@@ -1,6 +1,6 @@
-module github.com/sylvester/watchdog
+module github.com/sylvester-francis/watchdog
 
-go 1.25.0
+go 1.25.6
 
 require (
 	github.com/google/uuid v1.6.0
@@ -10,6 +10,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.15.0
 	github.com/stretchr/testify v1.11.1
+	github.com/sylvester-francis/watchdog-proto v0.1.0
 	golang.org/x/crypto v0.47.0
 )
 

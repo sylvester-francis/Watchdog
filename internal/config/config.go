@@ -16,11 +16,12 @@ type Config struct {
 
 // ServerConfig holds HTTP server configuration.
 type ServerConfig struct {
-	Host         string        `envconfig:"SERVER_HOST" default:"0.0.0.0"`
-	Port         int           `envconfig:"SERVER_PORT" default:"8080"`
-	ReadTimeout  time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"15s"`
-	WriteTimeout time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"15s"`
-	IdleTimeout  time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"60s"`
+	Host          string        `envconfig:"SERVER_HOST" default:"0.0.0.0"`
+	Port          int           `envconfig:"SERVER_PORT" default:"8080"`
+	ReadTimeout   time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"15s"`
+	WriteTimeout  time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"15s"`
+	IdleTimeout   time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"60s"`
+	SecureCookies bool          `envconfig:"SERVER_SECURE_COOKIES" default:"false"`
 }
 
 // Address returns the server address in host:port format.

@@ -6,21 +6,21 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/sylvester/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester/watchdog/internal/adapters/http/view"
-	"github.com/sylvester/watchdog/internal/core/ports"
-	"github.com/sylvester/watchdog/internal/core/services"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/core/services"
 )
 
 // AuthHandler handles authentication-related HTTP requests.
 type AuthHandler struct {
-	authSvc   ports.AuthService
+	authSvc   ports.UserAuthService
 	userRepo  ports.UserRepository
 	templates *view.Templates
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(authSvc ports.AuthService, userRepo ports.UserRepository, templates *view.Templates) *AuthHandler {
+func NewAuthHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository, templates *view.Templates) *AuthHandler {
 	return &AuthHandler{
 		authSvc:   authSvc,
 		userRepo:  userRepo,

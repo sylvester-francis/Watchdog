@@ -8,7 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
 // UserRepository implements ports.UserRepository using PostgreSQL.
@@ -26,14 +27,16 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	q := r.db.Querier(ctx)
 
 	query := `
-		INSERT INTO users (id, email, password_hash, stripe_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`
+		INSERT INTO users (id, email, password_hash, plan, stripe_id, is_admin, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := q.Exec(ctx, query,
 		user.ID,
 		user.Email,
 		user.PasswordHash,
+		user.Plan,
 		user.StripeID,
+		user.IsAdmin,
 		user.CreatedAt,
 		user.UpdatedAt,
 	)
@@ -49,7 +52,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, password_hash, stripe_id, created_at, updated_at
+		SELECT id, email, password_hash, plan, stripe_id, is_admin, created_at, updated_at
 		FROM users
 		WHERE id = $1`
 
@@ -58,7 +61,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		&user.ID,
 		&user.Email,
 		&user.PasswordHash,
+		&user.Plan,
 		&user.StripeID,
+		&user.IsAdmin,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -77,7 +82,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, password_hash, stripe_id, created_at, updated_at
+		SELECT id, email, password_hash, plan, stripe_id, is_admin, created_at, updated_at
 		FROM users
 		WHERE email = $1`
 
@@ -86,7 +91,9 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		&user.ID,
 		&user.Email,
 		&user.PasswordHash,
+		&user.Plan,
 		&user.StripeID,
+		&user.IsAdmin,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -106,14 +113,16 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 
 	query := `
 		UPDATE users
-		SET email = $2, password_hash = $3, stripe_id = $4, updated_at = $5
+		SET email = $2, password_hash = $3, plan = $4, stripe_id = $5, is_admin = $6, updated_at = $7
 		WHERE id = $1`
 
 	result, err := q.Exec(ctx, query,
 		user.ID,
 		user.Email,
 		user.PasswordHash,
+		user.Plan,
 		user.StripeID,
+		user.IsAdmin,
 		user.UpdatedAt,
 	)
 	if err != nil {
@@ -143,6 +152,91 @@ func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+// Count returns the total number of users.
+func (r *UserRepository) Count(ctx context.Context) (int, error) {
+	q := r.db.Querier(ctx)
+
+	var count int
+	err := q.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("userRepo.Count: %w", err)
+	}
+
+	return count, nil
+}
+
+// CountByPlan returns the number of users per plan tier.
+func (r *UserRepository) CountByPlan(ctx context.Context) (map[domain.Plan]int, error) {
+	q := r.db.Querier(ctx)
+
+	query := `SELECT plan, COUNT(*) FROM users GROUP BY plan`
+
+	rows, err := q.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("userRepo.CountByPlan: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[domain.Plan]int)
+	for rows.Next() {
+		var plan domain.Plan
+		var count int
+		if err := rows.Scan(&plan, &count); err != nil {
+			return nil, fmt.Errorf("userRepo.CountByPlan: scan: %w", err)
+		}
+		result[plan] = count
+	}
+
+	return result, rows.Err()
+}
+
+// GetUsersNearLimits returns users who are at or near their plan limits (80%+).
+func (r *UserRepository) GetUsersNearLimits(ctx context.Context) ([]ports.UserUsageSummary, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT u.email, u.plan,
+			COALESCE(ac.cnt, 0) AS agent_count,
+			COALESCE(mc.cnt, 0) AS monitor_count
+		FROM users u
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) AS cnt FROM agents GROUP BY user_id
+		) ac ON ac.user_id = u.id
+		LEFT JOIN (
+			SELECT a.user_id, COUNT(*) AS cnt
+			FROM monitors m JOIN agents a ON m.agent_id = a.id
+			GROUP BY a.user_id
+		) mc ON mc.user_id = u.id
+		WHERE u.plan != 'team'
+		ORDER BY u.email`
+
+	rows, err := q.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("userRepo.GetUsersNearLimits: %w", err)
+	}
+	defer rows.Close()
+
+	var results []ports.UserUsageSummary
+	for rows.Next() {
+		var s ports.UserUsageSummary
+		if err := rows.Scan(&s.Email, &s.Plan, &s.AgentCount, &s.MonitorCount); err != nil {
+			return nil, fmt.Errorf("userRepo.GetUsersNearLimits: scan: %w", err)
+		}
+		limits := s.Plan.Limits()
+		s.AgentMax = limits.MaxAgents
+		s.MonitorMax = limits.MaxMonitors
+
+		// Only include users at 80%+ of either limit
+		agentNear := limits.MaxAgents > 0 && float64(s.AgentCount) >= float64(limits.MaxAgents)*0.8
+		monitorNear := limits.MaxMonitors > 0 && float64(s.MonitorCount) >= float64(limits.MaxMonitors)*0.8
+		if agentNear || monitorNear {
+			results = append(results, s)
+		}
+	}
+
+	return results, rows.Err()
 }
 
 // ExistsByEmail checks if a user with the given email exists.

@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
-	"github.com/sylvester/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester/watchdog/internal/core/ports"
-	"github.com/sylvester/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 
 // SSEHandler handles Server-Sent Events for real-time updates.

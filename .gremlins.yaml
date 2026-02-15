@@ -1,21 +1,28 @@
 # Gremlins Mutation Testing Configuration
 # https://gremlins.dev/latest/
 
-# Timeout for each test run
+# Timeout for each test run (base; gremlins applies timeout-coefficient on top)
 timeout: 10s
+
+# Timeout coefficient — multiplier on base timeout per mutant test run.
+# Needed because Argon2 hashing (~250ms/call) makes auth_service tests slow.
+timeout-coefficient: 20
 
 # Number of workers for parallel mutation testing
 workers: 4
 
 # Threshold for mutation score (percentage of killed mutants)
-threshold: 0.7
+threshold: 0.85
 
 # Packages to mutate
 packages:
   - "./internal/core/domain/..."
+  - "./internal/core/services/..."
   - "./internal/crypto/..."
   - "./internal/core/realtime/..."
+  - "./internal/adapters/http/handlers/..."
   - "./internal/adapters/http/middleware/..."
+  - "./internal/adapters/notify/..."
 
 # Exclude patterns
 exclude:
