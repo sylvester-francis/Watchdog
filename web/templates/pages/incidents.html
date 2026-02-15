@@ -6,9 +6,9 @@
 <div x-data="{ view: 'table', selectedIncidents: [], selectAll: false }" class="space-y-6">
 
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 fade-in-up">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in-up">
         <div>
-            <p class="text-sm text-zinc-400">Track and manage service disruptions</p>
+            <p class="text-sm text-muted-foreground">Track and manage service disruptions</p>
         </div>
 
         <!-- Stats Pills -->
@@ -37,12 +37,12 @@
     </div>
 
     <!-- Toolbar: Filters + View Toggle -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 fade-in-up stagger-1">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fade-in-up stagger-1">
         <!-- Filter Tabs -->
-        <div class="flex items-center space-x-1 bg-[#18181b] rounded-lg p-1 w-fit" x-data="{ activeTab: '{{.StatusFilter}}' }">
+        <div class="flex items-center space-x-1 bg-card-elevated rounded-lg p-1 w-fit">
             <a href="/incidents?status=active"
                 class="relative px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                {{if eq .StatusFilter "active"}}bg-zinc-800 text-white shadow-sm{{else}}text-zinc-400 hover:text-zinc-200{{end}}">
+                {{if eq .StatusFilter "active"}}bg-muted text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
                 <span class="flex items-center space-x-1.5">
                     <i data-lucide="flame" class="w-3 h-3"></i>
                     <span>Active</span>
@@ -50,7 +50,7 @@
             </a>
             <a href="/incidents?status=resolved"
                 class="relative px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                {{if eq .StatusFilter "resolved"}}bg-zinc-800 text-white shadow-sm{{else}}text-zinc-400 hover:text-zinc-200{{end}}">
+                {{if eq .StatusFilter "resolved"}}bg-muted text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
                 <span class="flex items-center space-x-1.5">
                     <i data-lucide="check-circle-2" class="w-3 h-3"></i>
                     <span>Resolved</span>
@@ -58,7 +58,7 @@
             </a>
             <a href="/incidents?status=all"
                 class="relative px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                {{if eq .StatusFilter "all"}}bg-zinc-800 text-white shadow-sm{{else}}text-zinc-400 hover:text-zinc-200{{end}}">
+                {{if eq .StatusFilter "all"}}bg-muted text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
                 <span class="flex items-center space-x-1.5">
                     <i data-lucide="list" class="w-3 h-3"></i>
                     <span>All</span>
@@ -69,24 +69,24 @@
         <div class="flex items-center space-x-3">
             <!-- Bulk Actions (shown when incidents selected) -->
             <div x-show="selectedIncidents.length > 0" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="flex items-center space-x-2">
-                <span class="text-xs text-zinc-400" x-text="selectedIncidents.length + ' selected'"></span>
+                <span class="text-xs text-muted-foreground" x-text="selectedIncidents.length + ' selected'"></span>
                 <button @click="bulkAck()" class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-all duration-200">
                     Ack All
                 </button>
                 <button @click="bulkResolve()" class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-all duration-200">
                     Resolve All
                 </button>
-                <button @click="selectedIncidents = []; selectAll = false" class="px-2 py-1 text-zinc-500 hover:text-zinc-300 text-xs transition-all duration-200">
+                <button @click="selectedIncidents = []; selectAll = false" class="px-2 py-1 text-muted-foreground hover:text-foreground text-xs transition-all duration-200">
                     Clear
                 </button>
             </div>
 
             <!-- View Toggle -->
-            <div class="flex items-center bg-[#18181b] rounded-lg p-1">
-                <button @click="view = 'table'" :class="view === 'table' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'" class="p-1.5 rounded-md transition-all duration-200">
+            <div class="flex items-center bg-card-elevated rounded-lg p-1">
+                <button @click="view = 'table'" :class="view === 'table' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'" class="p-1.5 rounded-md transition-all duration-200">
                     <i data-lucide="table-2" class="w-3.5 h-3.5"></i>
                 </button>
-                <button @click="view = 'timeline'" :class="view === 'timeline' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'" class="p-1.5 rounded-md transition-all duration-200">
+                <button @click="view = 'timeline'" :class="view === 'timeline' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'" class="p-1.5 rounded-md transition-all duration-200">
                     <i data-lucide="git-commit-horizontal" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
@@ -96,25 +96,25 @@
     {{if .IncidentsWithMonitors}}
 
     <!-- TABLE VIEW -->
-    <div x-show="view === 'table'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="bg-[#111113] border border-zinc-800 rounded-lg fade-in-up stagger-2">
+    <div x-show="view === 'table'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="bg-card border border-border rounded-lg animate-fade-in-up stagger-2">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead>
-                    <tr class="border-b border-zinc-800">
+                    <tr class="border-b border-border">
                         <th class="px-4 py-3 text-left w-10">
                             <input type="checkbox" x-model="selectAll"
                                 @change="selectAll ? selectedIncidents = [{{range $i, $im := .IncidentsWithMonitors}}{{if $i}},{{end}}'{{$im.Incident.ID}}'{{end}}] : selectedIncidents = []"
-                                class="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500/20 focus:ring-offset-0 cursor-pointer">
+                                class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-accent/20 focus:ring-offset-0 cursor-pointer">
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Monitor</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider hidden md:table-cell">Target</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Started</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:table-cell">Duration</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitor</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Target</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Started</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Duration</th>
+                        <th class="px-4 py-3 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-800/50" id="incidents-list">
+                <tbody class="divide-y divide-border/50" id="incidents-list">
                     {{range .IncidentsWithMonitors}}
                     {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor}}
                     {{end}}
@@ -124,10 +124,10 @@
     </div>
 
     <!-- TIMELINE VIEW -->
-    <div x-show="view === 'timeline'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="fade-in-up stagger-2">
+    <div x-show="view === 'timeline'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="animate-fade-in-up stagger-2">
         <div class="relative">
             <!-- Vertical line -->
-            <div class="absolute left-[19px] top-0 bottom-0 w-px bg-zinc-800"></div>
+            <div class="absolute left-[19px] top-0 bottom-0 w-px bg-border"></div>
 
             <div class="space-y-4">
                 {{range .IncidentsWithMonitors}}
@@ -141,7 +141,7 @@
                     </div>
 
                     <!-- Content Card -->
-                    <div class="flex-1 bg-[#111113] border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-all duration-200 group-hover:bg-[#141416]">
+                    <div class="flex-1 bg-card border border-border rounded-lg p-4 hover:border-muted transition-all duration-200 group-hover:bg-card-elevated">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center space-x-2 mb-1.5">
@@ -152,16 +152,16 @@
                                         {{.Incident.Status}}
                                     </span>
                                     {{if .Monitor}}
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 uppercase font-mono">{{.Monitor.Type}}</span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase font-mono">{{.Monitor.Type}}</span>
                                     {{end}}
                                 </div>
-                                <h4 class="text-sm font-medium text-zinc-200">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</h4>
+                                <h4 class="text-sm font-medium text-foreground">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</h4>
                                 {{if .Monitor}}
-                                <p class="text-xs text-zinc-500 font-mono mt-0.5 truncate">{{.Monitor.Target}}</p>
+                                <p class="text-xs text-muted-foreground font-mono mt-0.5 truncate">{{.Monitor.Target}}</p>
                                 {{end}}
                             </div>
                             <div class="flex flex-col items-end space-y-2 flex-shrink-0">
-                                <span class="text-xs text-zinc-500">{{formatTimeAgo .Incident.StartedAt}}</span>
+                                <span class="text-xs text-muted-foreground">{{formatTimeAgo .Incident.StartedAt}}</span>
                                 <div class="flex items-center space-x-1.5">
                                     {{if eq (print .Incident.Status) "open"}}
                                     <button hx-post="/incidents/{{.Incident.ID}}/ack" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
@@ -180,12 +180,12 @@
                         </div>
 
                         {{if .Incident.TTRSeconds}}
-                        <div class="mt-2 pt-2 border-t border-zinc-800/50 flex items-center space-x-2">
-                            <i data-lucide="timer" class="w-3 h-3 text-zinc-500"></i>
-                            <span class="text-xs text-zinc-500 font-mono">TTR: {{.Incident.TTRSeconds}}s</span>
+                        <div class="mt-2 pt-2 border-t border-border/50 flex items-center space-x-2">
+                            <i data-lucide="timer" class="w-3 h-3 text-muted-foreground"></i>
+                            <span class="text-xs text-muted-foreground font-mono">TTR: {{.Incident.TTRSeconds}}s</span>
                         </div>
                         {{else if not (eq (print .Incident.Status) "resolved")}}
-                        <div class="mt-2 pt-2 border-t border-zinc-800/50 flex items-center space-x-2">
+                        <div class="mt-2 pt-2 border-t border-border/50 flex items-center space-x-2">
                             <i data-lucide="clock" class="w-3 h-3 text-red-400"></i>
                             <span class="text-xs text-red-400 font-mono">{{formatDuration .Incident.Duration}}</span>
                         </div>
@@ -199,26 +199,26 @@
 
     {{else}}
     <!-- Empty State -->
-    <div class="bg-[#111113] border border-zinc-800 rounded-lg fade-in-up stagger-2">
+    <div class="bg-card border border-border rounded-lg animate-fade-in-up stagger-2">
         <div class="text-center py-20">
             {{if eq .StatusFilter "active"}}
             <div class="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-400"></i>
             </div>
-            <h3 class="text-sm font-medium text-zinc-200 mb-1">No active incidents</h3>
-            <p class="text-sm text-zinc-500">All systems are running smoothly.</p>
+            <h3 class="text-sm font-medium text-foreground mb-1">No active incidents</h3>
+            <p class="text-sm text-muted-foreground">All systems are running smoothly.</p>
             {{else if eq .StatusFilter "resolved"}}
-            <div class="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <i data-lucide="clock" class="w-6 h-6 text-zinc-400"></i>
+            <div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="clock" class="w-6 h-6 text-muted-foreground"></i>
             </div>
-            <h3 class="text-sm font-medium text-zinc-200 mb-1">No resolved incidents</h3>
-            <p class="text-sm text-zinc-500">No incidents have been resolved yet.</p>
+            <h3 class="text-sm font-medium text-foreground mb-1">No resolved incidents</h3>
+            <p class="text-sm text-muted-foreground">No incidents have been resolved yet.</p>
             {{else}}
-            <div class="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <i data-lucide="shield-check" class="w-6 h-6 text-zinc-400"></i>
+            <div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="shield-check" class="w-6 h-6 text-muted-foreground"></i>
             </div>
-            <h3 class="text-sm font-medium text-zinc-200 mb-1">No incidents</h3>
-            <p class="text-sm text-zinc-500">No incidents have been recorded.</p>
+            <h3 class="text-sm font-medium text-foreground mb-1">No incidents</h3>
+            <p class="text-sm text-muted-foreground">No incidents have been recorded.</p>
             {{end}}
         </div>
     </div>
@@ -255,11 +255,11 @@ function bulkResolve() {
 {{end}}
 
 {{define "incident_row"}}
-<tr id="incident-{{.Incident.ID}}" class="hover:bg-zinc-800/30 transition-all duration-200 group">
+<tr id="incident-{{.Incident.ID}}" class="hover:bg-card-elevated transition-all duration-200 group">
     <!-- Checkbox -->
     <td class="px-4 py-3.5">
         <input type="checkbox" :value="'{{.Incident.ID}}'" x-model="selectedIncidents"
-            class="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500/20 focus:ring-offset-0 cursor-pointer">
+            class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-accent/20 focus:ring-offset-0 cursor-pointer">
     </td>
 
     <!-- Status -->
@@ -294,9 +294,9 @@ function bulkResolve() {
                 {{end}}
             </div>
             <div>
-                <span class="text-sm font-medium text-zinc-200">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</span>
+                <span class="text-sm font-medium text-foreground">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</span>
                 {{if .Monitor}}
-                <span class="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 uppercase font-mono hidden lg:inline">{{.Monitor.Type}}</span>
+                <span class="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase font-mono hidden lg:inline">{{.Monitor.Type}}</span>
                 {{end}}
             </div>
         </div>
@@ -305,23 +305,23 @@ function bulkResolve() {
     <!-- Target -->
     <td class="px-4 py-3.5 hidden md:table-cell">
         {{if .Monitor}}
-        <span class="text-xs text-zinc-500 font-mono">{{.Monitor.Target}}</span>
+        <span class="text-xs text-muted-foreground font-mono">{{.Monitor.Target}}</span>
         {{else}}
-        <span class="text-xs text-zinc-500">-</span>
+        <span class="text-xs text-muted-foreground">-</span>
         {{end}}
     </td>
 
     <!-- Started -->
     <td class="px-4 py-3.5">
-        <span class="text-xs text-zinc-500">{{formatTimeAgo .Incident.StartedAt}}</span>
+        <span class="text-xs text-muted-foreground">{{formatTimeAgo .Incident.StartedAt}}</span>
     </td>
 
     <!-- Duration / TTR -->
     <td class="px-4 py-3.5 hidden sm:table-cell">
         {{if .Incident.TTRSeconds}}
-        <span class="text-xs text-zinc-400 font-mono">{{.Incident.TTRSeconds}}s TTR</span>
+        <span class="text-xs text-muted-foreground font-mono">{{.Incident.TTRSeconds}}s TTR</span>
         {{else if .Incident.ResolvedAt}}
-        <span class="text-xs text-zinc-500">Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
+        <span class="text-xs text-muted-foreground">Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
         {{else}}
         <span class="text-xs text-red-400 font-mono">{{formatDuration .Incident.Duration}}</span>
         {{end}}
@@ -343,7 +343,7 @@ function bulkResolve() {
             </button>
             {{end}}
             {{if eq (print .Incident.Status) "resolved"}}
-            <span class="text-xs text-zinc-600">-</span>
+            <span class="text-xs text-muted-foreground">-</span>
             {{end}}
         </div>
     </td>
