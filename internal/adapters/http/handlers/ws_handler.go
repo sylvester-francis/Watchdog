@@ -160,15 +160,24 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 	// Block until client disconnects (readPump/writePump handle the lifecycle)
 	<-client.CloseCh()
 
-	// Mark agent offline on disconnect
-	if err := h.agentRepo.UpdateStatus(ctx, agent.ID, domain.AgentStatusOffline); err != nil {
-		h.logger.Error("failed to mark agent offline", slog.String("error", err.Error()))
+	// Only mark agent offline if this client wasn't replaced by a newer connection.
+	// When an agent reconnects, the new handler sets status to "online" and replaces
+	// this client in the hub. Without this check, this old handler's cleanup would
+	// clobber the new connection's "online" status.
+	currentClient, connected := h.hub.GetClient(agent.ID)
+	if !connected || currentClient == client {
+		if err := h.agentRepo.UpdateStatus(ctx, agent.ID, domain.AgentStatusOffline); err != nil {
+			h.logger.Error("failed to mark agent offline", slog.String("error", err.Error()))
+		}
+		h.logger.Info("agent disconnected",
+			slog.String("agent_id", agent.ID.String()),
+			slog.String("agent_name", agent.Name),
+		)
+	} else {
+		h.logger.Info("agent connection replaced, skipping offline status",
+			slog.String("agent_id", agent.ID.String()),
+		)
 	}
-
-	h.logger.Info("agent disconnected",
-		slog.String("agent_id", agent.ID.String()),
-		slog.String("agent_name", agent.Name),
-	)
 
 	return nil
 }
