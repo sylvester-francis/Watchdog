@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sylvester/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
 )
 
 // IncidentRepository implements ports.IncidentRepository using PostgreSQL.

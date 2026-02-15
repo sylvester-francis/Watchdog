@@ -14,14 +14,14 @@ import (
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 
-	internalhttp "github.com/sylvester/watchdog/internal/adapters/http"
-	"github.com/sylvester/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester/watchdog/internal/adapters/notify"
-	"github.com/sylvester/watchdog/internal/adapters/repository"
-	"github.com/sylvester/watchdog/internal/config"
-	"github.com/sylvester/watchdog/internal/core/realtime"
-	"github.com/sylvester/watchdog/internal/core/services"
-	"github.com/sylvester/watchdog/internal/crypto"
+	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
+	"github.com/sylvester-francis/watchdog/internal/config"
+	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/core/services"
+	"github.com/sylvester-francis/watchdog/internal/crypto"
 )
 
 func main() {
@@ -59,14 +59,16 @@ func main() {
 	monitorRepo := repository.NewMonitorRepository(db)
 	heartbeatRepo := repository.NewHeartbeatRepository(db)
 	incidentRepo := repository.NewIncidentRepository(db)
+	usageEventRepo := repository.NewUsageEventRepository(db)
+	waitlistRepo := repository.NewWaitlistRepository(db)
 
 	// Initialize notifiers
 	notifier := notify.NewNoOpNotifier() // Replace with real notifier in production
 
 	// Initialize services
-	authSvc := services.NewAuthService(userRepo, agentRepo, hasher, encryptor)
+	authSvc := services.NewAuthService(userRepo, agentRepo, usageEventRepo, hasher, encryptor, logger)
 	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, notifier, db, logger)
-	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, logger)
+	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 
 	// Initialize WebSocket hub
 	hub := realtime.NewHub(logger)
@@ -100,15 +102,20 @@ func main() {
 
 	// Initialize router with all dependencies
 	router, err := internalhttp.NewRouter(e, internalhttp.Dependencies{
-		AuthService:     authSvc,
-		MonitorService:  monitorSvc,
-		IncidentService: incidentSvc,
-		UserRepo:        userRepo,
-		AgentRepo:       agentRepo,
-		MonitorRepo:     monitorRepo,
-		Hub:             hub,
-		SessionSecret:   cfg.Crypto.SessionSecret,
-		TemplatesDir:    "web/templates",
+		UserAuthService:  authSvc,
+		AgentAuthService: authSvc,
+		MonitorService:   monitorSvc,
+		IncidentService:  incidentSvc,
+		UserRepo:         userRepo,
+		AgentRepo:        agentRepo,
+		MonitorRepo:      monitorRepo,
+		UsageEventRepo:   usageEventRepo,
+		WaitlistRepo:     waitlistRepo,
+		Hub:              hub,
+		Logger:           logger,
+		SessionSecret:    cfg.Crypto.SessionSecret,
+		TemplatesDir:     "web/templates",
+		SecureCookies:    cfg.Server.SecureCookies,
 	})
 	if err != nil {
 		logger.Error("failed to initialize router", slog.String("error", err.Error()))
@@ -138,6 +145,9 @@ func main() {
 	fmt.Println("\nShutting down gracefully...")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	hub.Stop()
+	router.Stop()
 
 	if err := e.Shutdown(ctx); err != nil {
 		logger.Error("shutdown error", slog.String("error", err.Error()))

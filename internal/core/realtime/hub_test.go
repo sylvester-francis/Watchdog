@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/sylvester-francis/watchdog-proto/protocol"
 )
 
 func newTestLogger() *slog.Logger {
@@ -83,7 +84,7 @@ func TestHub_SendToAgent_NotConnected(t *testing.T) {
 	defer hub.Stop()
 
 	agentID := uuid.New()
-	msg := NewPingMessage()
+	msg := protocol.NewPingMessage()
 
 	sent := hub.SendToAgent(agentID, msg)
 
@@ -122,7 +123,7 @@ func TestHub_Broadcast_Empty(t *testing.T) {
 	hub.Run()
 	defer hub.Stop()
 
-	msg := NewPingMessage()
+	msg := protocol.NewPingMessage()
 
 	// Should not block or panic with no clients
 	hub.Broadcast(msg)

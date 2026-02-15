@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/sylvester/watchdog/internal/config"
+	"github.com/sylvester-francis/watchdog/internal/config"
 )
 
 // txKey is the context key for storing a transaction.
