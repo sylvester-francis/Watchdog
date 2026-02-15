@@ -1,6 +1,7 @@
 package view
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -41,6 +42,7 @@ func NewTemplates(dir string) (*Templates, error) {
 		"add":              add,
 		"sub":              sub,
 		"dict":             dict,
+		"toJSON":           toJSON,
 	}
 
 	// Build the shared base: layouts + partials
@@ -278,4 +280,14 @@ func dict(values ...interface{}) map[string]interface{} {
 		result[key] = values[i+1]
 	}
 	return result
+}
+
+// toJSON serializes a value to JSON for embedding in templates.
+// Used to pass Go data to Alpine.js/Chart.js on the client side.
+func toJSON(v interface{}) template.JS {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return template.JS("null")
+	}
+	return template.JS(b)
 }
