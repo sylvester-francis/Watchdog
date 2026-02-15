@@ -183,6 +183,7 @@
         <form action="/monitors" method="POST" class="p-5 space-y-4"
             hx-post="/monitors" hx-target="#monitors-table" hx-swap="beforeend"
             hx-on::after-request="if(event.detail.successful) document.getElementById('new-monitor-modal').classList.add('hidden')">
+            {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
 
             <div>
                 <label class="block text-xs font-medium text-muted-foreground mb-1.5">Agent</label>

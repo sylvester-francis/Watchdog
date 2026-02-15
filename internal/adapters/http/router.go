@@ -107,6 +107,9 @@ func (r *Router) RegisterRoutes() {
 	}
 	e.Use(middleware.SessionMiddleware(store))
 
+	// CSRF protection for HTML form submissions
+	e.Use(middleware.CSRFMiddleware())
+
 	// Rate limiters
 	r.authRateLimiter = middleware.NewRateLimiter(middleware.RateLimiterConfig{
 		Rate:            5,

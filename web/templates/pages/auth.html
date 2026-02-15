@@ -42,10 +42,12 @@
     <div class="w-full max-w-sm px-6">
         <!-- Logo -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-10 h-10 bg-accent rounded-lg mb-4">
-                <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
-            </div>
-            <h1 class="text-lg font-semibold text-foreground">WatchDog</h1>
+            <a href="/" class="inline-block">
+                <div class="inline-flex items-center justify-center w-10 h-10 bg-accent rounded-lg mb-4">
+                    <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+                </div>
+                <h1 class="text-lg font-semibold text-foreground">WatchDog</h1>
+            </a>
         </div>
 
         <!-- Card -->
@@ -55,14 +57,14 @@
             </h2>
 
             {{if .Error}}
-            <div class="bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 mb-4 flex items-center space-x-2">
+            <div class="bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 mb-4 flex items-center space-x-2" role="alert">
                 <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-destructive flex-shrink-0"></i>
                 <span class="text-xs text-destructive">{{.Error}}</span>
             </div>
             {{end}}
 
             {{if .Success}}
-            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 mb-4 flex items-center space-x-2">
+            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 mb-4 flex items-center space-x-2" role="status">
                 <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0"></i>
                 <span class="text-xs text-emerald-400">{{.Success}}</span>
             </div>
@@ -70,16 +72,17 @@
 
             {{if .IsLogin}}
             <form action="/login" method="POST" class="space-y-4">
+                {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
                 <div>
                     <label for="email" class="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
-                    <input type="email" id="email" name="email" value="{{.Email}}" required
+                    <input type="email" id="email" name="email" value="{{.Email}}" required autocomplete="email"
                         class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                         placeholder="you@example.com">
                 </div>
 
                 <div>
                     <label for="password" class="block text-xs font-medium text-muted-foreground mb-1.5">Password</label>
-                    <input type="password" id="password" name="password" required
+                    <input type="password" id="password" name="password" required autocomplete="current-password"
                         class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                         placeholder="Enter your password">
                 </div>
@@ -98,23 +101,24 @@
 
             {{if .IsRegister}}
             <form action="/register" method="POST" class="space-y-4">
+                {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
                 <div>
                     <label for="email" class="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
-                    <input type="email" id="email" name="email" value="{{.Email}}" required
+                    <input type="email" id="email" name="email" value="{{.Email}}" required autocomplete="email"
                         class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                         placeholder="you@example.com">
                 </div>
 
                 <div>
                     <label for="password" class="block text-xs font-medium text-muted-foreground mb-1.5">Password</label>
-                    <input type="password" id="password" name="password" required minlength="8"
+                    <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password"
                         class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                         placeholder="At least 8 characters">
                 </div>
 
                 <div>
                     <label for="confirm_password" class="block text-xs font-medium text-muted-foreground mb-1.5">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password"
                         class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                         placeholder="Confirm your password">
                 </div>
