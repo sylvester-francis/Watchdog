@@ -105,7 +105,7 @@ func (h *IncidentHandler) List(c echo.Context) error {
 		"Incidents":             incidents,
 		"IncidentsWithMonitors": incidentsWithMonitors,
 		"StatusFilter":          statusFilter,
-		"Stats":                 stats,
+		"IncidentStats":         stats,
 	})
 }
 
