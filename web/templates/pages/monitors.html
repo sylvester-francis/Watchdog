@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (var i = 0; i < monitors.length; i++) {
             var m = monitors[i];
             if (m.Latencies && m.Latencies.length > 0 && m.Monitor) {
-                var color = m.Monitor.Status === 'up' ? '#22c55e' : (m.Monitor.Status === 'down' ? '#ef4444' : '#6366f1');
+                var color = m.Monitor.Status === 'up' ? '#22c55e' : (m.Monitor.Status === 'down' ? '#ef4444' : '#a1a1aa');
                 createSparkline('mon-spark-' + m.Monitor.ID, m.Latencies, color);
             }
         }

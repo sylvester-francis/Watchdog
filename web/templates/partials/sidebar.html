@@ -16,7 +16,7 @@
     <!-- Logo -->
     <div class="px-5 py-4 border-b border-border">
         <a href="/dashboard" class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-gradient-accent rounded-lg flex items-center justify-center">
+            <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
                 <i data-lucide="shield-check" class="w-4 h-4 text-white"></i>
             </div>
             <span class="text-base font-semibold text-foreground tracking-tight">WatchDog</span>
@@ -26,21 +26,21 @@
     <!-- Navigation -->
     <nav class="flex-1 px-3 py-4 space-y-1">
         <a href="/dashboard" class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-smooth
-            {{if eq .Title "Dashboard"}}border-l-2 border-accent bg-accent/10 text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
+            {{if eq .Title "Dashboard"}}bg-foreground/[0.08] text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
             <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
             <span class="flex-1">Dashboard</span>
             <kbd class="hidden group-hover:inline-block text-[9px] text-muted-foreground/50 font-mono px-1 py-0.5 rounded bg-muted/50">G D</kbd>
         </a>
 
         <a href="/monitors" class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-smooth
-            {{if eq .Title "Monitors"}}border-l-2 border-accent bg-accent/10 text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
+            {{if eq .Title "Monitors"}}bg-foreground/[0.08] text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
             <i data-lucide="activity" class="w-4 h-4"></i>
             <span class="flex-1">Monitors</span>
             <kbd class="hidden group-hover:inline-block text-[9px] text-muted-foreground/50 font-mono px-1 py-0.5 rounded bg-muted/50">G M</kbd>
         </a>
 
         <a href="/incidents" class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-smooth
-            {{if eq .Title "Incidents"}}border-l-2 border-accent bg-accent/10 text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
+            {{if eq .Title "Incidents"}}bg-foreground/[0.08] text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
             <i data-lucide="alert-triangle" class="w-4 h-4"></i>
             <span class="flex-1">Incidents</span>
             {{if and .Stats .Stats.ActiveIncidents}}
@@ -54,13 +54,11 @@
         </a>
 
         {{if .IsAdmin}}
-        <div class="pt-4 pb-2">
-            <p class="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Admin</p>
-        </div>
+        <div class="pt-4 mt-2 border-t border-border/50"></div>
         <a href="/admin" class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-smooth
-            {{if eq .Title "Admin"}}border-l-2 border-accent bg-accent/10 text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
-            <i data-lucide="settings" class="w-4 h-4"></i>
-            <span>Settings</span>
+            {{if eq .Title "Admin"}}bg-foreground/[0.08] text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
+            <i data-lucide="shield" class="w-4 h-4"></i>
+            <span>Admin</span>
         </a>
         {{end}}
     </nav>

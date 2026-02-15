@@ -13,7 +13,7 @@ if (typeof Chart !== 'undefined') {
 
 // Sparkline factory — inline mini chart with no axes, labels, or legend
 function createSparkline(canvasId, dataPoints, color) {
-    color = color || '#6366f1';
+    color = color || '#3b82f6';
     var ctx = document.getElementById(canvasId);
     if (!ctx || !dataPoints || dataPoints.length === 0) return null;
     return new Chart(ctx, {
@@ -81,13 +81,13 @@ function createLatencyChart(canvasId, labels, data) {
             datasets: [{
                 label: 'Latency (ms)',
                 data: data,
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 fill: true,
                 tension: 0.3,
                 borderWidth: 2,
                 pointRadius: 2,
-                pointBackgroundColor: '#6366f1'
+                pointBackgroundColor: '#3b82f6'
             }]
         },
         options: {
