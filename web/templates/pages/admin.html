@@ -28,6 +28,45 @@
     </div>
 </div>
 
+<!-- Users Management -->
+<div class="bg-card rounded-lg border border-border mb-6">
+    <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+        <div>
+            <h2 class="text-sm font-medium text-foreground">Users</h2>
+            <p class="text-xs text-muted-foreground">Manage platform users</p>
+        </div>
+        <button onclick="document.getElementById('new-user-modal').classList.remove('hidden')"
+            class="px-3 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-medium rounded-md transition-smooth flex items-center space-x-1.5">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>New User</span>
+        </button>
+    </div>
+    {{if .AllUsers}}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-border">
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Admin</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Agents</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitors</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Created</th>
+                    <th class="px-4 py-3 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border/50" id="users-table">
+                {{range .AllUsers}}
+                {{template "admin_user_row" dict "User" .}}
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <div class="px-4 py-8 text-center text-sm text-muted-foreground">No users found.</div>
+    {{end}}
+</div>
+
 <!-- Upgrade Candidates -->
 <div class="bg-card rounded-lg border border-border mb-6">
     <div class="px-4 py-3 border-b border-border">
@@ -125,4 +164,134 @@
     <div class="px-4 py-8 text-center text-sm text-muted-foreground">No usage events yet.</div>
     {{end}}
 </div>
+
+<!-- New User Modal -->
+<div id="new-user-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-card border border-border rounded-lg w-full max-w-md mx-4 shadow-xl">
+        <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="user-plus" class="w-4 h-4 text-accent"></i>
+                <h3 class="text-sm font-medium text-foreground">New User</h3>
+            </div>
+            <button onclick="document.getElementById('new-user-modal').classList.add('hidden')"
+                class="text-muted-foreground hover:text-foreground transition-smooth">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form class="p-5 space-y-4"
+            hx-post="/admin/users" hx-target="#users-table" hx-swap="beforeend"
+            hx-on::after-request="if(event.detail.successful) { document.getElementById('new-user-modal').classList.add('hidden'); this.reset(); }">
+            {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
+
+            <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
+                <input type="email" name="email" required
+                    class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+                    placeholder="user@example.com">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1.5">Password</label>
+                <input type="password" name="password" required minlength="8"
+                    class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+                    placeholder="Min 8 characters">
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">Plan</label>
+                    <select name="plan"
+                        class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
+                        <option value="free">Free</option>
+                        <option value="pro">Pro</option>
+                        <option value="team">Team</option>
+                    </select>
+                </div>
+                <div class="pt-5">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="is_admin"
+                            class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-accent/20 focus:ring-offset-0">
+                        <span class="text-xs font-medium text-muted-foreground">Administrator</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-2">
+                <button type="button" onclick="document.getElementById('new-user-modal').classList.add('hidden')"
+                    class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-smooth">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-3 py-2 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-smooth">
+                    Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "admin_user_row"}}
+<tr id="user-{{.User.ID}}" class="hover:bg-card-elevated transition-smooth">
+    <td class="px-4 py-3">
+        <span class="text-sm text-foreground">{{.User.Email}}</span>
+    </td>
+    <td class="px-4 py-3">
+        <div x-data="{ editing: false }" class="relative">
+            <button @click="editing = !editing" x-show="!editing"
+                class="px-2 py-0.5 text-xs rounded cursor-pointer hover:ring-1 hover:ring-border transition-smooth
+                    {{if eq .User.Plan.String "Pro"}}bg-blue-500/20 text-blue-400
+                    {{else if eq .User.Plan.String "Team"}}bg-muted text-muted-foreground
+                    {{else}}bg-muted text-muted-foreground{{end}}">
+                {{.User.Plan.String}}
+            </button>
+            <form x-show="editing" x-cloak
+                hx-post="/admin/users/{{.User.ID}}" hx-target="#user-{{.User.ID}}" hx-swap="outerHTML"
+                class="flex items-center space-x-1">
+                {{if $.CSRFToken}}<input type="hidden" name="_csrf" value="{{$.CSRFToken}}">{{end}}
+                <select name="plan" @change="$el.form.requestSubmit()"
+                    class="px-1.5 py-0.5 bg-card-elevated border border-border rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
+                    <option value="free" {{if eq .User.Plan.String "Free"}}selected{{end}}>Free</option>
+                    <option value="pro" {{if eq .User.Plan.String "Pro"}}selected{{end}}>Pro</option>
+                    <option value="team" {{if eq .User.Plan.String "Team"}}selected{{end}}>Team</option>
+                </select>
+            </form>
+        </div>
+    </td>
+    <td class="px-4 py-3">
+        {{if .User.IsAdmin}}
+        <span class="px-2 py-0.5 text-xs rounded bg-accent/15 text-accent">Yes</span>
+        {{else}}
+        <span class="text-xs text-muted-foreground">No</span>
+        {{end}}
+    </td>
+    <td class="px-4 py-3 text-sm text-muted-foreground">
+        {{.User.AgentCount}} / {{.User.AgentMax}}
+    </td>
+    <td class="px-4 py-3 text-sm text-muted-foreground">
+        {{.User.MonitorCount}} / {{if eq .User.MonitorMax -1}}&infin;{{else}}{{.User.MonitorMax}}{{end}}
+    </td>
+    <td class="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">
+        {{formatTimeAgo .User.CreatedAt}}
+    </td>
+    <td class="px-4 py-3 text-right">
+        <div class="flex items-center justify-end space-x-1.5">
+            <form hx-post="/admin/users/{{.User.ID}}" hx-target="#user-{{.User.ID}}" hx-swap="outerHTML" class="inline">
+                {{if $.CSRFToken}}<input type="hidden" name="_csrf" value="{{$.CSRFToken}}">{{end}}
+                <input type="hidden" name="toggle_admin" value="1">
+                <button type="submit"
+                    class="text-muted-foreground hover:text-foreground transition-smooth p-1 rounded hover:bg-muted/50"
+                    title="{{if .User.IsAdmin}}Remove admin{{else}}Make admin{{end}}">
+                    <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                </button>
+            </form>
+            <button hx-delete="/admin/users/{{.User.ID}}" hx-target="#user-{{.User.ID}}" hx-swap="outerHTML"
+                hx-confirm="Delete user '{{.User.Email}}'? This will also delete their agents and monitors."
+                class="text-muted-foreground hover:text-destructive transition-smooth p-1 rounded hover:bg-muted/50"
+                title="Delete user">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+    </td>
+</tr>
 {{end}}

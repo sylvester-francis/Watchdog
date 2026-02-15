@@ -13,6 +13,7 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/crypto"
 )
 
 // Dependencies holds all the dependencies required by the router.
@@ -28,6 +29,7 @@ type Dependencies struct {
 	UsageEventRepo   ports.UsageEventRepository
 	WaitlistRepo     ports.WaitlistRepository
 	Hub              *realtime.Hub
+	Hasher           *crypto.PasswordHasher
 	Logger           *slog.Logger
 	SessionSecret    string
 	TemplatesDir     string
@@ -83,7 +85,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates)
 	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, templates)
 	r.agentHandler = handlers.NewAgentHandler(deps.AgentAuthService, deps.AgentRepo, templates)
-	r.adminHandler = handlers.NewAdminHandler(deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.UsageEventRepo, templates)
+	r.adminHandler = handlers.NewAdminHandler(deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.UsageEventRepo, deps.Hasher, templates)
 	r.landingHandler = handlers.NewLandingHandler(deps.WaitlistRepo, templates)
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger)
@@ -180,6 +182,9 @@ func (r *Router) RegisterRoutes() {
 	// Admin routes
 	admin := protected.Group("/admin", middleware.AdminRequired(r.deps.UserRepo))
 	admin.GET("", r.adminHandler.Dashboard)
+	admin.POST("/users", r.adminHandler.CreateUser)
+	admin.POST("/users/:id", r.adminHandler.UpdateUser)
+	admin.DELETE("/users/:id", r.adminHandler.DeleteUser)
 }
 
 // rootRedirect shows the landing page for unauthenticated users,
