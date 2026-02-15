@@ -74,7 +74,8 @@
             <tbody class="divide-y divide-border/50" id="monitors-table">
                 {{range .MonitorsWithHeartbeats}}
                 <tr id="monitor-{{.Monitor.ID}}" class="hover:bg-card-elevated transition-smooth"
-                    x-show="(filterType === 'all' || filterType === '{{.Monitor.Type}}') && (search === '' || '{{lower .Monitor.Name}}'.includes(search.toLowerCase()) || '{{lower .Monitor.Target}}'.includes(search.toLowerCase()))">
+                    data-type="{{.Monitor.Type}}" data-name="{{lower .Monitor.Name}}" data-target="{{lower .Monitor.Target}}"
+                    x-show="(filterType === 'all' || filterType === $el.dataset.type) && (search === '' || $el.dataset.name.includes(search.toLowerCase()) || $el.dataset.target.includes(search.toLowerCase()))">
                     <td class="px-5 py-3">
                         <div class="flex items-center space-x-2">
                             <div class="w-2 h-2 rounded-full {{statusBgColor (print .Monitor.Status)}} {{if eq (print .Monitor.Status) "up"}}animate-pulse-dot{{end}}"></div>

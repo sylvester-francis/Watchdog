@@ -273,11 +273,42 @@ func (h *MonitorHandler) Detail(c echo.Context) error {
 
 	agent, _ := h.agentRepo.GetByID(ctx, monitor.AgentID)
 
-	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
-		"Title":      monitor.Name,
-		"Monitor":    monitor,
-		"Agent":      agent,
-		"ShowDetail": true,
+	// Fetch recent heartbeats for this monitor
+	heartbeats, err := h.heartbeatRepo.GetByMonitorID(ctx, monitor.ID, 20)
+	if err != nil {
+		heartbeats = nil
+	}
+
+	latencies := make([]int, 0, len(heartbeats))
+	up, down := 0, 0
+	// Reverse for chronological order (oldest first)
+	for i := len(heartbeats) - 1; i >= 0; i-- {
+		hb := heartbeats[i]
+		if hb.LatencyMs != nil {
+			latencies = append(latencies, *hb.LatencyMs)
+		}
+		if hb.Status.IsSuccess() {
+			up++
+		} else {
+			down++
+		}
+	}
+
+	uptimePercent := 0.0
+	if len(heartbeats) > 0 {
+		uptimePercent = float64(up) / float64(len(heartbeats)) * 100
+	}
+
+	return c.Render(http.StatusOK, "monitor_detail.html", map[string]interface{}{
+		"Title":         monitor.Name,
+		"Monitor":       monitor,
+		"Agent":         agent,
+		"Heartbeats":    heartbeats,
+		"Latencies":     latencies,
+		"UptimeUp":      up,
+		"UptimeDown":    down,
+		"UptimeTotal":   len(heartbeats),
+		"UptimePercent": uptimePercent,
 	})
 }
 

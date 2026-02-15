@@ -31,6 +31,7 @@ func NewTemplates(dir string) (*Templates, error) {
 		"formatDuration":   formatDuration,
 		"formatTimeAgo":    formatTimeAgo,
 		"formatTimeAgoPtr": formatTimeAgoPtr,
+		"formatPercent":    formatPercent,
 		"statusColor":      statusColor,
 		"statusBgColor":    statusBgColor,
 		"statusIcon":       statusIcon,
@@ -190,6 +191,14 @@ func formatTimeAgoPtr(t *time.Time) string {
 		return "never"
 	}
 	return formatTimeAgo(*t)
+}
+
+// formatPercent formats a float64 as a percentage string (e.g. "99.9").
+func formatPercent(f float64) string {
+	if f >= 100 {
+		return "100"
+	}
+	return fmt.Sprintf("%.1f", f)
 }
 
 // statusColor returns a Tailwind text color class based on status.
