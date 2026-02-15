@@ -24,6 +24,7 @@ type Dependencies struct {
 	UserRepo         ports.UserRepository
 	AgentRepo        ports.AgentRepository
 	MonitorRepo      ports.MonitorRepository
+	HeartbeatRepo    ports.HeartbeatRepository
 	UsageEventRepo   ports.UsageEventRepository
 	WaitlistRepo     ports.WaitlistRepository
 	Hub              *realtime.Hub
@@ -49,6 +50,7 @@ type Router struct {
 	landingHandler   *handlers.LandingHandler
 	sseHandler       *handlers.SSEHandler
 	wsHandler        *handlers.WSHandler
+	apiHandler       *handlers.APIHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -77,14 +79,15 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	// Initialize handlers
 	r.authHandler = handlers.NewAuthHandler(deps.UserAuthService, deps.UserRepo, templates)
-	r.dashboardHandler = handlers.NewDashboardHandler(deps.AgentRepo, deps.MonitorRepo, deps.IncidentService, deps.UserRepo, templates)
-	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, templates)
+	r.dashboardHandler = handlers.NewDashboardHandler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.UserRepo, templates)
+	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates)
 	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, templates)
 	r.agentHandler = handlers.NewAgentHandler(deps.AgentAuthService, deps.AgentRepo, templates)
 	r.adminHandler = handlers.NewAdminHandler(deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.UsageEventRepo, templates)
 	r.landingHandler = handlers.NewLandingHandler(deps.WaitlistRepo, templates)
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger)
+	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 
 	return r, nil
 }
@@ -161,6 +164,11 @@ func (r *Router) RegisterRoutes() {
 	protected.GET("/incidents/:id", r.incidentHandler.Detail)
 	protected.POST("/incidents/:id/ack", r.incidentHandler.Acknowledge)
 	protected.POST("/incidents/:id/resolve", r.incidentHandler.Resolve)
+
+	// API endpoints for chart data
+	protected.GET("/api/monitors/:id/heartbeats", r.apiHandler.MonitorHeartbeats)
+	protected.GET("/api/dashboard/stats", r.apiHandler.DashboardStats)
+	protected.GET("/api/monitors/summary", r.apiHandler.MonitorsSummary)
 
 	// SSE for real-time updates
 	protected.GET("/sse/events", r.sseHandler.Events)

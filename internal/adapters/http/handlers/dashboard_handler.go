@@ -30,29 +30,41 @@ type DashboardStats struct {
 	ActiveIncidents int
 }
 
+// MonitorSparkline holds sparkline data for a single monitor.
+type MonitorSparkline struct {
+	MonitorID string
+	Name      string
+	Status    string
+	Type      string
+	Latencies []int
+}
+
 // DashboardHandler handles dashboard-related HTTP requests.
 type DashboardHandler struct {
-	agentRepo   ports.AgentRepository
-	monitorRepo ports.MonitorRepository
-	incidentSvc ports.IncidentService
-	userRepo    ports.UserRepository
-	templates   *view.Templates
+	agentRepo     ports.AgentRepository
+	monitorRepo   ports.MonitorRepository
+	heartbeatRepo ports.HeartbeatRepository
+	incidentSvc   ports.IncidentService
+	userRepo      ports.UserRepository
+	templates     *view.Templates
 }
 
 // NewDashboardHandler creates a new DashboardHandler.
 func NewDashboardHandler(
 	agentRepo ports.AgentRepository,
 	monitorRepo ports.MonitorRepository,
+	heartbeatRepo ports.HeartbeatRepository,
 	incidentSvc ports.IncidentService,
 	userRepo ports.UserRepository,
 	templates *view.Templates,
 ) *DashboardHandler {
 	return &DashboardHandler{
-		agentRepo:   agentRepo,
-		monitorRepo: monitorRepo,
-		incidentSvc: incidentSvc,
-		userRepo:    userRepo,
-		templates:   templates,
+		agentRepo:     agentRepo,
+		monitorRepo:   monitorRepo,
+		heartbeatRepo: heartbeatRepo,
+		incidentSvc:   incidentSvc,
+		userRepo:      userRepo,
+		templates:     templates,
 	}
 }
 
@@ -109,6 +121,29 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		}
 	}
 
+	// Build sparkline data for each monitor
+	sparklines := make([]MonitorSparkline, 0, len(allMonitors))
+	for _, m := range allMonitors {
+		heartbeats, err := h.heartbeatRepo.GetByMonitorID(ctx, m.ID, 20)
+		if err != nil {
+			heartbeats = nil
+		}
+		latencies := make([]int, 0, len(heartbeats))
+		// Reverse for chronological order (oldest first)
+		for i := len(heartbeats) - 1; i >= 0; i-- {
+			if heartbeats[i].LatencyMs != nil {
+				latencies = append(latencies, *heartbeats[i].LatencyMs)
+			}
+		}
+		sparklines = append(sparklines, MonitorSparkline{
+			MonitorID: m.ID.String(),
+			Name:      m.Name,
+			Status:    string(m.Status),
+			Type:      string(m.Type),
+			Latencies: latencies,
+		})
+	}
+
 	// Enrich incidents with monitor names
 	incidentsWithMonitors := make([]IncidentWithMonitor, 0, len(incidents))
 	for _, incident := range incidents {
@@ -131,6 +166,7 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		"ActiveIncidents":       incidents,
 		"IncidentsWithMonitors": incidentsWithMonitors,
 		"Monitors":              allMonitors,
+		"Sparklines":            sparklines,
 		"Stats":                 stats,
 		"Plan":                  user.Plan.String(),
 		"PlanLimits":            user.Plan.Limits(),
