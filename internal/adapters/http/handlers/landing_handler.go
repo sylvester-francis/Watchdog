@@ -17,6 +17,7 @@ import (
 // PlanInfo holds display data for a pricing plan.
 type PlanInfo struct {
 	Name        string
+	Slug        string
 	Price       string
 	Agents      string
 	Monitors    string
@@ -72,12 +73,14 @@ func (h *LandingHandler) renderPage(c echo.Context, success, errMsg string) erro
 	plans := []PlanInfo{
 		{
 			Name:     domain.PlanFree.String(),
+			Slug:     "free",
 			Price:    "$0",
 			Agents:   "1 Agent",
 			Monitors: "3 Monitors",
 		},
 		{
 			Name:        domain.PlanPro.String(),
+			Slug:        "pro",
 			Price:       "$7/mo",
 			Agents:      "3 Agents",
 			Monitors:    "25 Monitors",
@@ -85,6 +88,7 @@ func (h *LandingHandler) renderPage(c echo.Context, success, errMsg string) erro
 		},
 		{
 			Name:     domain.PlanTeam.String(),
+			Slug:     "team",
 			Price:    "$15/mo",
 			Agents:   "10 Agents",
 			Monitors: "Unlimited Monitors",

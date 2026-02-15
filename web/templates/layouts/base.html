@@ -11,6 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+    <!-- CSRF token for HTMX requests -->
+    {{if .CSRFToken}}<meta name="csrf-token" content="{{.CSRFToken}}">{{end}}
+
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
@@ -184,6 +187,7 @@
                         </button>
                         <span class="text-muted-foreground text-xs">Welcome</span>
                         <form action="/logout" method="POST" class="inline">
+                            {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
                             <button type="submit" class="text-xs text-muted-foreground hover:text-foreground transition-smooth">
                                 Logout
                             </button>
