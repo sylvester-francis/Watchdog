@@ -62,8 +62,33 @@ func main() {
 	usageEventRepo := repository.NewUsageEventRepository(db)
 	waitlistRepo := repository.NewWaitlistRepository(db)
 
-	// Initialize notifiers
-	notifier := notify.NewNoOpNotifier() // Replace with real notifier in production
+	// Initialize notifiers from environment configuration
+	var notifier notify.Notifier
+	multi := notify.NewMultiNotifier()
+	notifierCount := 0
+
+	if cfg.Notify.SlackWebhookURL != "" {
+		multi.AddNotifier(notify.NewSlackNotifier(cfg.Notify.SlackWebhookURL))
+		logger.Info("slack notifier enabled")
+		notifierCount++
+	}
+	if cfg.Notify.DiscordWebhookURL != "" {
+		multi.AddNotifier(notify.NewDiscordNotifier(cfg.Notify.DiscordWebhookURL))
+		logger.Info("discord notifier enabled")
+		notifierCount++
+	}
+	if cfg.Notify.WebhookURL != "" {
+		multi.AddNotifier(notify.NewWebhookNotifier(cfg.Notify.WebhookURL))
+		logger.Info("webhook notifier enabled")
+		notifierCount++
+	}
+
+	if notifierCount > 0 {
+		notifier = multi
+	} else {
+		notifier = notify.NewNoOpNotifier()
+		logger.Info("no notifiers configured, alerts disabled")
+	}
 
 	// Initialize services
 	authSvc := services.NewAuthService(userRepo, agentRepo, usageEventRepo, hasher, encryptor, logger)
