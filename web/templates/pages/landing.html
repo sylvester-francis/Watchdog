@@ -39,6 +39,9 @@
                         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
                         mono: ['JetBrains Mono', 'Menlo', 'monospace'],
                     },
+                    backgroundImage: {
+                        'gradient-accent': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)',
+                    },
                 }
             }
         }
@@ -47,6 +50,34 @@
         .card-hover { transition: border-color 0.2s ease; }
         .card-hover:hover { border-color: #3f3f46; }
         [x-cloak] { display: none !important; }
+
+        /* Scroll reveal */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Pulse for status dots */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-pulse-dot {
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        /* Animated bar chart */
+        @keyframes bar-grow {
+            from { height: 10%; }
+        }
+        .bar-animate {
+            animation: bar-grow 1s ease-out both;
+        }
     </style>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen antialiased">
@@ -60,7 +91,7 @@
     <nav class="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" x-data="{ mobileOpen: false }">
         <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
             <a href="/" class="flex items-center space-x-2.5">
-                <div class="w-7 h-7 bg-accent rounded-md flex items-center justify-center">
+                <div class="w-7 h-7 bg-gradient-accent rounded-md flex items-center justify-center">
                     <i data-lucide="shield-check" class="w-3.5 h-3.5 text-white"></i>
                 </div>
                 <span class="text-sm font-semibold text-foreground">WatchDog</span>
@@ -92,43 +123,118 @@
     <section id="main-content" class="relative">
         <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_-10%,rgba(99,102,241,0.08),transparent_70%)]"></div>
         <div class="max-w-5xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-24 relative">
-            <div class="max-w-2xl mx-auto text-center">
-                <h1 class="text-3xl md:text-4xl lg:text-[2.75rem] font-bold text-foreground leading-[1.15] tracking-tight mb-4">
-                    Monitor services behind your firewall
-                </h1>
-                <p class="text-base text-muted-foreground max-w-lg mx-auto leading-relaxed mb-8">
-                    Deploy a lightweight agent inside your network. It runs checks against your internal services and reports back to a central dashboard over WebSocket.
-                </p>
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-                <!-- Install snippet -->
-                <div class="bg-card border border-border rounded-lg p-4 mb-8 max-w-lg mx-auto text-left overflow-hidden">
-                    <div class="flex items-center space-x-2 mb-2.5">
-                        <div class="w-2 h-2 rounded-full bg-red-500/60"></div>
-                        <div class="w-2 h-2 rounded-full bg-yellow-500/60"></div>
-                        <div class="w-2 h-2 rounded-full bg-emerald-500/60"></div>
-                        <span class="text-[10px] text-muted-foreground ml-1 font-mono">terminal</span>
+                <!-- Left: Copy -->
+                <div>
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-6">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot"></div>
+                        <span class="text-xs font-medium text-accent">Open source &middot; Self-hosted</span>
                     </div>
-                    <div class="font-mono text-sm text-muted-foreground leading-relaxed overflow-x-auto">
-                        <div><span class="text-zinc-500">$</span> <span class="text-foreground">curl -sSL https://get.watchdog.dev | sh</span></div>
-                        <div class="mt-1"><span class="text-zinc-500">$</span> <span class="text-foreground">watchdog-agent --hub https://your-hub.example.com</span></div>
-                        <div class="mt-1.5 text-emerald-400">Connected. Monitoring 0 targets.</div>
+
+                    <h1 class="text-3xl md:text-4xl lg:text-[2.75rem] font-bold text-foreground leading-[1.15] tracking-tight mb-4">
+                        Monitor services<br>
+                        <span class="bg-gradient-accent bg-clip-text text-transparent">behind your firewall</span>
+                    </h1>
+                    <p class="text-base text-muted-foreground max-w-lg leading-relaxed mb-8">
+                        Deploy a lightweight agent inside your network. It runs checks against your internal services and reports back to a central dashboard over WebSocket.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+                        <a href="/register" class="px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
+                            Get Started
+                        </a>
+                        <a href="#features" class="px-5 py-2.5 bg-card border border-border text-foreground hover:bg-card-elevated text-sm font-medium rounded-md transition-colors text-center">
+                            See Features
+                        </a>
+                    </div>
+
+                    <!-- Install snippet -->
+                    <div class="bg-card border border-border rounded-lg p-4 max-w-md text-left overflow-hidden">
+                        <div class="flex items-center space-x-2 mb-2.5">
+                            <div class="w-2 h-2 rounded-full bg-red-500/60"></div>
+                            <div class="w-2 h-2 rounded-full bg-yellow-500/60"></div>
+                            <div class="w-2 h-2 rounded-full bg-emerald-500/60"></div>
+                            <span class="text-[10px] text-muted-foreground ml-1 font-mono">terminal</span>
+                        </div>
+                        <div class="font-mono text-sm text-muted-foreground leading-relaxed overflow-x-auto">
+                            <div><span class="text-muted-foreground/50">$</span> <span class="text-foreground">curl -sSL https://get.watchdog.dev | sh</span></div>
+                            <div class="mt-1"><span class="text-muted-foreground/50">$</span> <span class="text-foreground">watchdog-agent --hub https://your-hub.example.com</span></div>
+                            <div class="mt-1.5 text-emerald-400">Connected. Monitoring 0 targets.</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a href="/register" class="px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
-                        Get Started
-                    </a>
-                    <a href="#features" class="px-5 py-2.5 bg-card border border-border text-foreground hover:bg-card-elevated text-sm font-medium rounded-md transition-colors text-center">
-                        See Features
-                    </a>
+                <!-- Right: Animated Dashboard Mockup -->
+                <div class="hidden lg:block" x-data="dashboardMockup()">
+                    <div class="bg-card border border-border rounded-xl overflow-hidden shadow-2xl shadow-accent/5">
+                        <!-- Window chrome -->
+                        <div class="flex items-center space-x-2 px-4 py-2.5 border-b border-border bg-card-elevated">
+                            <div class="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/50"></div>
+                            <span class="text-[10px] text-muted-foreground font-mono ml-2">dashboard</span>
+                        </div>
+
+                        <div class="p-4 space-y-3">
+                            <!-- Mini stat cards -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="bg-card-elevated rounded-md p-2.5 border border-border/50">
+                                    <p class="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Monitors</p>
+                                    <p class="text-lg font-bold text-foreground font-mono" x-text="stats.monitors">12</p>
+                                </div>
+                                <div class="bg-card-elevated rounded-md p-2.5 border border-border/50">
+                                    <p class="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Healthy</p>
+                                    <p class="text-lg font-bold text-emerald-400 font-mono" x-text="stats.healthy">11</p>
+                                </div>
+                                <div class="bg-card-elevated rounded-md p-2.5 border border-border/50">
+                                    <p class="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Uptime</p>
+                                    <p class="text-lg font-bold text-foreground font-mono">99.9<span class="text-xs text-muted-foreground">%</span></p>
+                                </div>
+                            </div>
+
+                            <!-- Service status list -->
+                            <div class="bg-card-elevated rounded-md border border-border/50">
+                                <div class="px-3 py-2 border-b border-border/30">
+                                    <p class="text-[9px] text-muted-foreground uppercase tracking-wider">Service Status</p>
+                                </div>
+                                <div class="divide-y divide-border/20">
+                                    <template x-for="(service, i) in services" :key="i">
+                                        <div class="flex items-center justify-between px-3 py-2">
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-1.5 h-1.5 rounded-full"
+                                                    :class="service.status === 'up' ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'"></div>
+                                                <span class="text-xs text-foreground" x-text="service.name"></span>
+                                                <span class="text-[9px] text-muted-foreground font-mono uppercase" x-text="service.type"></span>
+                                            </div>
+                                            <span class="text-[10px] font-mono"
+                                                :class="service.status === 'up' ? 'text-muted-foreground' : 'text-red-400'"
+                                                x-text="service.latency"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Mini bar chart -->
+                            <div class="bg-card-elevated rounded-md p-3 border border-border/50">
+                                <p class="text-[9px] text-muted-foreground uppercase tracking-wider mb-2">Response Time (ms)</p>
+                                <div class="flex items-end space-x-1 h-16">
+                                    <template x-for="(h, i) in bars" :key="i">
+                                        <div class="flex-1 rounded-sm bar-animate"
+                                            :class="h > 80 ? 'bg-red-500/60' : 'bg-accent/40'"
+                                            :style="'height: ' + h + '%; animation-delay: ' + (i * 0.05) + 's;'"></div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- How It Works -->
-    <section class="py-20 border-t border-border">
+    <section class="py-20 border-t border-border reveal">
         <div class="max-w-5xl mx-auto px-6">
             <h2 class="text-xl md:text-2xl font-bold text-foreground mb-10 text-center">How it works</h2>
             <div class="grid md:grid-cols-3 gap-8 relative">
@@ -161,7 +267,7 @@
     </section>
 
     <!-- Features -->
-    <section class="py-20 border-t border-border" id="features">
+    <section class="py-20 border-t border-border reveal" id="features">
         <div class="max-w-5xl mx-auto px-6">
             <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Features</h2>
             <p class="text-sm text-muted-foreground text-center mb-10">What you get out of the box.</p>
@@ -208,9 +314,9 @@
                             <h3 class="text-sm font-semibold text-foreground mb-1.5">Four check types</h3>
                             <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">Ping, HTTP, TCP, and DNS. Covers most of what you'd want to monitor in a typical infrastructure setup.</p>
                             <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground overflow-x-auto">
-                                <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> db.internal:5432 <span class="text-zinc-600">....</span> <span class="text-foreground">2ms</span></div>
-                                <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> redis.internal:6379 <span class="text-zinc-600">..</span> <span class="text-foreground">1ms</span></div>
-                                <div class="whitespace-nowrap"><span class="text-red-400">[FAIL]</span> vault.internal:8200 <span class="text-zinc-600">..</span> <span class="text-red-400">timeout</span></div>
+                                <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> db.internal:5432 <span class="text-border">....</span> <span class="text-foreground">2ms</span></div>
+                                <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> redis.internal:6379 <span class="text-border">..</span> <span class="text-foreground">1ms</span></div>
+                                <div class="whitespace-nowrap"><span class="text-red-400">[FAIL]</span> vault.internal:8200 <span class="text-border">..</span> <span class="text-red-400">timeout</span></div>
                             </div>
                         </div>
                     </div>
@@ -238,7 +344,7 @@
     </section>
 
     <!-- Pricing -->
-    <section class="py-20 border-t border-border" id="pricing">
+    <section class="py-20 border-t border-border reveal" id="pricing">
         <div class="max-w-4xl mx-auto px-6">
             <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Pricing</h2>
             <p class="text-sm text-muted-foreground text-center mb-10">Start free, upgrade when you need more.</p>
@@ -279,7 +385,7 @@
     </section>
 
     <!-- CTA -->
-    <section class="py-20 border-t border-border">
+    <section class="py-20 border-t border-border reveal">
         <div class="max-w-xl mx-auto px-6 text-center">
             <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3">Try it out</h2>
             <p class="text-sm text-muted-foreground mb-6">Sign up, deploy an agent, and start monitoring in a few minutes.</p>
@@ -322,8 +428,39 @@
     </footer>
 
     <script>
+    // Dashboard mockup Alpine component
+    function dashboardMockup() {
+        return {
+            stats: { monitors: 12, healthy: 11 },
+            services: [
+                { name: 'PostgreSQL', type: 'tcp', status: 'up', latency: '2ms' },
+                { name: 'Redis Cache', type: 'tcp', status: 'up', latency: '1ms' },
+                { name: 'API Gateway', type: 'http', status: 'up', latency: '45ms' },
+                { name: 'Auth Service', type: 'http', status: 'up', latency: '12ms' },
+                { name: 'Vault', type: 'http', status: 'down', latency: 'timeout' },
+            ],
+            bars: [35, 42, 38, 55, 40, 62, 45, 90, 48, 35, 42, 38, 44, 50, 35],
+        };
+    }
+
+    // Scroll reveal observer
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        var reveals = document.querySelectorAll('.reveal');
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            reveals.forEach(function(el) { observer.observe(el); });
+        } else {
+            reveals.forEach(function(el) { el.classList.add('visible'); });
+        }
     });
     </script>
 
