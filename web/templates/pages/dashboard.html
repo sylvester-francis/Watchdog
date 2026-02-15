@@ -3,90 +3,122 @@
 {{end}}
 
 {{define "content"}}
-<!-- Overall Status Banner -->
-<div class="mb-8 animate-fade-in-up">
-    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-            <div class="flex items-center space-x-3 mb-1">
-                {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}
-                <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse-dot"></div>
-                <span class="text-sm font-medium text-emerald-400">All systems operational</span>
-                {{else if gt .Stats.MonitorsDown 0}}
-                <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-                <span class="text-sm font-medium text-red-400">{{.Stats.MonitorsDown}} system{{if gt .Stats.MonitorsDown 1}}s{{end}} down</span>
-                {{else}}
-                <div class="w-2.5 h-2.5 rounded-full bg-zinc-500"></div>
-                <span class="text-sm font-medium text-muted-foreground">No monitors configured</span>
+<!-- Fleet Status Banner -->
+<div class="bg-card border border-border rounded-lg mb-6 overflow-hidden animate-fade-in-up">
+    <div class="flex items-stretch">
+        <!-- Accent bar -->
+        <div class="w-1 shrink-0 {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}bg-emerald-500{{else if gt .Stats.MonitorsDown 0}}bg-red-500{{else}}bg-muted{{end}}"></div>
+
+        <div class="flex-1 px-5 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-lg {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}bg-emerald-500/10{{else if gt .Stats.MonitorsDown 0}}bg-red-500/10{{else}}bg-muted/50{{end}} flex items-center justify-center shrink-0">
+                        {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}
+                        <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+                        {{else if gt .Stats.MonitorsDown 0}}
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>
+                        {{else}}
+                        <i data-lucide="minus-circle" class="w-5 h-5 text-muted-foreground"></i>
+                        {{end}}
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-semibold text-foreground">
+                            {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}All systems operational
+                            {{else if gt .Stats.MonitorsDown 0}}{{.Stats.MonitorsDown}} system{{if gt .Stats.MonitorsDown 1}}s{{end}} degraded
+                            {{else}}No monitors configured
+                            {{end}}
+                        </h2>
+                        <p class="text-xs text-muted-foreground mt-0.5">
+                            {{if gt .Stats.TotalMonitors 0}}{{.Stats.MonitorsUp}} of {{.Stats.TotalMonitors}} monitors reporting healthy &middot; Last 20 checks{{else}}Deploy an agent and create monitors to get started{{end}}
+                        </p>
+                    </div>
+                </div>
+
+                {{if gt .Stats.TotalMonitors 0}}
+                <div class="flex items-center space-x-6">
+                    <!-- Uptime percentage -->
+                    <div class="text-right">
+                        <div class="flex items-baseline space-x-0.5">
+                            <span class="text-3xl font-bold text-foreground font-mono tracking-tighter">{{formatPercent .Stats.UptimePercent}}</span>
+                            <span class="text-sm text-muted-foreground font-mono">%</span>
+                        </div>
+                        <p class="text-[10px] text-muted-foreground uppercase tracking-wider">Uptime</p>
+                    </div>
+
+                    <!-- Global uptime bar (vertical) -->
+                    <div class="hidden sm:flex items-end space-x-0.5 h-10">
+                        <div class="w-4 rounded-t-sm {{if gt .Stats.MonitorsUp 0}}bg-emerald-500/60{{end}}" style="height: {{if gt .Stats.TotalMonitors 0}}calc({{.Stats.MonitorsUp}} / {{.Stats.TotalMonitors}} * 100%){{else}}0{{end}};"></div>
+                        <div class="w-4 rounded-t-sm {{if gt .Stats.MonitorsDown 0}}bg-red-500/60{{else}}bg-muted/30{{end}}" style="height: {{if gt .Stats.TotalMonitors 0}}calc({{.Stats.MonitorsDown}} / {{.Stats.TotalMonitors}} * 100%){{else}}0{{end}}; min-height: {{if gt .Stats.MonitorsDown 0}}4px{{else}}0{{end}};"></div>
+                    </div>
+                </div>
                 {{end}}
             </div>
-            <p class="text-xs text-muted-foreground">Last 20 checks across all monitors</p>
         </div>
-        {{if gt .Stats.TotalMonitors 0}}
-        <div class="flex items-baseline space-x-1">
-            <span class="text-4xl font-bold text-foreground font-mono tracking-tighter">{{formatPercent .Stats.UptimePercent}}</span>
-            <span class="text-sm text-muted-foreground">% uptime</span>
-        </div>
-        {{end}}
     </div>
 </div>
 
 <!-- Stats Grid -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-    <!-- Total Monitors -->
     <div class="bg-card border border-border rounded-lg p-4 animate-fade-in-up stagger-1">
-        <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Monitors</p>
-        <div class="flex items-end justify-between">
-            <p class="text-2xl font-bold text-foreground font-mono" data-count-target="{{.Stats.TotalMonitors}}">0</p>
-            <div class="w-8 h-8 bg-accent/10 rounded-md flex items-center justify-center">
-                <i data-lucide="activity" class="w-4 h-4 text-accent"></i>
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitors</p>
+            <div class="w-7 h-7 bg-accent/10 rounded-md flex items-center justify-center">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-accent"></i>
             </div>
         </div>
+        <p class="text-2xl font-bold text-foreground font-mono" data-count-target="{{.Stats.TotalMonitors}}">0</p>
+        <p class="text-[10px] text-muted-foreground mt-1">{{.Stats.MonitorsUp}} up &middot; {{.Stats.MonitorsDown}} down</p>
     </div>
 
-    <!-- Monitors Up -->
     <div class="bg-card border border-border rounded-lg p-4 animate-fade-in-up stagger-2">
-        <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Healthy</p>
-        <div class="flex items-end justify-between">
-            <p class="text-2xl font-bold text-emerald-400 font-mono" data-count-target="{{.Stats.MonitorsUp}}">0</p>
-            <div class="w-8 h-8 bg-emerald-500/10 rounded-md flex items-center justify-center">
-                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Healthy</p>
+            <div class="w-7 h-7 bg-emerald-500/10 rounded-md flex items-center justify-center">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
             </div>
         </div>
+        <p class="text-2xl font-bold text-emerald-400 font-mono" data-count-target="{{.Stats.MonitorsUp}}">0</p>
+        {{if gt .Stats.TotalMonitors 0}}
+        <p class="text-[10px] text-muted-foreground mt-1">{{formatPercent .Stats.UptimePercent}}% success rate</p>
+        {{else}}
+        <p class="text-[10px] text-muted-foreground mt-1">No checks yet</p>
+        {{end}}
     </div>
 
-    <!-- Monitors Down -->
     <div class="bg-card border {{if gt .Stats.MonitorsDown 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-4 animate-fade-in-up stagger-3">
-        <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Down</p>
-        <div class="flex items-end justify-between">
-            <p class="text-2xl font-bold {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.MonitorsDown}}">0</p>
-            <div class="w-8 h-8 {{if gt .Stats.MonitorsDown 0}}bg-red-500/10{{else}}bg-muted/50{{end}} rounded-md flex items-center justify-center">
-                <i data-lucide="x-circle" class="w-4 h-4 {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Down</p>
+            <div class="w-7 h-7 {{if gt .Stats.MonitorsDown 0}}bg-red-500/10{{else}}bg-muted/50{{end}} rounded-md flex items-center justify-center">
+                <i data-lucide="x-circle" class="w-3.5 h-3.5 {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
             </div>
         </div>
+        <p class="text-2xl font-bold {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.MonitorsDown}}">0</p>
+        <p class="text-[10px] text-muted-foreground mt-1">{{if gt .Stats.MonitorsDown 0}}Requires attention{{else}}All clear{{end}}</p>
     </div>
 
-    <!-- Active Incidents -->
     <div class="bg-card border {{if gt .Stats.ActiveIncidents 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-4 animate-fade-in-up stagger-4">
-        <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Incidents</p>
-        <div class="flex items-end justify-between">
-            <p class="text-2xl font-bold {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.ActiveIncidents}}">0</p>
-            <div class="w-8 h-8 {{if gt .Stats.ActiveIncidents 0}}bg-red-500/10{{else}}bg-muted/50{{end}} rounded-md flex items-center justify-center">
-                <i data-lucide="alert-triangle" class="w-4 h-4 {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Incidents</p>
+            <div class="w-7 h-7 {{if gt .Stats.ActiveIncidents 0}}bg-red-500/10{{else}}bg-muted/50{{end}} rounded-md flex items-center justify-center">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
             </div>
         </div>
+        <p class="text-2xl font-bold {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.ActiveIncidents}}">0</p>
+        <p class="text-[10px] text-muted-foreground mt-1">{{if gt .Stats.ActiveIncidents 0}}Active now{{else}}No open incidents{{end}}</p>
     </div>
 </div>
 
-<!-- Main Grid: Monitor Status (wide) + Response Time (narrow) -->
+<!-- Main Grid: Monitor Health (8) + Response Time (4) -->
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">
-    <!-- Monitor Status — 8 cols -->
+
+    <!-- Monitor Health — 8 cols -->
     <div class="lg:col-span-8 bg-card border border-border rounded-lg animate-fade-in-up" style="animation-delay: 0.25s;">
         <div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <i data-lucide="heart-pulse" class="w-4 h-4 text-accent"></i>
-                <h2 class="text-sm font-medium text-foreground">Monitor Status</h2>
+                <h2 class="text-sm font-medium text-foreground">Monitor Health</h2>
                 {{if .Monitors}}
-                <span class="text-[10px] text-muted-foreground font-mono ml-2">{{.Stats.MonitorsUp}}/{{.Stats.TotalMonitors}} up</span>
+                <span class="text-[10px] text-muted-foreground font-mono ml-1">{{.Stats.MonitorsUp}}/{{.Stats.TotalMonitors}} up</span>
                 {{end}}
             </div>
             <a href="/monitors" class="text-xs text-muted-foreground hover:text-foreground transition-smooth flex items-center space-x-1">
@@ -95,56 +127,60 @@
             </a>
         </div>
 
-        {{if .Monitors}}
-        <!-- Uptime Bar -->
-        <div class="px-5 py-3 border-b border-border/50">
-            <div class="flex items-center space-x-4 mb-2">
-                <div class="flex items-center space-x-1.5">
-                    <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
-                    <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.MonitorsUp}} up</span>
-                </div>
-                <div class="flex items-center space-x-1.5">
-                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
-                    <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.MonitorsDown}} down</span>
-                </div>
-                {{if gt (sub .Stats.TotalMonitors (add .Stats.MonitorsUp .Stats.MonitorsDown)) 0}}
-                <div class="flex items-center space-x-1.5">
-                    <div class="w-2 h-2 rounded-full bg-zinc-500"></div>
-                    <span class="text-[10px] text-muted-foreground font-mono">{{sub .Stats.TotalMonitors (add .Stats.MonitorsUp .Stats.MonitorsDown)}} unknown</span>
-                </div>
-                {{end}}
-            </div>
-            <div class="w-full h-2 bg-muted rounded-full overflow-hidden flex gap-px">
-                {{if gt .Stats.TotalMonitors 0}}
-                {{if gt .Stats.MonitorsUp 0}}
-                <div class="bg-emerald-500 h-full rounded-sm transition-all duration-500" style="width: calc({{.Stats.MonitorsUp}} / {{.Stats.TotalMonitors}} * 100%)"></div>
-                {{end}}
-                {{if gt .Stats.MonitorsDown 0}}
-                <div class="bg-red-500 h-full rounded-sm transition-all duration-500" style="width: calc({{.Stats.MonitorsDown}} / {{.Stats.TotalMonitors}} * 100%)"></div>
-                {{end}}
-                {{end}}
-            </div>
+        {{if .Sparklines}}
+        <!-- Column Headers -->
+        <div class="hidden sm:flex items-center px-5 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
+            <div class="w-5 shrink-0"></div>
+            <div class="flex-1 min-w-0 ml-2.5">Service</div>
+            <div class="w-40 shrink-0 text-center hidden md:block">Uptime (last 20)</div>
+            <div class="w-20 shrink-0 text-right hidden md:block">Latency</div>
+            <div class="w-5 shrink-0"></div>
         </div>
 
-        <!-- Monitor List -->
-        <div class="divide-y divide-border/30">
+        <!-- Monitor Rows -->
+        <div class="divide-y divide-border/20">
             {{range .Sparklines}}
-            <a href="/monitors/{{.MonitorID}}" class="flex items-center justify-between px-5 py-2.5 hover:bg-card-elevated transition-smooth group">
-                <div class="flex items-center space-x-3 min-w-0">
-                    <div class="w-2 h-2 rounded-full shrink-0
+            <a href="/monitors/{{.MonitorID}}" class="flex items-center px-5 py-2.5 hover:bg-card-elevated transition-smooth group">
+                <!-- Status dot -->
+                <div class="w-5 shrink-0 flex justify-center">
+                    <div class="w-2 h-2 rounded-full
                         {{if eq .Status "up"}}bg-emerald-400 animate-pulse-dot
                         {{else if eq .Status "down"}}bg-red-400
-                        {{else}}bg-zinc-500{{end}}"></div>
-                    <span class="text-sm text-foreground truncate">{{.Name}}</span>
-                    <span class="text-[10px] text-muted-foreground font-mono uppercase shrink-0">{{.Type}}</span>
+                        {{else}}bg-muted-foreground{{end}}"></div>
                 </div>
-                <div class="flex items-center space-x-3 shrink-0">
-                    {{if .Latencies}}
-                    <canvas id="spark-{{.MonitorID}}" class="w-20 h-6"></canvas>
+
+                <!-- Name + type + target -->
+                <div class="flex-1 min-w-0 ml-2.5">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-foreground truncate">{{.Name}}</span>
+                        <span class="text-[9px] text-muted-foreground font-mono uppercase shrink-0 px-1.5 py-0.5 rounded bg-muted/50">{{.Type}}</span>
+                    </div>
+                    <p class="text-[10px] text-muted-foreground font-mono truncate mt-0.5 hidden sm:block">{{.Target}}</p>
+                </div>
+
+                <!-- Per-check uptime segments (Better Stack style) -->
+                <div class="w-40 shrink-0 hidden md:flex items-center justify-center space-x-px mx-3">
+                    {{if gt .UptimeTotal 0}}
+                    <div class="flex items-center space-x-px" id="checks-{{.MonitorID}}">
+                        <!-- Rendered by JS from CheckResults data -->
+                    </div>
                     {{else}}
-                    <span class="text-[10px] text-muted-foreground">No data</span>
+                    <span class="text-[9px] text-muted-foreground">No data</span>
                     {{end}}
-                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-smooth"></i>
+                </div>
+
+                <!-- Latest latency / sparkline -->
+                <div class="w-20 shrink-0 flex items-center justify-end space-x-2 hidden md:flex">
+                    {{if .Latencies}}
+                    <canvas id="spark-{{.MonitorID}}" class="w-14 h-5"></canvas>
+                    {{else}}
+                    <span class="text-[9px] text-muted-foreground">--</span>
+                    {{end}}
+                </div>
+
+                <!-- Chevron -->
+                <div class="w-5 shrink-0 flex justify-end">
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-muted-foreground/20 group-hover:text-muted-foreground transition-smooth"></i>
                 </div>
             </a>
             {{end}}
@@ -163,7 +199,7 @@
         {{end}}
     </div>
 
-    <!-- Response Time Chart — 4 cols -->
+    <!-- Response Time — 4 cols -->
     <div class="lg:col-span-4 bg-card border border-border rounded-lg animate-fade-in-up" style="animation-delay: 0.3s;">
         <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
             <i data-lucide="timer" class="w-4 h-4 text-accent"></i>
@@ -171,7 +207,22 @@
         </div>
         <div class="p-4">
             {{if .Sparklines}}
-            <div class="h-52">
+            <!-- Summary stats row -->
+            <div class="flex items-center justify-between mb-3 px-1" id="latency-summary">
+                <div class="text-center">
+                    <p class="text-[9px] text-muted-foreground uppercase tracking-wider">Avg</p>
+                    <p class="text-sm font-bold text-foreground font-mono" id="latency-avg">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[9px] text-muted-foreground uppercase tracking-wider">Min</p>
+                    <p class="text-sm font-bold text-emerald-400 font-mono" id="latency-min">--</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[9px] text-muted-foreground uppercase tracking-wider">Max</p>
+                    <p class="text-sm font-bold text-red-400 font-mono" id="latency-max">--</p>
+                </div>
+            </div>
+            <div class="h-44">
                 <canvas id="latency-trend-chart"></canvas>
             </div>
             <p class="text-[10px] text-muted-foreground mt-2 text-center">Avg. latency across monitors (last 20 checks)</p>
@@ -189,6 +240,7 @@
 
 <!-- Bottom Grid: Agents + Incidents -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
     <!-- Agents -->
     <div class="bg-card border border-border rounded-lg animate-fade-in-up self-start" style="animation-delay: 0.35s;">
         <div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
@@ -196,7 +248,10 @@
                 <i data-lucide="server" class="w-4 h-4 text-accent"></i>
                 <h2 class="text-sm font-medium text-foreground">Agents</h2>
             </div>
-            <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.OnlineAgents}}/{{.Stats.TotalAgents}} online</span>
+            <div class="flex items-center space-x-1.5">
+                <div class="w-1.5 h-1.5 rounded-full {{if gt .Stats.OnlineAgents 0}}bg-emerald-400{{else}}bg-muted-foreground{{end}}"></div>
+                <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.OnlineAgents}}/{{.Stats.TotalAgents}} online</span>
+            </div>
         </div>
         <div hx-ext="sse" sse-connect="/sse/events">
             {{if .Agents}}
@@ -279,7 +334,7 @@
     </div>
 </div>
 
-<!-- Sparkline + Chart Data -->
+<!-- Chart + Sparkline Data -->
 {{if .Sparklines}}
 <script type="application/json" id="sparkline-data">{{toJSON .Sparklines}}</script>
 <script>
@@ -290,35 +345,77 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         var sparklines = JSON.parse(sparklineEl.textContent);
 
-        // Build per-monitor sparklines
+        // Build per-monitor sparklines + uptime check segments
         for (var i = 0; i < sparklines.length; i++) {
             var s = sparklines[i];
+
+            // Sparklines
             if (s.Latencies && s.Latencies.length > 0) {
                 var color = s.Status === 'up' ? '#22c55e' : (s.Status === 'down' ? '#ef4444' : '#6366f1');
                 createSparkline('spark-' + s.MonitorID, s.Latencies, color);
             }
+
+            // Per-check uptime segments (Better Stack style)
+            if (s.CheckResults && s.CheckResults.length > 0) {
+                var container = document.getElementById('checks-' + s.MonitorID);
+                if (container) {
+                    container.innerHTML = '';
+                    for (var j = 0; j < s.CheckResults.length; j++) {
+                        var seg = document.createElement('div');
+                        seg.style.width = '4px';
+                        seg.style.height = '16px';
+                        seg.style.borderRadius = '1px';
+                        seg.className = s.CheckResults[j] === 1 ? 'bg-emerald-500/70' : 'bg-red-500/70';
+                        container.appendChild(seg);
+                    }
+                    // Pad remaining slots to 20
+                    for (var k = s.CheckResults.length; k < 20; k++) {
+                        var empty = document.createElement('div');
+                        empty.style.width = '4px';
+                        empty.style.height = '16px';
+                        empty.style.borderRadius = '1px';
+                        empty.className = 'bg-muted/40';
+                        container.appendChild(empty);
+                    }
+                }
+            }
         }
 
-        // Build aggregate latency trend chart
+        // Build aggregate latency trend chart + summary stats
         var maxLen = 0;
-        for (var j = 0; j < sparklines.length; j++) {
-            if (sparklines[j].Latencies && sparklines[j].Latencies.length > maxLen) {
-                maxLen = sparklines[j].Latencies.length;
+        for (var j2 = 0; j2 < sparklines.length; j2++) {
+            if (sparklines[j2].Latencies && sparklines[j2].Latencies.length > maxLen) {
+                maxLen = sparklines[j2].Latencies.length;
             }
         }
 
         if (maxLen > 0) {
             var avgLatencies = [];
-            for (var k = 0; k < maxLen; k++) {
+            var allVals = [];
+            for (var k2 = 0; k2 < maxLen; k2++) {
                 var sum = 0;
                 var count = 0;
                 for (var m = 0; m < sparklines.length; m++) {
-                    if (sparklines[m].Latencies && k < sparklines[m].Latencies.length) {
-                        sum += sparklines[m].Latencies[k];
+                    if (sparklines[m].Latencies && k2 < sparklines[m].Latencies.length) {
+                        sum += sparklines[m].Latencies[k2];
                         count++;
+                        allVals.push(sparklines[m].Latencies[k2]);
                     }
                 }
                 avgLatencies.push(count > 0 ? Math.round(sum / count) : 0);
+            }
+
+            // Update summary stats
+            if (allVals.length > 0) {
+                var avg = Math.round(allVals.reduce(function(a, b) { return a + b; }, 0) / allVals.length);
+                var min = Math.min.apply(null, allVals);
+                var max = Math.max.apply(null, allVals);
+                var avgEl = document.getElementById('latency-avg');
+                var minEl = document.getElementById('latency-min');
+                var maxEl = document.getElementById('latency-max');
+                if (avgEl) avgEl.textContent = avg + 'ms';
+                if (minEl) minEl.textContent = min + 'ms';
+                if (maxEl) maxEl.textContent = max + 'ms';
             }
 
             var hasData = avgLatencies.some(function(v) { return v > 0; });
@@ -328,14 +425,14 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 var chartContainer = document.getElementById('latency-trend-chart');
                 if (chartContainer) {
-                    chartContainer.parentNode.innerHTML = '<div class="h-52 flex items-center justify-center"><div class="text-center"><i data-lucide="bar-chart-3" class="w-8 h-8 text-muted-foreground/20 mx-auto mb-2"></i><p class="text-xs text-muted-foreground">Collecting data...</p></div></div>';
+                    chartContainer.parentNode.innerHTML = '<div class="h-44 flex items-center justify-center"><div class="text-center"><i data-lucide="bar-chart-3" class="w-8 h-8 text-muted-foreground/20 mx-auto mb-2"></i><p class="text-xs text-muted-foreground">Collecting data...</p></div></div>';
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
             }
         } else {
-            var chartContainer = document.getElementById('latency-trend-chart');
-            if (chartContainer) {
-                chartContainer.parentNode.innerHTML = '<div class="h-52 flex items-center justify-center"><div class="text-center"><i data-lucide="bar-chart-3" class="w-8 h-8 text-muted-foreground/20 mx-auto mb-2"></i><p class="text-xs text-muted-foreground">No latency data yet</p></div></div>';
+            var chartContainer2 = document.getElementById('latency-trend-chart');
+            if (chartContainer2) {
+                chartContainer2.parentNode.innerHTML = '<div class="h-44 flex items-center justify-center"><div class="text-center"><i data-lucide="bar-chart-3" class="w-8 h-8 text-muted-foreground/20 mx-auto mb-2"></i><p class="text-xs text-muted-foreground">No latency data yet</p></div></div>';
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         }
