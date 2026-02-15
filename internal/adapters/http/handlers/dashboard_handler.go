@@ -144,9 +144,13 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		})
 	}
 
-	// Enrich incidents with monitor names
-	incidentsWithMonitors := make([]IncidentWithMonitor, 0, len(incidents))
-	for _, incident := range incidents {
+	// Enrich incidents with monitor names (cap at 5 for dashboard)
+	displayIncidents := incidents
+	if len(displayIncidents) > 5 {
+		displayIncidents = displayIncidents[:5]
+	}
+	incidentsWithMonitors := make([]IncidentWithMonitor, 0, len(displayIncidents))
+	for _, incident := range displayIncidents {
 		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
 		incidentsWithMonitors = append(incidentsWithMonitors, IncidentWithMonitor{
 			Incident: incident,

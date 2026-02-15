@@ -108,7 +108,7 @@
         <div class="p-5">
             <div class="flex flex-wrap gap-2">
                 {{range .Sparklines}}
-                <a href="/monitors/{{.MonitorID}}"
+                <a href="/monitors/{{.MonitorID}}" title="{{.Name}} ({{.Type}})"
                    class="inline-flex items-center space-x-2 px-3 py-2 rounded-lg text-xs transition-smooth border
                     {{if eq .Status "up"}}border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10
                     {{else if eq .Status "down"}}border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10
@@ -117,7 +117,7 @@
                         {{if eq .Status "up"}}bg-emerald-400 animate-pulse-dot
                         {{else if eq .Status "down"}}bg-red-400
                         {{else}}bg-zinc-500{{end}}"></div>
-                    <span class="truncate max-w-[100px]">{{.Name}}</span>
+                    <span class="truncate max-w-[120px]">{{.Name}}</span>
                     {{if .Latencies}}
                     <canvas id="spark-{{.MonitorID}}" class="w-16 h-5 shrink-0"></canvas>
                     {{end}}
@@ -161,7 +161,7 @@
 <!-- Bento Row 3: Agents (6 cols) + Incidents (6 cols) -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <!-- Agents -->
-    <div class="bg-card border border-border rounded-lg animate-fade-in-up" style="animation-delay: 0.35s;">
+    <div class="bg-card border border-border rounded-lg animate-fade-in-up self-start" style="animation-delay: 0.35s;">
         <div class="px-5 py-4 border-b border-border flex items-center space-x-2">
             <i data-lucide="server" class="w-4 h-4 text-accent"></i>
             <h2 class="text-sm font-medium text-foreground">Agents</h2>
@@ -285,8 +285,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 avgLatencies.push(count > 0 ? Math.round(sum / count) : 0);
             }
 
-            var labels = avgLatencies.map(function(_, idx) { return idx + 1; });
-            createLatencyChart('latency-trend-chart', labels, avgLatencies);
+            // Check if all values are 0 (no real data)
+            var hasData = avgLatencies.some(function(v) { return v > 0; });
+            if (hasData) {
+                var labels = avgLatencies.map(function(_, idx) { return idx + 1; });
+                createLatencyChart('latency-trend-chart', labels, avgLatencies);
+            } else {
+                var chartContainer = document.getElementById('latency-trend-chart');
+                if (chartContainer) {
+                    chartContainer.parentNode.innerHTML = '<div class="h-48 flex items-center justify-center"><p class="text-sm text-muted-foreground">Collecting latency data...</p></div>';
+                }
+            }
+        } else {
+            var chartContainer = document.getElementById('latency-trend-chart');
+            if (chartContainer) {
+                chartContainer.parentNode.innerHTML = '<div class="h-48 flex items-center justify-center"><p class="text-sm text-muted-foreground">No latency data yet</p></div>';
+            }
         }
     } catch(e) {
         // Silently ignore parse errors

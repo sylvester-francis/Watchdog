@@ -124,7 +124,7 @@
     </div>
 
     <!-- TIMELINE VIEW -->
-    <div x-show="view === 'timeline'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="fade-in-up stagger-2">
+    <div x-show="view === 'timeline'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="fade-in-up stagger-2">
         <div class="relative">
             <!-- Vertical line -->
             <div class="absolute left-[19px] top-0 bottom-0 w-px bg-zinc-800"></div>
@@ -187,7 +187,7 @@
                         {{else if not (eq (print .Incident.Status) "resolved")}}
                         <div class="mt-2 pt-2 border-t border-zinc-800/50 flex items-center space-x-2">
                             <i data-lucide="clock" class="w-3 h-3 text-red-400"></i>
-                            <span class="text-xs text-red-400 font-mono">ongoing</span>
+                            <span class="text-xs text-red-400 font-mono">{{formatDuration .Incident.Duration}}</span>
                         </div>
                         {{end}}
                     </div>
@@ -231,22 +231,21 @@ document.addEventListener('alpine:init', () => {
 });
 
 function bulkAck() {
-    const scope = document.querySelector('[x-data]').__x.$data || Alpine.$data(document.querySelector('[x-data]'));
-    if (!scope || !scope.selectedIncidents) return;
+    const el = document.querySelector('[x-data]');
+    const scope = Alpine.$data(el);
+    if (!scope || !scope.selectedIncidents || scope.selectedIncidents.length === 0) return;
+    if (!confirm('Acknowledge ' + scope.selectedIncidents.length + ' incident(s)?')) return;
     scope.selectedIncidents.forEach(id => {
-        fetch('/incidents/' + id + '/ack', { method: 'POST', headers: { 'HX-Request': 'true' } })
-            .then(() => {
-                const row = document.getElementById('incident-' + id);
-                if (row) htmx.ajax('GET', '/incidents?status={{.StatusFilter}}', { target: 'body', swap: 'outerHTML' });
-            });
+        fetch('/incidents/' + id + '/ack', { method: 'POST' });
     });
-    // Reload the page after bulk action
     setTimeout(() => window.location.reload(), 500);
 }
 
 function bulkResolve() {
-    const scope = document.querySelector('[x-data]').__x.$data || Alpine.$data(document.querySelector('[x-data]'));
-    if (!scope || !scope.selectedIncidents) return;
+    const el = document.querySelector('[x-data]');
+    const scope = Alpine.$data(el);
+    if (!scope || !scope.selectedIncidents || scope.selectedIncidents.length === 0) return;
+    if (!confirm('Resolve ' + scope.selectedIncidents.length + ' incident(s)?')) return;
     scope.selectedIncidents.forEach(id => {
         fetch('/incidents/' + id + '/resolve?filter={{.StatusFilter}}', { method: 'POST' });
     });
@@ -324,7 +323,7 @@ function bulkResolve() {
         {{else if .Incident.ResolvedAt}}
         <span class="text-xs text-zinc-500">Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
         {{else}}
-        <span class="text-xs text-red-400 font-mono animate-pulse">ongoing</span>
+        <span class="text-xs text-red-400 font-mono">{{formatDuration .Incident.Duration}}</span>
         {{end}}
     </td>
 
