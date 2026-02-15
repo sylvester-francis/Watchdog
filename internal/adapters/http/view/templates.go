@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,55 +15,82 @@ import (
 )
 
 // Templates implements echo.Renderer for Go templates.
+// Each page gets its own cloned template set so that {{define "content"}}
+// blocks don't collide across pages (Go templates have a flat namespace).
 type Templates struct {
-	templates *template.Template
+	pages map[string]*template.Template
 }
 
 // NewTemplates creates a new Templates instance by loading all templates.
+// For each page, it clones the base (layouts + partials) and parses the
+// page file into the clone, giving each page its own "content" definition.
 func NewTemplates(dir string) (*Templates, error) {
 	funcMap := template.FuncMap{
-		"formatTime":      formatTime,
-		"formatDuration":  formatDuration,
-		"formatTimeAgo":   formatTimeAgo,
+		"formatTime":       formatTime,
+		"formatDuration":   formatDuration,
+		"formatTimeAgo":    formatTimeAgo,
 		"formatTimeAgoPtr": formatTimeAgoPtr,
-		"statusColor":     statusColor,
-		"statusBgColor":   statusBgColor,
-		"statusIcon":      statusIcon,
-		"monitorTypeIcon": monitorTypeIcon,
-		"lower":           strings.ToLower,
-		"upper":           strings.ToUpper,
-		"title":           strings.Title,
-		"safeHTML":        safeHTML,
-		"add":             add,
-		"sub":             sub,
-		"dict":            dict,
+		"statusColor":      statusColor,
+		"statusBgColor":    statusBgColor,
+		"statusIcon":       statusIcon,
+		"monitorTypeIcon":  monitorTypeIcon,
+		"lower":            strings.ToLower,
+		"upper":            strings.ToUpper,
+		"title":            strings.Title,
+		"safeHTML":         safeHTML,
+		"add":              add,
+		"sub":              sub,
+		"dict":             dict,
 	}
 
-	// Parse all templates
-	templates := template.New("").Funcs(funcMap)
+	// Build the shared base: layouts + partials
+	base := template.New("").Funcs(funcMap)
 
-	// Parse layouts
 	layoutPattern := filepath.Join(dir, "layouts", "*.html")
-	templates, err := templates.ParseGlob(layoutPattern)
+	base, err := base.ParseGlob(layoutPattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse layouts: %w", err)
 	}
 
-	// Parse pages
-	pagesPattern := filepath.Join(dir, "pages", "*.html")
-	templates, err = templates.ParseGlob(pagesPattern)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse pages: %w", err)
-	}
-
-	// Parse partials
 	partialsPattern := filepath.Join(dir, "partials", "*.html")
-	templates, err = templates.ParseGlob(partialsPattern)
+	base, err = base.ParseGlob(partialsPattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse partials: %w", err)
 	}
 
-	return &Templates{templates: templates}, nil
+	// For each page file, clone base and parse the page into the clone
+	pages := make(map[string]*template.Template)
+
+	pageFiles, err := filepath.Glob(filepath.Join(dir, "pages", "*.html"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to glob pages: %w", err)
+	}
+
+	for _, pageFile := range pageFiles {
+		// Clone the base template set
+		clone, err := base.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("failed to clone base for %s: %w", pageFile, err)
+		}
+
+		// Parse the page file into the clone
+		pageContent, err := os.ReadFile(pageFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", pageFile, err)
+		}
+
+		_, err = clone.Parse(string(pageContent))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %s: %w", pageFile, err)
+		}
+
+		// Extract the page name (e.g. "dashboard.html" from the {{define "dashboard.html"}} block)
+		// We register by filename so c.Render("dashboard.html", ...) finds the right set
+		name := filepath.Base(pageFile)
+		pages[name] = clone
+	}
+
+	return &Templates{pages: pages}, nil
 }
 
 // Render implements echo.Renderer.
@@ -79,7 +107,24 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Co
 		}
 	}
 
-	return t.templates.ExecuteTemplate(w, name, viewData)
+	// Look up the page-specific template set
+	tmpl, ok := t.pages[name]
+	if !ok {
+		// Fallback: search all page template sets for inline-defined templates
+		// (e.g. "incident_row" defined inside incidents.html)
+		for _, pt := range t.pages {
+			if pt.Lookup(name) != nil {
+				tmpl = pt
+				ok = true
+				break
+			}
+		}
+	}
+	if !ok {
+		return fmt.Errorf("template %q not found", name)
+	}
+
+	return tmpl.ExecuteTemplate(w, name, viewData)
 }
 
 // Template functions
