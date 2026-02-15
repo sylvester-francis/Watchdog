@@ -239,6 +239,47 @@ func (r *UserRepository) GetUsersNearLimits(ctx context.Context) ([]ports.UserUs
 	return results, rows.Err()
 }
 
+// GetAllWithUsage returns all users with their agent and monitor counts.
+func (r *UserRepository) GetAllWithUsage(ctx context.Context) ([]ports.AdminUserView, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT u.id, u.email, u.plan, u.is_admin,
+			COALESCE(ac.cnt, 0) AS agent_count,
+			COALESCE(mc.cnt, 0) AS monitor_count,
+			u.created_at
+		FROM users u
+		LEFT JOIN (
+			SELECT user_id, COUNT(*) AS cnt FROM agents GROUP BY user_id
+		) ac ON ac.user_id = u.id
+		LEFT JOIN (
+			SELECT a.user_id, COUNT(*) AS cnt
+			FROM monitors m JOIN agents a ON m.agent_id = a.id
+			GROUP BY a.user_id
+		) mc ON mc.user_id = u.id
+		ORDER BY u.created_at DESC`
+
+	rows, err := q.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("userRepo.GetAllWithUsage: %w", err)
+	}
+	defer rows.Close()
+
+	var results []ports.AdminUserView
+	for rows.Next() {
+		var u ports.AdminUserView
+		if err := rows.Scan(&u.ID, &u.Email, &u.Plan, &u.IsAdmin, &u.AgentCount, &u.MonitorCount, &u.CreatedAt); err != nil {
+			return nil, fmt.Errorf("userRepo.GetAllWithUsage: scan: %w", err)
+		}
+		limits := u.Plan.Limits()
+		u.AgentMax = limits.MaxAgents
+		u.MonitorMax = limits.MaxMonitors
+		results = append(results, u)
+	}
+
+	return results, rows.Err()
+}
+
 // ExistsByEmail checks if a user with the given email exists.
 func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	q := r.db.Querier(ctx)
