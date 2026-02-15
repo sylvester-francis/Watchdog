@@ -98,6 +98,7 @@ func (h *LandingHandler) renderPage(c echo.Context, success, errMsg string) erro
 	return c.Render(http.StatusOK, "landing.html", map[string]interface{}{
 		"Title":   "WatchDog - Monitor Services Behind Your Firewall",
 		"Plans":   plans,
+		"Year":    time.Now().Year(),
 		"Success": success,
 		"Error":   errMsg,
 	})
