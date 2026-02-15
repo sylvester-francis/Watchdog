@@ -10,24 +10,24 @@
     </div>
 
     <!-- Stats Pills -->
-    {{if .Stats}}
+    {{if .IncidentStats}}
     <div class="flex items-center space-x-3">
-        {{if gt .Stats.Open 0}}
+        {{if gt .IncidentStats.Open 0}}
         <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20">
             <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-            <span class="text-xs font-medium text-red-400">{{.Stats.Open}} open</span>
+            <span class="text-xs font-medium text-red-400">{{.IncidentStats.Open}} open</span>
         </div>
         {{end}}
-        {{if gt .Stats.Acknowledged 0}}
+        {{if gt .IncidentStats.Acknowledged 0}}
         <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20">
             <div class="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
-            <span class="text-xs font-medium text-yellow-400">{{.Stats.Acknowledged}} acked</span>
+            <span class="text-xs font-medium text-yellow-400">{{.IncidentStats.Acknowledged}} acked</span>
         </div>
         {{end}}
-        {{if gt .Stats.Resolved 0}}
+        {{if gt .IncidentStats.Resolved 0}}
         <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
             <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-            <span class="text-xs font-medium text-emerald-400">{{.Stats.Resolved}} resolved</span>
+            <span class="text-xs font-medium text-emerald-400">{{.IncidentStats.Resolved}} resolved</span>
         </div>
         {{end}}
     </div>
