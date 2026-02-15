@@ -3,120 +3,274 @@
 {{end}}
 
 {{define "content"}}
-<!-- Header -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-    <div>
-        <p class="text-sm text-muted-foreground">Track and manage service disruptions</p>
+<div x-data="{ view: 'table', selectedIncidents: [], selectAll: false }" class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 fade-in-up">
+        <div>
+            <p class="text-sm text-zinc-400">Track and manage service disruptions</p>
+        </div>
+
+        <!-- Stats Pills -->
+        {{if .IncidentStats}}
+        <div class="flex items-center space-x-3">
+            {{if gt .IncidentStats.Open 0}}
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20">
+                <div class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></div>
+                <span class="text-xs font-medium text-red-400 font-mono">{{.IncidentStats.Open}} open</span>
+            </div>
+            {{end}}
+            {{if gt .IncidentStats.Acknowledged 0}}
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20">
+                <div class="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+                <span class="text-xs font-medium text-yellow-400 font-mono">{{.IncidentStats.Acknowledged}} acked</span>
+            </div>
+            {{end}}
+            {{if gt .IncidentStats.Resolved 0}}
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                <span class="text-xs font-medium text-emerald-400 font-mono">{{.IncidentStats.Resolved}} resolved</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
     </div>
 
-    <!-- Stats Pills -->
-    {{if .IncidentStats}}
-    <div class="flex items-center space-x-3">
-        {{if gt .IncidentStats.Open 0}}
-        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20">
-            <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-            <span class="text-xs font-medium text-red-400">{{.IncidentStats.Open}} open</span>
+    <!-- Toolbar: Filters + View Toggle -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 fade-in-up stagger-1">
+        <!-- Filter Tabs -->
+        <div class="flex items-center space-x-1 bg-[#18181b] rounded-lg p-1 w-fit" x-data="{ activeTab: '{{.StatusFilter}}' }">
+            <a href="/incidents?status=active"
+                class="relative px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                {{if eq .StatusFilter "active"}}bg-zinc-800 text-white shadow-sm{{else}}text-zinc-400 hover:text-zinc-200{{end}}">
+                <span class="flex items-center space-x-1.5">
+                    <i data-lucide="flame" class="w-3 h-3"></i>
+                    <span>Active</span>
+                </span>
+            </a>
+            <a href="/incidents?status=resolved"
+                class="relative px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                {{if eq .StatusFilter "resolved"}}bg-zinc-800 text-white shadow-sm{{else}}text-zinc-400 hover:text-zinc-200{{end}}">
+                <span class="flex items-center space-x-1.5">
+                    <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                    <span>Resolved</span>
+                </span>
+            </a>
+            <a href="/incidents?status=all"
+                class="relative px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                {{if eq .StatusFilter "all"}}bg-zinc-800 text-white shadow-sm{{else}}text-zinc-400 hover:text-zinc-200{{end}}">
+                <span class="flex items-center space-x-1.5">
+                    <i data-lucide="list" class="w-3 h-3"></i>
+                    <span>All</span>
+                </span>
+            </a>
         </div>
-        {{end}}
-        {{if gt .IncidentStats.Acknowledged 0}}
-        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20">
-            <div class="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
-            <span class="text-xs font-medium text-yellow-400">{{.IncidentStats.Acknowledged}} acked</span>
+
+        <div class="flex items-center space-x-3">
+            <!-- Bulk Actions (shown when incidents selected) -->
+            <div x-show="selectedIncidents.length > 0" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="flex items-center space-x-2">
+                <span class="text-xs text-zinc-400" x-text="selectedIncidents.length + ' selected'"></span>
+                <button @click="bulkAck()" class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-all duration-200">
+                    Ack All
+                </button>
+                <button @click="bulkResolve()" class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-all duration-200">
+                    Resolve All
+                </button>
+                <button @click="selectedIncidents = []; selectAll = false" class="px-2 py-1 text-zinc-500 hover:text-zinc-300 text-xs transition-all duration-200">
+                    Clear
+                </button>
+            </div>
+
+            <!-- View Toggle -->
+            <div class="flex items-center bg-[#18181b] rounded-lg p-1">
+                <button @click="view = 'table'" :class="view === 'table' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'" class="p-1.5 rounded-md transition-all duration-200">
+                    <i data-lucide="table-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button @click="view = 'timeline'" :class="view === 'timeline' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'" class="p-1.5 rounded-md transition-all duration-200">
+                    <i data-lucide="git-commit-horizontal" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
         </div>
-        {{end}}
-        {{if gt .IncidentStats.Resolved 0}}
-        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
-            <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-            <span class="text-xs font-medium text-emerald-400">{{.IncidentStats.Resolved}} resolved</span>
-        </div>
-        {{end}}
     </div>
-    {{end}}
-</div>
 
-<!-- Filters -->
-<div class="flex items-center space-x-1 mb-6 bg-muted rounded-lg p-1 w-fit">
-    <a href="/incidents?status=active"
-        class="px-3 py-1.5 rounded-md text-xs font-medium transition-smooth
-        {{if eq .StatusFilter "active"}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
-        Active
-    </a>
-    <a href="/incidents?status=resolved"
-        class="px-3 py-1.5 rounded-md text-xs font-medium transition-smooth
-        {{if eq .StatusFilter "resolved"}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
-        Resolved
-    </a>
-    <a href="/incidents?status=all"
-        class="px-3 py-1.5 rounded-md text-xs font-medium transition-smooth
-        {{if eq .StatusFilter "all"}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
-        All
-    </a>
-</div>
-
-<!-- Incidents Table -->
-<div class="bg-card border border-border rounded-lg">
     {{if .IncidentsWithMonitors}}
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead>
-                <tr class="border-b border-border">
-                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Monitor</th>
-                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Target</th>
-                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Started</th>
-                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Duration</th>
-                    <th class="px-5 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border" id="incidents-list">
-                {{range .IncidentsWithMonitors}}
-                {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor}}
-                {{end}}
-            </tbody>
-        </table>
+
+    <!-- TABLE VIEW -->
+    <div x-show="view === 'table'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="bg-[#111113] border border-zinc-800 rounded-lg fade-in-up stagger-2">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-zinc-800">
+                        <th class="px-4 py-3 text-left w-10">
+                            <input type="checkbox" x-model="selectAll"
+                                @change="selectAll ? selectedIncidents = [{{range $i, $im := .IncidentsWithMonitors}}{{if $i}},{{end}}'{{$im.Incident.ID}}'{{end}}] : selectedIncidents = []"
+                                class="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500/20 focus:ring-offset-0 cursor-pointer">
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Monitor</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider hidden md:table-cell">Target</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Started</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:table-cell">Duration</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-800/50" id="incidents-list">
+                    {{range .IncidentsWithMonitors}}
+                    {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor}}
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
     </div>
+
+    <!-- TIMELINE VIEW -->
+    <div x-show="view === 'timeline'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="fade-in-up stagger-2">
+        <div class="relative">
+            <!-- Vertical line -->
+            <div class="absolute left-[19px] top-0 bottom-0 w-px bg-zinc-800"></div>
+
+            <div class="space-y-4">
+                {{range .IncidentsWithMonitors}}
+                <div class="relative flex items-start space-x-4 group" id="timeline-{{.Incident.ID}}">
+                    <!-- Dot -->
+                    <div class="relative z-10 flex-shrink-0 w-10 flex justify-center pt-1">
+                        <div class="w-3 h-3 rounded-full border-2
+                            {{if eq (print .Incident.Status) "open"}}bg-red-500 border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.4)]
+                            {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500 border-yellow-400 shadow-[0_0_8px_rgba(234,179,8,0.4)]
+                            {{else}}bg-emerald-500 border-emerald-400{{end}}"></div>
+                    </div>
+
+                    <!-- Content Card -->
+                    <div class="flex-1 bg-[#111113] border border-zinc-800 rounded-lg p-4 hover:border-zinc-700 transition-all duration-200 group-hover:bg-[#141416]">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center space-x-2 mb-1.5">
+                                    <span class="text-xs font-medium px-1.5 py-0.5 rounded
+                                        {{if eq (print .Incident.Status) "open"}}bg-red-500/15 text-red-400
+                                        {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/15 text-yellow-400
+                                        {{else}}bg-emerald-500/15 text-emerald-400{{end}}">
+                                        {{.Incident.Status}}
+                                    </span>
+                                    {{if .Monitor}}
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 uppercase font-mono">{{.Monitor.Type}}</span>
+                                    {{end}}
+                                </div>
+                                <h4 class="text-sm font-medium text-zinc-200">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</h4>
+                                {{if .Monitor}}
+                                <p class="text-xs text-zinc-500 font-mono mt-0.5 truncate">{{.Monitor.Target}}</p>
+                                {{end}}
+                            </div>
+                            <div class="flex flex-col items-end space-y-2 flex-shrink-0">
+                                <span class="text-xs text-zinc-500">{{formatTimeAgo .Incident.StartedAt}}</span>
+                                <div class="flex items-center space-x-1.5">
+                                    {{if eq (print .Incident.Status) "open"}}
+                                    <button hx-post="/incidents/{{.Incident.ID}}/ack" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
+                                        class="px-2 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded text-xs font-medium transition-all duration-200">
+                                        Ack
+                                    </button>
+                                    {{end}}
+                                    {{if or (eq (print .Incident.Status) "open") (eq (print .Incident.Status) "acknowledged")}}
+                                    <button hx-post="/incidents/{{.Incident.ID}}/resolve?filter={{$.StatusFilter}}" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
+                                        class="px-2 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded text-xs font-medium transition-all duration-200">
+                                        Resolve
+                                    </button>
+                                    {{end}}
+                                </div>
+                            </div>
+                        </div>
+
+                        {{if .Incident.TTRSeconds}}
+                        <div class="mt-2 pt-2 border-t border-zinc-800/50 flex items-center space-x-2">
+                            <i data-lucide="timer" class="w-3 h-3 text-zinc-500"></i>
+                            <span class="text-xs text-zinc-500 font-mono">TTR: {{.Incident.TTRSeconds}}s</span>
+                        </div>
+                        {{else if not (eq (print .Incident.Status) "resolved")}}
+                        <div class="mt-2 pt-2 border-t border-zinc-800/50 flex items-center space-x-2">
+                            <i data-lucide="clock" class="w-3 h-3 text-red-400"></i>
+                            <span class="text-xs text-red-400 font-mono">ongoing</span>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
     {{else}}
-    <div class="text-center py-20">
-        {{if eq .StatusFilter "active"}}
-        <div class="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
+    <!-- Empty State -->
+    <div class="bg-[#111113] border border-zinc-800 rounded-lg fade-in-up stagger-2">
+        <div class="text-center py-20">
+            {{if eq .StatusFilter "active"}}
+            <div class="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-400"></i>
+            </div>
+            <h3 class="text-sm font-medium text-zinc-200 mb-1">No active incidents</h3>
+            <p class="text-sm text-zinc-500">All systems are running smoothly.</p>
+            {{else if eq .StatusFilter "resolved"}}
+            <div class="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="clock" class="w-6 h-6 text-zinc-400"></i>
+            </div>
+            <h3 class="text-sm font-medium text-zinc-200 mb-1">No resolved incidents</h3>
+            <p class="text-sm text-zinc-500">No incidents have been resolved yet.</p>
+            {{else}}
+            <div class="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="shield-check" class="w-6 h-6 text-zinc-400"></i>
+            </div>
+            <h3 class="text-sm font-medium text-zinc-200 mb-1">No incidents</h3>
+            <p class="text-sm text-zinc-500">No incidents have been recorded.</p>
+            {{end}}
         </div>
-        <h3 class="text-sm font-medium text-foreground mb-1">No active incidents</h3>
-        <p class="text-sm text-muted-foreground">All systems are running smoothly.</p>
-        {{else if eq .StatusFilter "resolved"}}
-        <div class="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
-            <svg class="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-        </div>
-        <h3 class="text-sm font-medium text-foreground mb-1">No resolved incidents</h3>
-        <p class="text-sm text-muted-foreground">No incidents have been resolved yet.</p>
-        {{else}}
-        <div class="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
-            <svg class="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-        </div>
-        <h3 class="text-sm font-medium text-foreground mb-1">No incidents</h3>
-        <p class="text-sm text-muted-foreground">No incidents have been recorded.</p>
-        {{end}}
     </div>
     {{end}}
 </div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    // Bulk action helpers available on the Alpine scope
+});
+
+function bulkAck() {
+    const scope = document.querySelector('[x-data]').__x.$data || Alpine.$data(document.querySelector('[x-data]'));
+    if (!scope || !scope.selectedIncidents) return;
+    scope.selectedIncidents.forEach(id => {
+        fetch('/incidents/' + id + '/ack', { method: 'POST', headers: { 'HX-Request': 'true' } })
+            .then(() => {
+                const row = document.getElementById('incident-' + id);
+                if (row) htmx.ajax('GET', '/incidents?status={{.StatusFilter}}', { target: 'body', swap: 'outerHTML' });
+            });
+    });
+    // Reload the page after bulk action
+    setTimeout(() => window.location.reload(), 500);
+}
+
+function bulkResolve() {
+    const scope = document.querySelector('[x-data]').__x.$data || Alpine.$data(document.querySelector('[x-data]'));
+    if (!scope || !scope.selectedIncidents) return;
+    scope.selectedIncidents.forEach(id => {
+        fetch('/incidents/' + id + '/resolve?filter={{.StatusFilter}}', { method: 'POST' });
+    });
+    setTimeout(() => window.location.reload(), 500);
+}
+</script>
 {{end}}
 
 {{define "incident_row"}}
-<tr id="incident-{{.Incident.ID}}" class="hover:bg-muted/20 transition-smooth group">
+<tr id="incident-{{.Incident.ID}}" class="hover:bg-zinc-800/30 transition-all duration-200 group">
+    <!-- Checkbox -->
+    <td class="px-4 py-3.5">
+        <input type="checkbox" :value="'{{.Incident.ID}}'" x-model="selectedIncidents"
+            class="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-indigo-500/20 focus:ring-offset-0 cursor-pointer">
+    </td>
+
     <!-- Status -->
-    <td class="px-5 py-3.5">
+    <td class="px-4 py-3.5">
         <div class="flex items-center space-x-2">
             <div class="w-2 h-2 rounded-full
                 {{if eq (print .Incident.Status) "open"}}bg-red-400 animate-pulse
                 {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-400
                 {{else}}bg-emerald-400{{end}}"></div>
-            <span class="text-xs font-medium px-1.5 py-0.5 rounded-md
+            <span class="text-xs font-medium px-1.5 py-0.5 rounded
                 {{if eq (print .Incident.Status) "open"}}bg-red-500/15 text-red-400
                 {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/15 text-yellow-400
                 {{else}}bg-emerald-500/15 text-emerald-400{{end}}">
@@ -126,78 +280,71 @@
     </td>
 
     <!-- Monitor Name -->
-    <td class="px-5 py-3.5">
+    <td class="px-4 py-3.5">
         <div class="flex items-center space-x-2.5">
             <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0
                 {{if eq (print .Incident.Status) "open"}}bg-red-500/10
                 {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/10
                 {{else}}bg-emerald-500/10{{end}}">
                 {{if eq (print .Incident.Status) "open"}}
-                <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-red-400"></i>
                 {{else if eq (print .Incident.Status) "acknowledged"}}
-                <svg class="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                </svg>
+                <i data-lucide="eye" class="w-3.5 h-3.5 text-yellow-400"></i>
                 {{else}}
-                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
                 {{end}}
             </div>
             <div>
-                <span class="text-sm font-medium text-foreground">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</span>
+                <span class="text-sm font-medium text-zinc-200">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</span>
                 {{if .Monitor}}
-                <span class="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase hidden lg:inline">{{.Monitor.Type}}</span>
+                <span class="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 uppercase font-mono hidden lg:inline">{{.Monitor.Type}}</span>
                 {{end}}
             </div>
         </div>
     </td>
 
     <!-- Target -->
-    <td class="px-5 py-3.5 hidden md:table-cell">
+    <td class="px-4 py-3.5 hidden md:table-cell">
         {{if .Monitor}}
-        <span class="text-xs text-muted-foreground font-mono">{{.Monitor.Target}}</span>
+        <span class="text-xs text-zinc-500 font-mono">{{.Monitor.Target}}</span>
         {{else}}
-        <span class="text-xs text-muted-foreground">-</span>
+        <span class="text-xs text-zinc-500">-</span>
         {{end}}
     </td>
 
     <!-- Started -->
-    <td class="px-5 py-3.5">
-        <span class="text-xs text-muted-foreground">{{formatTimeAgo .Incident.StartedAt}}</span>
+    <td class="px-4 py-3.5">
+        <span class="text-xs text-zinc-500">{{formatTimeAgo .Incident.StartedAt}}</span>
     </td>
 
     <!-- Duration / TTR -->
-    <td class="px-5 py-3.5 hidden sm:table-cell">
+    <td class="px-4 py-3.5 hidden sm:table-cell">
         {{if .Incident.TTRSeconds}}
-        <span class="text-xs text-muted-foreground font-mono">{{.Incident.TTRSeconds}}s TTR</span>
+        <span class="text-xs text-zinc-400 font-mono">{{.Incident.TTRSeconds}}s TTR</span>
         {{else if .Incident.ResolvedAt}}
-        <span class="text-xs text-muted-foreground">Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
+        <span class="text-xs text-zinc-500">Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
         {{else}}
-        <span class="text-xs text-red-400 font-mono">ongoing</span>
+        <span class="text-xs text-red-400 font-mono animate-pulse">ongoing</span>
         {{end}}
     </td>
 
     <!-- Actions -->
-    <td class="px-5 py-3.5 text-right">
-        <div class="flex items-center justify-end space-x-2">
+    <td class="px-4 py-3.5 text-right">
+        <div class="flex items-center justify-end space-x-1.5">
             {{if eq (print .Incident.Status) "open"}}
             <button hx-post="/incidents/{{.Incident.ID}}/ack" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
-                class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-smooth">
+                class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-all duration-200">
                 Ack
             </button>
             {{end}}
             {{if or (eq (print .Incident.Status) "open") (eq (print .Incident.Status) "acknowledged")}}
             <button hx-post="/incidents/{{.Incident.ID}}/resolve?filter=active" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
-                class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-smooth">
+                class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-all duration-200">
                 Resolve
             </button>
             {{end}}
             {{if eq (print .Incident.Status) "resolved"}}
-            <span class="text-xs text-muted-foreground">-</span>
+            <span class="text-xs text-zinc-600">-</span>
             {{end}}
         </div>
     </td>
