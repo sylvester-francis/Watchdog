@@ -33,6 +33,7 @@ type MockUserRepository struct {
 	CountFn              func(ctx context.Context) (int, error)
 	CountByPlanFn        func(ctx context.Context) (map[domain.Plan]int, error)
 	GetUsersNearLimitsFn func(ctx context.Context) ([]ports.UserUsageSummary, error)
+	GetAllWithUsageFn    func(ctx context.Context) ([]ports.AdminUserView, error)
 }
 
 func (m *MockUserRepository) Create(ctx context.Context, user *domain.User) error {
@@ -94,6 +95,13 @@ func (m *MockUserRepository) CountByPlan(ctx context.Context) (map[domain.Plan]i
 func (m *MockUserRepository) GetUsersNearLimits(ctx context.Context) ([]ports.UserUsageSummary, error) {
 	if m.GetUsersNearLimitsFn != nil {
 		return m.GetUsersNearLimitsFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockUserRepository) GetAllWithUsage(ctx context.Context) ([]ports.AdminUserView, error) {
+	if m.GetAllWithUsageFn != nil {
+		return m.GetAllWithUsageFn(ctx)
 	}
 	return nil, nil
 }

@@ -138,6 +138,7 @@ func main() {
 		UsageEventRepo:   usageEventRepo,
 		WaitlistRepo:     waitlistRepo,
 		Hub:              hub,
+		Hasher:           hasher,
 		Logger:           logger,
 		SessionSecret:    cfg.Crypto.SessionSecret,
 		TemplatesDir:     "web/templates",

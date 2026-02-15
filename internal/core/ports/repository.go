@@ -19,6 +19,19 @@ type UserUsageSummary struct {
 	MonitorMax   int
 }
 
+// AdminUserView holds full user info with resource counts for admin user management.
+type AdminUserView struct {
+	ID           uuid.UUID
+	Email        string
+	Plan         domain.Plan
+	IsAdmin      bool
+	AgentCount   int
+	MonitorCount int
+	AgentMax     int
+	MonitorMax   int
+	CreatedAt    time.Time
+}
+
 // UserRepository defines the interface for user persistence.
 type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
@@ -30,6 +43,7 @@ type UserRepository interface {
 	Count(ctx context.Context) (int, error)
 	CountByPlan(ctx context.Context) (map[domain.Plan]int, error)
 	GetUsersNearLimits(ctx context.Context) ([]UserUsageSummary, error)
+	GetAllWithUsage(ctx context.Context) ([]AdminUserView, error)
 }
 
 // AgentRepository defines the interface for agent persistence.
