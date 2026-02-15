@@ -28,6 +28,7 @@ type DashboardStats struct {
 	MonitorsUp      int
 	MonitorsDown    int
 	ActiveIncidents int
+	UptimePercent   float64
 }
 
 // MonitorSparkline holds sparkline data for a single monitor.
@@ -121,8 +122,10 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		}
 	}
 
-	// Build sparkline data for each monitor
+	// Build sparkline data for each monitor and compute overall uptime
 	sparklines := make([]MonitorSparkline, 0, len(allMonitors))
+	totalHeartbeats := 0
+	successHeartbeats := 0
 	for _, m := range allMonitors {
 		heartbeats, err := h.heartbeatRepo.GetByMonitorID(ctx, m.ID, 20)
 		if err != nil {
@@ -134,6 +137,10 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 			if heartbeats[i].LatencyMs != nil {
 				latencies = append(latencies, *heartbeats[i].LatencyMs)
 			}
+			totalHeartbeats++
+			if heartbeats[i].Status.IsSuccess() {
+				successHeartbeats++
+			}
 		}
 		sparklines = append(sparklines, MonitorSparkline{
 			MonitorID: m.ID.String(),
@@ -142,6 +149,11 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 			Type:      string(m.Type),
 			Latencies: latencies,
 		})
+	}
+
+	// Compute uptime percentage
+	if totalHeartbeats > 0 {
+		stats.UptimePercent = float64(successHeartbeats) / float64(totalHeartbeats) * 100
 	}
 
 	// Enrich incidents with monitor names (cap at 5 for dashboard)
