@@ -150,6 +150,45 @@ func (r *IncidentRepository) GetActiveIncidents(ctx context.Context) ([]*domain.
 	return scanIncidents(rows)
 }
 
+// GetResolvedIncidents retrieves all resolved incidents, ordered by most recently resolved.
+func (r *IncidentRepository) GetResolvedIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT id, monitor_id, started_at, resolved_at, ttr_seconds, acknowledged_by, acknowledged_at, status, created_at
+		FROM incidents
+		WHERE status = 'resolved'
+		ORDER BY resolved_at DESC
+		LIMIT 100`
+
+	rows, err := q.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("incidentRepo.GetResolvedIncidents: %w", err)
+	}
+	defer rows.Close()
+
+	return scanIncidents(rows)
+}
+
+// GetAllIncidents retrieves all incidents, ordered by most recent first.
+func (r *IncidentRepository) GetAllIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT id, monitor_id, started_at, resolved_at, ttr_seconds, acknowledged_by, acknowledged_at, status, created_at
+		FROM incidents
+		ORDER BY created_at DESC
+		LIMIT 200`
+
+	rows, err := q.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("incidentRepo.GetAllIncidents: %w", err)
+	}
+	defer rows.Close()
+
+	return scanIncidents(rows)
+}
+
 // Update updates an existing incident in the database.
 func (r *IncidentRepository) Update(ctx context.Context, incident *domain.Incident) error {
 	q := r.db.Querier(ctx)
