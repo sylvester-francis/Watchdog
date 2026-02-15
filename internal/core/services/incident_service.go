@@ -58,6 +58,24 @@ func (s *IncidentService) GetActiveIncidents(ctx context.Context) ([]*domain.Inc
 	return incidents, nil
 }
 
+// GetResolvedIncidents retrieves all resolved incidents.
+func (s *IncidentService) GetResolvedIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	incidents, err := s.incidentRepo.GetResolvedIncidents(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("incidentService.GetResolvedIncidents: %w", err)
+	}
+	return incidents, nil
+}
+
+// GetAllIncidents retrieves all incidents.
+func (s *IncidentService) GetAllIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	incidents, err := s.incidentRepo.GetAllIncidents(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("incidentService.GetAllIncidents: %w", err)
+	}
+	return incidents, nil
+}
+
 // GetIncidentsByMonitor retrieves all incidents for a monitor.
 func (s *IncidentService) GetIncidentsByMonitor(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error) {
 	incidents, err := s.incidentRepo.GetByMonitorID(ctx, monitorID)

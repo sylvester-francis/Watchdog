@@ -18,6 +18,14 @@ type IncidentWithMonitor struct {
 	Monitor  *domain.Monitor
 }
 
+// IncidentStats holds summary counts for the incidents page.
+type IncidentStats struct {
+	Open         int
+	Acknowledged int
+	Resolved     int
+	Total        int
+}
+
 // IncidentHandler handles incident-related HTTP requests.
 type IncidentHandler struct {
 	incidentSvc ports.IncidentService
@@ -47,18 +55,18 @@ func (h *IncidentHandler) List(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/login")
 	}
 
-	// Get filter from query params
 	statusFilter := c.QueryParam("status")
 
-	// Get incidents based on filter
 	var incidents []*domain.Incident
 	var err error
 
-	if statusFilter == "" || statusFilter == "active" {
-		incidents, err = h.incidentSvc.GetActiveIncidents(ctx)
-	} else {
-		// For now, just get active incidents
-		// TODO: Add method to get all incidents with filter
+	switch statusFilter {
+	case "resolved":
+		incidents, err = h.incidentSvc.GetResolvedIncidents(ctx)
+	case "all":
+		incidents, err = h.incidentSvc.GetAllIncidents(ctx)
+	default:
+		statusFilter = "active"
 		incidents, err = h.incidentSvc.GetActiveIncidents(ctx)
 	}
 
@@ -67,6 +75,19 @@ func (h *IncidentHandler) List(c echo.Context) error {
 			"Title": "Incidents",
 			"Error": "Failed to load incidents",
 		})
+	}
+
+	// Compute stats from the current result set
+	stats := IncidentStats{Total: len(incidents)}
+	for _, inc := range incidents {
+		switch inc.Status {
+		case domain.IncidentStatusOpen:
+			stats.Open++
+		case domain.IncidentStatusAcknowledged:
+			stats.Acknowledged++
+		case domain.IncidentStatusResolved:
+			stats.Resolved++
+		}
 	}
 
 	// Enrich incidents with monitor information
@@ -84,6 +105,7 @@ func (h *IncidentHandler) List(c echo.Context) error {
 		"Incidents":             incidents,
 		"IncidentsWithMonitors": incidentsWithMonitors,
 		"StatusFilter":          statusFilter,
+		"Stats":                 stats,
 	})
 }
 
@@ -135,7 +157,7 @@ func (h *IncidentHandler) Acknowledge(c echo.Context) error {
 	if c.Request().Header.Get("HX-Request") == "true" {
 		incident, _ := h.incidentSvc.GetIncident(ctx, id)
 		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
-		return c.Render(http.StatusOK, "incident_row.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "incident_row", map[string]interface{}{
 			"Incident": incident,
 			"Monitor":  monitor,
 		})
@@ -171,7 +193,7 @@ func (h *IncidentHandler) Resolve(c echo.Context) error {
 		}
 		incident, _ := h.incidentSvc.GetIncident(ctx, id)
 		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
-		return c.Render(http.StatusOK, "incident_row.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "incident_row", map[string]interface{}{
 			"Incident": incident,
 			"Monitor":  monitor,
 		})

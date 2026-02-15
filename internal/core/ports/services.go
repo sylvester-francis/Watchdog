@@ -34,6 +34,8 @@ type MonitorService interface {
 type IncidentService interface {
 	GetIncident(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
 	GetActiveIncidents(ctx context.Context) ([]*domain.Incident, error)
+	GetResolvedIncidents(ctx context.Context) ([]*domain.Incident, error)
+	GetAllIncidents(ctx context.Context) ([]*domain.Incident, error)
 	GetIncidentsByMonitor(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
 	AcknowledgeIncident(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	ResolveIncident(ctx context.Context, id uuid.UUID) error

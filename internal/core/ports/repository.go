@@ -63,6 +63,8 @@ type IncidentRepository interface {
 	GetByMonitorID(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
 	GetOpenByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
 	GetActiveIncidents(ctx context.Context) ([]*domain.Incident, error)
+	GetResolvedIncidents(ctx context.Context) ([]*domain.Incident, error)
+	GetAllIncidents(ctx context.Context) ([]*domain.Incident, error)
 	Update(ctx context.Context, incident *domain.Incident) error
 	Acknowledge(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	Resolve(ctx context.Context, id uuid.UUID) error

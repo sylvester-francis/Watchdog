@@ -112,11 +112,13 @@ func (m *MockMonitorService) ProcessHeartbeat(ctx context.Context, heartbeat *do
 
 // MockIncidentService is a mock implementation of ports.IncidentService.
 type MockIncidentService struct {
-	GetIncidentFn          func(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
-	GetActiveIncidentsFn   func(ctx context.Context) ([]*domain.Incident, error)
-	GetIncidentsByMonitorFn func(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
-	AcknowledgeIncidentFn  func(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
-	ResolveIncidentFn      func(ctx context.Context, id uuid.UUID) error
+	GetIncidentFn            func(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
+	GetActiveIncidentsFn     func(ctx context.Context) ([]*domain.Incident, error)
+	GetResolvedIncidentsFn   func(ctx context.Context) ([]*domain.Incident, error)
+	GetAllIncidentsFn        func(ctx context.Context) ([]*domain.Incident, error)
+	GetIncidentsByMonitorFn  func(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
+	AcknowledgeIncidentFn    func(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
+	ResolveIncidentFn        func(ctx context.Context, id uuid.UUID) error
 	CreateIncidentIfNeededFn func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
 }
 
@@ -130,6 +132,20 @@ func (m *MockIncidentService) GetIncident(ctx context.Context, id uuid.UUID) (*d
 func (m *MockIncidentService) GetActiveIncidents(ctx context.Context) ([]*domain.Incident, error) {
 	if m.GetActiveIncidentsFn != nil {
 		return m.GetActiveIncidentsFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockIncidentService) GetResolvedIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	if m.GetResolvedIncidentsFn != nil {
+		return m.GetResolvedIncidentsFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockIncidentService) GetAllIncidents(ctx context.Context) ([]*domain.Incident, error) {
+	if m.GetAllIncidentsFn != nil {
+		return m.GetAllIncidentsFn(ctx)
 	}
 	return nil, nil
 }

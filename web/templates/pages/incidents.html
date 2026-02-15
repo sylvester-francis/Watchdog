@@ -3,11 +3,42 @@
 {{end}}
 
 {{define "content"}}
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+        <p class="text-sm text-muted-foreground">Track and manage service disruptions</p>
+    </div>
+
+    <!-- Stats Pills -->
+    {{if .Stats}}
+    <div class="flex items-center space-x-3">
+        {{if gt .Stats.Open 0}}
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20">
+            <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+            <span class="text-xs font-medium text-red-400">{{.Stats.Open}} open</span>
+        </div>
+        {{end}}
+        {{if gt .Stats.Acknowledged 0}}
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20">
+            <div class="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+            <span class="text-xs font-medium text-yellow-400">{{.Stats.Acknowledged}} acked</span>
+        </div>
+        {{end}}
+        {{if gt .Stats.Resolved 0}}
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+            <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+            <span class="text-xs font-medium text-emerald-400">{{.Stats.Resolved}} resolved</span>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+
 <!-- Filters -->
 <div class="flex items-center space-x-1 mb-6 bg-muted rounded-lg p-1 w-fit">
     <a href="/incidents?status=active"
         class="px-3 py-1.5 rounded-md text-xs font-medium transition-smooth
-        {{if or (eq .StatusFilter "active") (eq .StatusFilter "")}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
+        {{if eq .StatusFilter "active"}}bg-background text-foreground shadow-sm{{else}}text-muted-foreground hover:text-foreground{{end}}">
         Active
     </a>
     <a href="/incidents?status=resolved"
@@ -22,85 +53,141 @@
     </a>
 </div>
 
-<!-- Incidents List -->
+<!-- Incidents Table -->
 <div class="bg-card border border-border rounded-lg">
     {{if .IncidentsWithMonitors}}
-    <div class="divide-y divide-border" id="incidents-list">
-        {{range .IncidentsWithMonitors}}
-        {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor}}
-        {{end}}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-border">
+                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Monitor</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Target</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Started</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Duration</th>
+                    <th class="px-5 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border" id="incidents-list">
+                {{range .IncidentsWithMonitors}}
+                {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor}}
+                {{end}}
+            </tbody>
+        </table>
     </div>
     {{else}}
-    <div class="text-center py-16">
-        <svg class="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <h3 class="text-sm font-medium text-foreground mb-1">No incidents</h3>
+    <div class="text-center py-20">
+        {{if eq .StatusFilter "active"}}
+        <div class="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h3 class="text-sm font-medium text-foreground mb-1">No active incidents</h3>
         <p class="text-sm text-muted-foreground">All systems are running smoothly.</p>
+        {{else if eq .StatusFilter "resolved"}}
+        <div class="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h3 class="text-sm font-medium text-foreground mb-1">No resolved incidents</h3>
+        <p class="text-sm text-muted-foreground">No incidents have been resolved yet.</p>
+        {{else}}
+        <div class="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h3 class="text-sm font-medium text-foreground mb-1">No incidents</h3>
+        <p class="text-sm text-muted-foreground">No incidents have been recorded.</p>
+        {{end}}
     </div>
     {{end}}
 </div>
 {{end}}
 
 {{define "incident_row"}}
-<div id="incident-{{.Incident.ID}}" class="px-5 py-4 hover:bg-muted/20 transition-smooth">
-    <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-            <div class="w-9 h-9 rounded-md flex items-center justify-center
+<tr id="incident-{{.Incident.ID}}" class="hover:bg-muted/20 transition-smooth group">
+    <!-- Status -->
+    <td class="px-5 py-3.5">
+        <div class="flex items-center space-x-2">
+            <div class="w-2 h-2 rounded-full
+                {{if eq (print .Incident.Status) "open"}}bg-red-400 animate-pulse
+                {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-400
+                {{else}}bg-emerald-400{{end}}"></div>
+            <span class="text-xs font-medium px-1.5 py-0.5 rounded-md
+                {{if eq (print .Incident.Status) "open"}}bg-red-500/15 text-red-400
+                {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/15 text-yellow-400
+                {{else}}bg-emerald-500/15 text-emerald-400{{end}}">
+                {{.Incident.Status}}
+            </span>
+        </div>
+    </td>
+
+    <!-- Monitor Name -->
+    <td class="px-5 py-3.5">
+        <div class="flex items-center space-x-2.5">
+            <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0
                 {{if eq (print .Incident.Status) "open"}}bg-red-500/10
                 {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/10
                 {{else}}bg-emerald-500/10{{end}}">
                 {{if eq (print .Incident.Status) "open"}}
-                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
                 {{else if eq (print .Incident.Status) "acknowledged"}}
-                <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                 </svg>
                 {{else}}
-                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 {{end}}
             </div>
-
             <div>
-                <div class="flex items-center space-x-2">
-                    <h3 class="text-sm font-medium text-foreground">
-                        {{if .Monitor}}{{.Monitor.Name}}{{else}}Monitor{{end}}
-                    </h3>
-                    <span class="text-xs px-1.5 py-0.5 rounded-md
-                        {{if eq (print .Incident.Status) "open"}}bg-red-500/15 text-red-400
-                        {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/15 text-yellow-400
-                        {{else}}bg-emerald-500/15 text-emerald-400{{end}}">
-                        {{.Incident.Status}}
-                    </span>
-                </div>
-                <div class="flex items-center space-x-3 text-xs text-muted-foreground mt-0.5">
-                    {{if .Monitor}}
-                    <span class="font-mono">{{.Monitor.Target}}</span>
-                    <span class="text-border">|</span>
-                    {{end}}
-                    <span>Started {{formatTimeAgo .Incident.StartedAt}}</span>
-                    {{if .Incident.ResolvedAt}}
-                    <span class="text-border">|</span>
-                    <span>Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
-                    {{end}}
-                    {{if .Incident.TTRSeconds}}
-                    <span class="text-border">|</span>
-                    <span>TTR: {{.Incident.TTRSeconds}}s</span>
-                    {{end}}
-                </div>
+                <span class="text-sm font-medium text-foreground">{{if .Monitor}}{{.Monitor.Name}}{{else}}Unknown Monitor{{end}}</span>
+                {{if .Monitor}}
+                <span class="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase hidden lg:inline">{{.Monitor.Type}}</span>
+                {{end}}
             </div>
         </div>
+    </td>
 
-        <div class="flex items-center space-x-2">
+    <!-- Target -->
+    <td class="px-5 py-3.5 hidden md:table-cell">
+        {{if .Monitor}}
+        <span class="text-xs text-muted-foreground font-mono">{{.Monitor.Target}}</span>
+        {{else}}
+        <span class="text-xs text-muted-foreground">-</span>
+        {{end}}
+    </td>
+
+    <!-- Started -->
+    <td class="px-5 py-3.5">
+        <span class="text-xs text-muted-foreground">{{formatTimeAgo .Incident.StartedAt}}</span>
+    </td>
+
+    <!-- Duration / TTR -->
+    <td class="px-5 py-3.5 hidden sm:table-cell">
+        {{if .Incident.TTRSeconds}}
+        <span class="text-xs text-muted-foreground font-mono">{{.Incident.TTRSeconds}}s TTR</span>
+        {{else if .Incident.ResolvedAt}}
+        <span class="text-xs text-muted-foreground">Resolved {{formatTimeAgo .Incident.ResolvedAt}}</span>
+        {{else}}
+        <span class="text-xs text-red-400 font-mono">ongoing</span>
+        {{end}}
+    </td>
+
+    <!-- Actions -->
+    <td class="px-5 py-3.5 text-right">
+        <div class="flex items-center justify-end space-x-2">
             {{if eq (print .Incident.Status) "open"}}
             <button hx-post="/incidents/{{.Incident.ID}}/ack" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
                 class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-smooth">
-                Acknowledge
+                Ack
             </button>
             {{end}}
             {{if or (eq (print .Incident.Status) "open") (eq (print .Incident.Status) "acknowledged")}}
@@ -109,7 +196,10 @@
                 Resolve
             </button>
             {{end}}
+            {{if eq (print .Incident.Status) "resolved"}}
+            <span class="text-xs text-muted-foreground">-</span>
+            {{end}}
         </div>
-    </div>
-</div>
+    </td>
+</tr>
 {{end}}
