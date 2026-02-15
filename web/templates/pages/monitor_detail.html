@@ -1,0 +1,190 @@
+{{define "monitor_detail.html"}}
+{{template "base" .}}
+{{end}}
+
+{{define "content"}}
+<div class="animate-fade-in-up">
+    <!-- Breadcrumb + Back -->
+    <div class="flex items-center space-x-2 mb-6">
+        <a href="/monitors" class="text-xs text-muted-foreground hover:text-foreground transition-smooth flex items-center space-x-1">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>Monitors</span>
+        </a>
+        <span class="text-xs text-muted-foreground">/</span>
+        <span class="text-xs text-foreground">{{.Monitor.Name}}</span>
+    </div>
+
+    <!-- Monitor Header -->
+    <div class="bg-card border border-border rounded-lg p-5 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-lg {{if eq (print .Monitor.Status) "up"}}bg-emerald-500/10{{else if eq (print .Monitor.Status) "down"}}bg-red-500/10{{else}}bg-muted/50{{end}} flex items-center justify-center">
+                    <div class="w-3 h-3 rounded-full {{statusBgColor (print .Monitor.Status)}} {{if eq (print .Monitor.Status) "up"}}animate-pulse-dot{{end}}"></div>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-foreground">{{.Monitor.Name}}</h2>
+                    <div class="flex items-center space-x-3 mt-1">
+                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground uppercase font-mono">{{.Monitor.Type}}</span>
+                        <span class="text-xs text-muted-foreground font-mono">{{.Monitor.Target}}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium {{statusColor (print .Monitor.Status)}}">{{.Monitor.Status}}</span>
+                <button hx-delete="/monitors/{{.Monitor.ID}}" hx-confirm="Are you sure you want to delete '{{.Monitor.Name}}'? This cannot be undone."
+                    class="ml-4 px-3 py-1.5 text-xs text-muted-foreground hover:text-destructive border border-border hover:border-destructive/30 rounded-md transition-smooth">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5 inline-block"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-card border border-border rounded-lg p-4">
+            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Interval</p>
+            <p class="text-lg font-semibold text-foreground font-mono">{{.Monitor.IntervalSeconds}}s</p>
+        </div>
+        <div class="bg-card border border-border rounded-lg p-4">
+            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Timeout</p>
+            <p class="text-lg font-semibold text-foreground font-mono">{{.Monitor.TimeoutSeconds}}s</p>
+        </div>
+        <div class="bg-card border border-border rounded-lg p-4">
+            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Uptime</p>
+            {{if gt .UptimeTotal 0}}
+            <p class="text-lg font-semibold text-foreground font-mono">{{formatPercent .UptimePercent}}%</p>
+            {{else}}
+            <p class="text-lg font-semibold text-muted-foreground font-mono">--</p>
+            {{end}}
+        </div>
+        <div class="bg-card border border-border rounded-lg p-4">
+            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Agent</p>
+            <p class="text-sm font-medium text-foreground truncate">{{if .Agent}}{{.Agent.Name}}{{else}}Unknown{{end}}</p>
+        </div>
+    </div>
+
+    <!-- Latency Chart -->
+    <div class="bg-card border border-border rounded-lg mb-6">
+        <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
+            <i data-lucide="timer" class="w-4 h-4 text-accent"></i>
+            <h3 class="text-sm font-medium text-foreground">Response Time (Last 20 checks)</h3>
+        </div>
+        <div class="p-5">
+            {{if .Latencies}}
+            <div class="h-56">
+                <canvas id="detail-latency-chart"></canvas>
+            </div>
+            {{else}}
+            <div class="h-56 flex items-center justify-center">
+                <div class="text-center">
+                    <i data-lucide="bar-chart-3" class="w-8 h-8 text-muted-foreground/20 mx-auto mb-2"></i>
+                    <p class="text-xs text-muted-foreground">No latency data yet</p>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Uptime Bar -->
+    {{if gt .UptimeTotal 0}}
+    <div class="bg-card border border-border rounded-lg mb-6">
+        <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
+            <i data-lucide="heart-pulse" class="w-4 h-4 text-accent"></i>
+            <h3 class="text-sm font-medium text-foreground">Uptime (Last 20 checks)</h3>
+        </div>
+        <div class="px-5 py-4">
+            <div class="flex items-center space-x-4 mb-3">
+                <div class="flex items-center space-x-1.5">
+                    <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                    <span class="text-[10px] text-muted-foreground font-mono">{{.UptimeUp}} success</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                    <span class="text-[10px] text-muted-foreground font-mono">{{.UptimeDown}} failed</span>
+                </div>
+            </div>
+            <div class="w-full h-3 bg-muted rounded-full overflow-hidden flex gap-px">
+                {{if gt .UptimeUp 0}}
+                <div class="bg-emerald-500 h-full rounded-sm" style="width: calc({{.UptimeUp}} / {{.UptimeTotal}} * 100%)"></div>
+                {{end}}
+                {{if gt .UptimeDown 0}}
+                <div class="bg-red-500 h-full rounded-sm" style="width: calc({{.UptimeDown}} / {{.UptimeTotal}} * 100%)"></div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- Recent Heartbeats -->
+    {{if .Heartbeats}}
+    <div class="bg-card border border-border rounded-lg">
+        <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
+            <i data-lucide="list" class="w-4 h-4 text-accent"></i>
+            <h3 class="text-sm font-medium text-foreground">Recent Checks</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-border">
+                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
+                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Latency</th>
+                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Error</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border/30">
+                    {{range .Heartbeats}}
+                    <tr class="hover:bg-card-elevated transition-smooth">
+                        <td class="px-5 py-2.5">
+                            <span class="text-xs text-muted-foreground font-mono">{{formatTime .Time}}</span>
+                        </td>
+                        <td class="px-5 py-2.5">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-1.5 h-1.5 rounded-full {{if .Status.IsSuccess}}bg-emerald-400{{else}}bg-red-400{{end}}"></div>
+                                <span class="text-xs font-mono {{if .Status.IsSuccess}}text-emerald-400{{else}}text-red-400{{end}}">{{.Status}}</span>
+                            </div>
+                        </td>
+                        <td class="px-5 py-2.5">
+                            {{if .LatencyMs}}
+                            <span class="text-xs text-foreground font-mono">{{.LatencyMs}}ms</span>
+                            {{else}}
+                            <span class="text-xs text-muted-foreground">--</span>
+                            {{end}}
+                        </td>
+                        <td class="px-5 py-2.5">
+                            {{if .ErrorMessage}}
+                            <span class="text-xs text-red-400 truncate max-w-[300px] block" title="{{.ErrorMessage}}">{{.ErrorMessage}}</span>
+                            {{else}}
+                            <span class="text-xs text-muted-foreground">--</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{end}}
+</div>
+
+{{if .Latencies}}
+<script type="application/json" id="detail-chart-data">{{toJSON .Latencies}}</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('detail-chart-data');
+    if (!el) return;
+    try {
+        var latencies = JSON.parse(el.textContent);
+        if (latencies && latencies.length > 0) {
+            var hasData = latencies.some(function(v) { return v > 0; });
+            if (hasData) {
+                var labels = latencies.map(function(_, idx) { return idx + 1; });
+                createLatencyChart('detail-latency-chart', labels, latencies);
+            }
+        }
+    } catch(e) {}
+});
+</script>
+{{end}}
+{{end}}
