@@ -5,13 +5,36 @@
 {{define "content"}}
 <div x-data="{ search: '', filterType: 'all' }">
 
-<!-- Header with search/filter + Add Button -->
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-fade-in-up">
-    <div class="flex items-center space-x-3">
-        <p class="text-sm text-muted-foreground">Manage your monitoring targets</p>
+<!-- Toolbar: filters + search + add -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+    <div class="flex items-center space-x-1.5">
+        <button @click="filterType = 'all'"
+            class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
+            :class="filterType === 'all' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
+            All
+        </button>
+        <button @click="filterType = 'http'"
+            class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
+            :class="filterType === 'http' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
+            HTTP
+        </button>
+        <button @click="filterType = 'tcp'"
+            class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
+            :class="filterType === 'tcp' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
+            TCP
+        </button>
+        <button @click="filterType = 'ping'"
+            class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
+            :class="filterType === 'ping' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
+            Ping
+        </button>
+        <button @click="filterType = 'dns'"
+            class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
+            :class="filterType === 'dns' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
+            DNS
+        </button>
     </div>
     <div class="flex items-center space-x-3">
-        <!-- Search -->
         <div class="relative">
             <i data-lucide="search" class="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"></i>
             <input type="text" x-model="search" placeholder="Filter monitors..."
@@ -25,37 +48,8 @@
     </div>
 </div>
 
-<!-- Type filter pills -->
-<div class="flex items-center space-x-1.5 mb-4 animate-fade-in-up stagger-1">
-    <button @click="filterType = 'all'"
-        class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
-        :class="filterType === 'all' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
-        All
-    </button>
-    <button @click="filterType = 'http'"
-        class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
-        :class="filterType === 'http' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
-        HTTP
-    </button>
-    <button @click="filterType = 'tcp'"
-        class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
-        :class="filterType === 'tcp' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
-        TCP
-    </button>
-    <button @click="filterType = 'ping'"
-        class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
-        :class="filterType === 'ping' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
-        Ping
-    </button>
-    <button @click="filterType = 'dns'"
-        class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth"
-        :class="filterType === 'dns' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'">
-        DNS
-    </button>
-</div>
-
 <!-- Monitors Table -->
-<div class="bg-card border border-border rounded-lg animate-fade-in-up stagger-2">
+<div class="bg-card border border-border rounded-lg">
     {{if .MonitorsWithHeartbeats}}
     <div class="overflow-x-auto">
         <table class="w-full">

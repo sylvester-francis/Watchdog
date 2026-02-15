@@ -3,75 +3,69 @@
 {{end}}
 
 {{define "content"}}
-<!-- Platform Overview -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<!-- Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <!-- Total Users -->
-    <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
-        <p class="text-gray-400 text-sm">Total Users</p>
-        <p class="text-3xl font-bold text-white mt-1">{{.TotalUsers}}</p>
+    <div class="bg-card rounded-lg border border-border px-4 py-3">
+        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total Users</p>
+        <p class="text-xl font-semibold text-foreground mt-1">{{.TotalUsers}}</p>
     </div>
 
     <!-- Plan Breakdown -->
-    <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
-        <p class="text-gray-400 text-sm mb-2">Plan Breakdown</p>
-        <div class="flex items-center space-x-3">
-            <span class="px-2 py-1 text-xs rounded bg-gray-700 text-gray-300">Free: {{.PlanFree}}</span>
-            <span class="px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400">Pro: {{.PlanPro}}</span>
-            <span class="px-2 py-1 text-xs rounded bg-purple-500/20 text-purple-400">Team: {{.PlanTeam}}</span>
+    <div class="bg-card rounded-lg border border-border px-4 py-3">
+        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Plan Breakdown</p>
+        <div class="flex items-center space-x-2">
+            <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">Free: {{.PlanFree}}</span>
+            <span class="px-2 py-0.5 text-xs rounded bg-blue-500/20 text-blue-400">Pro: {{.PlanPro}}</span>
+            <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">Team: {{.PlanTeam}}</span>
         </div>
     </div>
 
     <!-- Limit Hits (24h) -->
-    <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
-        <p class="text-gray-400 text-sm">Limit Hits (24h)</p>
-        <p class="text-3xl font-bold {{if gt .LimitHitCount 0}}text-red-400{{else}}text-white{{end}} mt-1">{{.LimitHitCount}}</p>
-    </div>
-
-    <!-- Spacer -->
-    <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
-        <p class="text-gray-400 text-sm">Admin Panel</p>
-        <p class="text-sm text-gray-500 mt-2">Manage users and monitor platform usage.</p>
+    <div class="bg-card rounded-lg border border-border px-4 py-3">
+        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Limit Hits (24h)</p>
+        <p class="text-xl font-semibold {{if gt .LimitHitCount 0}}text-red-400{{else}}text-foreground{{end}} mt-1">{{.LimitHitCount}}</p>
     </div>
 </div>
 
 <!-- Upgrade Candidates -->
-<div class="bg-gray-800 rounded-xl border border-gray-700 mb-8">
-    <div class="px-6 py-4 border-b border-gray-700">
-        <h2 class="text-lg font-semibold text-white">Upgrade Candidates</h2>
-        <p class="text-sm text-gray-400">Users at 80%+ of their plan limits</p>
+<div class="bg-card rounded-lg border border-border mb-6">
+    <div class="px-4 py-3 border-b border-border">
+        <h2 class="text-sm font-medium text-foreground">Upgrade Candidates</h2>
+        <p class="text-xs text-muted-foreground">Users at 80%+ of their plan limits</p>
     </div>
     {{if .NearLimitUsers}}
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
-                <tr class="border-b border-gray-700">
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Email</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Plan</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Agents</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Monitors</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                <tr class="border-b border-border">
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Agents</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitors</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-700">
+            <tbody class="divide-y divide-border/50">
                 {{range .NearLimitUsers}}
-                <tr class="hover:bg-gray-700/50">
-                    <td class="px-6 py-4 text-white">{{.Email}}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded
+                <tr class="hover:bg-card-elevated transition-smooth">
+                    <td class="px-4 py-3 text-sm text-foreground">{{.Email}}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 text-xs rounded
                             {{if eq .Plan.String "Pro"}}bg-blue-500/20 text-blue-400
-                            {{else}}bg-gray-700 text-gray-300{{end}}">
+                            {{else}}bg-muted text-muted-foreground{{end}}">
                             {{.Plan.String}}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-gray-400">{{.AgentCount}} / {{.AgentMax}}</td>
-                    <td class="px-6 py-4 text-gray-400">
+                    <td class="px-4 py-3 text-sm text-muted-foreground">{{.AgentCount}} / {{.AgentMax}}</td>
+                    <td class="px-4 py-3 text-sm text-muted-foreground">
                         {{.MonitorCount}} / {{if eq .MonitorMax -1}}Unlimited{{else}}{{.MonitorMax}}{{end}}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-3">
                         {{if or (ge .AgentCount .AgentMax) (and (ne .MonitorMax -1) (ge .MonitorCount .MonitorMax))}}
-                        <span class="px-2 py-1 text-xs rounded bg-red-500/20 text-red-400">At Limit</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400">At Limit</span>
                         {{else}}
-                        <span class="px-2 py-1 text-xs rounded bg-yellow-500/20 text-yellow-400">Near Limit</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-yellow-500/20 text-yellow-400">Near Limit</span>
                         {{end}}
                     </td>
                 </tr>
@@ -80,46 +74,45 @@
         </table>
     </div>
     {{else}}
-    <div class="p-6 text-center text-gray-500">No users near their limits.</div>
+    <div class="px-4 py-8 text-center text-sm text-muted-foreground">No users near their limits.</div>
     {{end}}
 </div>
 
 <!-- Recent Events -->
-<div class="bg-gray-800 rounded-xl border border-gray-700">
-    <div class="px-6 py-4 border-b border-gray-700">
-        <h2 class="text-lg font-semibold text-white">Recent Usage Events</h2>
-        <p class="text-sm text-gray-400">Last 50 limit-related events</p>
+<div class="bg-card rounded-lg border border-border">
+    <div class="px-4 py-3 border-b border-border">
+        <h2 class="text-sm font-medium text-foreground">Recent Usage Events</h2>
+        <p class="text-xs text-muted-foreground">Last 50 limit-related events</p>
     </div>
     {{if .RecentEvents}}
     <div class="overflow-x-auto max-h-96 overflow-y-auto">
         <table class="w-full">
-            <thead class="sticky top-0 bg-gray-800">
-                <tr class="border-b border-gray-700">
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Time</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Event</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Resource</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Count / Max</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Plan</th>
+            <thead class="sticky top-0 bg-card">
+                <tr class="border-b border-border">
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Resource</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Count / Max</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-700">
+            <tbody class="divide-y divide-border/50">
                 {{range .RecentEvents}}
-                <tr class="hover:bg-gray-700/50">
-                    <td class="px-6 py-3 text-gray-400 text-sm">{{formatTimeAgo .CreatedAt}}</td>
-                    <td class="px-6 py-3">
+                <tr class="hover:bg-card-elevated transition-smooth">
+                    <td class="px-4 py-3 text-sm text-muted-foreground">{{formatTimeAgo .CreatedAt}}</td>
+                    <td class="px-4 py-3">
                         {{if eq (print .EventType) "limit_hit"}}
-                        <span class="px-2 py-1 text-xs rounded bg-red-500/20 text-red-400">Limit Hit</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400">Limit Hit</span>
                         {{else}}
-                        <span class="px-2 py-1 text-xs rounded bg-yellow-500/20 text-yellow-400">Approaching</span>
+                        <span class="px-2 py-0.5 text-xs rounded bg-yellow-500/20 text-yellow-400">Approaching</span>
                         {{end}}
                     </td>
-                    <td class="px-6 py-3 text-gray-400 text-sm capitalize">{{.ResourceType}}</td>
-                    <td class="px-6 py-3 text-gray-400 text-sm">{{.CurrentCount}} / {{.MaxAllowed}}</td>
-                    <td class="px-6 py-3">
-                        <span class="px-2 py-1 text-xs rounded
+                    <td class="px-4 py-3 text-sm text-muted-foreground capitalize">{{.ResourceType}}</td>
+                    <td class="px-4 py-3 text-sm text-muted-foreground">{{.CurrentCount}} / {{.MaxAllowed}}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 text-xs rounded
                             {{if eq .Plan.String "Pro"}}bg-blue-500/20 text-blue-400
-                            {{else if eq .Plan.String "Team"}}bg-purple-500/20 text-purple-400
-                            {{else}}bg-gray-700 text-gray-300{{end}}">
+                            {{else}}bg-muted text-muted-foreground{{end}}">
                             {{.Plan.String}}
                         </span>
                     </td>
@@ -129,7 +122,7 @@
         </table>
     </div>
     {{else}}
-    <div class="p-6 text-center text-gray-500">No usage events yet.</div>
+    <div class="px-4 py-8 text-center text-sm text-muted-foreground">No usage events yet.</div>
     {{end}}
 </div>
 {{end}}
