@@ -36,6 +36,19 @@ func getSession(c echo.Context) (*sessions.Session, error) {
 	return store.(*sessions.CookieStore).Get(c.Request(), SessionName)
 }
 
+// NoCacheHeaders is middleware that prevents browser caching of responses.
+// This ensures that after logout, the browser back button triggers a fresh
+// server request (which will redirect to /login) instead of showing cached pages.
+func NoCacheHeaders(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		h := c.Response().Header()
+		h.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		h.Set("Pragma", "no-cache")
+		h.Set("Expires", "0")
+		return next(c)
+	}
+}
+
 // AuthRequired is middleware that requires authentication.
 // It redirects to /login if the user is not authenticated.
 func AuthRequired(next echo.HandlerFunc) echo.HandlerFunc {
