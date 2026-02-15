@@ -33,11 +33,17 @@ type DashboardStats struct {
 
 // MonitorSparkline holds sparkline data for a single monitor.
 type MonitorSparkline struct {
-	MonitorID string
-	Name      string
-	Status    string
-	Type      string
-	Latencies []int
+	MonitorID   string
+	Name        string
+	Status      string
+	Type        string
+	Target      string
+	Latencies   []int
+	UptimeUp    int
+	UptimeDown  int
+	UptimeTotal int
+	// CheckResults holds per-check results: 1=success, 0=failure, -1=unknown (oldest first)
+	CheckResults []int
 }
 
 // DashboardHandler handles dashboard-related HTTP requests.
@@ -132,6 +138,9 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 			heartbeats = nil
 		}
 		latencies := make([]int, 0, len(heartbeats))
+		checkResults := make([]int, 0, len(heartbeats))
+		monUp := 0
+		monDown := 0
 		// Reverse for chronological order (oldest first)
 		for i := len(heartbeats) - 1; i >= 0; i-- {
 			if heartbeats[i].LatencyMs != nil {
@@ -140,14 +149,24 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 			totalHeartbeats++
 			if heartbeats[i].Status.IsSuccess() {
 				successHeartbeats++
+				monUp++
+				checkResults = append(checkResults, 1)
+			} else {
+				monDown++
+				checkResults = append(checkResults, 0)
 			}
 		}
 		sparklines = append(sparklines, MonitorSparkline{
-			MonitorID: m.ID.String(),
-			Name:      m.Name,
-			Status:    string(m.Status),
-			Type:      string(m.Type),
-			Latencies: latencies,
+			MonitorID:    m.ID.String(),
+			Name:         m.Name,
+			Status:       string(m.Status),
+			Type:         string(m.Type),
+			Target:       m.Target,
+			Latencies:    latencies,
+			UptimeUp:     monUp,
+			UptimeDown:   monDown,
+			UptimeTotal:  len(heartbeats),
+			CheckResults: checkResults,
 		})
 	}
 
