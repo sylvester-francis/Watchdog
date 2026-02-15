@@ -109,6 +109,11 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Co
 		}
 	}
 
+	// Inject CSRF token if available (set by CSRF middleware)
+	if csrf := c.Get("csrf"); csrf != nil {
+		viewData["CSRFToken"] = csrf
+	}
+
 	// Look up the page-specific template set
 	tmpl, ok := t.pages[name]
 	if !ok {

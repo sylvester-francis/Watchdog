@@ -5,6 +5,14 @@ document.addEventListener('DOMContentLoaded', function() {
     htmx.config.defaultSwapStyle = 'innerHTML';
     htmx.config.defaultSettleDelay = 0;
 
+    // Include CSRF token in all HTMX requests
+    document.body.addEventListener('htmx:configRequest', function(event) {
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+            event.detail.headers['X-CSRF-Token'] = csrfMeta.content;
+        }
+    });
+
     document.body.addEventListener('htmx:beforeRequest', function(event) {
         var target = event.detail.elt;
         var indicator = target.querySelector('.htmx-indicator');
