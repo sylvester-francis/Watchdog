@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{if .Title}}{{.Title}} - {{end}}WatchDog</title>
 
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
@@ -18,23 +23,30 @@
             theme: {
                 extend: {
                     colors: {
-                        watchdog: {
-                            primary: '#3B82F6',
-                            success: '#10B981',
-                            warning: '#F59E0B',
-                            danger: '#EF4444',
-                            dark: '#1F2937',
-                            darker: '#111827'
-                        }
-                    }
+                        background: '#09090b',
+                        foreground: '#fafafa',
+                        card: { DEFAULT: '#111113', foreground: '#fafafa' },
+                        muted: { DEFAULT: '#27272a', foreground: '#a1a1aa' },
+                        accent: { DEFAULT: '#27272a', foreground: '#fafafa' },
+                        border: '#27272a',
+                        input: '#27272a',
+                        ring: '#3b82f6',
+                        destructive: { DEFAULT: '#ef4444', foreground: '#fafafa' },
+                    },
+                    borderRadius: {
+                        lg: '0.5rem',
+                        md: 'calc(0.5rem - 2px)',
+                        sm: 'calc(0.5rem - 4px)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
                 }
             }
         }
     </script>
 
-    <!-- Custom styles -->
     <style>
-        /* Pulse animation for status indicators */
         @keyframes pulse-dot {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -45,11 +57,29 @@
 
         /* Smooth transitions */
         .transition-smooth {
-            transition: all 0.2s ease-in-out;
+            transition: all 0.15s ease-in-out;
         }
+
+        /* Toast animations */
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slide-out {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .toast-enter { animation: slide-in 0.3s ease-out; }
+        .toast-exit { animation: slide-out 0.3s ease-in forwards; }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
+<body class="bg-background text-foreground font-sans min-h-screen antialiased">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         {{template "sidebar" .}}
@@ -57,13 +87,15 @@
         <!-- Main content -->
         <main class="flex-1 ml-64">
             <!-- Top bar -->
-            <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
+            <header class="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-3">
                 <div class="flex items-center justify-between">
-                    <h1 class="text-xl font-semibold">{{.Title}}</h1>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-sm font-medium text-foreground">{{.Title}}</h1>
+                    </div>
                     <div class="flex items-center space-x-4">
-                        <span class="text-gray-400 text-sm">Welcome</span>
+                        <span class="text-muted-foreground text-xs">Welcome</span>
                         <form action="/logout" method="POST" class="inline">
-                            <button type="submit" class="text-gray-400 hover:text-white text-sm">
+                            <button type="submit" class="text-xs text-muted-foreground hover:text-foreground transition-smooth">
                                 Logout
                             </button>
                         </form>
@@ -74,13 +106,13 @@
             <!-- Page content -->
             <div class="p-6">
                 {{if .Error}}
-                <div class="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg mb-6">
+                <div class="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg mb-6 text-sm">
                     {{.Error}}
                 </div>
                 {{end}}
 
                 {{if .Success}}
-                <div class="bg-green-500/10 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg mb-6">
+                <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm">
                     {{.Success}}
                 </div>
                 {{end}}
@@ -89,6 +121,9 @@
             </div>
         </main>
     </div>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2"></div>
 
     <!-- Custom JS -->
     <script src="/static/js/app.js"></script>

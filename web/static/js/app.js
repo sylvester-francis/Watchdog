@@ -2,11 +2,9 @@
 
 // HTMX Configuration
 document.addEventListener('DOMContentLoaded', function() {
-    // Configure HTMX
     htmx.config.defaultSwapStyle = 'innerHTML';
     htmx.config.defaultSettleDelay = 0;
 
-    // Add loading indicator to HTMX requests
     document.body.addEventListener('htmx:beforeRequest', function(event) {
         const target = event.detail.elt;
         if (target.querySelector('.htmx-indicator')) {
@@ -21,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Handle HTMX errors
     document.body.addEventListener('htmx:responseError', function(event) {
         showToast('An error occurred. Please try again.', 'error');
     });
@@ -29,16 +26,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Toast Notification System
 function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
+    const container = document.getElementById('toast-container');
+    if (!container) return;
 
-    // Auto-remove after 5 seconds
+    const toast = document.createElement('div');
+    toast.className = 'toast-enter flex items-center space-x-3 px-4 py-3 rounded-lg border shadow-lg max-w-sm';
+
+    if (type === 'error') {
+        toast.classList.add('bg-red-500/10', 'border-red-500/20', 'text-red-400');
+    } else if (type === 'warning') {
+        toast.classList.add('bg-yellow-500/10', 'border-yellow-500/20', 'text-yellow-400');
+    } else {
+        toast.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-400');
+    }
+
+    toast.innerHTML = `<span class="text-sm">${message}</span>`;
+    container.appendChild(toast);
+
     setTimeout(() => {
-        toast.style.animation = 'slide-out 0.3s ease-in forwards';
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
         setTimeout(() => toast.remove(), 300);
-    }, 5000);
+    }, 4000);
 }
 
 // Confirmation Dialog
@@ -60,30 +69,23 @@ function connectSSE() {
     sseConnection = new EventSource('/sse/events');
 
     sseConnection.onopen = function() {
-        console.log('SSE connection established');
         sseReconnectAttempts = 0;
     };
 
     sseConnection.onerror = function(error) {
-        console.error('SSE connection error:', error);
         sseConnection.close();
 
         if (sseReconnectAttempts < maxReconnectAttempts) {
             sseReconnectAttempts++;
-            console.log(`Reconnecting SSE (attempt ${sseReconnectAttempts}/${maxReconnectAttempts})...`);
             setTimeout(connectSSE, reconnectDelay);
-        } else {
-            console.log('Max SSE reconnection attempts reached');
         }
     };
 
-    // Handle agent status updates
     sseConnection.addEventListener('agent-status', function(event) {
         const data = JSON.parse(event.data);
         updateAgentStatus(data);
     });
 
-    // Handle incident count updates
     sseConnection.addEventListener('incident-count', function(event) {
         const data = JSON.parse(event.data);
         updateIncidentCount(data.count);
@@ -94,31 +96,29 @@ function updateAgentStatus(agent) {
     const agentElement = document.getElementById(`agent-${agent.id}`);
     if (!agentElement) return;
 
-    const statusDot = agentElement.querySelector('.w-3.h-3');
-    const statusText = agentElement.querySelector('.text-sm');
-    const statusBadge = agentElement.querySelector('span[class*="px-2"]');
+    const statusDot = agentElement.querySelector('.w-2.h-2');
+    const statusBadge = agentElement.querySelector('span[class*="text-xs"]');
 
     if (agent.status === 'online') {
-        statusDot.className = 'w-3 h-3 rounded-full bg-green-400 animate-pulse-dot';
-        statusBadge.className = 'px-2 py-1 text-xs rounded bg-green-500/20 text-green-400';
-        statusBadge.textContent = 'online';
+        if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot';
+        if (statusBadge) {
+            statusBadge.className = 'text-xs px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400';
+            statusBadge.textContent = 'online';
+        }
     } else {
-        statusDot.className = 'w-3 h-3 rounded-full bg-gray-500';
-        statusBadge.className = 'px-2 py-1 text-xs rounded bg-gray-600 text-gray-400';
-        statusBadge.textContent = 'offline';
+        if (statusDot) statusDot.className = 'w-2 h-2 rounded-full bg-zinc-500';
+        if (statusBadge) {
+            statusBadge.className = 'text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground';
+            statusBadge.textContent = 'offline';
+        }
     }
 }
 
 function updateIncidentCount(count) {
-    const incidentBadge = document.querySelector('[href="/incidents"] .bg-red-500');
+    const incidentBadge = document.querySelector('[href="/incidents"] .bg-destructive\\/20');
     if (count > 0) {
         if (incidentBadge) {
             incidentBadge.textContent = count;
-        }
-        // Update stats card if present
-        const statsCard = document.querySelector('[class*="text-red-400"]');
-        if (statsCard && statsCard.closest('.bg-gray-800')) {
-            statsCard.textContent = count;
         }
     } else if (incidentBadge) {
         incidentBadge.remove();
@@ -128,19 +128,17 @@ function updateIncidentCount(count) {
 // Initialize SSE if on a page that needs it
 if (document.querySelector('[sse-connect]') || window.location.pathname === '/dashboard') {
     // SSE is handled by HTMX sse extension
-    console.log('SSE managed by HTMX');
 }
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(event) {
-    // ESC to close modals
     if (event.key === 'Escape') {
         const modals = document.querySelectorAll('[id$="-modal"]:not(.hidden)');
         modals.forEach(modal => modal.classList.add('hidden'));
     }
 });
 
-// Close modal when clicking outside
+// Close modal when clicking backdrop
 document.addEventListener('click', function(event) {
     if (event.target.classList.contains('fixed') && event.target.classList.contains('inset-0')) {
         event.target.classList.add('hidden');
@@ -167,7 +165,7 @@ function formatTimeAgo(timestamp) {
 // Utility: Copy to clipboard
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        showToast('Copied to clipboard', 'success');
+        showToast('Copied to clipboard');
     }).catch(() => {
         showToast('Failed to copy', 'error');
     });
