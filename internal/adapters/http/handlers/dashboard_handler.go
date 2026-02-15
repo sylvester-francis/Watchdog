@@ -25,6 +25,8 @@ type DashboardStats struct {
 	TotalAgents     int
 	OnlineAgents    int
 	TotalMonitors   int
+	MonitorsUp      int
+	MonitorsDown    int
 	ActiveIncidents int
 }
 
@@ -90,12 +92,31 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		}
 	}
 
-	// Count monitors for all agents
+	// Collect monitors and compute status breakdown
+	var allMonitors []*domain.Monitor
 	for _, agent := range agents {
 		monitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
 		if err == nil {
+			allMonitors = append(allMonitors, monitors...)
 			stats.TotalMonitors += len(monitors)
+			for _, m := range monitors {
+				if m.Status == domain.MonitorStatusUp {
+					stats.MonitorsUp++
+				} else if m.Status == domain.MonitorStatusDown {
+					stats.MonitorsDown++
+				}
+			}
 		}
+	}
+
+	// Enrich incidents with monitor names
+	incidentsWithMonitors := make([]IncidentWithMonitor, 0, len(incidents))
+	for _, incident := range incidents {
+		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
+		incidentsWithMonitors = append(incidentsWithMonitors, IncidentWithMonitor{
+			Incident: incident,
+			Monitor:  monitor,
+		})
 	}
 
 	// Fetch user plan info
@@ -105,13 +126,15 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 	}
 
 	return c.Render(http.StatusOK, "dashboard.html", map[string]interface{}{
-		"Title":           "Dashboard",
-		"Agents":          agents,
-		"ActiveIncidents": incidents,
-		"Stats":           stats,
-		"Plan":            user.Plan.String(),
-		"PlanLimits":      user.Plan.Limits(),
-		"IsAdmin":         user.IsAdmin,
+		"Title":                 "Dashboard",
+		"Agents":                agents,
+		"ActiveIncidents":       incidents,
+		"IncidentsWithMonitors": incidentsWithMonitors,
+		"Monitors":              allMonitors,
+		"Stats":                 stats,
+		"Plan":                  user.Plan.String(),
+		"PlanLimits":            user.Plan.Limits(),
+		"IsAdmin":               user.IsAdmin,
 	})
 }
 
