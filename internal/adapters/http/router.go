@@ -139,6 +139,7 @@ func (r *Router) RegisterRoutes() {
 
 	// Protected routes (auth required)
 	protected := e.Group("")
+	protected.Use(middleware.NoCacheHeaders)
 	protected.Use(middleware.AuthRequired)
 
 	// Root redirect
