@@ -132,6 +132,16 @@ type StatusPageRepository interface {
 	SlugExists(ctx context.Context, slug string) (bool, error)
 }
 
+// AlertChannelRepository defines the interface for alert channel persistence.
+type AlertChannelRepository interface {
+	Create(ctx context.Context, channel *domain.AlertChannel) error
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.AlertChannel, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error)
+	GetEnabledByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error)
+	Update(ctx context.Context, channel *domain.AlertChannel) error
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
 // WaitlistRepository defines the interface for waitlist signup persistence.
 type WaitlistRepository interface {
 	Create(ctx context.Context, signup *domain.WaitlistSignup) error
