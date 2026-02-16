@@ -1,0 +1,230 @@
+{{define "api_docs.html"}}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Docs - WatchDog</title>
+
+    <!-- Swagger UI CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.18.2/swagger-ui.css">
+
+    <style>
+        /* Dark theme overrides */
+        body {
+            background: #09090b;
+            margin: 0;
+        }
+
+        /* Top bar */
+        .swagger-ui .topbar {
+            background: #111113;
+            border-bottom: 1px solid #27272a;
+            padding: 8px 0;
+        }
+        .swagger-ui .topbar .wrapper {
+            padding: 0 24px;
+        }
+        .swagger-ui .topbar a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .swagger-ui .topbar .topbar-wrapper img[alt="Swagger UI"],
+        .swagger-ui .topbar .topbar-wrapper .link span {
+            display: none;
+        }
+        .swagger-ui .topbar .topbar-wrapper .link::after {
+            content: "WatchDog API";
+            color: #fafafa;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: Inter, system-ui, sans-serif;
+        }
+        .swagger-ui .topbar input[type="text"] {
+            display: none;
+        }
+
+        /* Body overrides for dark theme */
+        .swagger-ui .wrapper {
+            max-width: 1100px;
+            padding: 0 24px;
+        }
+        .swagger-ui,
+        .swagger-ui .info .title,
+        .swagger-ui .opblock-tag,
+        .swagger-ui .opblock .opblock-summary-description,
+        .swagger-ui .opblock .opblock-summary-operation-id,
+        .swagger-ui .opblock .opblock-section-header h4,
+        .swagger-ui .response-col_status,
+        .swagger-ui .response-col_description,
+        .swagger-ui table thead tr th,
+        .swagger-ui table thead tr td,
+        .swagger-ui .parameter__name,
+        .swagger-ui .parameter__type,
+        .swagger-ui .parameter__extension,
+        .swagger-ui .parameter__in,
+        .swagger-ui .model-title,
+        .swagger-ui .model {
+            color: #fafafa;
+        }
+        .swagger-ui .info .title small.version-stamp {
+            background: #3b82f6;
+        }
+        .swagger-ui .info .description p,
+        .swagger-ui .info .base-url,
+        .swagger-ui .opblock-description-wrapper p,
+        .swagger-ui .opblock .opblock-section-header label,
+        .swagger-ui .response-col_links,
+        .swagger-ui .tab li,
+        .swagger-ui .btn {
+            color: #a1a1aa;
+        }
+
+        /* Operation blocks */
+        .swagger-ui .opblock.opblock-get {
+            background: rgba(59, 130, 246, 0.05);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        .swagger-ui .opblock.opblock-get .opblock-summary {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        .swagger-ui .opblock .opblock-section-header {
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid #27272a;
+        }
+
+        /* Tables */
+        .swagger-ui table tbody tr td {
+            color: #a1a1aa;
+            border-bottom: 1px solid #27272a;
+        }
+
+        /* Models section */
+        .swagger-ui section.models {
+            border: 1px solid #27272a;
+            border-radius: 8px;
+        }
+        .swagger-ui section.models .model-container {
+            background: #111113;
+            border-bottom: 1px solid #27272a;
+        }
+        .swagger-ui section.models h4 span {
+            color: #fafafa !important;
+        }
+        .swagger-ui .model-box {
+            background: #111113;
+        }
+
+        /* Code blocks */
+        .swagger-ui .highlight-code pre,
+        .swagger-ui .example pre {
+            background: #111113 !important;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+        }
+        .swagger-ui .highlight-code .microlight {
+            color: #a1a1aa;
+        }
+
+        /* Buttons */
+        .swagger-ui .btn.execute {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+        .swagger-ui .btn.cancel {
+            border-color: #27272a;
+            color: #a1a1aa;
+        }
+        .swagger-ui .btn.authorize {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        /* Auth dialog */
+        .swagger-ui .dialog-ux .modal-ux {
+            background: #111113;
+            border: 1px solid #27272a;
+        }
+        .swagger-ui .dialog-ux .modal-ux-header h3 {
+            color: #fafafa;
+        }
+        .swagger-ui .dialog-ux .modal-ux-content p,
+        .swagger-ui .dialog-ux .modal-ux-content label {
+            color: #a1a1aa;
+        }
+        .swagger-ui .dialog-ux .modal-ux-header .close-modal {
+            filter: invert(1);
+        }
+
+        /* Inputs */
+        .swagger-ui input[type="text"],
+        .swagger-ui textarea,
+        .swagger-ui select {
+            background: #09090b;
+            border: 1px solid #27272a;
+            color: #fafafa;
+            border-radius: 4px;
+        }
+
+        /* Response body */
+        .swagger-ui .responses-inner {
+            border-top: 1px solid #27272a;
+        }
+        .swagger-ui .response-control-media-type__accept-message {
+            color: #3b82f6;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+
+        /* Back link */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 20px 24px 0;
+            color: #a1a1aa;
+            text-decoration: none;
+            font-size: 13px;
+            font-family: Inter, system-ui, sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .back-link:hover { color: #fafafa; }
+        .back-link svg { width: 14px; height: 14px; }
+    </style>
+</head>
+<body>
+    <div style="max-width: 1148px; margin: 0 auto;">
+        <a href="/dashboard" class="back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Back to Dashboard
+        </a>
+    </div>
+    <div id="swagger-ui"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.18.2/swagger-ui-bundle.js"></script>
+    <script>
+        SwaggerUIBundle({
+            url: "/static/openapi.json",
+            dom_id: "#swagger-ui",
+            deepLinking: true,
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.SwaggerUIStandalonePreset
+            ],
+            layout: "StandaloneLayout",
+            defaultModelsExpandDepth: 1,
+            defaultModelExpandDepth: 2,
+            docExpansion: "list",
+            tryItOutEnabled: true,
+            persistAuthorization: true,
+        });
+    </script>
+</body>
+</html>
+{{end}}

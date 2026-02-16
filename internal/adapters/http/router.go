@@ -141,6 +141,9 @@ func (r *Router) RegisterRoutes() {
 	// Health check (public)
 	e.GET("/health", r.healthCheck)
 
+	// API docs (public)
+	e.GET("/docs", r.apiDocs)
+
 	// WebSocket endpoint for agents (public - authenticated via API key in handshake)
 	e.GET("/ws/agent", r.wsHandler.HandleConnection)
 
@@ -222,6 +225,11 @@ func (r *Router) Stop() {
 	if r.generalRateLimiter != nil {
 		r.generalRateLimiter.Stop()
 	}
+}
+
+// apiDocs renders the Swagger UI page.
+func (r *Router) apiDocs(c echo.Context) error {
+	return c.Render(http.StatusOK, "api_docs.html", nil)
 }
 
 // healthCheck returns health status.
