@@ -134,7 +134,7 @@ The Hub will be available at `http://localhost:8080`.
 ```bash
 curl -sSL https://raw.githubusercontent.com/sylvester-francis/watchdog-agent/main/scripts/install-agent.sh | sudo sh -s -- \
   --api-key YOUR_API_KEY \
-  --hub-url wss://your-hub.example.com/ws/agent
+  --hub-url wss://usewatchdog.dev/ws/agent
 ```
 
 See the [watchdog-agent README](https://github.com/sylvester-francis/watchdog-agent) for detailed installation options.
@@ -175,29 +175,29 @@ WatchDog exposes a REST API at `/api/v1` for programmatic access. Authenticate w
 
 ```bash
 # List all monitors
-curl -H "Authorization: Bearer wd_a1b2c3..." https://your-hub.example.com/api/v1/monitors
+curl -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/monitors
 
 # Create a monitor
 curl -X POST -H "Authorization: Bearer wd_a1b2c3..." -H "Content-Type: application/json" \
   -d '{"name":"My API","type":"http","target":"https://api.example.com","agent_id":"..."}' \
-  https://your-hub.example.com/api/v1/monitors
+  https://usewatchdog.dev/api/v1/monitors
 
 # Update a monitor
 curl -X PUT -H "Authorization: Bearer wd_a1b2c3..." -H "Content-Type: application/json" \
   -d '{"name":"Updated Name"}' \
-  https://your-hub.example.com/api/v1/monitors/{id}
+  https://usewatchdog.dev/api/v1/monitors/{id}
 
 # Delete a monitor
-curl -X DELETE -H "Authorization: Bearer wd_a1b2c3..." https://your-hub.example.com/api/v1/monitors/{id}
+curl -X DELETE -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/monitors/{id}
 
 # Acknowledge an incident
-curl -X POST -H "Authorization: Bearer wd_a1b2c3..." https://your-hub.example.com/api/v1/incidents/{id}/acknowledge
+curl -X POST -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/incidents/{id}/acknowledge
 
 # Resolve an incident
-curl -X POST -H "Authorization: Bearer wd_a1b2c3..." https://your-hub.example.com/api/v1/incidents/{id}/resolve
+curl -X POST -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/incidents/{id}/resolve
 
 # Dashboard stats
-curl -H "Authorization: Bearer wd_a1b2c3..." https://your-hub.example.com/api/v1/dashboard/stats
+curl -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/dashboard/stats
 ```
 
 Interactive API documentation is available at `/docs` (Swagger UI).
