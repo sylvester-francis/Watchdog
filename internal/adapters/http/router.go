@@ -28,6 +28,7 @@ type Dependencies struct {
 	HeartbeatRepo    ports.HeartbeatRepository
 	UsageEventRepo   ports.UsageEventRepository
 	WaitlistRepo     ports.WaitlistRepository
+	APITokenRepo     ports.APITokenRepository
 	Hub              *realtime.Hub
 	Hasher           *crypto.PasswordHasher
 	Logger           *slog.Logger
@@ -53,6 +54,8 @@ type Router struct {
 	sseHandler       *handlers.SSEHandler
 	wsHandler        *handlers.WSHandler
 	apiHandler       *handlers.APIHandler
+	apiTokenHandler  *handlers.APITokenHandler
+	apiV1Handler     *handlers.APIV1Handler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -90,6 +93,8 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
+	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, templates)
+	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService)
 
 	return r, nil
 }
@@ -179,12 +184,25 @@ func (r *Router) RegisterRoutes() {
 	// SSE for real-time updates
 	protected.GET("/sse/events", r.sseHandler.Events)
 
+	// Settings (API tokens)
+	protected.GET("/settings", r.apiTokenHandler.List)
+	protected.POST("/settings/tokens", r.apiTokenHandler.Create)
+	protected.DELETE("/settings/tokens/:id", r.apiTokenHandler.Delete)
+
 	// Admin routes
 	admin := protected.Group("/admin", middleware.AdminRequired(r.deps.UserRepo))
 	admin.GET("", r.adminHandler.Dashboard)
 	admin.POST("/users", r.adminHandler.CreateUser)
 	admin.POST("/users/:id", r.adminHandler.UpdateUser)
 	admin.DELETE("/users/:id", r.adminHandler.DeleteUser)
+
+	// Public API v1 (token-authenticated)
+	v1 := e.Group("/api/v1")
+	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo, r.deps.UserRepo))
+	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
+	v1.GET("/monitors/:id", r.apiV1Handler.GetMonitor)
+	v1.GET("/agents", r.apiV1Handler.ListAgents)
+	v1.GET("/incidents", r.apiV1Handler.ListIncidents)
 }
 
 // rootRedirect shows the landing page for unauthenticated users,

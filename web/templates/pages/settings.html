@@ -1,0 +1,160 @@
+{{define "settings.html"}}
+{{template "base" .}}
+{{end}}
+
+{{define "content"}}
+<div class="space-y-4">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-lg font-semibold text-foreground">Settings</h1>
+    </div>
+
+    <!-- API Tokens Section -->
+    <div class="bg-card border border-border rounded-lg">
+        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="key" class="w-4 h-4 text-muted-foreground"></i>
+                <h2 class="text-sm font-medium text-foreground">API Tokens</h2>
+            </div>
+            <button onclick="document.getElementById('new-token-modal').classList.remove('hidden')"
+                    class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
+                New Token
+            </button>
+        </div>
+
+        <div class="p-4">
+            <p class="text-xs text-muted-foreground mb-4">
+                Use API tokens for programmatic access to the WatchDog API. Tokens inherit your account permissions.
+                <span class="font-mono text-muted-foreground/80">Authorization: Bearer wd_...</span>
+            </p>
+
+            {{if .Tokens}}
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="border-b border-border/50">
+                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Name</th>
+                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Prefix</th>
+                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Last Used</th>
+                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Expires</th>
+                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Created</th>
+                            <th class="text-right py-2 px-3 text-muted-foreground font-medium">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="token-table-body">
+                        {{range .Tokens}}
+                        {{template "token_row" .}}
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <div class="text-center py-8">
+                <i data-lucide="key" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2"></i>
+                <p class="text-xs text-muted-foreground">No API tokens yet</p>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- API Docs Hint -->
+        <div class="px-4 py-3 border-t border-border/50 bg-muted/20">
+            <p class="text-[11px] text-muted-foreground/60">
+                API base URL: <span class="font-mono">GET /api/v1/monitors</span>, <span class="font-mono">GET /api/v1/agents</span>, <span class="font-mono">GET /api/v1/incidents</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- New Token Modal -->
+<div id="new-token-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
+        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 class="text-sm font-medium text-foreground">Create API Token</h3>
+            <button onclick="document.getElementById('new-token-modal').classList.add('hidden')"
+                    class="text-muted-foreground hover:text-foreground">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form hx-post="/settings/tokens"
+              hx-target="#token-result"
+              hx-swap="innerHTML"
+              hx-on::after-request="if(event.detail.successful) { this.reset(); }">
+            <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-xs text-muted-foreground mb-1">Token Name</label>
+                    <input type="text" name="name" required placeholder="e.g. CI Pipeline, Grafana"
+                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                </div>
+                <div>
+                    <label class="block text-xs text-muted-foreground mb-2">Expiration</label>
+                    <div class="space-y-1.5">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="expires" value="never" checked class="text-accent">
+                            <span class="text-xs text-foreground">Never expires</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="expires" value="30d" class="text-accent">
+                            <span class="text-xs text-foreground">30 days</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="expires" value="90d" class="text-accent">
+                            <span class="text-xs text-foreground">90 days</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t border-border flex justify-end space-x-2">
+                <button type="button" onclick="document.getElementById('new-token-modal').classList.add('hidden')"
+                        class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
+                    Create Token
+                </button>
+            </div>
+        </form>
+        <div id="token-result" class="px-4 pb-4"></div>
+    </div>
+</div>
+{{end}}
+
+{{define "token_row"}}
+<tr id="token-row-{{.ID}}" class="border-b border-border/30 hover:bg-muted/20">
+    <td class="py-2 px-3 text-foreground font-medium">{{.Name}}</td>
+    <td class="py-2 px-3 font-mono text-muted-foreground">{{.Prefix}}...</td>
+    <td class="py-2 px-3 text-muted-foreground">{{formatTimeAgoPtr .LastUsedAt}}</td>
+    <td class="py-2 px-3 text-muted-foreground">
+        {{if .ExpiresAt}}{{formatTime *.ExpiresAt}}{{else}}<span class="text-muted-foreground/50">Never</span>{{end}}
+    </td>
+    <td class="py-2 px-3 text-muted-foreground">{{formatTimeAgo .CreatedAt}}</td>
+    <td class="py-2 px-3 text-right">
+        <button hx-delete="/settings/tokens/{{.ID}}"
+                hx-target="#token-row-{{.ID}}"
+                hx-swap="outerHTML"
+                hx-confirm="Delete this token? This cannot be undone."
+                class="text-red-400/60 hover:text-red-400 transition-colors">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+    </td>
+</tr>
+{{end}}
+
+{{define "token_created"}}
+<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md p-3 space-y-2">
+    <div class="flex items-center space-x-2">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span class="text-xs font-medium text-emerald-400">Token created!</span>
+    </div>
+    <div class="flex items-center space-x-2">
+        <code id="token-plaintext" class="flex-1 text-xs font-mono bg-background px-3 py-2 rounded border border-border text-foreground select-all break-all">{{.Plaintext}}</code>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('token-plaintext').textContent); this.innerHTML='<i data-lucide=&quot;check&quot; class=&quot;w-3.5 h-3.5&quot;></i>'; lucide.createIcons({nodes: [this]})"
+                class="shrink-0 px-2 py-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+        </button>
+    </div>
+    <p class="text-[11px] text-muted-foreground/60">Copy this token now. You won't be able to see it again.</p>
+</div>
+<script>lucide.createIcons();</script>
+{{end}}

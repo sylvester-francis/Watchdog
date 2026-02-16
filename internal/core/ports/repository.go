@@ -103,6 +103,15 @@ type UsageEventRepository interface {
 	CountByEventType(ctx context.Context, eventType domain.EventType, since time.Time) (int, error)
 }
 
+// APITokenRepository defines the interface for API token persistence.
+type APITokenRepository interface {
+	Create(ctx context.Context, token *domain.APIToken) error
+	GetByTokenHash(ctx context.Context, tokenHash string) (*domain.APIToken, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.APIToken, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	UpdateLastUsed(ctx context.Context, id uuid.UUID) error
+}
+
 // WaitlistRepository defines the interface for waitlist signup persistence.
 type WaitlistRepository interface {
 	Create(ctx context.Context, signup *domain.WaitlistSignup) error
