@@ -64,6 +64,7 @@ func main() {
 	apiTokenRepo := repository.NewAPITokenRepository(db)
 	auditLogRepo := repository.NewAuditLogRepository(db)
 	statusPageRepo := repository.NewStatusPageRepository(db)
+	alertChannelRepo := repository.NewAlertChannelRepository(db, encryptor)
 
 	// Initialize notifiers from environment configuration
 	var notifier notify.Notifier
@@ -118,7 +119,7 @@ func main() {
 	// Initialize services
 	auditSvc := services.NewAuditService(auditLogRepo, logger)
 	authSvc := services.NewAuthService(userRepo, agentRepo, usageEventRepo, hasher, encryptor, logger)
-	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, notifier, db, logger)
+	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 
 	// Initialize WebSocket hub
@@ -165,6 +166,7 @@ func main() {
 		WaitlistRepo:     waitlistRepo,
 		APITokenRepo:     apiTokenRepo,
 		StatusPageRepo:   statusPageRepo,
+		AlertChannelRepo: alertChannelRepo,
 		Hub:              hub,
 		Hasher:           hasher,
 		AuditService:     auditSvc,

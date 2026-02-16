@@ -15,15 +15,17 @@ import (
 
 // APITokenHandler handles API token management HTTP requests.
 type APITokenHandler struct {
-	tokenRepo ports.APITokenRepository
-	templates *view.Templates
+	tokenRepo        ports.APITokenRepository
+	alertChannelRepo ports.AlertChannelRepository
+	templates        *view.Templates
 }
 
 // NewAPITokenHandler creates a new APITokenHandler.
-func NewAPITokenHandler(tokenRepo ports.APITokenRepository, templates *view.Templates) *APITokenHandler {
+func NewAPITokenHandler(tokenRepo ports.APITokenRepository, alertChannelRepo ports.AlertChannelRepository, templates *view.Templates) *APITokenHandler {
 	return &APITokenHandler{
-		tokenRepo: tokenRepo,
-		templates: templates,
+		tokenRepo:        tokenRepo,
+		alertChannelRepo: alertChannelRepo,
+		templates:        templates,
 	}
 }
 
@@ -39,9 +41,15 @@ func (h *APITokenHandler) List(c echo.Context) error {
 		tokens = nil
 	}
 
+	channels, err := h.alertChannelRepo.GetByUserID(c.Request().Context(), userID)
+	if err != nil {
+		channels = nil
+	}
+
 	return c.Render(http.StatusOK, "settings.html", map[string]interface{}{
-		"Title":  "Settings",
-		"Tokens": tokens,
+		"Title":    "Settings",
+		"Tokens":   tokens,
+		"Channels": channels,
 	})
 }
 

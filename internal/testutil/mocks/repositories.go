@@ -20,7 +20,8 @@ var (
 	_ ports.UsageEventRepository = (*MockUsageEventRepository)(nil)
 	_ ports.WaitlistRepository   = (*MockWaitlistRepository)(nil)
 	_ ports.APITokenRepository   = (*MockAPITokenRepository)(nil)
-	_ ports.Transactor           = (*MockTransactor)(nil)
+	_ ports.Transactor              = (*MockTransactor)(nil)
+	_ ports.AlertChannelRepository  = (*MockAlertChannelRepository)(nil)
 )
 
 // MockUserRepository is a mock implementation of ports.UserRepository.
@@ -491,6 +492,58 @@ func (m *MockAPITokenRepository) Delete(ctx context.Context, id uuid.UUID) error
 func (m *MockAPITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) error {
 	if m.UpdateLastUsedFn != nil {
 		return m.UpdateLastUsedFn(ctx, id)
+	}
+	return nil
+}
+
+// MockAlertChannelRepository is a mock implementation of ports.AlertChannelRepository.
+type MockAlertChannelRepository struct {
+	CreateFn            func(ctx context.Context, channel *domain.AlertChannel) error
+	GetByIDFn           func(ctx context.Context, id uuid.UUID) (*domain.AlertChannel, error)
+	GetByUserIDFn       func(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error)
+	GetEnabledByUserIDFn func(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error)
+	UpdateFn            func(ctx context.Context, channel *domain.AlertChannel) error
+	DeleteFn            func(ctx context.Context, id uuid.UUID) error
+}
+
+func (m *MockAlertChannelRepository) Create(ctx context.Context, channel *domain.AlertChannel) error {
+	if m.CreateFn != nil {
+		return m.CreateFn(ctx, channel)
+	}
+	return nil
+}
+
+func (m *MockAlertChannelRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.AlertChannel, error) {
+	if m.GetByIDFn != nil {
+		return m.GetByIDFn(ctx, id)
+	}
+	return nil, nil
+}
+
+func (m *MockAlertChannelRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error) {
+	if m.GetByUserIDFn != nil {
+		return m.GetByUserIDFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAlertChannelRepository) GetEnabledByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error) {
+	if m.GetEnabledByUserIDFn != nil {
+		return m.GetEnabledByUserIDFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAlertChannelRepository) Update(ctx context.Context, channel *domain.AlertChannel) error {
+	if m.UpdateFn != nil {
+		return m.UpdateFn(ctx, channel)
+	}
+	return nil
+}
+
+func (m *MockAlertChannelRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, id)
 	}
 	return nil
 }

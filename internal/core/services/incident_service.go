@@ -7,23 +7,28 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
 	"github.com/sylvester-francis/watchdog/internal/core/domain"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
 // IncidentService implements ports.IncidentService for incident lifecycle management.
 type IncidentService struct {
-	incidentRepo ports.IncidentRepository
-	monitorRepo  ports.MonitorRepository
-	notifier     ports.Notifier
-	transactor   ports.Transactor
-	logger       *slog.Logger
+	incidentRepo     ports.IncidentRepository
+	monitorRepo      ports.MonitorRepository
+	agentRepo        ports.AgentRepository
+	alertChannelRepo ports.AlertChannelRepository
+	notifier         ports.Notifier // global notifier (env-based, server admin fallback)
+	transactor       ports.Transactor
+	logger           *slog.Logger
 }
 
 // NewIncidentService creates a new IncidentService.
 func NewIncidentService(
 	incidentRepo ports.IncidentRepository,
 	monitorRepo ports.MonitorRepository,
+	agentRepo ports.AgentRepository,
+	alertChannelRepo ports.AlertChannelRepository,
 	notifier ports.Notifier,
 	transactor ports.Transactor,
 	logger *slog.Logger,
@@ -32,11 +37,13 @@ func NewIncidentService(
 		logger = slog.Default()
 	}
 	return &IncidentService{
-		incidentRepo: incidentRepo,
-		monitorRepo:  monitorRepo,
-		notifier:     notifier,
-		transactor:   transactor,
-		logger:       logger,
+		incidentRepo:     incidentRepo,
+		monitorRepo:      monitorRepo,
+		agentRepo:        agentRepo,
+		alertChannelRepo: alertChannelRepo,
+		notifier:         notifier,
+		transactor:       transactor,
+		logger:           logger,
 	}
 }
 
@@ -134,15 +141,9 @@ func (s *IncidentService) ResolveIncident(ctx context.Context, id uuid.UUID) err
 		s.logger.Warn("failed to refresh incident for notification", "error", err)
 	}
 
-	// Send notification (don't fail the operation if notification fails)
+	// Send notifications (global + per-user, don't fail the operation)
 	if monitor != nil && incident != nil {
-		if notifyErr := s.notifier.NotifyIncidentResolved(ctx, incident, monitor); notifyErr != nil {
-			s.logger.Error("failed to send incident resolved notification",
-				"incident_id", id,
-				"monitor_id", incident.MonitorID,
-				"error", notifyErr,
-			)
-		}
+		s.notifyAll(ctx, incident, monitor, false)
 	}
 
 	return nil
@@ -190,14 +191,72 @@ func (s *IncidentService) CreateIncidentIfNeeded(ctx context.Context, monitorID 
 		return nil, fmt.Errorf("incidentService.CreateIncidentIfNeeded: %w", err)
 	}
 
-	// Send notification (don't fail the operation if notification fails)
-	if notifyErr := s.notifier.NotifyIncidentOpened(ctx, incident, monitor); notifyErr != nil {
-		s.logger.Error("failed to send incident opened notification",
+	// Send notifications (global + per-user, don't fail the operation)
+	s.notifyAll(ctx, incident, monitor, true)
+
+	return incident, nil
+}
+
+// notifyAll sends notifications via the global notifier and all per-user alert channels.
+func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
+	// 1. Global notifier (env-based, server admin)
+	var globalErr error
+	if opened {
+		globalErr = s.notifier.NotifyIncidentOpened(ctx, incident, monitor)
+	} else {
+		globalErr = s.notifier.NotifyIncidentResolved(ctx, incident, monitor)
+	}
+	if globalErr != nil {
+		s.logger.Error("global notification failed",
 			"incident_id", incident.ID,
-			"monitor_id", monitorID,
-			"error", notifyErr,
+			"monitor_id", monitor.ID,
+			"error", globalErr,
 		)
 	}
 
-	return incident, nil
+	// 2. Per-user notifications: monitor → agent → user → channels
+	agent, err := s.agentRepo.GetByID(ctx, monitor.AgentID)
+	if err != nil || agent == nil {
+		s.logger.Error("failed to get agent for per-user notifications",
+			"agent_id", monitor.AgentID,
+			"error", err,
+		)
+		return
+	}
+
+	channels, err := s.alertChannelRepo.GetEnabledByUserID(ctx, agent.UserID)
+	if err != nil {
+		s.logger.Error("failed to get alert channels",
+			"user_id", agent.UserID,
+			"error", err,
+		)
+		return
+	}
+
+	for _, ch := range channels {
+		notifier, err := notify.BuildFromChannel(ch)
+		if err != nil {
+			s.logger.Error("failed to build notifier from channel",
+				"channel_id", ch.ID,
+				"channel_type", ch.Type,
+				"error", err,
+			)
+			continue
+		}
+
+		var notifyErr error
+		if opened {
+			notifyErr = notifier.NotifyIncidentOpened(ctx, incident, monitor)
+		} else {
+			notifyErr = notifier.NotifyIncidentResolved(ctx, incident, monitor)
+		}
+		if notifyErr != nil {
+			s.logger.Error("per-user notification failed",
+				"channel_id", ch.ID,
+				"channel_name", ch.Name,
+				"channel_type", ch.Type,
+				"error", notifyErr,
+			)
+		}
+	}
 }
