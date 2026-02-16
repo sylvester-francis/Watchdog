@@ -170,7 +170,9 @@ func (h *StatusPageHandler) Update(c echo.Context) error {
 			monitorIDs = append(monitorIDs, id)
 		}
 	}
-	_ = h.statusPageRepo.SetMonitors(ctx, pageID, monitorIDs)
+	if err := h.statusPageRepo.SetMonitors(ctx, pageID, monitorIDs); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "status page updated but failed to save monitor assignments")
+	}
 
 	return c.Redirect(http.StatusFound, "/status-pages")
 }

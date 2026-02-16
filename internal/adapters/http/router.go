@@ -127,7 +127,7 @@ func (r *Router) RegisterRoutes() {
 	e.Use(middleware.SessionMiddleware(store))
 
 	// CSRF protection for HTML form submissions
-	e.Use(middleware.CSRFMiddleware())
+	e.Use(middleware.CSRFMiddleware(r.deps.SecureCookies))
 
 	// Rate limiters
 	r.authRateLimiter = middleware.NewRateLimiter(middleware.RateLimiterConfig{
@@ -149,6 +149,8 @@ func (r *Router) RegisterRoutes() {
 	e.GET("/register", r.authHandler.RegisterPage)
 	e.POST("/register", r.authHandler.Register, authRL)
 	e.POST("/logout", r.authHandler.Logout)
+	e.GET("/setup", r.authHandler.SetupPage)
+	e.POST("/setup", r.authHandler.Setup, authRL)
 	e.POST("/waitlist", r.landingHandler.JoinWaitlist, authRL)
 
 	// Health check (public)
@@ -156,6 +158,10 @@ func (r *Router) RegisterRoutes() {
 
 	// API docs (public)
 	e.GET("/docs", r.apiDocs)
+
+	// Legal pages (public)
+	e.GET("/terms", r.termsPage)
+	e.GET("/privacy", r.privacyPage)
 
 	// Agent install script (public)
 	e.GET("/install", r.installScript)
@@ -170,6 +176,7 @@ func (r *Router) RegisterRoutes() {
 	protected := e.Group("")
 	protected.Use(middleware.NoCacheHeaders)
 	protected.Use(middleware.AuthRequired)
+	protected.Use(middleware.UserContext(r.deps.UserRepo))
 
 	// Root redirect
 	e.GET("/", r.rootRedirect)
@@ -246,9 +253,13 @@ func (r *Router) RegisterRoutes() {
 	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
 }
 
-// rootRedirect shows the landing page for unauthenticated users,
+// rootRedirect shows the setup wizard when no users exist,
+// the landing page for unauthenticated users,
 // or redirects to dashboard for authenticated users.
 func (r *Router) rootRedirect(c echo.Context) error {
+	if r.authHandler.NeedsSetup(c.Request().Context()) {
+		return c.Redirect(http.StatusFound, "/setup")
+	}
 	if middleware.IsAuthenticated(c) {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
@@ -276,6 +287,20 @@ func (r *Router) apiDocs(c echo.Context) error {
 // installScript serves the agent install script for curl-pipe-sh installs.
 func (r *Router) installScript(c echo.Context) error {
 	return c.Blob(http.StatusOK, "text/plain; charset=utf-8", installScriptContent)
+}
+
+// termsPage renders the Terms of Service page.
+func (r *Router) termsPage(c echo.Context) error {
+	return c.Render(http.StatusOK, "terms.html", map[string]interface{}{
+		"Title": "Terms of Service",
+	})
+}
+
+// privacyPage renders the Privacy Policy page.
+func (r *Router) privacyPage(c echo.Context) error {
+	return c.Render(http.StatusOK, "privacy.html", map[string]interface{}{
+		"Title": "Privacy Policy",
+	})
 }
 
 // healthCheck returns health status.

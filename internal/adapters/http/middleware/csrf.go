@@ -12,12 +12,13 @@ import (
 // It uses a double-submit cookie pattern: a random token is set in a cookie and must
 // be included as a hidden form field (_csrf) or header (X-CSRF-Token) on POST requests.
 // API endpoints, WebSocket, static files, and health checks are skipped.
-func CSRFMiddleware() echo.MiddlewareFunc {
+func CSRFMiddleware(secureCookies bool) echo.MiddlewareFunc {
 	return echomiddleware.CSRFWithConfig(echomiddleware.CSRFConfig{
 		TokenLookup:    "form:_csrf,header:X-CSRF-Token",
 		CookieName:     "_csrf",
 		CookiePath:     "/",
 		CookieHTTPOnly: true,
+		CookieSecure:   secureCookies,
 		CookieSameSite: http.SameSiteLaxMode,
 		Skipper: func(c echo.Context) bool {
 			path := c.Request().URL.Path

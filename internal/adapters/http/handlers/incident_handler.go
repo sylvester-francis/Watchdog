@@ -156,6 +156,9 @@ func (h *IncidentHandler) Acknowledge(c echo.Context) error {
 	// If HTMX request, return updated row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		incident, _ := h.incidentSvc.GetIncident(ctx, id)
+		if incident == nil {
+			return c.Redirect(http.StatusFound, "/incidents")
+		}
 		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
 		return c.Render(http.StatusOK, "incident_row", map[string]interface{}{
 			"Incident": incident,
@@ -192,6 +195,9 @@ func (h *IncidentHandler) Resolve(c echo.Context) error {
 			return c.NoContent(http.StatusOK)
 		}
 		incident, _ := h.incidentSvc.GetIncident(ctx, id)
+		if incident == nil {
+			return c.Redirect(http.StatusFound, "/incidents")
+		}
 		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
 		return c.Render(http.StatusOK, "incident_row", map[string]interface{}{
 			"Incident": incident,

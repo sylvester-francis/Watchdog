@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -55,9 +57,11 @@ func APITokenAuth(tokenRepo ports.APITokenRepository, userRepo ports.UserReposit
 			// Set user ID in context (same key as session auth)
 			c.Set(UserIDKey, token.UserID.String())
 
-			// Update last used (fire-and-forget)
+			// Update last used (fire-and-forget with dedicated context)
 			go func() {
-				_ = tokenRepo.UpdateLastUsed(c.Request().Context(), token.ID)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = tokenRepo.UpdateLastUsed(ctx, token.ID)
 			}()
 
 			return next(c)

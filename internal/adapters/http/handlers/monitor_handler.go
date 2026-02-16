@@ -241,7 +241,9 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 
 	// Update if interval or timeout were set
 	if intervalStr != "" || timeoutStr != "" {
-		_ = h.monitorSvc.UpdateMonitor(ctx, monitor)
+		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
+			return h.renderError(c, "Monitor created but failed to apply interval/timeout settings", userID)
+		}
 	}
 
 	// If HTMX request, return the new row
