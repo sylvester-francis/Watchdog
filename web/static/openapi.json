@@ -2,12 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "WatchDog API",
-    "description": "Programmatic access to WatchDog infrastructure monitoring. Authenticate with a Bearer token generated from Settings > API Tokens.",
-    "version": "1.0.0",
-    "contact": {
-      "name": "Sylvester Francis",
-      "url": "https://github.com/sylvester-francis"
-    }
+    "description": "Authenticate with a Bearer token from **Settings > API Tokens**.",
+    "version": "1.0.0"
   },
   "servers": [
     {
