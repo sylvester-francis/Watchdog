@@ -97,7 +97,7 @@ jobs:
           go build -ldflags="-s -w" -o bin/watchdog-${{ matrix.goos }}-${{ matrix.goarch }}${ext} ./cmd/cli
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
           path: bin/
