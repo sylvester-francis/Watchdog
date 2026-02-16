@@ -126,7 +126,7 @@
     <td class="py-2 px-3 font-mono text-muted-foreground">{{.Prefix}}...</td>
     <td class="py-2 px-3 text-muted-foreground">{{formatTimeAgoPtr .LastUsedAt}}</td>
     <td class="py-2 px-3 text-muted-foreground">
-        {{if .ExpiresAt}}{{formatTime *.ExpiresAt}}{{else}}<span class="text-muted-foreground/50">Never</span>{{end}}
+        {{if .ExpiresAt}}{{formatTimeAgoPtr .ExpiresAt}}{{else}}<span class="text-muted-foreground/50">Never</span>{{end}}
     </td>
     <td class="py-2 px-3 text-muted-foreground">{{formatTimeAgo .CreatedAt}}</td>
     <td class="py-2 px-3 text-right">
