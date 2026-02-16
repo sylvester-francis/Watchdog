@@ -332,7 +332,7 @@ Produces binaries for:
 ### Install Agent on a Server
 
 ```bash
-./scripts/install-agent.sh --api-key "YOUR_KEY" --hub "ws://hub.example.com:8080/ws/agent"
+./scripts/install-agent.sh --api-key "YOUR_KEY" --hub "wss://usewatchdog.dev/ws/agent"
 ```
 
 On systems with systemd, this creates and starts a `watchdog-agent` service that auto-restarts on failure and survives reboots.
