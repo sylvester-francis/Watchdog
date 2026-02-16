@@ -1,0 +1,300 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "WatchDog API",
+    "description": "Programmatic access to WatchDog infrastructure monitoring. Authenticate with a Bearer token generated from Settings > API Tokens.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Sylvester Francis",
+      "url": "https://github.com/sylvester-francis"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "WatchDog API v1"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/monitors": {
+      "get": {
+        "summary": "List monitors",
+        "description": "Returns all monitors across all agents owned by the authenticated user.",
+        "operationId": "listMonitors",
+        "tags": ["Monitors"],
+        "responses": {
+          "200": {
+            "description": "List of monitors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Monitor" }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "49696684-9426-491a-becb-0c6ab72ba1f2",
+                      "agent_id": "d44e28f1-4bfe-4b1d-a39e-3992ac060c17",
+                      "name": "PostgreSQL",
+                      "type": "tcp",
+                      "target": "localhost:5432",
+                      "status": "up",
+                      "enabled": true,
+                      "interval_seconds": 30,
+                      "timeout_seconds": 10
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/monitors/{id}": {
+      "get": {
+        "summary": "Get monitor",
+        "description": "Returns a single monitor by ID, including recent heartbeat statistics.",
+        "operationId": "getMonitor",
+        "tags": ["Monitors"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Monitor UUID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monitor with heartbeat data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/Monitor" },
+                    "heartbeats": { "$ref": "#/components/schemas/HeartbeatSummary" }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "49696684-9426-491a-becb-0c6ab72ba1f2",
+                    "agent_id": "d44e28f1-4bfe-4b1d-a39e-3992ac060c17",
+                    "name": "PostgreSQL",
+                    "type": "tcp",
+                    "target": "localhost:5432",
+                    "status": "up",
+                    "enabled": true,
+                    "interval_seconds": 30,
+                    "timeout_seconds": 10
+                  },
+                  "heartbeats": {
+                    "latencies": [2, 3, 1, 2, 4, 2, 1, 3],
+                    "uptime_up": 18,
+                    "uptime_down": 2,
+                    "total": 20
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/agents": {
+      "get": {
+        "summary": "List agents",
+        "description": "Returns all agents owned by the authenticated user.",
+        "operationId": "listAgents",
+        "tags": ["Agents"],
+        "responses": {
+          "200": {
+            "description": "List of agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Agent" }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "d44e28f1-4bfe-4b1d-a39e-3992ac060c17",
+                      "name": "homelab-agent",
+                      "status": "online",
+                      "last_seen_at": "2026-02-16T05:12:43Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/incidents": {
+      "get": {
+        "summary": "List incidents",
+        "description": "Returns incidents. Defaults to active (open + acknowledged). Use `?status=resolved` for resolved incidents.",
+        "operationId": "listIncidents",
+        "tags": ["Incidents"],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["active", "resolved"],
+              "default": "active"
+            },
+            "description": "Filter by incident status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of incidents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Incident" }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                      "monitor_id": "49696684-9426-491a-becb-0c6ab72ba1f2",
+                      "status": "open",
+                      "started_at": "2026-02-16T04:00:00Z",
+                      "resolved_at": null,
+                      "acknowledged_at": null
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API token generated from Settings > API Tokens. Format: `wd_<32 hex chars>`"
+      }
+    },
+    "schemas": {
+      "Monitor": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "agent_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["http", "tcp", "ping", "dns"] },
+          "target": { "type": "string" },
+          "status": { "type": "string", "enum": ["up", "down", "unknown", "degraded"] },
+          "enabled": { "type": "boolean" },
+          "interval_seconds": { "type": "integer" },
+          "timeout_seconds": { "type": "integer" }
+        }
+      },
+      "Agent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["online", "offline"] },
+          "last_seen_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Incident": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "monitor_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["open", "acknowledged", "resolved"] },
+          "started_at": { "type": "string", "format": "date-time" },
+          "resolved_at": { "type": "string", "format": "date-time", "nullable": true },
+          "acknowledged_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "HeartbeatSummary": {
+        "type": "object",
+        "properties": {
+          "latencies": { "type": "array", "items": { "type": "integer" }, "description": "Recent latencies in ms (oldest first)" },
+          "uptime_up": { "type": "integer", "description": "Count of successful heartbeats" },
+          "uptime_down": { "type": "integer", "description": "Count of failed heartbeats" },
+          "total": { "type": "integer", "description": "Total heartbeats sampled" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid API token",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "missing or invalid Authorization header" }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Invalid request parameters",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "invalid monitor ID" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "monitor not found" }
+          }
+        }
+      }
+    }
+  }
+}
