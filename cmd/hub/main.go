@@ -61,6 +61,7 @@ func main() {
 	incidentRepo := repository.NewIncidentRepository(db)
 	usageEventRepo := repository.NewUsageEventRepository(db)
 	waitlistRepo := repository.NewWaitlistRepository(db)
+	apiTokenRepo := repository.NewAPITokenRepository(db)
 
 	// Initialize notifiers from environment configuration
 	var notifier notify.Notifier
@@ -137,6 +138,7 @@ func main() {
 		HeartbeatRepo:    heartbeatRepo,
 		UsageEventRepo:   usageEventRepo,
 		WaitlistRepo:     waitlistRepo,
+		APITokenRepo:     apiTokenRepo,
 		Hub:              hub,
 		Hasher:           hasher,
 		Logger:           logger,
