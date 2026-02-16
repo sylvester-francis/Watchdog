@@ -14,10 +14,11 @@ const (
 	MonitorTypeHTTP MonitorType = "http"
 	MonitorTypeTCP  MonitorType = "tcp"
 	MonitorTypeDNS  MonitorType = "dns"
+	MonitorTypeTLS  MonitorType = "tls"
 )
 
 // ValidMonitorTypes lists all valid monitor types.
-var ValidMonitorTypes = []MonitorType{MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS}
+var ValidMonitorTypes = []MonitorType{MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS}
 
 // ValidMonitorTypeStrings returns monitor types as strings (for templates).
 func ValidMonitorTypeStrings() []string {
@@ -31,7 +32,7 @@ func ValidMonitorTypeStrings() []string {
 // IsValid checks if the type is a valid MonitorType.
 func (t MonitorType) IsValid() bool {
 	switch t {
-	case MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS:
+	case MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS:
 		return true
 	default:
 		return false

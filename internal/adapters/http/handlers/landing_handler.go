@@ -70,36 +70,20 @@ func (h *LandingHandler) JoinWaitlist(c echo.Context) error {
 }
 
 func (h *LandingHandler) renderPage(c echo.Context, success, errMsg string) error {
-	plans := []PlanInfo{
-		{
-			Name:     domain.PlanFree.String(),
-			Slug:     "free",
-			Price:    "$0",
-			Agents:   "1 Agent",
-			Monitors: "3 Monitors",
-		},
-		{
-			Name:        domain.PlanPro.String(),
-			Slug:        "pro",
-			Price:       "$7/mo",
-			Agents:      "3 Agents",
-			Monitors:    "25 Monitors",
-			Highlighted: true,
-		},
-		{
-			Name:     domain.PlanTeam.String(),
-			Slug:     "team",
-			Price:    "$15/mo",
-			Agents:   "10 Agents",
-			Monitors: "Unlimited Monitors",
-		},
+	betaPlan := PlanInfo{
+		Name:        "Beta",
+		Slug:        "beta",
+		Price:       "Free",
+		Agents:      "10 Agents",
+		Monitors:    "Unlimited Monitors",
+		Highlighted: true,
 	}
 
 	return c.Render(http.StatusOK, "landing.html", map[string]interface{}{
-		"Title":   "WatchDog - Monitor Services Behind Your Firewall",
-		"Plans":   plans,
-		"Year":    time.Now().Year(),
-		"Success": success,
-		"Error":   errMsg,
+		"Title":    "WatchDog - Monitor Services Behind Your Firewall",
+		"BetaPlan": betaPlan,
+		"Year":     time.Now().Year(),
+		"Success":  success,
+		"Error":    errMsg,
 	})
 }

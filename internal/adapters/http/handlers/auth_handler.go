@@ -8,23 +8,28 @@ import (
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
+	"github.com/sylvester-francis/watchdog/internal/core/domain"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/services"
 )
 
 // AuthHandler handles authentication-related HTTP requests.
 type AuthHandler struct {
-	authSvc   ports.UserAuthService
-	userRepo  ports.UserRepository
-	templates *view.Templates
+	authSvc      ports.UserAuthService
+	userRepo     ports.UserRepository
+	templates    *view.Templates
+	loginLimiter *middleware.LoginLimiter
+	auditSvc     ports.AuditService
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository, templates *view.Templates) *AuthHandler {
+func NewAuthHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository, templates *view.Templates, loginLimiter *middleware.LoginLimiter, auditSvc ports.AuditService) *AuthHandler {
 	return &AuthHandler{
-		authSvc:   authSvc,
-		userRepo:  userRepo,
-		templates: templates,
+		authSvc:      authSvc,
+		userRepo:     userRepo,
+		templates:    templates,
+		loginLimiter: loginLimiter,
+		auditSvc:     auditSvc,
 	}
 }
 
@@ -54,6 +59,10 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 	user, err := h.authSvc.Login(c.Request().Context(), email, password)
 	if err != nil {
+		h.loginLimiter.RecordFailure(c.RealIP(), email)
+		if h.auditSvc != nil {
+			h.auditSvc.LogEvent(c.Request().Context(), nil, domain.AuditLoginFailed, c.RealIP(), map[string]string{"email": email})
+		}
 		errMsg := "Invalid email or password"
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			errMsg = "Invalid email or password"
@@ -64,6 +73,10 @@ func (h *AuthHandler) Login(c echo.Context) error {
 			"Error":   errMsg,
 			"Email":   email,
 		})
+	}
+
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &user.ID, domain.AuditLoginSuccess, c.RealIP(), map[string]string{"email": email})
 	}
 
 	// Set user ID in session

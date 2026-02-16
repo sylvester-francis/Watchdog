@@ -54,7 +54,7 @@ func newAuthTestContext(method, path string, form url.Values) (echo.Context, *ht
 
 func TestLogin_EmptyFields_Returns400(t *testing.T) {
 	authSvc := &mocks.MockUserAuthService{}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/login", url.Values{
 		"email":    {""},
@@ -72,7 +72,7 @@ func TestLogin_InvalidCredentials_Returns401(t *testing.T) {
 			return nil, services.ErrInvalidCredentials
 		},
 	}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/login", url.Values{
 		"email":    {"test@example.com"},
@@ -90,7 +90,7 @@ func TestLogin_Success_Redirects(t *testing.T) {
 			return domain.NewUser("test@example.com", "hash"), nil
 		},
 	}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/login", url.Values{
 		"email":    {"test@example.com"},
@@ -105,7 +105,7 @@ func TestLogin_Success_Redirects(t *testing.T) {
 
 func TestRegister_ShortPassword_Returns400(t *testing.T) {
 	authSvc := &mocks.MockUserAuthService{}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/register", url.Values{
 		"email":            {"test@example.com"},
@@ -125,7 +125,7 @@ func TestRegister_PasswordExactly8_Succeeds(t *testing.T) {
 			return domain.NewUser("test@example.com", "hash"), nil
 		},
 	}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/register", url.Values{
 		"email":            {"test@example.com"},
@@ -140,7 +140,7 @@ func TestRegister_PasswordExactly8_Succeeds(t *testing.T) {
 
 func TestRegister_PasswordMismatch_Returns400(t *testing.T) {
 	authSvc := &mocks.MockUserAuthService{}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/register", url.Values{
 		"email":            {"test@example.com"},
@@ -159,7 +159,7 @@ func TestRegister_EmailExists_Returns400(t *testing.T) {
 			return nil, services.ErrEmailAlreadyExists
 		},
 	}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/register", url.Values{
 		"email":            {"existing@example.com"},
@@ -178,7 +178,7 @@ func TestRegister_Success_Redirects(t *testing.T) {
 			return domain.NewUser("new@example.com", "hash"), nil
 		},
 	}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/register", url.Values{
 		"email":            {"new@example.com"},
@@ -198,7 +198,7 @@ func TestLogin_ServiceError_Returns401(t *testing.T) {
 			return nil, errors.New("unexpected db error")
 		},
 	}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/login", url.Values{
 		"email":    {"test@example.com"},
@@ -212,7 +212,7 @@ func TestLogin_ServiceError_Returns401(t *testing.T) {
 
 func TestLogout_Redirects(t *testing.T) {
 	authSvc := &mocks.MockUserAuthService{}
-	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil)
+	h := handlers.NewAuthHandler(authSvc, &mocks.MockUserRepository{}, nil, middleware.NewLoginLimiter(), nil)
 
 	c, rec := newAuthTestContext(http.MethodPost, "/logout", nil)
 

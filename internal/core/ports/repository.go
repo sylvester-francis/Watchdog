@@ -112,6 +112,26 @@ type APITokenRepository interface {
 	UpdateLastUsed(ctx context.Context, id uuid.UUID) error
 }
 
+// AuditLogRepository defines the interface for audit log persistence.
+type AuditLogRepository interface {
+	Create(ctx context.Context, log *domain.AuditLog) error
+	GetByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.AuditLog, error)
+	GetRecent(ctx context.Context, limit int) ([]*domain.AuditLog, error)
+}
+
+// StatusPageRepository defines the interface for status page persistence.
+type StatusPageRepository interface {
+	Create(ctx context.Context, page *domain.StatusPage) error
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error)
+	GetBySlug(ctx context.Context, slug string) (*domain.StatusPage, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error)
+	Update(ctx context.Context, page *domain.StatusPage) error
+	Delete(ctx context.Context, id uuid.UUID) error
+	SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
+	GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
+	SlugExists(ctx context.Context, slug string) (bool, error)
+}
+
 // WaitlistRepository defines the interface for waitlist signup persistence.
 type WaitlistRepository interface {
 	Create(ctx context.Context, signup *domain.WaitlistSignup) error
