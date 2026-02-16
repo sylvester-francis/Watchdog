@@ -19,6 +19,7 @@ var (
 	_ ports.HeartbeatRepository  = (*MockHeartbeatRepository)(nil)
 	_ ports.UsageEventRepository = (*MockUsageEventRepository)(nil)
 	_ ports.WaitlistRepository   = (*MockWaitlistRepository)(nil)
+	_ ports.APITokenRepository   = (*MockAPITokenRepository)(nil)
 	_ ports.Transactor           = (*MockTransactor)(nil)
 )
 
@@ -448,6 +449,50 @@ func (m *MockWaitlistRepository) Count(ctx context.Context) (int, error) {
 		return m.CountFn(ctx)
 	}
 	return 0, nil
+}
+
+// MockAPITokenRepository is a mock implementation of ports.APITokenRepository.
+type MockAPITokenRepository struct {
+	CreateFn         func(ctx context.Context, token *domain.APIToken) error
+	GetByTokenHashFn func(ctx context.Context, tokenHash string) (*domain.APIToken, error)
+	GetByUserIDFn    func(ctx context.Context, userID uuid.UUID) ([]*domain.APIToken, error)
+	DeleteFn         func(ctx context.Context, id uuid.UUID) error
+	UpdateLastUsedFn func(ctx context.Context, id uuid.UUID) error
+}
+
+func (m *MockAPITokenRepository) Create(ctx context.Context, token *domain.APIToken) error {
+	if m.CreateFn != nil {
+		return m.CreateFn(ctx, token)
+	}
+	return nil
+}
+
+func (m *MockAPITokenRepository) GetByTokenHash(ctx context.Context, tokenHash string) (*domain.APIToken, error) {
+	if m.GetByTokenHashFn != nil {
+		return m.GetByTokenHashFn(ctx, tokenHash)
+	}
+	return nil, nil
+}
+
+func (m *MockAPITokenRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.APIToken, error) {
+	if m.GetByUserIDFn != nil {
+		return m.GetByUserIDFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAPITokenRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, id)
+	}
+	return nil
+}
+
+func (m *MockAPITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) error {
+	if m.UpdateLastUsedFn != nil {
+		return m.UpdateLastUsedFn(ctx, id)
+	}
+	return nil
 }
 
 // MockTransactor is a mock implementation of ports.Transactor.
