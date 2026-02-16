@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -36,6 +37,9 @@ func NewAuthHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository
 
 // LoginPage renders the login page.
 func (h *AuthHandler) LoginPage(c echo.Context) error {
+	if h.NeedsSetup(c.Request().Context()) {
+		return c.Redirect(http.StatusFound, "/setup")
+	}
 	return c.Render(http.StatusOK, "auth.html", map[string]interface{}{
 		"Title":    "Login",
 		"IsLogin":  true,
@@ -95,6 +99,9 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 // RegisterPage renders the registration page.
 func (h *AuthHandler) RegisterPage(c echo.Context) error {
+	if h.NeedsSetup(c.Request().Context()) {
+		return c.Redirect(http.StatusFound, "/setup")
+	}
 	return c.Render(http.StatusOK, "auth.html", map[string]interface{}{
 		"Title":      "Register",
 		"IsRegister": true,
@@ -154,6 +161,95 @@ func (h *AuthHandler) Register(c echo.Context) error {
 
 	// Redirect to login with success message
 	return c.Redirect(http.StatusFound, "/login?success=Account+created+successfully.+Please+login.")
+}
+
+// SetupPage renders the setup wizard page (shown when no users exist).
+func (h *AuthHandler) SetupPage(c echo.Context) error {
+	if !h.NeedsSetup(c.Request().Context()) {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+	return c.Render(http.StatusOK, "auth.html", map[string]interface{}{
+		"Title":   "Setup",
+		"IsSetup": true,
+		"Error":   c.QueryParam("error"),
+	})
+}
+
+// Setup handles the setup wizard form submission (creates the first admin user).
+func (h *AuthHandler) Setup(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// Guard: only works when no users exist
+	count, err := h.userRepo.Count(ctx)
+	if err != nil {
+		slog.Error("setup: failed to count users", "error", err)
+		return c.Redirect(http.StatusFound, "/login")
+	}
+	if count > 0 {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+	confirmPassword := c.FormValue("confirm_password")
+
+	if email == "" || password == "" {
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+			"Title":   "Setup",
+			"IsSetup": true,
+			"Error":   "Email and password are required",
+			"Email":   email,
+		})
+	}
+
+	if len(password) < 8 {
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+			"Title":   "Setup",
+			"IsSetup": true,
+			"Error":   "Password must be at least 8 characters",
+			"Email":   email,
+		})
+	}
+
+	if password != confirmPassword {
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+			"Title":   "Setup",
+			"IsSetup": true,
+			"Error":   "Passwords do not match",
+			"Email":   email,
+		})
+	}
+
+	// Register the user through the normal auth service
+	user, err := h.authSvc.Register(ctx, email, password)
+	if err != nil {
+		slog.Error("setup: registration failed", "email", email, "error", err)
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+			"Title":   "Setup",
+			"IsSetup": true,
+			"Error":   "Failed to create account",
+			"Email":   email,
+		})
+	}
+
+	// Promote to admin
+	user.IsAdmin = true
+	if err := h.userRepo.Update(ctx, user); err != nil {
+		slog.Error("setup: failed to promote user to admin", "user_id", user.ID, "error", err)
+	}
+
+	slog.Info("setup complete: admin account created", "email", email)
+
+	return c.Redirect(http.StatusFound, "/login?success=Admin+account+created.+Please+sign+in.")
+}
+
+// NeedsSetup returns true if no users exist in the database.
+func (h *AuthHandler) NeedsSetup(ctx context.Context) bool {
+	count, err := h.userRepo.Count(ctx)
+	if err != nil {
+		return false
+	}
+	return count == 0
 }
 
 // Logout handles logout.

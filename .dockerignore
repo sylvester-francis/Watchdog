@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.md
+docs/
+CLAUDE.md
+gemini.md
+tasks.md
+LICENSE
+.vscode
+.idea
+*.test
+bin/
+tmp/

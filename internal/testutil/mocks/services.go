@@ -16,6 +16,7 @@ var (
 	_ ports.MonitorService   = (*MockMonitorService)(nil)
 	_ ports.IncidentService  = (*MockIncidentService)(nil)
 	_ ports.Notifier         = (*MockNotifier)(nil)
+	_ ports.NotifierFactory  = (*MockNotifierFactory)(nil)
 )
 
 // MockUserAuthService is a mock implementation of ports.UserAuthService.
@@ -196,4 +197,16 @@ func (m *MockNotifier) NotifyIncidentResolved(ctx context.Context, incident *dom
 		return m.NotifyIncidentResolvedFn(ctx, incident, monitor)
 	}
 	return nil
+}
+
+// MockNotifierFactory is a mock implementation of ports.NotifierFactory.
+type MockNotifierFactory struct {
+	BuildFromChannelFn func(channel *domain.AlertChannel) (ports.Notifier, error)
+}
+
+func (m *MockNotifierFactory) BuildFromChannel(channel *domain.AlertChannel) (ports.Notifier, error) {
+	if m.BuildFromChannelFn != nil {
+		return m.BuildFromChannelFn(channel)
+	}
+	return &MockNotifier{}, nil
 }

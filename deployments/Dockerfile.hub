@@ -20,6 +20,8 @@ FROM alpine:3.20
 
 RUN apk add --no-cache ca-certificates tzdata bash
 
+RUN addgroup -S watchdog && adduser -S -G watchdog watchdog
+
 WORKDIR /app
 
 COPY --from=builder /hub /app/hub
@@ -29,6 +31,9 @@ COPY migrations/ /app/migrations/
 COPY scripts/railway-migrate.sh /app/railway-migrate.sh
 
 RUN chmod +x /app/railway-migrate.sh
+RUN chown -R watchdog:watchdog /app
+
+USER watchdog
 
 EXPOSE 8080
 

@@ -52,3 +52,8 @@ type Notifier interface {
 	NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
 	NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
 }
+
+// NotifierFactory creates a Notifier from an AlertChannel configuration.
+type NotifierFactory interface {
+	BuildFromChannel(channel *domain.AlertChannel) (Notifier, error)
+}

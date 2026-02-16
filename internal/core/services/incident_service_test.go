@@ -29,7 +29,7 @@ func newTestIncidentService(
 	notifier *mocks.MockNotifier,
 	transactor *mocks.MockTransactor,
 ) *services.IncidentService {
-	return services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, transactor, slog.Default())
+	return services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, &mocks.MockNotifierFactory{}, transactor, slog.Default())
 }
 
 // --- NewIncidentService nil logger ---
@@ -60,7 +60,7 @@ func TestNewIncidentService_NilLogger(t *testing.T) {
 		UpdateStatusFn: func(_ context.Context, _ uuid.UUID, _ domain.MonitorStatus) error { return nil },
 	}
 
-	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, &mocks.MockNotifier{}, &mocks.MockTransactor{}, nil)
+	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, &mocks.MockNotifier{}, &mocks.MockNotifierFactory{}, &mocks.MockTransactor{}, nil)
 	require.NotNil(t, svc)
 
 	// This triggers logger.Warn — if nil guard was mutated, this panics
@@ -241,7 +241,7 @@ func TestResolveIncident_RefreshFails_LogsWarning(t *testing.T) {
 		},
 	}
 
-	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, &mocks.MockTransactor{}, logger)
+	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, &mocks.MockNotifierFactory{}, &mocks.MockTransactor{}, logger)
 
 	err := svc.ResolveIncident(context.Background(), incidentID)
 	require.NoError(t, err)
@@ -314,7 +314,7 @@ func TestResolveIncident_NotificationFails_LogsError(t *testing.T) {
 		},
 	}
 
-	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, &mocks.MockTransactor{}, logger)
+	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, &mocks.MockNotifierFactory{}, &mocks.MockTransactor{}, logger)
 
 	err := svc.ResolveIncident(context.Background(), incidentID)
 	require.NoError(t, err)
@@ -498,7 +498,7 @@ func TestCreateIncidentIfNeeded_NotificationFails_LogsError(t *testing.T) {
 		},
 	}
 
-	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, &mocks.MockTransactor{}, logger)
+	svc := services.NewIncidentService(incidentRepo, monitorRepo, &mocks.MockAgentRepository{}, &mocks.MockAlertChannelRepository{}, notifier, &mocks.MockNotifierFactory{}, &mocks.MockTransactor{}, logger)
 
 	incident, err := svc.CreateIncidentIfNeeded(context.Background(), monitorID)
 	require.NoError(t, err)

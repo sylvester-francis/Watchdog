@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
 	"github.com/sylvester-francis/watchdog/internal/core/domain"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
@@ -18,7 +17,8 @@ type IncidentService struct {
 	monitorRepo      ports.MonitorRepository
 	agentRepo        ports.AgentRepository
 	alertChannelRepo ports.AlertChannelRepository
-	notifier         ports.Notifier // global notifier (env-based, server admin fallback)
+	notifier         ports.Notifier        // global notifier (env-based, server admin fallback)
+	notifierFactory  ports.NotifierFactory // builds per-user notifiers from alert channels
 	transactor       ports.Transactor
 	logger           *slog.Logger
 }
@@ -30,6 +30,7 @@ func NewIncidentService(
 	agentRepo ports.AgentRepository,
 	alertChannelRepo ports.AlertChannelRepository,
 	notifier ports.Notifier,
+	notifierFactory ports.NotifierFactory,
 	transactor ports.Transactor,
 	logger *slog.Logger,
 ) *IncidentService {
@@ -42,6 +43,7 @@ func NewIncidentService(
 		agentRepo:        agentRepo,
 		alertChannelRepo: alertChannelRepo,
 		notifier:         notifier,
+		notifierFactory:  notifierFactory,
 		transactor:       transactor,
 		logger:           logger,
 	}
@@ -234,7 +236,7 @@ func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incide
 	}
 
 	for _, ch := range channels {
-		notifier, err := notify.BuildFromChannel(ch)
+		notifier, err := s.notifierFactory.BuildFromChannel(ch)
 		if err != nil {
 			s.logger.Error("failed to build notifier from channel",
 				"channel_id", ch.ID,

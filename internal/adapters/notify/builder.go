@@ -5,7 +5,22 @@ import (
 	"strconv"
 
 	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
+
+// ChannelNotifierFactory implements ports.NotifierFactory by building
+// notifiers from AlertChannel configurations.
+type ChannelNotifierFactory struct{}
+
+// NewChannelNotifierFactory creates a new ChannelNotifierFactory.
+func NewChannelNotifierFactory() *ChannelNotifierFactory {
+	return &ChannelNotifierFactory{}
+}
+
+// BuildFromChannel creates a Notifier from an AlertChannel's type and config.
+func (f *ChannelNotifierFactory) BuildFromChannel(channel *domain.AlertChannel) (ports.Notifier, error) {
+	return BuildFromChannel(channel)
+}
 
 // BuildFromChannel creates a Notifier from an AlertChannel's type and config.
 func BuildFromChannel(channel *domain.AlertChannel) (Notifier, error) {

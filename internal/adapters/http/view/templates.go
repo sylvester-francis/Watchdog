@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/sylvester-francis/watchdog/internal/core/domain"
 )
@@ -38,8 +40,8 @@ func NewTemplates(dir string) (*Templates, error) {
 		"monitorTypeIcon":  monitorTypeIcon,
 		"lower":            strings.ToLower,
 		"upper":            strings.ToUpper,
-		"title":            strings.Title,
-		"safeHTML":         safeHTML,
+		"title":            cases.Title(language.English).String,
+
 		"add":              add,
 		"sub":              sub,
 		"dict":             dict,
@@ -113,6 +115,18 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Co
 	// Inject CSRF token if available (set by CSRF middleware)
 	if csrf := c.Get("csrf"); csrf != nil {
 		viewData["CSRFToken"] = csrf
+	}
+
+	// Inject authenticated user context for sidebar (IsAdmin, Plan)
+	if u := c.Get("authenticated_user"); u != nil {
+		if user, ok := u.(*domain.User); ok {
+			if _, exists := viewData["IsAdmin"]; !exists {
+				viewData["IsAdmin"] = user.IsAdmin
+			}
+			if _, exists := viewData["Plan"]; !exists {
+				viewData["Plan"] = user.Plan.String()
+			}
+		}
 	}
 
 	// Look up the page-specific template set
@@ -263,11 +277,6 @@ func monitorTypeIcon(t domain.MonitorType) string {
 	default:
 		return "monitor_heart"
 	}
-}
-
-// safeHTML marks a string as safe HTML (use with caution).
-func safeHTML(s string) template.HTML {
-	return template.HTML(s)
 }
 
 // add adds two integers.

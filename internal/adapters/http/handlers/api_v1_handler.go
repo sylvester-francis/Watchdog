@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -334,7 +335,10 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 
 	monitor, err := h.monitorSvc.CreateMonitor(ctx, userID, agentID, req.Name, domain.MonitorType(req.Type), req.Target)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if errors.Is(err, domain.ErrMonitorLimitReached) {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create monitor"})
 	}
 
 	// Apply optional interval/timeout
@@ -345,7 +349,9 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 		monitor.SetTimeout(req.Timeout)
 	}
 	if req.Interval > 0 || req.Timeout > 0 {
-		_ = h.monitorSvc.UpdateMonitor(ctx, monitor)
+		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "monitor created but failed to apply settings"})
+		}
 	}
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
@@ -496,7 +502,10 @@ func (h *APIV1Handler) CreateAgent(c echo.Context) error {
 
 	agent, apiKey, err := h.agentAuthSvc.CreateAgent(ctx, userID.String(), req.Name)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if errors.Is(err, domain.ErrAgentLimitReached) {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+		}
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create agent"})
 	}
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{

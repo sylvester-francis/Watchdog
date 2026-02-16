@@ -186,11 +186,17 @@
         <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
             <i data-lucide="activity" class="w-5 h-5 text-muted-foreground/40"></i>
         </div>
-        <p class="text-sm text-muted-foreground mb-1">No monitors configured</p>
-        <a href="/monitors" class="inline-flex items-center space-x-1 mt-2 text-xs text-accent hover:text-accent/80 transition-smooth">
+        {{if gt .Stats.TotalAgents 0}}
+        <p class="text-sm text-foreground font-medium mb-1">You have {{.Stats.TotalAgents}} agent{{if gt .Stats.TotalAgents 1}}s{{end}} ready</p>
+        <p class="text-xs text-muted-foreground mb-3">Create a monitor to start tracking your services.</p>
+        <a href="/monitors/new" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-smooth">
             <i data-lucide="plus" class="w-3 h-3"></i>
-            <span>Add a monitor</span>
+            <span>Create a monitor</span>
         </a>
+        {{else}}
+        <p class="text-sm text-foreground font-medium mb-1">No monitors yet</p>
+        <p class="text-xs text-muted-foreground mb-1">Deploy an agent first, then create monitors to track your services.</p>
+        {{end}}
     </div>
     {{end}}
 </div>
@@ -233,11 +239,31 @@
                 {{end}}
             </div>
             {{else}}
-            <div class="text-center py-8">
-                <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <i data-lucide="server" class="w-5 h-5 text-muted-foreground/40"></i>
+            <div class="px-4 py-6">
+                <p class="text-sm font-medium text-foreground mb-4">Get started in 3 steps</p>
+                <div class="space-y-3">
+                    <div class="flex items-start space-x-3">
+                        <span class="shrink-0 w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
+                        <div>
+                            <p class="text-xs font-medium text-foreground">Create an agent</p>
+                            <p class="text-[10px] text-muted-foreground mt-0.5">Use the Agents page to register a new agent and get an API key.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <span class="shrink-0 w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
+                        <div>
+                            <p class="text-xs font-medium text-foreground">Install the agent</p>
+                            <p class="text-[10px] text-muted-foreground mt-0.5 font-mono bg-muted/50 rounded px-1.5 py-1 mt-1 select-all">curl -fsSL https://usewatchdog.dev/install | bash</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <span class="shrink-0 w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
+                        <div>
+                            <p class="text-xs font-medium text-foreground">Create monitors</p>
+                            <p class="text-[10px] text-muted-foreground mt-0.5">Add HTTP, TCP, ping, or DNS monitors to track your services.</p>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-sm text-muted-foreground">No agents deployed</p>
             </div>
             {{end}}
         </div>

@@ -155,7 +155,7 @@ func (h *AlertChannelHandler) TestChannel(c echo.Context) error {
 	defer cancel()
 
 	if err := notifier.NotifyIncidentOpened(ctx, testIncident, testMonitor); err != nil {
-		return c.String(http.StatusBadGateway, fmt.Sprintf("Test failed: %v", err))
+		return c.String(http.StatusBadGateway, "Test failed. Check your configuration.")
 	}
 
 	return c.String(http.StatusOK, "Test notification sent!")

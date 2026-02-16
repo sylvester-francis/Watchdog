@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -182,7 +182,8 @@ func (h *AdminHandler) UpdateUser(c echo.Context) error {
 	user.UpdatedAt = time.Now()
 
 	if err := h.userRepo.Update(ctx, user); err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to update user: %v", err))
+		slog.Error("admin: failed to update user", "user_id", id, "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to update user")
 	}
 
 	// Fetch fresh usage data for the row render
@@ -212,7 +213,8 @@ func (h *AdminHandler) DeleteUser(c echo.Context) error {
 	}
 
 	if err := h.userRepo.Delete(ctx, id); err != nil {
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to delete user: %v", err))
+		slog.Error("admin: failed to delete user", "user_id", id, "error", err)
+		return c.String(http.StatusInternalServerError, "Failed to delete user")
 	}
 
 	// Return empty string so HTMX removes the row

@@ -26,6 +26,7 @@ services:
       DATABASE_URL: postgres://watchdog:watchdog@postgres:5432/watchdog?sslmode=disable
       PORT: 8080
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-me-in-production-32chars!}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production-32chars!!}
     ports:
       - "8080:8080"
     depends_on:
