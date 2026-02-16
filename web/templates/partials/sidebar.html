@@ -53,6 +53,12 @@
             <kbd class="hidden group-hover:inline-block text-[9px] text-muted-foreground/50 font-mono px-1 py-0.5 rounded bg-muted/50">G I</kbd>
         </a>
 
+        <a href="/status-pages" class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-smooth
+            {{if eq .Title "Status Pages"}}bg-foreground/[0.08] text-foreground font-medium{{else}}text-muted-foreground hover:text-foreground hover:bg-muted/50{{end}}">
+            <i data-lucide="globe" class="w-4 h-4"></i>
+            <span class="flex-1">Status Pages</span>
+        </a>
+
         <div class="pt-4 mt-2 border-t border-border/50"></div>
 
         <a href="/settings" class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-smooth

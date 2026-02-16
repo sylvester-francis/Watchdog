@@ -13,6 +13,7 @@ const (
 	PlanFree Plan = "free"
 	PlanPro  Plan = "pro"
 	PlanTeam Plan = "team"
+	PlanBeta Plan = "beta"
 )
 
 // PlanLimits defines the resource limits for a plan.
@@ -24,6 +25,8 @@ type PlanLimits struct {
 // Limits returns the resource limits for the plan.
 func (p Plan) Limits() PlanLimits {
 	switch p {
+	case PlanBeta:
+		return PlanLimits{MaxAgents: 10, MaxMonitors: -1}
 	case PlanPro:
 		return PlanLimits{MaxAgents: 3, MaxMonitors: 25}
 	case PlanTeam:
@@ -36,7 +39,7 @@ func (p Plan) Limits() PlanLimits {
 // IsValid returns true if the plan is a recognized tier.
 func (p Plan) IsValid() bool {
 	switch p {
-	case PlanFree, PlanPro, PlanTeam:
+	case PlanFree, PlanPro, PlanTeam, PlanBeta:
 		return true
 	default:
 		return false
@@ -46,6 +49,8 @@ func (p Plan) IsValid() bool {
 // String returns the display name for the plan.
 func (p Plan) String() string {
 	switch p {
+	case PlanBeta:
+		return "Beta"
 	case PlanPro:
 		return "Pro"
 	case PlanTeam:
@@ -74,7 +79,7 @@ func NewUser(email, passwordHash string) *User {
 		ID:           uuid.New(),
 		Email:        email,
 		PasswordHash: passwordHash,
-		Plan:         PlanFree,
+		Plan:         PlanBeta,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

@@ -62,6 +62,8 @@ func main() {
 	usageEventRepo := repository.NewUsageEventRepository(db)
 	waitlistRepo := repository.NewWaitlistRepository(db)
 	apiTokenRepo := repository.NewAPITokenRepository(db)
+	auditLogRepo := repository.NewAuditLogRepository(db)
+	statusPageRepo := repository.NewStatusPageRepository(db)
 
 	// Initialize notifiers from environment configuration
 	var notifier notify.Notifier
@@ -83,6 +85,28 @@ func main() {
 		logger.Info("webhook notifier enabled")
 		notifierCount++
 	}
+	if cfg.Notify.SMTPHost != "" && cfg.Notify.SMTPFrom != "" && cfg.Notify.SMTPTo != "" {
+		multi.AddNotifier(notify.NewEmailNotifier(notify.EmailConfig{
+			Host:     cfg.Notify.SMTPHost,
+			Port:     cfg.Notify.SMTPPort,
+			Username: cfg.Notify.SMTPUsername,
+			Password: cfg.Notify.SMTPPassword,
+			From:     cfg.Notify.SMTPFrom,
+			To:       cfg.Notify.SMTPTo,
+		}))
+		logger.Info("email notifier enabled")
+		notifierCount++
+	}
+	if cfg.Notify.TelegramBotToken != "" && cfg.Notify.TelegramChatID != "" {
+		multi.AddNotifier(notify.NewTelegramNotifier(cfg.Notify.TelegramBotToken, cfg.Notify.TelegramChatID))
+		logger.Info("telegram notifier enabled")
+		notifierCount++
+	}
+	if cfg.Notify.PagerDutyRoutingKey != "" {
+		multi.AddNotifier(notify.NewPagerDutyNotifier(cfg.Notify.PagerDutyRoutingKey))
+		logger.Info("pagerduty notifier enabled")
+		notifierCount++
+	}
 
 	if notifierCount > 0 {
 		notifier = multi
@@ -92,6 +116,7 @@ func main() {
 	}
 
 	// Initialize services
+	auditSvc := services.NewAuditService(auditLogRepo, logger)
 	authSvc := services.NewAuthService(userRepo, agentRepo, usageEventRepo, hasher, encryptor, logger)
 	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, notifier, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
@@ -124,7 +149,7 @@ func main() {
 	}))
 	e.Use(echomw.Recover())
 	e.Use(echomw.RequestID())
-	e.Use(middleware.SecureHeaders())
+	e.Use(middleware.SecureHeaders(cfg.Server.SecureCookies))
 
 	// Initialize router with all dependencies
 	router, err := internalhttp.NewRouter(e, internalhttp.Dependencies{
@@ -139,12 +164,15 @@ func main() {
 		UsageEventRepo:   usageEventRepo,
 		WaitlistRepo:     waitlistRepo,
 		APITokenRepo:     apiTokenRepo,
+		StatusPageRepo:   statusPageRepo,
 		Hub:              hub,
 		Hasher:           hasher,
+		AuditService:     auditSvc,
 		Logger:           logger,
 		SessionSecret:    cfg.Crypto.SessionSecret,
 		TemplatesDir:     "web/templates",
 		SecureCookies:    cfg.Server.SecureCookies,
+		AllowedOrigins:   cfg.Server.AllowedOrigins,
 	})
 	if err != nil {
 		logger.Error("failed to initialize router", slog.String("error", err.Error()))

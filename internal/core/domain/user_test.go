@@ -69,6 +69,65 @@ func TestUser_HasStripeID(t *testing.T) {
 	}
 }
 
+func TestPlanBeta_Limits(t *testing.T) {
+	limits := PlanBeta.Limits()
+
+	assert.Equal(t, 10, limits.MaxAgents, "Beta plan should allow 10 agents")
+	assert.Equal(t, -1, limits.MaxMonitors, "Beta plan should allow unlimited monitors")
+}
+
+func TestPlanBeta_IsValid(t *testing.T) {
+	tests := []struct {
+		plan Plan
+		want bool
+	}{
+		{PlanBeta, true},
+		{PlanFree, true},
+		{PlanPro, true},
+		{PlanTeam, true},
+		{Plan("invalid"), false},
+		{Plan(""), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.plan), func(t *testing.T) {
+			got := tt.plan.IsValid()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestPlanBeta_String(t *testing.T) {
+	tests := []struct {
+		plan Plan
+		want string
+	}{
+		{PlanBeta, "Beta"},
+		{PlanFree, "Free"},
+		{PlanPro, "Pro"},
+		{PlanTeam, "Team"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := tt.plan.String()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestNewUser_DefaultsBeta(t *testing.T) {
+	user := NewUser("beta@example.com", "hashed_password")
+
+	require.NotNil(t, user)
+	assert.Equal(t, PlanBeta, user.Plan, "NewUser should default to PlanBeta")
+	assert.Equal(t, "Beta", user.Plan.String())
+
+	limits := user.Plan.Limits()
+	assert.Equal(t, 10, limits.MaxAgents)
+	assert.Equal(t, -1, limits.MaxMonitors)
+}
+
 func strPtr(s string) *string {
 	return &s
 }

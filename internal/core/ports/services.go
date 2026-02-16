@@ -42,6 +42,11 @@ type IncidentService interface {
 	CreateIncidentIfNeeded(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
 }
 
+// AuditService defines the interface for security audit logging.
+type AuditService interface {
+	LogEvent(ctx context.Context, userID *uuid.UUID, action domain.AuditAction, ipAddress string, metadata map[string]string)
+}
+
 // Notifier defines the interface for sending alerts.
 type Notifier interface {
 	NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error

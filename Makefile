@@ -1,4 +1,4 @@
-.PHONY: help dev dev-hub build build-hub test test-short test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools pre-commit-install pre-commit-run
+.PHONY: help dev dev-hub build build-hub build-cli build-all test test-short test-e2e test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools pre-commit-install pre-commit-run
 
 # Default target
 help:
@@ -9,8 +9,9 @@ help:
 	@echo "  make dev-hub      - Run hub with hot reload (Air)"
 	@echo ""
 	@echo "Build:"
-	@echo "  make build        - Build hub binary"
+	@echo "  make build        - Build all binaries (hub + cli)"
 	@echo "  make build-hub    - Build hub binary"
+	@echo "  make build-cli    - Build CLI binary"
 	@echo ""
 	@echo "Database:"
 	@echo "  make migrate-up   - Apply all migrations"
@@ -25,6 +26,7 @@ help:
 	@echo "Quality:"
 	@echo "  make test              - Run all tests with race detection"
 	@echo "  make test-short        - Run quick tests"
+	@echo "  make test-e2e          - Run end-to-end tests"
 	@echo "  make test-coverage     - Generate HTML coverage report"
 	@echo "  make test-mutation     - Run mutation tests with Gremlins"
 	@echo "  make lint              - Run linter"
@@ -42,6 +44,7 @@ help:
 # Variables
 BINARY_DIR := bin
 HUB_BINARY := $(BINARY_DIR)/hub
+CLI_BINARY := $(BINARY_DIR)/watchdog
 DATABASE_URL ?= postgres://watchdog:watchdog@localhost:5432/watchdog?sslmode=disable
 
 # Development
@@ -55,11 +58,17 @@ docker-db:
 	docker compose -f deployments/docker-compose.yml up -d postgres
 
 # Build
-build: build-hub
+build: build-all
+
+build-all: build-hub build-cli
 
 build-hub:
 	@mkdir -p $(BINARY_DIR)
 	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(HUB_BINARY) ./cmd/hub
+
+build-cli:
+	@mkdir -p $(BINARY_DIR)
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(CLI_BINARY) ./cmd/cli
 
 # Database
 migrate-up:
@@ -91,6 +100,9 @@ test:
 
 test-short:
 	go test -short ./...
+
+test-e2e:
+	go test -v -race -run "TestE2E" ./...
 
 test-coverage:
 	go test -coverprofile=coverage.out ./...

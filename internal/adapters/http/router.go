@@ -29,12 +29,15 @@ type Dependencies struct {
 	UsageEventRepo   ports.UsageEventRepository
 	WaitlistRepo     ports.WaitlistRepository
 	APITokenRepo     ports.APITokenRepository
+	StatusPageRepo   ports.StatusPageRepository
 	Hub              *realtime.Hub
 	Hasher           *crypto.PasswordHasher
+	AuditService     ports.AuditService
 	Logger           *slog.Logger
 	SessionSecret    string
 	TemplatesDir     string
 	SecureCookies    bool
+	AllowedOrigins   []string
 }
 
 // Router handles HTTP routing and handler registration.
@@ -53,13 +56,15 @@ type Router struct {
 	landingHandler   *handlers.LandingHandler
 	sseHandler       *handlers.SSEHandler
 	wsHandler        *handlers.WSHandler
-	apiHandler       *handlers.APIHandler
-	apiTokenHandler  *handlers.APITokenHandler
-	apiV1Handler     *handlers.APIV1Handler
+	apiHandler        *handlers.APIHandler
+	apiTokenHandler   *handlers.APITokenHandler
+	apiV1Handler      *handlers.APIV1Handler
+	statusPageHandler *handlers.StatusPageHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
 	generalRateLimiter *middleware.RateLimiter
+	loginLimiter       *middleware.LoginLimiter
 }
 
 // NewRouter creates a new Router instance.
@@ -76,14 +81,17 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 		logger = slog.Default()
 	}
 
+	loginLimiter := middleware.NewLoginLimiter()
+
 	r := &Router{
-		echo:      e,
-		deps:      deps,
-		templates: templates,
+		echo:         e,
+		deps:         deps,
+		templates:    templates,
+		loginLimiter: loginLimiter,
 	}
 
 	// Initialize handlers
-	r.authHandler = handlers.NewAuthHandler(deps.UserAuthService, deps.UserRepo, templates)
+	r.authHandler = handlers.NewAuthHandler(deps.UserAuthService, deps.UserRepo, templates, loginLimiter, deps.AuditService)
 	r.dashboardHandler = handlers.NewDashboardHandler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.UserRepo, templates)
 	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates)
 	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, templates)
@@ -91,10 +99,11 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.adminHandler = handlers.NewAdminHandler(deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.UsageEventRepo, deps.Hasher, templates)
 	r.landingHandler = handlers.NewLandingHandler(deps.WaitlistRepo, templates)
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
-	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger)
+	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, templates)
-	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService)
+	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService)
+	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, templates)
 
 	return r, nil
 }
@@ -131,8 +140,9 @@ func (r *Router) RegisterRoutes() {
 
 	// Public routes (no auth required)
 	authRL := r.authRateLimiter.Middleware()
+	loginLL := r.loginLimiter.Middleware()
 	e.GET("/login", r.authHandler.LoginPage)
-	e.POST("/login", r.authHandler.Login, authRL)
+	e.POST("/login", r.authHandler.Login, authRL, loginLL)
 	e.GET("/register", r.authHandler.RegisterPage)
 	e.POST("/register", r.authHandler.Register, authRL)
 	e.POST("/logout", r.authHandler.Logout)
@@ -143,6 +153,9 @@ func (r *Router) RegisterRoutes() {
 
 	// API docs (public)
 	e.GET("/docs", r.apiDocs)
+
+	// Public status pages (no auth required)
+	e.GET("/status/:slug", r.statusPageHandler.PublicView)
 
 	// WebSocket endpoint for agents (public - authenticated via API key in handshake)
 	e.GET("/ws/agent", r.wsHandler.HandleConnection)
@@ -187,6 +200,13 @@ func (r *Router) RegisterRoutes() {
 	// SSE for real-time updates
 	protected.GET("/sse/events", r.sseHandler.Events)
 
+	// Status pages
+	protected.GET("/status-pages", r.statusPageHandler.List)
+	protected.POST("/status-pages", r.statusPageHandler.Create)
+	protected.GET("/status-pages/:id/edit", r.statusPageHandler.Edit)
+	protected.POST("/status-pages/:id", r.statusPageHandler.Update)
+	protected.DELETE("/status-pages/:id", r.statusPageHandler.Delete)
+
 	// Settings (API tokens)
 	protected.GET("/settings", r.apiTokenHandler.List)
 	protected.POST("/settings/tokens", r.apiTokenHandler.Create)
@@ -204,8 +224,16 @@ func (r *Router) RegisterRoutes() {
 	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo, r.deps.UserRepo))
 	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
 	v1.GET("/monitors/:id", r.apiV1Handler.GetMonitor)
+	v1.POST("/monitors", r.apiV1Handler.CreateMonitor)
+	v1.PUT("/monitors/:id", r.apiV1Handler.UpdateMonitor)
+	v1.DELETE("/monitors/:id", r.apiV1Handler.DeleteMonitor)
 	v1.GET("/agents", r.apiV1Handler.ListAgents)
+	v1.POST("/agents", r.apiV1Handler.CreateAgent)
+	v1.DELETE("/agents/:id", r.apiV1Handler.DeleteAgent)
 	v1.GET("/incidents", r.apiV1Handler.ListIncidents)
+	v1.POST("/incidents/:id/acknowledge", r.apiV1Handler.AcknowledgeIncident)
+	v1.POST("/incidents/:id/resolve", r.apiV1Handler.ResolveIncident)
+	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
 }
 
 // rootRedirect shows the landing page for unauthenticated users,
@@ -224,6 +252,9 @@ func (r *Router) Stop() {
 	}
 	if r.generalRateLimiter != nil {
 		r.generalRateLimiter.Stop()
+	}
+	if r.loginLimiter != nil {
+		r.loginLimiter.Stop()
 	}
 }
 

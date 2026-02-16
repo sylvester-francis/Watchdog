@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,21 +18,14 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Agents connect from any origin
-	},
-}
-
 // WSHandler handles WebSocket connections from agents.
 type WSHandler struct {
-	agentAuthSvc ports.AgentAuthService
-	monitorSvc   ports.MonitorService
-	agentRepo    ports.AgentRepository
-	hub          *realtime.Hub
-	logger       *slog.Logger
+	agentAuthSvc   ports.AgentAuthService
+	monitorSvc     ports.MonitorService
+	agentRepo      ports.AgentRepository
+	hub            *realtime.Hub
+	logger         *slog.Logger
+	allowedOrigins []string
 }
 
 // NewWSHandler creates a new WSHandler.
@@ -41,18 +35,59 @@ func NewWSHandler(
 	agentRepo ports.AgentRepository,
 	hub *realtime.Hub,
 	logger *slog.Logger,
+	allowedOrigins []string,
 ) *WSHandler {
 	return &WSHandler{
-		agentAuthSvc: agentAuthSvc,
-		monitorSvc:   monitorSvc,
-		agentRepo:    agentRepo,
-		hub:          hub,
-		logger:       logger,
+		agentAuthSvc:   agentAuthSvc,
+		monitorSvc:     monitorSvc,
+		agentRepo:      agentRepo,
+		hub:            hub,
+		logger:         logger,
+		allowedOrigins: allowedOrigins,
 	}
+}
+
+// checkOrigin validates the Origin header on WebSocket upgrade requests.
+// Native clients (Go agents) don't send an Origin header, so requests
+// without an Origin are allowed. Browser-originated requests must match
+// the allowed origins list or the request's own Host header.
+func (h *WSHandler) checkOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true // Native clients (agents) don't send Origin
+	}
+
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+
+	// Allow if origin host matches the request Host header
+	if u.Host == r.Host {
+		return true
+	}
+
+	// Check against explicit allowed origins
+	for _, allowed := range h.allowedOrigins {
+		if origin == allowed {
+			return true
+		}
+	}
+
+	h.logger.Warn("websocket origin rejected",
+		slog.String("origin", origin),
+		slog.String("host", r.Host),
+	)
+	return false
 }
 
 // HandleConnection upgrades to WebSocket, authenticates the agent, and manages the connection.
 func (h *WSHandler) HandleConnection(c echo.Context) error {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     h.checkOrigin,
+	}
 	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		h.logger.Error("websocket upgrade failed", slog.String("error", err.Error()))
