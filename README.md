@@ -10,7 +10,7 @@
 
 Monitor services behind firewalls, across data centers, and inside private networks — all from a single dashboard.
 
-![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![Echo](https://img.shields.io/badge/Echo-v4-00ADD8)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![TimescaleDB](https://img.shields.io/badge/TimescaleDB-Hypertable-FDB515)
@@ -103,7 +103,7 @@ The system is split across three repositories:
 
 ## Quick Start
 
-**Prerequisites:** Go 1.24+, Docker, Make
+**Prerequisites:** Go 1.25+, Docker, Make
 
 ```bash
 # Clone the repository
@@ -312,7 +312,7 @@ WatchDog is currently in beta. All users get the full feature set for free:
 
 | Component | Technology |
 |-----------|------------|
-| Language | Go 1.24 |
+| Language | Go 1.25 |
 | Web Framework | Echo v4 |
 | Database | PostgreSQL 16 + TimescaleDB |
 | Frontend | Go Templates + HTMX + Alpine.js + TailwindCSS |
