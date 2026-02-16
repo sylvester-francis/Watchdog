@@ -1,0 +1,3 @@
+usewatchdog.dev {
+	reverse_proxy hub:8080
+}
