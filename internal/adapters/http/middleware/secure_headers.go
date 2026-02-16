@@ -24,7 +24,7 @@ func SecureHeaders() echo.MiddlewareFunc {
 
 			// Content Security Policy — allow CDN scripts, fonts, and SSE/source-map connections
 			// Alpine.js requires 'unsafe-eval' for expression evaluation
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
 
 			// Permissions Policy (formerly Feature-Policy)
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
@@ -46,7 +46,7 @@ func SecureHeadersStrict() echo.MiddlewareFunc {
 			h.Set("X-Content-Type-Options", "nosniff")
 			h.Set("X-Frame-Options", "DENY")
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
 			// HSTS - enforce HTTPS for 1 year, include subdomains
