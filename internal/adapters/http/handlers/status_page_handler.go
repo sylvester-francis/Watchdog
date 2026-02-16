@@ -207,11 +207,11 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 
 	page, err := h.statusPageRepo.GetBySlug(ctx, slug)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "status page not found")
+		return c.Render(http.StatusNotFound, "status_page_not_found.html", nil)
 	}
 
 	if !page.IsPublic {
-		return echo.NewHTTPError(http.StatusNotFound, "status page not found")
+		return c.Render(http.StatusNotFound, "status_page_not_found.html", nil)
 	}
 
 	monitorIDs, _ := h.statusPageRepo.GetMonitorIDs(ctx, page.ID)
