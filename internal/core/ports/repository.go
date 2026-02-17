@@ -37,9 +37,11 @@ type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByUsername(ctx context.Context, username string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
+	UsernameExists(ctx context.Context, username string) (bool, error)
 	Count(ctx context.Context) (int, error)
 	CountByPlan(ctx context.Context) (map[domain.Plan]int, error)
 	GetUsersNearLimits(ctx context.Context) ([]UserUsageSummary, error)
@@ -123,13 +125,13 @@ type AuditLogRepository interface {
 type StatusPageRepository interface {
 	Create(ctx context.Context, page *domain.StatusPage) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error)
-	GetBySlug(ctx context.Context, slug string) (*domain.StatusPage, error)
+	GetByUserAndSlug(ctx context.Context, username, slug string) (*domain.StatusPage, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error)
 	Update(ctx context.Context, page *domain.StatusPage) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
 	GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
-	SlugExists(ctx context.Context, slug string) (bool, error)
+	SlugExistsForUser(ctx context.Context, userID uuid.UUID, slug string) (bool, error)
 }
 
 // AlertChannelRepository defines the interface for alert channel persistence.
