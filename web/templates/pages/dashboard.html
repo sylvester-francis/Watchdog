@@ -219,7 +219,9 @@
                 New Agent
             </button>
         </div>
-        <div hx-ext="sse" sse-connect="/sse/events">
+        <div id="agents-container"
+             hx-get="/dashboard" hx-trigger="agentCreated from:body" hx-select="#agents-container" hx-target="#agents-container" hx-swap="outerHTML"
+             hx-ext="sse" sse-connect="/sse/events">
             {{if .Agents}}
             <div class="divide-y divide-border/30" id="agents-grid">
                 {{range .Agents}}

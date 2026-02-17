@@ -68,6 +68,7 @@ func (h *AgentHandler) Create(c echo.Context) error {
 	if c.Request().Header.Get("HX-Request") == "true" {
 		escapedName := html.EscapeString(agent.Name)
 		escapedKey := html.EscapeString(apiKey)
+		c.Response().Header().Set("HX-Trigger", "agentCreated")
 		return c.HTML(http.StatusOK, `
 			<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md p-3 space-y-2">
 				<div class="flex items-center space-x-2">

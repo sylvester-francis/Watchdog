@@ -249,7 +249,7 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 	// If HTMX request, return the new row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		c.Response().Header().Set("HX-Trigger", "monitorCreated")
-		return c.Render(http.StatusOK, "monitor_row.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "monitor_row", map[string]interface{}{
 			"Monitor": monitor,
 			"Agent":   agent,
 		})
@@ -380,7 +380,7 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 	// If HTMX request, return updated row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		agent, _ := h.agentRepo.GetByID(ctx, monitor.AgentID)
-		return c.Render(http.StatusOK, "monitor_row.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "monitor_row", map[string]interface{}{
 			"Monitor": monitor,
 			"Agent":   agent,
 		})
