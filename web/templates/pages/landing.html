@@ -43,7 +43,7 @@
 
     <!-- Nav -->
     <nav class="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" x-data="mobileNav" role="banner" aria-label="Primary navigation">
-        <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
             <a href="/" class="flex items-center space-x-2.5">
                 <div class="w-7 h-7 bg-accent rounded-md flex items-center justify-center">
                     <i data-lucide="shield-check" class="w-3.5 h-3.5 text-white"></i>
@@ -64,7 +64,7 @@
         </div>
         <!-- Mobile menu -->
         <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2" class="sm:hidden border-t border-border bg-background/95 backdrop-blur-sm">
-            <div class="max-w-5xl mx-auto px-6 py-4 space-y-3">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-3">
                 <a href="#features" @click="close" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
                 <a href="#pricing" @click="close" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
                 <a href="/login" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
@@ -76,25 +76,25 @@
     <!-- Hero -->
     <section id="main-content" class="relative" role="main">
         <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_-10%,rgba(59,130,246,0.06),transparent_70%)]"></div>
-        <div class="max-w-5xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-24 relative">
-            <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-10 sm:pt-16 sm:pb-14 md:pt-24 md:pb-20 lg:pt-28 lg:pb-24 relative">
+            <div class="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
 
                 <!-- Left: Copy -->
                 <div>
-                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-6">
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-4 sm:mb-6">
                         <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot"></div>
                         <span class="text-xs font-medium text-accent">Open source &middot; Self-hosted</span>
                     </div>
 
-                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-[1.15] tracking-tight mb-4">
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-[1.15] tracking-tight mb-3 sm:mb-4">
                         Your firewall shouldn't<br>
                         be a blind spot.
                     </h1>
-                    <p class="text-base text-muted-foreground max-w-lg leading-relaxed mb-8">
+                    <p class="text-sm sm:text-base text-muted-foreground max-w-lg leading-relaxed mb-6 md:mb-8">
                         WatchDog deploys lightweight agents inside your network to monitor internal services, databases, and APIs that external tools can't reach. Real-time dashboard. Instant alerts. Zero configuration.
                     </p>
 
-                    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+                    <div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8">
                         <a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
                             Deploy Free
                         </a>
@@ -104,7 +104,7 @@
                     </div>
 
                     <!-- Install snippet with copy button -->
-                    <div class="bg-card border border-border rounded-lg p-4 max-w-md text-left" x-data="copyInstall">
+                    <div class="bg-card border border-border rounded-lg p-3 sm:p-4 max-w-md text-left" x-data="copyInstall">
                         <div class="flex items-center justify-between mb-2.5">
                             <div class="flex items-center space-x-2">
                                 <div class="w-2 h-2 rounded-full bg-red-500/60"></div>
@@ -117,9 +117,9 @@
                                 <i x-show="copied" x-cloak data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
                             </button>
                         </div>
-                        <div class="font-mono text-sm text-muted-foreground leading-relaxed overflow-x-auto">
-                            <div><span class="text-muted-foreground/50">$</span> <span class="text-foreground">curl -sSL https://usewatchdog.dev/install | sh</span></div>
-                            <div class="mt-1"><span class="text-muted-foreground/50">$</span> <span class="text-foreground">watchdog-agent --hub https://usewatchdog.dev</span></div>
+                        <div class="font-mono text-xs sm:text-sm text-muted-foreground leading-relaxed overflow-x-auto">
+                            <div class="whitespace-nowrap"><span class="text-muted-foreground/50">$</span> <span class="text-foreground">curl -sSL https://usewatchdog.dev/install | sh</span></div>
+                            <div class="mt-1 whitespace-nowrap"><span class="text-muted-foreground/50">$</span> <span class="text-foreground">watchdog-agent --hub https://usewatchdog.dev</span></div>
                             <div class="mt-1.5 text-emerald-400">Connected. Monitoring 0 targets.</div>
                         </div>
                     </div>
@@ -194,12 +194,12 @@
     </section>
 
     <!-- Problem Section -->
-    <section class="py-20 border-t border-border reveal">
-        <div class="max-w-5xl mx-auto px-6">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-10 text-center">The blind spot in your monitoring</h2>
-            <div class="grid md:grid-cols-2 gap-8 md:gap-12">
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-6 md:mb-10 text-center">The blind spot in your monitoring</h2>
+            <div class="grid md:grid-cols-2 gap-6 md:gap-12">
                 <div>
-                    <div class="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center mb-4">
+                    <div class="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center mb-3 md:mb-4">
                         <i data-lucide="eye-off" class="w-5 h-5 text-red-400"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">The problem</h3>
@@ -208,7 +208,7 @@
                     </p>
                 </div>
                 <div>
-                    <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4">
+                    <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-3 md:mb-4">
                         <i data-lucide="eye" class="w-5 h-5 text-emerald-400"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-2">The WatchDog approach</h3>
@@ -221,10 +221,10 @@
     </section>
 
     <!-- How It Works -->
-    <section class="py-20 border-t border-border reveal" id="how-it-works">
-        <div class="max-w-5xl mx-auto px-6">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-10 text-center">How it works</h2>
-            <div class="grid md:grid-cols-3 gap-8 relative">
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal" id="how-it-works">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-6 md:mb-10 text-center">How it works</h2>
+            <div class="grid md:grid-cols-3 gap-6 md:gap-8 relative">
                 <!-- Connecting lines (visible on md+) -->
                 <div class="hidden md:block absolute top-5 left-[calc(33.33%+0.5rem)] right-[calc(33.33%+0.5rem)] h-px bg-border"></div>
 
@@ -254,14 +254,14 @@
     </section>
 
     <!-- Features -->
-    <section class="py-20 border-t border-border reveal" id="features">
-        <div class="max-w-5xl mx-auto px-6">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Features</h2>
-            <p class="text-sm text-muted-foreground text-center mb-10">What you get out of the box.</p>
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal" id="features">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3 text-center">Features</h2>
+            <p class="text-sm text-muted-foreground text-center mb-6 md:mb-10">What you get out of the box.</p>
 
-            <div class="grid md:grid-cols-3 gap-4">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <!-- Agent-Based -->
-                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="server" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
@@ -270,7 +270,7 @@
                 </div>
 
                 <!-- Live Dashboard -->
-                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="activity" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
@@ -279,7 +279,7 @@
                 </div>
 
                 <!-- Smart Alerts -->
-                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="bell-ring" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
@@ -288,7 +288,7 @@
                 </div>
 
                 <!-- Four Check Types -->
-                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="terminal" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
@@ -302,7 +302,7 @@
                 </div>
 
                 <!-- Zero Config -->
-                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="zap" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
@@ -311,7 +311,7 @@
                 </div>
 
                 <!-- Incident Tracking -->
-                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="flame" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
@@ -323,12 +323,72 @@
     </section>
 
     <!-- Why WatchDog — Comparison -->
-    <section class="py-20 border-t border-border reveal">
-        <div class="max-w-5xl mx-auto px-6">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Why WatchDog</h2>
-            <p class="text-sm text-muted-foreground text-center mb-10">How agent-based monitoring compares to traditional tools.</p>
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3 text-center">Why WatchDog</h2>
+            <p class="text-sm text-muted-foreground text-center mb-6 md:mb-10">How agent-based monitoring compares to traditional tools.</p>
 
-            <div class="overflow-x-auto">
+            <!-- Mobile: stacked cards -->
+            <div class="md:hidden space-y-3">
+                <div class="bg-card border border-border rounded-lg p-4">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Architecture</p>
+                    <div class="flex items-start space-x-2 mb-1.5">
+                        <span class="text-muted-foreground/50 text-xs mt-0.5 shrink-0">Before:</span>
+                        <span class="text-xs text-muted-foreground">Single external server</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-emerald-400/70 text-xs mt-0.5 shrink-0">WatchDog:</span>
+                        <span class="text-xs text-foreground">Distributed agents inside your network</span>
+                    </div>
+                </div>
+                <div class="bg-card border border-border rounded-lg p-4">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Internal services</p>
+                    <div class="flex items-start space-x-2 mb-1.5">
+                        <span class="text-muted-foreground/50 text-xs mt-0.5 shrink-0">Before:</span>
+                        <span class="text-xs text-muted-foreground">Requires VPN or tunnels</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-emerald-400/70 text-xs mt-0.5 shrink-0">WatchDog:</span>
+                        <span class="text-xs text-foreground">Direct access &mdash; agent runs locally</span>
+                    </div>
+                </div>
+                <div class="bg-card border border-border rounded-lg p-4">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Inbound ports</p>
+                    <div class="flex items-start space-x-2 mb-1.5">
+                        <span class="text-muted-foreground/50 text-xs mt-0.5 shrink-0">Before:</span>
+                        <span class="text-xs text-muted-foreground">Required for checks</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-emerald-400/70 text-xs mt-0.5 shrink-0">WatchDog:</span>
+                        <span class="text-xs text-foreground">None &mdash; agent connects outbound</span>
+                    </div>
+                </div>
+                <div class="bg-card border border-border rounded-lg p-4">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Configuration</p>
+                    <div class="flex items-start space-x-2 mb-1.5">
+                        <span class="text-muted-foreground/50 text-xs mt-0.5 shrink-0">Before:</span>
+                        <span class="text-xs text-muted-foreground">Config files per check</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-emerald-400/70 text-xs mt-0.5 shrink-0">WatchDog:</span>
+                        <span class="text-xs text-foreground">Zero-config &mdash; hub pushes over WebSocket</span>
+                    </div>
+                </div>
+                <div class="bg-card border border-border rounded-lg p-4">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Alert verification</p>
+                    <div class="flex items-start space-x-2 mb-1.5">
+                        <span class="text-muted-foreground/50 text-xs mt-0.5 shrink-0">Before:</span>
+                        <span class="text-xs text-muted-foreground">Often single-check</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-emerald-400/70 text-xs mt-0.5 shrink-0">WatchDog:</span>
+                        <span class="text-xs text-foreground">3-strike rule &mdash; no false alarms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desktop: table -->
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-border">
@@ -370,27 +430,27 @@
     </section>
 
     <!-- Architecture -->
-    <section class="py-20 border-t border-border reveal">
-        <div class="max-w-5xl mx-auto px-6">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Architecture</h2>
-            <p class="text-sm text-muted-foreground text-center mb-10">Three components. One binary each.</p>
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3 text-center">Architecture</h2>
+            <p class="text-sm text-muted-foreground text-center mb-6 md:mb-10">Three components. One binary each.</p>
 
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="bg-card border border-border rounded-xl p-6">
+            <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="database" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Hub</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">Central server. Stores configs, processes heartbeats, serves the dashboard, fires alerts. Go + PostgreSQL + TimescaleDB.</p>
                 </div>
-                <div class="bg-card border border-border rounded-xl p-6">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="radio" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Agent</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed">Lightweight Go binary that runs inside your network. Connects to the hub over WebSocket. Receives check configs, reports results.</p>
                 </div>
-                <div class="bg-card border border-border rounded-xl p-6">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="layout-dashboard" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
@@ -400,7 +460,7 @@
             </div>
 
             <!-- Tech stack badges -->
-            <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <div class="mt-6 md:mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                 <span class="text-xs text-muted-foreground">Built with:</span>
                 <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">Go</span>
                 <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">PostgreSQL</span>
@@ -412,12 +472,12 @@
     </section>
 
     <!-- Pricing (Beta) -->
-    <section class="py-20 border-t border-border reveal" id="pricing">
-        <div class="max-w-2xl mx-auto px-6 text-center">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3">Free during beta</h2>
-            <p class="text-sm text-muted-foreground mb-8">All features unlocked. No credit card required.</p>
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal" id="pricing">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3">Free during beta</h2>
+            <p class="text-sm text-muted-foreground mb-6 md:mb-8">All features unlocked. No credit card required.</p>
 
-            <div class="bg-card border border-accent/30 rounded-xl p-8 ring-1 ring-accent/10">
+            <div class="bg-card border border-accent/30 rounded-xl p-5 sm:p-8 ring-1 ring-accent/10">
                 <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-4">
                     <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot"></div>
                     <span class="text-xs font-medium text-accent">Beta</span>
@@ -453,10 +513,10 @@
     </section>
 
     <!-- CTA -->
-    <section class="py-20 border-t border-border reveal">
-        <div class="max-w-xl mx-auto px-6 text-center">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3">Deploy your first agent</h2>
-            <p class="text-sm text-muted-foreground mb-6">Sign up, deploy an agent, and start monitoring in a few minutes.</p>
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal">
+        <div class="max-w-xl mx-auto px-4 sm:px-6 text-center">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3">Deploy your first agent</h2>
+            <p class="text-sm text-muted-foreground mb-5 sm:mb-6">Sign up, deploy an agent, and start monitoring in a few minutes.</p>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
                     Deploy Free
@@ -469,11 +529,11 @@
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-border py-10" role="contentinfo">
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer class="border-t border-border py-8 md:py-10" role="contentinfo">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                 <!-- Brand -->
-                <div>
+                <div class="col-span-2 sm:col-span-1">
                     <a href="/" class="flex items-center space-x-2 mb-3">
                         <div class="w-6 h-6 bg-accent rounded-md flex items-center justify-center">
                             <i data-lucide="shield-check" class="w-3 h-3 text-white"></i>
@@ -512,7 +572,7 @@
                 </div>
             </div>
 
-            <div class="mt-8 pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <p class="text-[11px] text-muted-foreground/60">&copy; {{.Year}} WatchDog</p>
                 <p class="text-[11px] text-muted-foreground/60">Open-source infrastructure monitoring</p>
             </div>
