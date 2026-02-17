@@ -257,9 +257,6 @@ func (r *Router) RegisterRoutes() {
 // the landing page for unauthenticated users,
 // or redirects to dashboard for authenticated users.
 func (r *Router) rootRedirect(c echo.Context) error {
-	if r.authHandler.NeedsSetup(c.Request().Context()) {
-		return c.Redirect(http.StatusFound, "/setup")
-	}
 	if middleware.IsAuthenticated(c) {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
