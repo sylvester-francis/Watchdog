@@ -6,45 +6,40 @@
 <!-- Fleet Status Banner -->
 <div class="bg-card border border-border rounded-lg mb-4 overflow-hidden">
     <div class="flex items-stretch">
-        <!-- Accent bar -->
-        <div class="w-1 shrink-0 {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}bg-emerald-500{{else if gt .Stats.MonitorsDown 0}}bg-red-500{{else}}bg-muted{{end}}"></div>
+        <!-- Accent bar (thicker) -->
+        <div class="w-[3px] shrink-0 {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}bg-emerald-500{{else if gt .Stats.MonitorsDown 0}}bg-red-500{{else}}bg-muted{{end}}"></div>
 
-        <div class="flex-1 px-4 py-3">
+        <div class="flex-1 px-4 py-3.5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 rounded-md {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}bg-emerald-500/10{{else if gt .Stats.MonitorsDown 0}}bg-red-500/10{{else}}bg-muted/50{{end}} flex items-center justify-center shrink-0">
-                        {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}
-                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
-                        {{else if gt .Stats.MonitorsDown 0}}
-                        <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400"></i>
-                        {{else}}
-                        <i data-lucide="minus-circle" class="w-4 h-4 text-muted-foreground"></i>
-                        {{end}}
-                    </div>
+                {{if gt .Stats.TotalMonitors 0}}
+                <!-- Hero uptime number on left -->
+                <div class="flex items-center space-x-4">
+                    <span class="text-stat text-foreground font-mono tracking-tight">{{formatPercent .Stats.UptimePercent}}<span class="text-base font-semibold text-muted-foreground">%</span></span>
                     <div>
                         <h2 class="text-sm font-medium text-foreground">
-                            {{if and (eq .Stats.MonitorsDown 0) (gt .Stats.TotalMonitors 0)}}All systems operational
-                            {{else if gt .Stats.MonitorsDown 0}}{{.Stats.MonitorsDown}} system{{if gt .Stats.MonitorsDown 1}}s{{end}} degraded
-                            {{else}}No monitors configured
+                            {{if eq .Stats.MonitorsDown 0}}All systems operational
+                            {{else}}{{.Stats.MonitorsDown}} system{{if gt .Stats.MonitorsDown 1}}s{{end}} degraded
                             {{end}}
                         </h2>
                         <p class="text-xs text-muted-foreground mt-0.5">
-                            {{if gt .Stats.TotalMonitors 0}}{{.Stats.MonitorsUp}} of {{.Stats.TotalMonitors}} monitors healthy &middot; Last 20 checks{{else}}Deploy an agent and create monitors to get started{{end}}
+                            {{.Stats.MonitorsUp}} of {{.Stats.TotalMonitors}} monitors healthy &middot; Last 20 checks
                         </p>
                     </div>
                 </div>
-
-                {{if gt .Stats.TotalMonitors 0}}
-                <div class="flex items-center space-x-4">
-                    <div class="text-right">
-                        <span class="text-2xl font-bold text-foreground font-mono tracking-tight">{{formatPercent .Stats.UptimePercent}}<span class="text-sm text-muted-foreground">%</span></span>
-                        <p class="text-[10px] text-muted-foreground">uptime</p>
+                <div class="flex items-center space-x-1.5">
+                    <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">{{.Stats.MonitorsUp}} up</span>
+                    {{if gt .Stats.MonitorsDown 0}}
+                    <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">{{.Stats.MonitorsDown}} dn</span>
+                    {{end}}
+                </div>
+                {{else}}
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center shrink-0">
+                        <i data-lucide="minus-circle" class="w-4 h-4 text-muted-foreground"></i>
                     </div>
-                    <div class="flex items-center space-x-1.5">
-                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">{{.Stats.MonitorsUp}} up</span>
-                        {{if gt .Stats.MonitorsDown 0}}
-                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">{{.Stats.MonitorsDown}} dn</span>
-                        {{end}}
+                    <div>
+                        <h2 class="text-sm font-medium text-foreground">No monitors configured</h2>
+                        <p class="text-xs text-muted-foreground mt-0.5">Deploy an agent and create monitors to get started</p>
                     </div>
                 </div>
                 {{end}}
@@ -55,52 +50,52 @@
 
 <!-- Stats Grid -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-    <div class="bg-card border border-border rounded-lg p-3">
+    <div class="bg-card border border-border rounded-lg p-3 border-l-[3px] border-l-muted">
         <div class="flex items-center justify-between mb-2">
-            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitors</p>
+            <p class="text-xs font-medium text-muted-foreground">Monitors</p>
             <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
                 <i data-lucide="activity" class="w-3 h-3 text-muted-foreground"></i>
             </div>
         </div>
-        <p class="text-xl font-bold text-foreground font-mono" data-count-target="{{.Stats.TotalMonitors}}">0</p>
-        <p class="text-[10px] text-muted-foreground mt-0.5">{{.Stats.MonitorsUp}} up &middot; {{.Stats.MonitorsDown}} down</p>
+        <p class="text-stat text-foreground font-mono" data-count-target="{{.Stats.TotalMonitors}}">0</p>
+        <p class="text-xs text-muted-foreground mt-1">{{.Stats.MonitorsUp}} up &middot; {{.Stats.MonitorsDown}} down</p>
     </div>
 
-    <div class="bg-card border border-border rounded-lg p-3">
+    <div class="bg-card border border-border rounded-lg p-3 border-l-[3px] border-l-emerald-500">
         <div class="flex items-center justify-between mb-2">
-            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Healthy</p>
-            <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
+            <p class="text-xs font-medium text-muted-foreground">Healthy</p>
+            <div class="w-6 h-6 bg-emerald-500/10 rounded flex items-center justify-center">
                 <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-400"></i>
             </div>
         </div>
-        <p class="text-xl font-bold text-emerald-400 font-mono" data-count-target="{{.Stats.MonitorsUp}}">0</p>
+        <p class="text-stat text-emerald-400 font-mono" data-count-target="{{.Stats.MonitorsUp}}">0</p>
         {{if gt .Stats.TotalMonitors 0}}
-        <p class="text-[10px] text-muted-foreground mt-0.5">{{formatPercent .Stats.UptimePercent}}% success rate</p>
+        <p class="text-xs text-muted-foreground mt-1">{{formatPercent .Stats.UptimePercent}}% success rate</p>
         {{else}}
-        <p class="text-[10px] text-muted-foreground mt-0.5">No checks yet</p>
+        <p class="text-xs text-muted-foreground mt-1">No checks yet</p>
         {{end}}
     </div>
 
-    <div class="bg-card border {{if gt .Stats.MonitorsDown 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-3">
+    <div class="bg-card border {{if gt .Stats.MonitorsDown 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-3 border-l-[3px] border-l-red-500">
         <div class="flex items-center justify-between mb-2">
-            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Down</p>
-            <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
+            <p class="text-xs font-medium text-muted-foreground">Down</p>
+            <div class="w-6 h-6 {{if gt .Stats.MonitorsDown 0}}bg-red-500/10{{else}}bg-muted/50{{end}} rounded flex items-center justify-center">
                 <i data-lucide="x-circle" class="w-3 h-3 {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
             </div>
         </div>
-        <p class="text-xl font-bold {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.MonitorsDown}}">0</p>
-        <p class="text-[10px] text-muted-foreground mt-0.5">{{if gt .Stats.MonitorsDown 0}}Requires attention{{else}}All clear{{end}}</p>
+        <p class="text-stat {{if gt .Stats.MonitorsDown 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.MonitorsDown}}">0</p>
+        <p class="text-xs text-muted-foreground mt-1">{{if gt .Stats.MonitorsDown 0}}Requires attention{{else}}All clear{{end}}</p>
     </div>
 
-    <div class="bg-card border {{if gt .Stats.ActiveIncidents 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-3">
+    <div class="bg-card border {{if gt .Stats.ActiveIncidents 0}}border-red-500/30{{else}}border-border{{end}} rounded-lg p-3 border-l-[3px] border-l-amber-500">
         <div class="flex items-center justify-between mb-2">
-            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Incidents</p>
-            <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-                <i data-lucide="alert-triangle" class="w-3 h-3 {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-muted-foreground{{end}}"></i>
+            <p class="text-xs font-medium text-muted-foreground">Incidents</p>
+            <div class="w-6 h-6 {{if gt .Stats.ActiveIncidents 0}}bg-amber-500/10{{else}}bg-muted/50{{end}} rounded flex items-center justify-center">
+                <i data-lucide="alert-triangle" class="w-3 h-3 {{if gt .Stats.ActiveIncidents 0}}text-amber-400{{else}}text-muted-foreground{{end}}"></i>
             </div>
         </div>
-        <p class="text-xl font-bold {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.ActiveIncidents}}">0</p>
-        <p class="text-[10px] text-muted-foreground mt-0.5">{{if gt .Stats.ActiveIncidents 0}}Active now{{else}}No open incidents{{end}}</p>
+        <p class="text-stat {{if gt .Stats.ActiveIncidents 0}}text-red-400{{else}}text-foreground{{end}} font-mono" data-count-target="{{.Stats.ActiveIncidents}}">0</p>
+        <p class="text-xs text-muted-foreground mt-1">{{if gt .Stats.ActiveIncidents 0}}Active now{{else}}No open incidents{{end}}</p>
     </div>
 </div>
 
@@ -133,13 +128,13 @@
     <!-- Monitor Rows -->
     <div class="divide-y divide-border/20">
         {{range .Sparklines}}
-        <a href="/monitors/{{.MonitorID}}" class="flex items-center px-4 py-2 hover:bg-card-elevated transition-smooth group">
+        <a href="/monitors/{{.MonitorID}}" class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-smooth group">
             <!-- Status dot -->
             <div class="w-5 shrink-0 flex justify-center">
                 <div class="w-2 h-2 rounded-full
                     {{if eq .Status "up"}}bg-emerald-400 animate-pulse-dot
                     {{else if eq .Status "down"}}bg-red-400
-                    {{else}}bg-muted-foreground{{end}}"></div>
+                    {{else}}bg-muted-foreground{{end}}" aria-label="Status: {{.Status}}"></div>
             </div>
 
             <!-- Name + type + target -->
@@ -214,8 +209,9 @@
                     <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.OnlineAgents}}/{{.Stats.TotalAgents}} online</span>
                 </div>
             </div>
-            <button onclick="document.getElementById('new-agent-modal').classList.remove('hidden')"
-                    class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
+            <button @click="$dispatch('open-agent-modal')"
+                    class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors"
+                    aria-label="Create new agent">
                 New Agent
             </button>
         </div>
@@ -237,9 +233,10 @@
                             </p>
                         </div>
                     </div>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-mono flex items-center space-x-1
                         {{if .IsOnline}}bg-emerald-500/15 text-emerald-400{{else}}bg-muted text-muted-foreground{{end}}">
-                        {{.Status}}
+                        {{if .IsOnline}}<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot inline-block"></span>{{end}}
+                        <span>{{.Status}}</span>
                     </span>
                 </div>
                 {{end}}
@@ -312,10 +309,11 @@
         </div>
         {{else}}
         <div class="text-center py-8">
-            <div class="w-10 h-10 bg-emerald-500/5 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400/40"></i>
+            <div class="w-12 h-12 bg-emerald-500/5 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-400/40"></i>
             </div>
             <p class="text-sm text-muted-foreground">No active incidents</p>
+            <a href="/incidents?status=all" class="text-xs text-muted-foreground/60 hover:text-muted-foreground mt-1 inline-block transition-smooth">View incident history</a>
         </div>
         {{end}}
     </div>
@@ -338,12 +336,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // Sparklines
             if (s.Latencies && s.Latencies.length > 0) {
                 var color = s.Status === 'up' ? '#22c55e' : (s.Status === 'down' ? '#ef4444' : '#a1a1aa');
-                createSparkline('spark-' + s.MonitorID, s.Latencies, color);
-
-                // Display latest response time
-                var respEl = document.getElementById('resp-' + s.MonitorID);
-                if (respEl) {
-                    respEl.textContent = s.Latencies[s.Latencies.length - 1] + 'ms';
+                var allZero = s.Latencies.every(function(v) { return v === 0; });
+                if (allZero) {
+                    // TCP/Ping checks with 0ms latency — show flat line
+                    createSparkline('spark-' + s.MonitorID, s.Latencies.map(function() { return 0; }), '#a1a1aa');
+                    var respEl = document.getElementById('resp-' + s.MonitorID);
+                    if (respEl) respEl.textContent = '0ms';
+                } else {
+                    createSparkline('spark-' + s.MonitorID, s.Latencies, color);
+                    var respEl = document.getElementById('resp-' + s.MonitorID);
+                    if (respEl) {
+                        respEl.textContent = s.Latencies[s.Latencies.length - 1] + 'ms';
+                    }
                 }
             }
 
@@ -352,19 +356,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 var container = document.getElementById('checks-' + s.MonitorID);
                 if (container) {
                     container.innerHTML = '';
+                    var successCount = 0;
+                    for (var j = 0; j < s.CheckResults.length; j++) {
+                        if (s.CheckResults[j] === 1) successCount++;
+                    }
                     for (var j = 0; j < s.CheckResults.length; j++) {
                         var seg = document.createElement('div');
-                        seg.style.width = '4px';
+                        seg.style.width = '5px';
                         seg.style.height = '16px';
-                        seg.style.borderRadius = '1px';
+                        seg.style.borderRadius = '2px';
                         seg.className = s.CheckResults[j] === 1 ? 'bg-emerald-500/70' : 'bg-red-500/70';
+                        seg.title = successCount + '/' + s.CheckResults.length + ' checks successful';
                         container.appendChild(seg);
                     }
                     for (var k = s.CheckResults.length; k < 20; k++) {
                         var empty = document.createElement('div');
-                        empty.style.width = '4px';
+                        empty.style.width = '5px';
                         empty.style.height = '16px';
-                        empty.style.borderRadius = '1px';
+                        empty.style.borderRadius = '2px';
                         empty.className = 'bg-muted/40';
                         container.appendChild(empty);
                     }
@@ -377,12 +386,21 @@ document.addEventListener('DOMContentLoaded', function() {
 {{end}}
 
 <!-- New Agent Modal -->
-<div id="new-agent-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+<div id="new-agent-modal" x-data="{ show: false }" @open-agent-modal.window="show = true"
+     x-show="show" x-cloak
+     role="dialog" aria-label="Create agent"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+         x-show="show"
+         x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+         @click.outside="show = false">
         <div class="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 class="text-sm font-medium text-foreground">Create Agent</h3>
-            <button onclick="document.getElementById('new-agent-modal').classList.add('hidden')"
-                    class="text-muted-foreground hover:text-foreground">
+            <button @click="show = false"
+                    class="text-muted-foreground hover:text-foreground" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -394,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
             </div>
             <div class="px-4 py-3 border-t border-border flex justify-end space-x-2">
-                <button type="button" onclick="document.getElementById('new-agent-modal').classList.add('hidden')"
+                <button type="button" @click="show = false"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Cancel
                 </button>

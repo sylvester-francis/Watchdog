@@ -160,9 +160,28 @@ Alpine.data('dashboardMockup', () => ({
 Alpine.data('monitorFilter', () => ({
     search: '',
     filterType: 'all',
+    totalCount: 0,
+    httpCount: 0,
+    tcpCount: 0,
+    pingCount: 0,
+    dnsCount: 0,
     init() {
+        this.countTypes();
         this.$watch('search', () => this.filterRows());
         this.$watch('filterType', () => this.filterRows());
+    },
+    countTypes() {
+        var rows = document.querySelectorAll('#monitors-table tr[data-type]');
+        var counts = { http: 0, tcp: 0, ping: 0, dns: 0 };
+        rows.forEach(function(row) {
+            var type = row.dataset.type;
+            if (counts[type] !== undefined) counts[type]++;
+        });
+        this.totalCount = rows.length;
+        this.httpCount = counts.http;
+        this.tcpCount = counts.tcp;
+        this.pingCount = counts.ping;
+        this.dnsCount = counts.dns;
     },
     setFilterAll() { this.filterType = 'all'; },
     setFilterHttp() { this.filterType = 'http'; },
@@ -212,6 +231,7 @@ Alpine.data('monitorFilter', () => ({
 // 6. channelSelector — settings.html alert channel modal
 Alpine.data('channelSelector', () => ({
     channelType: 'discord',
+    show: false,
     get isWebhook() { return this.channelType === 'discord' || this.channelType === 'slack'; },
     get isGenericWebhook() { return this.channelType === 'webhook'; },
     get isEmail() { return this.channelType === 'email'; },

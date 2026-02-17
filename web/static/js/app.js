@@ -13,29 +13,69 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // HTMX progress bar
     document.body.addEventListener('htmx:beforeRequest', function(event) {
+        var bar = document.getElementById('htmx-progress');
+        if (bar) {
+            bar.classList.remove('done');
+            bar.classList.add('active');
+        }
+
         var target = event.detail.elt;
         var indicator = target.querySelector('.htmx-indicator');
         if (indicator) indicator.classList.remove('hidden');
+
+        // Button loading state: disable and show spinner
+        if (target.tagName === 'BUTTON' || target.tagName === 'FORM') {
+            var btn = target.tagName === 'FORM' ? target.querySelector('button[type="submit"]') : target;
+            if (btn && !btn.dataset.htmxLoading) {
+                btn.dataset.htmxLoading = 'true';
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+            }
+        }
     });
 
     document.body.addEventListener('htmx:afterRequest', function(event) {
+        var bar = document.getElementById('htmx-progress');
+        if (bar) {
+            bar.classList.remove('active');
+            bar.classList.add('done');
+            setTimeout(function() { bar.classList.remove('done'); }, 300);
+        }
+
         var elt = event.detail.elt;
         var indicator = elt.querySelector('.htmx-indicator');
         if (indicator) indicator.classList.add('hidden');
+
+        // Restore button loading state
+        var btn = elt.tagName === 'FORM' ? elt.querySelector('button[type="submit"]') : elt;
+        if (btn && btn.dataset.htmxLoading) {
+            delete btn.dataset.htmxLoading;
+            btn.disabled = false;
+            btn.style.opacity = '';
+        }
 
         // CSP-safe replacements for hx-on::after-request (eval is blocked by CSP)
         if (event.detail.successful) {
             var id = elt.id;
             if (id === 'channel-form') {
                 elt.reset();
-                document.getElementById('new-channel-modal').classList.add('hidden');
+                // Close channel modal via Alpine
+                var channelModal = document.getElementById('new-channel-modal');
+                if (channelModal && channelModal._x_dataStack) {
+                    channelModal._x_dataStack[0].show = false;
+                }
                 var empty = document.getElementById('channel-empty');
                 if (empty) empty.remove();
             } else if (id === 'token-form') {
                 elt.reset();
             } else if (id === 'monitor-form') {
-                document.getElementById('new-monitor-modal').classList.add('hidden');
+                // Close monitor modal via Alpine
+                var monModal = document.getElementById('new-monitor-modal');
+                if (monModal && monModal._x_dataStack) {
+                    monModal._x_dataStack[0].show = false;
+                }
                 var monEmpty = document.getElementById('monitors-empty');
                 if (monEmpty) monEmpty.remove();
                 var monTable = document.getElementById('monitors-table-container');
@@ -43,6 +83,14 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (id === 'admin-user-form') {
                 document.getElementById('new-user-modal').classList.add('hidden');
                 elt.reset();
+            }
+
+            // Show success toast for create/delete operations
+            var verb = event.detail.requestConfig && event.detail.requestConfig.verb;
+            if (verb === 'post' && id && id.indexOf('-form') !== -1) {
+                showToast('Created successfully');
+            } else if (verb === 'delete') {
+                showToast('Deleted successfully');
             }
         }
     });
@@ -130,12 +178,21 @@ function connectSSE() {
 
     sseConnection.onopen = function() {
         sseReconnectAttempts = 0;
+        // Show live indicator
+        var liveEl = document.getElementById('sse-live-indicator');
+        if (liveEl) liveEl.classList.remove('hidden');
     };
 
     sseConnection.onerror = function() {
         sseConnection.close();
+        // Hide live indicator
+        var liveEl = document.getElementById('sse-live-indicator');
+        if (liveEl) liveEl.classList.add('hidden');
         if (sseReconnectAttempts < maxReconnectAttempts) {
             sseReconnectAttempts++;
+            if (sseReconnectAttempts > 1) {
+                showToast('Reconnecting to live updates...', 'warning');
+            }
             setTimeout(connectSSE, reconnectDelay);
         }
     };
@@ -154,6 +211,10 @@ function connectSSE() {
 function updateAgentStatus(agent) {
     var agentElement = document.getElementById('agent-' + agent.id);
     if (!agentElement) return;
+
+    // Highlight flash on update
+    agentElement.classList.add('highlight-flash');
+    setTimeout(function() { agentElement.classList.remove('highlight-flash'); }, 1000);
 
     var statusDot = agentElement.querySelector('.w-2.h-2');
     var statusBadge = agentElement.querySelector('span[class*="text-xs"]');
