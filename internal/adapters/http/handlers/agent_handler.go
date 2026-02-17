@@ -69,12 +69,22 @@ func (h *AgentHandler) Create(c echo.Context) error {
 		escapedName := html.EscapeString(agent.Name)
 		escapedKey := html.EscapeString(apiKey)
 		return c.HTML(http.StatusOK, `
-			<div class="bg-gray-800 border border-green-500/30 rounded-lg p-4 mb-4">
-				<p class="text-green-400 font-medium mb-2">Agent "`+escapedName+`" created successfully!</p>
-				<p class="text-gray-400 text-sm mb-2">Save this API key now — it won't be shown again:</p>
-				<div class="bg-gray-900 rounded p-3 font-mono text-sm text-yellow-300 break-all select-all">`+escapedKey+`</div>
-				<p class="text-gray-500 text-xs mt-2">Run: <code class="text-gray-400">watchdog-agent -api-key "`+escapedKey+`"</code></p>
-			</div>`)
+			<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md p-3 space-y-2">
+				<div class="flex items-center space-x-2">
+					<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+					<span class="text-xs font-medium text-emerald-400">Agent "`+escapedName+`" created!</span>
+				</div>
+				<p class="text-[11px] text-muted-foreground">Save this API key now — it won't be shown again:</p>
+				<div class="flex items-center space-x-2">
+					<code id="agent-key-text" class="flex-1 text-xs font-mono bg-background px-3 py-2 rounded border border-border text-foreground select-all break-all">`+escapedKey+`</code>
+					<button onclick="navigator.clipboard.writeText(document.getElementById('agent-key-text').textContent); this.innerHTML='<i data-lucide=&quot;check&quot; class=&quot;w-3.5 h-3.5&quot;></i>'; lucide.createIcons({nodes: [this]})"
+						class="shrink-0 px-2 py-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors">
+						<i data-lucide="copy" class="w-3.5 h-3.5"></i>
+					</button>
+				</div>
+				<p class="text-[11px] text-muted-foreground/60">Then run: <code class="text-muted-foreground break-all">watchdog-agent -hub "wss://usewatchdog.dev/ws/agent" -api-key "YOUR_KEY"</code></p>
+			</div>
+			<script>lucide.createIcons();</script>`)
 	}
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
