@@ -115,10 +115,9 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
-        <form hx-post="/settings/alerts"
+        <form id="channel-form" hx-post="/settings/alerts"
               hx-target="#channel-list"
-              hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) { this.reset(); document.getElementById('new-channel-modal').classList.add('hidden'); }">
+              hx-swap="beforeend">
             <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
             <div class="p-4 space-y-4">
                 <div>
@@ -242,10 +241,9 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
-        <form hx-post="/settings/tokens"
+        <form id="token-form" hx-post="/settings/tokens"
               hx-target="#token-result"
-              hx-swap="innerHTML"
-              hx-on::after-request="if(event.detail.successful) { this.reset(); }">
+              hx-swap="innerHTML">
             <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
             <div class="p-4 space-y-4">
                 <div>

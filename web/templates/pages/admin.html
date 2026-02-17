@@ -178,9 +178,8 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
-        <form class="p-5 space-y-4"
-            hx-post="/admin/users" hx-target="#users-table" hx-swap="beforeend"
-            hx-on::after-request="if(event.detail.successful) { document.getElementById('new-user-modal').classList.add('hidden'); this.reset(); }">
+        <form id="admin-user-form" class="p-5 space-y-4"
+            hx-post="/admin/users" hx-target="#users-table" hx-swap="beforeend">
             {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
 
             <div>
