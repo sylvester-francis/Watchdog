@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,14 +18,16 @@ import (
 type APITokenHandler struct {
 	tokenRepo        ports.APITokenRepository
 	alertChannelRepo ports.AlertChannelRepository
+	userRepo         ports.UserRepository
 	templates        *view.Templates
 }
 
 // NewAPITokenHandler creates a new APITokenHandler.
-func NewAPITokenHandler(tokenRepo ports.APITokenRepository, alertChannelRepo ports.AlertChannelRepository, templates *view.Templates) *APITokenHandler {
+func NewAPITokenHandler(tokenRepo ports.APITokenRepository, alertChannelRepo ports.AlertChannelRepository, userRepo ports.UserRepository, templates *view.Templates) *APITokenHandler {
 	return &APITokenHandler{
 		tokenRepo:        tokenRepo,
 		alertChannelRepo: alertChannelRepo,
+		userRepo:         userRepo,
 		templates:        templates,
 	}
 }
@@ -124,4 +127,38 @@ func (h *APITokenHandler) Delete(c echo.Context) error {
 	}
 
 	return c.String(http.StatusOK, "")
+}
+
+// UpdateUsername handles POST /settings/username.
+func (h *APITokenHandler) UpdateUsername(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.String(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	username := strings.ToLower(strings.TrimSpace(c.FormValue("username")))
+	if !domain.IsValidUsername(username) {
+		return c.HTML(http.StatusOK, `<div class="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-md text-xs text-red-400">Username must be 3-50 characters, lowercase alphanumeric and hyphens only.</div>`)
+	}
+
+	ctx := c.Request().Context()
+
+	// Check if username is taken by another user
+	existing, err := h.userRepo.GetByUsername(ctx, username)
+	if err == nil && existing != nil && existing.ID != userID {
+		return c.HTML(http.StatusOK, `<div class="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-md text-xs text-red-400">Username is already taken.</div>`)
+	}
+
+	user, err := h.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil {
+		return c.String(http.StatusInternalServerError, "Failed to load user")
+	}
+
+	user.Username = username
+	user.UpdatedAt = time.Now()
+	if err := h.userRepo.Update(ctx, user); err != nil {
+		return c.HTML(http.StatusOK, `<div class="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-md text-xs text-red-400">Failed to update username.</div>`)
+	}
+
+	return c.HTML(http.StatusOK, `<div class="px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-xs text-emerald-400">Username updated!</div>`)
 }

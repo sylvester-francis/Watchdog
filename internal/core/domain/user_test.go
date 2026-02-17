@@ -128,6 +128,60 @@ func TestNewUser_DefaultsBeta(t *testing.T) {
 	assert.Equal(t, -1, limits.MaxMonitors)
 }
 
+func TestUsernameFromEmail(t *testing.T) {
+	tests := []struct {
+		email string
+		want  string
+	}{
+		{"alice@example.com", "alice"},
+		{"Bob.Smith@gmail.com", "bob-smith"},
+		{"tech+dev@company.io", "tech-dev"},
+		{"a@x.com", "a-user"},
+		{"UPPER@CASE.COM", "upper"},
+		{"dots.and.more@test.com", "dots-and-more"},
+		{"special!#chars@test.com", "special-chars"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.email, func(t *testing.T) {
+			got := UsernameFromEmail(tt.email)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestIsValidUsername(t *testing.T) {
+	tests := []struct {
+		username string
+		valid    bool
+	}{
+		{"alice", true},
+		{"bob-smith", true},
+		{"a1b2c3", true},
+		{"my-cool-username", true},
+		{"ab", false},         // too short
+		{"-leading", false},   // leading hyphen
+		{"trailing-", false},  // trailing hyphen
+		{"UPPERCASE", false},  // must be lowercase
+		{"has space", false},  // no spaces
+		{"has_under", false},  // no underscores
+		{"ok", false},         // 2 chars, too short
+		{"abc", true},         // exactly 3 chars
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.username, func(t *testing.T) {
+			got := IsValidUsername(tt.username)
+			assert.Equal(t, tt.valid, got)
+		})
+	}
+}
+
+func TestNewUser_GeneratesUsername(t *testing.T) {
+	user := NewUser("techwithsyl@gmail.com", "hash")
+	assert.Equal(t, "techwithsyl", user.Username)
+}
+
 func strPtr(s string) *string {
 	return &s
 }

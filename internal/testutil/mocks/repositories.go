@@ -22,6 +22,7 @@ var (
 	_ ports.APITokenRepository   = (*MockAPITokenRepository)(nil)
 	_ ports.Transactor              = (*MockTransactor)(nil)
 	_ ports.AlertChannelRepository  = (*MockAlertChannelRepository)(nil)
+	_ ports.StatusPageRepository    = (*MockStatusPageRepository)(nil)
 )
 
 // MockUserRepository is a mock implementation of ports.UserRepository.
@@ -29,9 +30,11 @@ type MockUserRepository struct {
 	CreateFn             func(ctx context.Context, user *domain.User) error
 	GetByIDFn            func(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByEmailFn         func(ctx context.Context, email string) (*domain.User, error)
+	GetByUsernameFn      func(ctx context.Context, username string) (*domain.User, error)
 	UpdateFn             func(ctx context.Context, user *domain.User) error
 	DeleteFn             func(ctx context.Context, id uuid.UUID) error
 	ExistsByEmailFn      func(ctx context.Context, email string) (bool, error)
+	UsernameExistsFn     func(ctx context.Context, username string) (bool, error)
 	CountFn              func(ctx context.Context) (int, error)
 	CountByPlanFn        func(ctx context.Context) (map[domain.Plan]int, error)
 	GetUsersNearLimitsFn func(ctx context.Context) ([]ports.UserUsageSummary, error)
@@ -59,6 +62,13 @@ func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*dom
 	return nil, nil
 }
 
+func (m *MockUserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	if m.GetByUsernameFn != nil {
+		return m.GetByUsernameFn(ctx, username)
+	}
+	return nil, nil
+}
+
 func (m *MockUserRepository) Update(ctx context.Context, user *domain.User) error {
 	if m.UpdateFn != nil {
 		return m.UpdateFn(ctx, user)
@@ -76,6 +86,13 @@ func (m *MockUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (m *MockUserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	if m.ExistsByEmailFn != nil {
 		return m.ExistsByEmailFn(ctx, email)
+	}
+	return false, nil
+}
+
+func (m *MockUserRepository) UsernameExists(ctx context.Context, username string) (bool, error) {
+	if m.UsernameExistsFn != nil {
+		return m.UsernameExistsFn(ctx, username)
 	}
 	return false, nil
 }
@@ -546,6 +563,82 @@ func (m *MockAlertChannelRepository) Delete(ctx context.Context, id uuid.UUID) e
 		return m.DeleteFn(ctx, id)
 	}
 	return nil
+}
+
+// MockStatusPageRepository is a mock implementation of ports.StatusPageRepository.
+type MockStatusPageRepository struct {
+	CreateFn            func(ctx context.Context, page *domain.StatusPage) error
+	GetByIDFn           func(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error)
+	GetByUserAndSlugFn  func(ctx context.Context, username, slug string) (*domain.StatusPage, error)
+	GetByUserIDFn       func(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error)
+	UpdateFn            func(ctx context.Context, page *domain.StatusPage) error
+	DeleteFn            func(ctx context.Context, id uuid.UUID) error
+	SetMonitorsFn       func(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
+	GetMonitorIDsFn     func(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
+	SlugExistsForUserFn func(ctx context.Context, userID uuid.UUID, slug string) (bool, error)
+}
+
+func (m *MockStatusPageRepository) Create(ctx context.Context, page *domain.StatusPage) error {
+	if m.CreateFn != nil {
+		return m.CreateFn(ctx, page)
+	}
+	return nil
+}
+
+func (m *MockStatusPageRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error) {
+	if m.GetByIDFn != nil {
+		return m.GetByIDFn(ctx, id)
+	}
+	return nil, nil
+}
+
+func (m *MockStatusPageRepository) GetByUserAndSlug(ctx context.Context, username, slug string) (*domain.StatusPage, error) {
+	if m.GetByUserAndSlugFn != nil {
+		return m.GetByUserAndSlugFn(ctx, username, slug)
+	}
+	return nil, nil
+}
+
+func (m *MockStatusPageRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error) {
+	if m.GetByUserIDFn != nil {
+		return m.GetByUserIDFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockStatusPageRepository) Update(ctx context.Context, page *domain.StatusPage) error {
+	if m.UpdateFn != nil {
+		return m.UpdateFn(ctx, page)
+	}
+	return nil
+}
+
+func (m *MockStatusPageRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	if m.DeleteFn != nil {
+		return m.DeleteFn(ctx, id)
+	}
+	return nil
+}
+
+func (m *MockStatusPageRepository) SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error {
+	if m.SetMonitorsFn != nil {
+		return m.SetMonitorsFn(ctx, pageID, monitorIDs)
+	}
+	return nil
+}
+
+func (m *MockStatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error) {
+	if m.GetMonitorIDsFn != nil {
+		return m.GetMonitorIDsFn(ctx, pageID)
+	}
+	return nil, nil
+}
+
+func (m *MockStatusPageRepository) SlugExistsForUser(ctx context.Context, userID uuid.UUID, slug string) (bool, error) {
+	if m.SlugExistsForUserFn != nil {
+		return m.SlugExistsForUserFn(ctx, userID, slug)
+	}
+	return false, nil
 }
 
 // MockTransactor is a mock implementation of ports.Transactor.

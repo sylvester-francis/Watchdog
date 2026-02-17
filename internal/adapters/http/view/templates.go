@@ -117,7 +117,7 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Co
 		viewData["CSRFToken"] = csrf
 	}
 
-	// Inject authenticated user context for sidebar (IsAdmin, Plan)
+	// Inject authenticated user context for sidebar (IsAdmin, Plan, Username)
 	if u := c.Get("authenticated_user"); u != nil {
 		if user, ok := u.(*domain.User); ok {
 			if _, exists := viewData["IsAdmin"]; !exists {
@@ -125,6 +125,9 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Co
 			}
 			if _, exists := viewData["Plan"]; !exists {
 				viewData["Plan"] = user.Plan.String()
+			}
+			if _, exists := viewData["Username"]; !exists {
+				viewData["Username"] = user.Username
 			}
 		}
 	}

@@ -103,9 +103,9 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
-	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, deps.AlertChannelRepo, templates)
+	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, templates)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService)
-	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, templates)
+	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.UserRepo, templates)
 	r.alertChannelHandler = handlers.NewAlertChannelHandler(deps.AlertChannelRepo, templates)
 
 	return r, nil
@@ -167,7 +167,7 @@ func (r *Router) RegisterRoutes() {
 	e.GET("/install", r.installScript)
 
 	// Public status pages (no auth required)
-	e.GET("/status/:slug", r.statusPageHandler.PublicView)
+	e.GET("/status/@:username/:slug", r.statusPageHandler.PublicView)
 
 	// WebSocket endpoint for agents (public - authenticated via API key in handshake)
 	e.GET("/ws/agent", r.wsHandler.HandleConnection)
@@ -228,6 +228,7 @@ func (r *Router) RegisterRoutes() {
 	protected.DELETE("/settings/alerts/:id", r.alertChannelHandler.Delete)
 	protected.POST("/settings/alerts/:id/toggle", r.alertChannelHandler.Toggle)
 	protected.POST("/settings/alerts/:id/test", r.alertChannelHandler.TestChannel)
+	protected.POST("/settings/username", r.apiTokenHandler.UpdateUsername)
 
 	// Admin routes
 	admin := protected.Group("/admin", middleware.AdminRequired(r.deps.UserRepo))

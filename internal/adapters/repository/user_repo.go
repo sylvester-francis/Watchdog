@@ -27,12 +27,13 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	q := r.db.Querier(ctx)
 
 	query := `
-		INSERT INTO users (id, email, password_hash, plan, stripe_id, is_admin, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO users (id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		user.ID,
 		user.Email,
+		user.Username,
 		user.PasswordHash,
 		string(user.Plan),
 		user.StripeID,
@@ -52,7 +53,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, password_hash, plan, stripe_id, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at
 		FROM users
 		WHERE id = $1`
 
@@ -60,6 +61,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	err := q.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.Email,
+		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
 		&user.StripeID,
@@ -82,7 +84,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, password_hash, plan, stripe_id, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at
 		FROM users
 		WHERE email = $1`
 
@@ -90,6 +92,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	err := q.QueryRow(ctx, query, email).Scan(
 		&user.ID,
 		&user.Email,
+		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
 		&user.StripeID,
@@ -107,18 +110,50 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return user, nil
 }
 
+// GetByUsername retrieves a user by their username.
+func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at
+		FROM users
+		WHERE username = $1`
+
+	user := &domain.User{}
+	err := q.QueryRow(ctx, query, username).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Plan,
+		&user.StripeID,
+		&user.IsAdmin,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("userRepo.GetByUsername(%s): %w", username, err)
+	}
+
+	return user, nil
+}
+
 // Update updates an existing user in the database.
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	q := r.db.Querier(ctx)
 
 	query := `
 		UPDATE users
-		SET email = $2, password_hash = $3, plan = $4, stripe_id = $5, is_admin = $6, updated_at = $7
+		SET email = $2, username = $3, password_hash = $4, plan = $5, stripe_id = $6, is_admin = $7, updated_at = $8
 		WHERE id = $1`
 
 	result, err := q.Exec(ctx, query,
 		user.ID,
 		user.Email,
+		user.Username,
 		user.PasswordHash,
 		string(user.Plan),
 		user.StripeID,
@@ -290,6 +325,19 @@ func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 	err := q.QueryRow(ctx, query, email).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("userRepo.ExistsByEmail(%s): %w", email, err)
+	}
+
+	return exists, nil
+}
+
+// UsernameExists checks if a username is already taken.
+func (r *UserRepository) UsernameExists(ctx context.Context, username string) (bool, error) {
+	q := r.db.Querier(ctx)
+
+	var exists bool
+	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`, username).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("userRepo.UsernameExists(%s): %w", username, err)
 	}
 
 	return exists, nil
