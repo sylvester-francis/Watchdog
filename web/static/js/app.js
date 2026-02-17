@@ -20,9 +20,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.body.addEventListener('htmx:afterRequest', function(event) {
-        var target = event.detail.elt;
-        var indicator = target.querySelector('.htmx-indicator');
+        var elt = event.detail.elt;
+        var indicator = elt.querySelector('.htmx-indicator');
         if (indicator) indicator.classList.add('hidden');
+
+        // CSP-safe replacements for hx-on::after-request (eval is blocked by CSP)
+        if (event.detail.successful) {
+            var id = elt.id;
+            if (id === 'channel-form') {
+                elt.reset();
+                document.getElementById('new-channel-modal').classList.add('hidden');
+            } else if (id === 'token-form') {
+                elt.reset();
+            } else if (id === 'monitor-form') {
+                document.getElementById('new-monitor-modal').classList.add('hidden');
+            } else if (id === 'admin-user-form') {
+                document.getElementById('new-user-modal').classList.add('hidden');
+                elt.reset();
+            }
+        }
     });
 
     document.body.addEventListener('htmx:responseError', function() {
