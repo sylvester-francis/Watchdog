@@ -6,8 +6,7 @@
 <div class="space-y-6">
     <!-- Page Header -->
     <div>
-        <h1 class="text-lg font-semibold text-foreground">Settings</h1>
-        <p class="text-xs text-muted-foreground mt-1">Manage your account, notifications, and API access.</p>
+        <p class="text-xs text-muted-foreground">Manage your account, notifications, and API access.</p>
     </div>
 
     <!-- Username Section -->
@@ -24,21 +23,21 @@
             </div>
         </div>
         <div class="p-5">
-            <form hx-post="/settings/username" hx-target="#username-result" hx-swap="innerHTML" class="flex items-end gap-3">
+            <form hx-post="/settings/username" hx-target="#username-result" hx-swap="innerHTML" class="flex flex-col sm:flex-row sm:items-end gap-3">
                 <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <label class="block text-xs font-medium text-muted-foreground mb-1.5">Username</label>
-                    <div class="flex items-center">
-                        <span class="px-3 py-2 bg-muted/30 border border-r-0 border-border rounded-l-md text-xs text-muted-foreground font-mono">usewatchdog.dev/status/@</span>
+                    <div class="flex flex-col sm:flex-row sm:items-center">
+                        <span class="px-3 py-2 bg-muted/30 border border-border rounded-t-md sm:rounded-t-none sm:rounded-l-md sm:border-r-0 text-xs text-muted-foreground font-mono truncate">usewatchdog.dev/status/@</span>
                         <input type="text" name="username" value="{{.Username}}" required
                                pattern="[a-z0-9][a-z0-9-]{1,48}[a-z0-9]"
-                               class="flex-1 px-3 py-2 bg-background border border-border rounded-r-md text-sm text-foreground font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+                               class="w-full px-3 py-2 bg-background border border-t-0 sm:border-t border-border rounded-b-md sm:rounded-b-none sm:rounded-r-md text-sm text-foreground font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
                                placeholder="my-username">
                     </div>
                     <p class="text-[10px] text-muted-foreground/60 mt-1">3-50 characters. Lowercase letters, numbers, and hyphens only.</p>
                 </div>
                 <button type="submit"
-                        class="px-4 py-2 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
+                        class="w-full sm:w-auto px-4 py-2 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
                     Save
                 </button>
             </form>
@@ -63,7 +62,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Get notified when incidents open or resolve.</p>
                 </div>
             </div>
-            <button @click="$dispatch('open-channel-modal')"
+            <button onclick="window.dispatchEvent(new CustomEvent('open-channel-modal'))"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Add Channel</span>
@@ -89,24 +88,24 @@
         </div>
 
         <div class="px-5 py-2.5 border-t border-border/50 bg-muted/10">
-            <div class="flex flex-wrap items-center gap-2 text-[11px]">
+            <div class="flex flex-wrap items-center gap-2 text-[11px] opacity-60">
                 <span class="text-muted-foreground/50 mr-0.5">Integrations:</span>
-                <span class="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400/80 inline-flex items-center space-x-1">
+                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
                     <i data-lucide="message-circle" class="w-3 h-3"></i><span>Discord</span>
                 </span>
-                <span class="px-2 py-0.5 rounded bg-green-500/10 text-green-400/80 inline-flex items-center space-x-1">
+                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
                     <i data-lucide="hash" class="w-3 h-3"></i><span>Slack</span>
                 </span>
-                <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400/80 inline-flex items-center space-x-1">
+                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
                     <i data-lucide="mail" class="w-3 h-3"></i><span>Email</span>
                 </span>
-                <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400/80 inline-flex items-center space-x-1">
+                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
                     <i data-lucide="send" class="w-3 h-3"></i><span>Telegram</span>
                 </span>
-                <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400/80 inline-flex items-center space-x-1">
+                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
                     <i data-lucide="phone-call" class="w-3 h-3"></i><span>PagerDuty</span>
                 </span>
-                <span class="px-2 py-0.5 rounded bg-orange-500/10 text-orange-400/80 inline-flex items-center space-x-1">
+                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
                     <i data-lucide="webhook" class="w-3 h-3"></i><span>Webhook</span>
                 </span>
             </div>
@@ -130,7 +129,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Programmatic access to the WatchDog API.</p>
                 </div>
             </div>
-            <button @click="$dispatch('open-token-modal')"
+            <button onclick="window.dispatchEvent(new CustomEvent('open-token-modal'))"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Token</span>
@@ -171,13 +170,13 @@
 <div id="new-channel-modal"
      x-data="channelSelector"
      x-show="show" x-cloak
-     @open-channel-modal.window="show = true"
+     @open-channel-modal.window="open"
      role="dialog" aria-label="Add alert channel"
      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
      x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
      x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
     <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto modal-enter"
-         @click.outside="show = false">
+         @click.outside="close">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <div class="w-6 h-6 rounded-md bg-accent/10 flex items-center justify-center">
@@ -185,7 +184,7 @@
                 </div>
                 <h3 class="text-sm font-medium text-foreground">Add Alert Channel</h3>
             </div>
-            <button @click="show = false"
+            <button @click="close"
                     class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
@@ -293,7 +292,7 @@
                 </div>
             </div>
             <div class="px-5 py-3 border-t border-border bg-muted/10 flex justify-end space-x-2">
-                <button type="button" @click="show = false"
+                <button type="button" @click="close"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted">
                     Cancel
                 </button>
@@ -307,14 +306,14 @@
 </div>
 
 <!-- New Token Modal -->
-<div id="new-token-modal" x-data="{ show: false }" @open-token-modal.window="show = true"
+<div id="new-token-modal" x-data="tokenModal" @open-token-modal.window="open"
      x-show="show" x-cloak
      role="dialog" aria-label="Create API token"
      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
      x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
      x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
     <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4 modal-enter"
-         @click.outside="show = false">
+         @click.outside="close">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <div class="w-6 h-6 rounded-md bg-yellow-500/10 flex items-center justify-center">
@@ -322,7 +321,7 @@
                 </div>
                 <h3 class="text-sm font-medium text-foreground">Create API Token</h3>
             </div>
-            <button @click="show = false"
+            <button @click="close"
                     class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
@@ -359,7 +358,7 @@
                 </div>
             </div>
             <div class="px-5 py-3 border-t border-border bg-muted/10 flex justify-end space-x-2">
-                <button type="button" @click="show = false"
+                <button type="button" @click="close"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted">
                     Cancel
                 </button>
@@ -468,7 +467,7 @@
             </div>
         </div>
 
-        <div class="flex items-center space-x-1 shrink-0">
+        <div class="flex items-center flex-wrap gap-1 shrink-0">
             <button hx-post="/settings/alerts/{{.ID}}/test"
                     hx-target="#channel-test-{{.ID}}"
                     hx-swap="innerHTML"

@@ -229,7 +229,7 @@ func monitorsCreate(args []string) {
 Creates a monitor interactively. You'll be prompted for:
   - agent_id: The agent UUID to assign the monitor to
   - name: A human-readable name
-  - type: http, tcp, ping, or dns
+  - type: http, tcp, ping, or tls
   - target: The address to check`)
 		return
 	}
@@ -246,7 +246,7 @@ Creates a monitor interactively. You'll be prompted for:
 	name, _ := reader.ReadString('\n')
 	name = strings.TrimSpace(name)
 
-	fmt.Print("Type (http/tcp/ping/dns): ")
+	fmt.Print("Type (http/tcp/ping/tls): ")
 	monType, _ := reader.ReadString('\n')
 	monType = strings.TrimSpace(monType)
 
