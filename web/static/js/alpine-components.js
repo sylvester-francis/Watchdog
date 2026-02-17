@@ -136,6 +136,36 @@ Alpine.data('dashboardMockup', () => ({
         { name: 'Auth Service', type: 'http', latency: '12ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
         { name: 'Vault', type: 'http', latency: 'timeout', dotClass: 'bg-red-400', latencyClass: 'text-red-400' },
     ],
+    _vaultDown: true,
+    _latencies: ['38ms', '42ms', '51ms', '45ms', '33ms', '47ms'],
+    _tick: 0,
+    init() {
+        var self = this;
+        setInterval(function() {
+            self._tick++;
+            // Cycle a healthy service's latency
+            var idx = self._tick % 4; // cycle through first 4 services
+            var latIdx = self._tick % self._latencies.length;
+            self.services[idx].latency = self.services[idx].type === 'tcp'
+                ? (1 + (self._tick % 3)) + 'ms'
+                : self._latencies[latIdx];
+            // Toggle Vault between timeout and recovery
+            if (self._tick % 3 === 0) {
+                self._vaultDown = !self._vaultDown;
+                if (self._vaultDown) {
+                    self.services[4].latency = 'timeout';
+                    self.services[4].dotClass = 'bg-red-400';
+                    self.services[4].latencyClass = 'text-red-400';
+                    self.stats.healthy = 11;
+                } else {
+                    self.services[4].latency = '210ms';
+                    self.services[4].dotClass = 'bg-emerald-400 animate-pulse-dot';
+                    self.services[4].latencyClass = 'text-muted-foreground';
+                    self.stats.healthy = 12;
+                }
+            }
+        }, 2000);
+    },
     bars: [
         { cls: 'bg-emerald-500/40', style: 'height: 35%; animation-delay: 0s;' },
         { cls: 'bg-emerald-500/40', style: 'height: 42%; animation-delay: 0.05s;' },
@@ -153,6 +183,18 @@ Alpine.data('dashboardMockup', () => ({
         { cls: 'bg-emerald-500/40', style: 'height: 50%; animation-delay: 0.65s;' },
         { cls: 'bg-emerald-500/40', style: 'height: 35%; animation-delay: 0.7s;' },
     ],
+}));
+
+// 4b. copyInstall — landing page terminal copy button
+Alpine.data('copyInstall', () => ({
+    copied: false,
+    copy() {
+        var self = this;
+        navigator.clipboard.writeText('curl -sSL https://usewatchdog.dev/install | sh').then(function() {
+            self.copied = true;
+            setTimeout(function() { self.copied = false; }, 2000);
+        });
+    },
 }));
 
 // 5. monitorFilter — pages/monitors.html
