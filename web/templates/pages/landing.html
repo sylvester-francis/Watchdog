@@ -58,7 +58,7 @@
             </div>
             <!-- Mobile hamburger -->
             <button @click="toggle" class="sm:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors" aria-label="Toggle navigation menu">
-                <i x-show="!mobileOpen" data-lucide="menu" class="w-5 h-5"></i>
+                <i x-show="mobileClosed" data-lucide="menu" class="w-5 h-5"></i>
                 <i x-show="mobileOpen" x-cloak data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
@@ -113,7 +113,7 @@
                                 <span class="text-[10px] text-muted-foreground ml-1 font-mono">terminal</span>
                             </div>
                             <button @click="copy" class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded" aria-label="Copy install command">
-                                <i x-show="!copied" data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                <i x-show="notCopied" data-lucide="copy" class="w-3.5 h-3.5"></i>
                                 <i x-show="copied" x-cloak data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
                             </button>
                         </div>
