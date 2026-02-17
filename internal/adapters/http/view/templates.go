@@ -227,7 +227,7 @@ func statusColor(status string) string {
 		return "text-red-400"
 	case "degraded", "timeout", "acknowledged":
 		return "text-yellow-400"
-	case "unknown", "open":
+	case "pending", "unknown", "open":
 		return "text-gray-400"
 	default:
 		return "text-gray-400"
@@ -243,7 +243,7 @@ func statusBgColor(status string) string {
 		return "bg-red-500"
 	case "degraded", "timeout", "acknowledged":
 		return "bg-yellow-500"
-	case "unknown", "open":
+	case "pending", "unknown", "open":
 		return "bg-gray-500"
 	default:
 		return "bg-gray-500"
@@ -259,7 +259,7 @@ func statusIcon(status string) string {
 		return "error"
 	case "degraded", "timeout", "acknowledged":
 		return "warning"
-	case "unknown", "open":
+	case "pending", "unknown", "open":
 		return "help"
 	default:
 		return "help"

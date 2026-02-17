@@ -34,7 +34,7 @@ func TestMonitorStatus_IsValid(t *testing.T) {
 		status MonitorStatus
 		want   bool
 	}{
-		{MonitorStatusUnknown, true},
+		{MonitorStatusPending, true},
 		{MonitorStatusUp, true},
 		{MonitorStatusDown, true},
 		{MonitorStatusDegraded, true},
@@ -55,7 +55,7 @@ func TestMonitorStatus_IsHealthy(t *testing.T) {
 		status MonitorStatus
 		want   bool
 	}{
-		{MonitorStatusUnknown, false},
+		{MonitorStatusPending, false},
 		{MonitorStatusUp, true},
 		{MonitorStatusDown, false},
 		{MonitorStatusDegraded, false},
@@ -85,7 +85,7 @@ func TestNewMonitor(t *testing.T) {
 	assert.Equal(t, target, monitor.Target)
 	assert.Equal(t, DefaultIntervalSeconds, monitor.IntervalSeconds)
 	assert.Equal(t, DefaultTimeoutSeconds, monitor.TimeoutSeconds)
-	assert.Equal(t, MonitorStatusUnknown, monitor.Status)
+	assert.Equal(t, MonitorStatusPending, monitor.Status)
 	assert.True(t, monitor.Enabled)
 	assert.False(t, monitor.CreatedAt.IsZero())
 }
@@ -165,7 +165,7 @@ func TestMonitor_EnableDisable(t *testing.T) {
 
 func TestMonitor_UpdateStatus(t *testing.T) {
 	monitor := NewMonitor(uuid.New(), "test", MonitorTypeHTTP, "https://example.com")
-	assert.Equal(t, MonitorStatusUnknown, monitor.Status)
+	assert.Equal(t, MonitorStatusPending, monitor.Status)
 
 	monitor.UpdateStatus(MonitorStatusUp)
 	assert.Equal(t, MonitorStatusUp, monitor.Status)

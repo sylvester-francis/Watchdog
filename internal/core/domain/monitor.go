@@ -43,7 +43,7 @@ func (t MonitorType) IsValid() bool {
 type MonitorStatus string
 
 const (
-	MonitorStatusUnknown  MonitorStatus = "unknown"
+	MonitorStatusPending  MonitorStatus = "pending"
 	MonitorStatusUp       MonitorStatus = "up"
 	MonitorStatusDown     MonitorStatus = "down"
 	MonitorStatusDegraded MonitorStatus = "degraded"
@@ -52,7 +52,7 @@ const (
 // IsValid checks if the status is a valid MonitorStatus.
 func (s MonitorStatus) IsValid() bool {
 	switch s {
-	case MonitorStatusUnknown, MonitorStatusUp, MonitorStatusDown, MonitorStatusDegraded:
+	case MonitorStatusPending, MonitorStatusUp, MonitorStatusDown, MonitorStatusDegraded:
 		return true
 	default:
 		return false
@@ -98,7 +98,7 @@ func NewMonitor(agentID uuid.UUID, name string, monitorType MonitorType, target 
 		Target:          target,
 		IntervalSeconds: DefaultIntervalSeconds,
 		TimeoutSeconds:  DefaultTimeoutSeconds,
-		Status:          MonitorStatusUnknown,
+		Status:          MonitorStatusPending,
 		Enabled:         true,
 		CreatedAt:       time.Now(),
 	}
