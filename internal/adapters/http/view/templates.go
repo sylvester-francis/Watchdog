@@ -146,7 +146,10 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Co
 		return fmt.Errorf("template %q not found", name)
 	}
 
-	return tmpl.ExecuteTemplate(w, name, viewData)
+	if err := tmpl.ExecuteTemplate(w, name, viewData); err != nil {
+		return fmt.Errorf("template %q: %w", name, err)
+	}
+	return nil
 }
 
 // Template functions

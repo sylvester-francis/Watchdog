@@ -138,14 +138,26 @@ func main() {
 		LogMethod:   true,
 		LogLatency:  true,
 		LogRemoteIP: true,
+		LogError:    true,
 		LogValuesFunc: func(_ echo.Context, v echomw.RequestLoggerValues) error {
-			logger.Info("request",
-				slog.String("method", v.Method),
-				slog.String("uri", v.URI),
-				slog.Int("status", v.Status),
-				slog.Duration("latency", v.Latency),
-				slog.String("remote_ip", v.RemoteIP),
-			)
+			if v.Error != nil {
+				logger.Error("request",
+					slog.String("method", v.Method),
+					slog.String("uri", v.URI),
+					slog.Int("status", v.Status),
+					slog.Duration("latency", v.Latency),
+					slog.String("remote_ip", v.RemoteIP),
+					slog.String("error", v.Error.Error()),
+				)
+			} else {
+				logger.Info("request",
+					slog.String("method", v.Method),
+					slog.String("uri", v.URI),
+					slog.Int("status", v.Status),
+					slog.Duration("latency", v.Latency),
+					slog.String("remote_ip", v.RemoteIP),
+				)
+			}
 			return nil
 		},
 	}))
