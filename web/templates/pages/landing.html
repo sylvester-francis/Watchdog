@@ -5,12 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}}</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 
     <meta name="description" content="Deploy lightweight agents inside your network to monitor internal services, databases, and APIs. Real-time dashboard, instant alerts, zero configuration.">
-    <meta property="og:title" content="WatchDog - Monitor Services Behind Your Firewall">
+    <meta property="og:title" content="WatchDog — Monitor Services Behind Your Firewall">
     <meta property="og:description" content="Deploy lightweight agents to monitor internal services. Real-time dashboard, instant alerts, zero configuration.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://usewatchdog.dev">
+    <meta property="og:image" content="https://usewatchdog.dev/static/og.png">
+    <meta property="og:site_name" content="WatchDog">
+    <link rel="canonical" href="https://usewatchdog.dev">
+    <meta name="robots" content="index, follow">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="WatchDog — Monitor Services Behind Your Firewall">
+    <meta name="twitter:description" content="Deploy lightweight agents to monitor internal services. Real-time dashboard, instant alerts, zero configuration.">
+    <meta name="twitter:image" content="https://usewatchdog.dev/static/og.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +29,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.14.8/dist/cdn.min.js"></script>
 
     <!-- Alpine.js Components (registers via alpine:init, must load before Alpine) -->
-    <script src="/static/js/alpine-components.js?v=3"></script>
+    <script src="/static/js/alpine-components.js?v=4"></script>
 
     <!-- Tailwind CSS (pre-built) -->
     <link rel="stylesheet" href="/static/css/output.css">
@@ -33,7 +42,7 @@
     </a>
 
     <!-- Nav -->
-    <nav class="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" x-data="mobileNav">
+    <nav class="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" x-data="mobileNav" role="banner" aria-label="Primary navigation">
         <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
             <a href="/" class="flex items-center space-x-2.5">
                 <div class="w-7 h-7 bg-accent rounded-md flex items-center justify-center">
@@ -45,7 +54,7 @@
                 <a href="#features" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
                 <a href="#pricing" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
                 <a href="/login" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
-                <a href="/register" class="px-3.5 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Sign Up</a>
+                <a href="/register" class="px-3.5 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Deploy Free</a>
             </div>
             <!-- Mobile hamburger -->
             <button @click="toggle" class="sm:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors" aria-label="Toggle navigation menu">
@@ -59,13 +68,13 @@
                 <a href="#features" @click="close" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
                 <a href="#pricing" @click="close" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
                 <a href="/login" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
-                <a href="/register" class="block w-full text-center px-3.5 py-2 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Sign Up</a>
+                <a href="/register" class="block w-full text-center px-3.5 py-2 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Deploy Free</a>
             </div>
         </div>
     </nav>
 
     <!-- Hero -->
-    <section id="main-content" class="relative">
+    <section id="main-content" class="relative" role="main">
         <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_-10%,rgba(59,130,246,0.06),transparent_70%)]"></div>
         <div class="max-w-5xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-24 relative">
             <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -77,30 +86,36 @@
                         <span class="text-xs font-medium text-accent">Open source &middot; Self-hosted</span>
                     </div>
 
-                    <h1 class="text-3xl md:text-4xl lg:text-[2.75rem] font-bold text-foreground leading-[1.15] tracking-tight mb-4">
-                        Monitor services<br>
-                        behind your firewall
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-[1.15] tracking-tight mb-4">
+                        Your firewall shouldn't<br>
+                        be a blind spot.
                     </h1>
                     <p class="text-base text-muted-foreground max-w-lg leading-relaxed mb-8">
-                        Deploy a lightweight agent inside your network. It runs checks against your internal services and reports back to a central dashboard over WebSocket.
+                        WatchDog deploys lightweight agents inside your network to monitor internal services, databases, and APIs that external tools can't reach. Real-time dashboard. Instant alerts. Zero configuration.
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-3 mb-8">
-                        <a href="/register" class="px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
-                            Get Started
+                        <a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
+                            Deploy Free
                         </a>
-                        <a href="#features" class="px-5 py-2.5 bg-card border border-border text-foreground hover:bg-card-elevated text-sm font-medium rounded-md transition-colors text-center">
-                            See Features
+                        <a href="#how-it-works" class="w-full sm:w-auto px-5 py-2.5 bg-card border border-border text-foreground hover:bg-card-elevated text-sm font-medium rounded-md transition-colors text-center">
+                            See How It Works
                         </a>
                     </div>
 
-                    <!-- Install snippet -->
-                    <div class="bg-card border border-border rounded-lg p-4 max-w-md text-left overflow-hidden">
-                        <div class="flex items-center space-x-2 mb-2.5">
-                            <div class="w-2 h-2 rounded-full bg-red-500/60"></div>
-                            <div class="w-2 h-2 rounded-full bg-yellow-500/60"></div>
-                            <div class="w-2 h-2 rounded-full bg-emerald-500/60"></div>
-                            <span class="text-[10px] text-muted-foreground ml-1 font-mono">terminal</span>
+                    <!-- Install snippet with copy button -->
+                    <div class="bg-card border border-border rounded-lg p-4 max-w-md text-left" x-data="copyInstall">
+                        <div class="flex items-center justify-between mb-2.5">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 rounded-full bg-red-500/60"></div>
+                                <div class="w-2 h-2 rounded-full bg-yellow-500/60"></div>
+                                <div class="w-2 h-2 rounded-full bg-emerald-500/60"></div>
+                                <span class="text-[10px] text-muted-foreground ml-1 font-mono">terminal</span>
+                            </div>
+                            <button @click="copy" class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded" aria-label="Copy install command">
+                                <i x-show="!copied" data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                <i x-show="copied" x-cloak data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            </button>
                         </div>
                         <div class="font-mono text-sm text-muted-foreground leading-relaxed overflow-x-auto">
                             <div><span class="text-muted-foreground/50">$</span> <span class="text-foreground">curl -sSL https://usewatchdog.dev/install | sh</span></div>
@@ -178,8 +193,35 @@
         </div>
     </section>
 
-    <!-- How It Works -->
+    <!-- Problem Section -->
     <section class="py-20 border-t border-border reveal">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-10 text-center">The blind spot in your monitoring</h2>
+            <div class="grid md:grid-cols-2 gap-8 md:gap-12">
+                <div>
+                    <div class="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center mb-4">
+                        <i data-lucide="eye-off" class="w-5 h-5 text-red-400"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-2">The problem</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">
+                        Most monitoring tools run checks from a single external server. If your service is behind a firewall, NAT, or VPC &mdash; they can't see it. You're flying blind on the infrastructure that matters most.
+                    </p>
+                </div>
+                <div>
+                    <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4">
+                        <i data-lucide="eye" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-2">The WatchDog approach</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">
+                        WatchDog flips the model. A lightweight agent runs inside your network, checking services locally and reporting back to a central hub. No inbound ports. No VPN tunnels. No blind spots.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-20 border-t border-border reveal" id="how-it-works">
         <div class="max-w-5xl mx-auto px-6">
             <h2 class="text-xl md:text-2xl font-bold text-foreground mb-10 text-center">How it works</h2>
             <div class="grid md:grid-cols-3 gap-8 relative">
@@ -187,25 +229,25 @@
                 <div class="hidden md:block absolute top-5 left-[calc(33.33%+0.5rem)] right-[calc(33.33%+0.5rem)] h-px bg-border"></div>
 
                 <div class="text-center relative">
-                    <div class="w-10 h-10 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
-                        <i data-lucide="download" class="w-5 h-5 text-accent"></i>
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
+                        <i data-lucide="download" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">1. Deploy an agent</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">Single Go binary. Run it inside your network — a VPC, a homelab, behind a NAT. No config file needed.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Single Go binary. Run it inside your network &mdash; a VPC, a homelab, behind a NAT. No config file needed.</p>
                 </div>
                 <div class="text-center relative">
-                    <div class="w-10 h-10 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
-                        <i data-lucide="radar" class="w-5 h-5 text-accent"></i>
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
+                        <i data-lucide="radar" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">2. Agent runs checks</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">Ping, HTTP, TCP, DNS, TLS. The hub pushes monitor configs to the agent over WebSocket. The agent reports back heartbeats.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">HTTP, TCP, Ping, and TLS. The hub pushes monitor configs to the agent over WebSocket. The agent reports back.</p>
                 </div>
                 <div class="text-center relative">
-                    <div class="w-10 h-10 bg-accent/10 border border-accent/20 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
-                        <i data-lucide="bell" class="w-5 h-5 text-accent"></i>
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
+                        <i data-lucide="bell" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">3. Get alerted</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">Three consecutive failures trigger an incident. You get notified via Discord, Slack, or a webhook. No false alarms.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Three consecutive failures trigger an incident. Get notified via Discord, Slack, Email, Telegram, PagerDuty, or webhooks.</p>
                 </div>
             </div>
         </div>
@@ -217,73 +259,154 @@
             <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Features</h2>
             <p class="text-sm text-muted-foreground text-center mb-10">What you get out of the box.</p>
 
-            <div class="grid md:grid-cols-6 gap-4">
-                <!-- Agent-Based (4 cols) -->
-                <div class="md:col-span-4 bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
-                    <div class="flex items-start space-x-4">
-                        <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0">
-                            <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-sm font-semibold text-foreground mb-1.5">Agent-based monitoring</h3>
-                            <p class="text-sm text-muted-foreground leading-relaxed break-words">The agent runs inside your network, so it can reach things that external monitoring tools can't — internal databases, private APIs, services behind a firewall or NAT.</p>
-                        </div>
+            <div class="grid md:grid-cols-3 gap-4">
+                <!-- Agent-Based -->
+                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="server" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Agent-based monitoring</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">The agent runs inside your network, so it can reach things that external monitoring tools can't &mdash; internal databases, private APIs, services behind a firewall or NAT.</p>
                 </div>
 
-                <!-- Real-Time (2 cols) -->
-                <div class="md:col-span-2 bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
-                    <div class="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mb-3">
-                        <i data-lucide="activity" class="w-5 h-5 text-accent"></i>
+                <!-- Live Dashboard -->
+                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="activity" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Live dashboard</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed break-words">Status updates stream over SSE. Sparkline charts show latency trends. No refresh needed.</p>
                 </div>
 
-                <!-- Alerts (2 cols) -->
-                <div class="md:col-span-2 bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
-                    <div class="w-10 h-10 bg-yellow-500/10 rounded-lg flex items-center justify-center mb-3">
-                        <i data-lucide="bell-ring" class="w-5 h-5 text-yellow-400"></i>
+                <!-- Smart Alerts -->
+                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="bell-ring" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Smart alerts</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed break-words">3-strike rule before firing. Supports Discord, Slack, and generic webhooks.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">3-strike rule before firing. Supports Discord, Slack, Email, Telegram, PagerDuty, and webhooks.</p>
                 </div>
 
-                <!-- Multi-Protocol (4 cols) -->
-                <div class="md:col-span-4 bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
-                    <div class="flex items-start space-x-4">
-                        <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center shrink-0">
-                            <i data-lucide="terminal" class="w-5 h-5 text-muted-foreground"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <h3 class="text-sm font-semibold text-foreground mb-1.5">Five check types</h3>
-                            <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">Ping, HTTP, TCP, DNS, and TLS certificate monitoring. Covers everything you'd want to monitor in a typical infrastructure setup.</p>
-                            <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground overflow-x-auto">
-                                <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> db.internal:5432 <span class="text-border">....</span> <span class="text-foreground">2ms</span></div>
-                                <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> redis.internal:6379 <span class="text-border">..</span> <span class="text-foreground">1ms</span></div>
-                                <div class="whitespace-nowrap"><span class="text-red-400">[FAIL]</span> vault.internal:8200 <span class="text-border">..</span> <span class="text-red-400">timeout</span></div>
-                            </div>
-                        </div>
+                <!-- Four Check Types -->
+                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="terminal" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Four check types</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">HTTP, TCP, Ping, and TLS certificate monitoring. Covers everything you'd want to monitor in a typical infrastructure setup.</p>
+                    <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground overflow-x-auto">
+                        <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> db.internal:5432 <span class="text-border">....</span> <span class="text-foreground">2ms</span></div>
+                        <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> redis.internal:6379 <span class="text-border">..</span> <span class="text-foreground">1ms</span></div>
+                        <div class="whitespace-nowrap"><span class="text-red-400">[FAIL]</span> vault.internal:8200 <span class="text-border">..</span> <span class="text-red-400">timeout</span></div>
                     </div>
                 </div>
 
-                <!-- Zero Config (3 cols) -->
-                <div class="md:col-span-3 bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
-                    <div class="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center mb-3">
-                        <i data-lucide="zap" class="w-5 h-5 text-orange-400"></i>
+                <!-- Zero Config -->
+                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="zap" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Zero config agent</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed break-words">The agent takes a hub URL and an API key. That's it. Monitor configs are pushed from the hub over WebSocket — no config files, no restarts.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">The agent takes a hub URL and an API key. That's it. Monitor configs are pushed from the hub over WebSocket &mdash; no config files, no restarts.</p>
                 </div>
 
-                <!-- Incidents (3 cols) -->
-                <div class="md:col-span-3 bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
-                    <div class="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center mb-3">
-                        <i data-lucide="flame" class="w-5 h-5 text-red-400"></i>
+                <!-- Incident Tracking -->
+                <div class="bg-card border border-border rounded-xl p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="flame" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Incident tracking</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed break-words">Incidents are created automatically on failure. Acknowledge, resolve, and track time-to-resolution. Full history per monitor.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why WatchDog — Comparison -->
+    <section class="py-20 border-t border-border reveal">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Why WatchDog</h2>
+            <p class="text-sm text-muted-foreground text-center mb-10">How agent-based monitoring compares to traditional tools.</p>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-border">
+                            <th class="text-left py-3 px-4 text-muted-foreground font-medium"></th>
+                            <th class="text-left py-3 px-4 text-muted-foreground font-medium">Traditional Monitoring</th>
+                            <th class="text-left py-3 px-4 text-foreground font-semibold">WatchDog</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border/50">
+                        <tr>
+                            <td class="py-3 px-4 text-muted-foreground font-medium">Architecture</td>
+                            <td class="py-3 px-4 text-muted-foreground">Single external server</td>
+                            <td class="py-3 px-4 text-foreground">Distributed agents inside your network</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 text-muted-foreground font-medium">Internal services</td>
+                            <td class="py-3 px-4 text-muted-foreground">Requires VPN or tunnels</td>
+                            <td class="py-3 px-4 text-foreground">Direct access &mdash; agent runs locally</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 text-muted-foreground font-medium">Inbound ports</td>
+                            <td class="py-3 px-4 text-muted-foreground">Required for checks</td>
+                            <td class="py-3 px-4 text-foreground">None &mdash; agent connects outbound</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 text-muted-foreground font-medium">Configuration</td>
+                            <td class="py-3 px-4 text-muted-foreground">Config files per check</td>
+                            <td class="py-3 px-4 text-foreground">Zero-config &mdash; hub pushes over WebSocket</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 text-muted-foreground font-medium">Alert verification</td>
+                            <td class="py-3 px-4 text-muted-foreground">Often single-check</td>
+                            <td class="py-3 px-4 text-foreground">3-strike rule &mdash; no false alarms</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture -->
+    <section class="py-20 border-t border-border reveal">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3 text-center">Architecture</h2>
+            <p class="text-sm text-muted-foreground text-center mb-10">Three components. One binary each.</p>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-card border border-border rounded-xl p-6">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="database" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Hub</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Central server. Stores configs, processes heartbeats, serves the dashboard, fires alerts. Go + PostgreSQL + TimescaleDB.</p>
+                </div>
+                <div class="bg-card border border-border rounded-xl p-6">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="radio" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Agent</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Lightweight Go binary that runs inside your network. Connects to the hub over WebSocket. Receives check configs, reports results.</p>
+                </div>
+                <div class="bg-card border border-border rounded-xl p-6">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Dashboard</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Real-time web UI served by the hub. Live updates via SSE. Public status pages. HTMX + Alpine.js &mdash; no SPA framework.</p>
+                </div>
+            </div>
+
+            <!-- Tech stack badges -->
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <span class="text-xs text-muted-foreground">Built with:</span>
+                <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">Go</span>
+                <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">PostgreSQL</span>
+                <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">TimescaleDB</span>
+                <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">WebSocket</span>
+                <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">HTMX</span>
             </div>
         </div>
     </section>
@@ -323,7 +446,7 @@
                 </div>
 
                 <a href="/register" class="inline-block px-6 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">
-                    Get Started Free
+                    Deploy Free
                 </a>
             </div>
         </div>
@@ -332,50 +455,66 @@
     <!-- CTA -->
     <section class="py-20 border-t border-border reveal">
         <div class="max-w-xl mx-auto px-6 text-center">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3">Try it out</h2>
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-3">Deploy your first agent</h2>
             <p class="text-sm text-muted-foreground mb-6">Sign up, deploy an agent, and start monitoring in a few minutes.</p>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <a href="/register" class="px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">
-                    Create an Account
+                <a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
+                    Deploy Free
+                </a>
+                <a href="#how-it-works" class="w-full sm:w-auto px-5 py-2.5 bg-card border border-border text-foreground hover:bg-card-elevated text-sm font-medium rounded-md transition-colors text-center">
+                    See How It Works
                 </a>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-border py-10">
+    <footer class="border-t border-border py-10" role="contentinfo">
         <div class="max-w-5xl mx-auto px-6">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Brand -->
                 <div>
-                    <a href="/" class="flex items-center space-x-2 mb-2">
+                    <a href="/" class="flex items-center space-x-2 mb-3">
                         <div class="w-6 h-6 bg-accent rounded-md flex items-center justify-center">
                             <i data-lucide="shield-check" class="w-3 h-3 text-white"></i>
                         </div>
                         <span class="text-sm font-semibold text-foreground">WatchDog</span>
                     </a>
-                    <p class="text-xs text-muted-foreground max-w-xs">Open-source infrastructure monitoring. Built by Sylvester Francis.</p>
+                    <p class="text-xs text-muted-foreground leading-relaxed">Open-source infrastructure monitoring for services behind your firewall.</p>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="https://github.com/sylvester-francis" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" title="GitHub">
-                        <i data-lucide="github" class="w-4 h-4"></i>
-                    </a>
-                    <a href="https://www.linkedin.com/in/sylvesterranjith/" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" title="LinkedIn">
-                        <i data-lucide="linkedin" class="w-4 h-4"></i>
-                    </a>
-                    <a href="https://medium.com/@sylvesterranjithfrancis" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" title="Medium">
-                        <i data-lucide="book-open" class="w-4 h-4"></i>
-                    </a>
-                    <a href="https://techwithsyl.substack.com/" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" title="Substack">
-                        <i data-lucide="mail" class="w-4 h-4"></i>
-                    </a>
+
+                <!-- Product -->
+                <div>
+                    <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Product</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#features" class="text-xs text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
+                        <li><a href="#pricing" class="text-xs text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                        <li><a href="/docs" class="text-xs text-muted-foreground hover:text-foreground transition-colors">API Docs</a></li>
+                    </ul>
+                </div>
+
+                <!-- Community -->
+                <div>
+                    <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Community</h4>
+                    <ul class="space-y-2">
+                        <li><a href="https://github.com/sylvester-francis/Watchdog" target="_blank" rel="noopener noreferrer" class="text-xs text-muted-foreground hover:text-foreground transition-colors" aria-label="WatchDog on GitHub">GitHub</a></li>
+                        <li><a href="https://discord.gg/PPPjZDVS" target="_blank" rel="noopener noreferrer" class="text-xs text-muted-foreground hover:text-foreground transition-colors" aria-label="WatchDog Discord server">Discord</a></li>
+                    </ul>
+                </div>
+
+                <!-- Legal -->
+                <div>
+                    <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/terms" class="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms</a></li>
+                        <li><a href="/privacy" class="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy</a></li>
+                    </ul>
                 </div>
             </div>
-            <div class="mt-6 pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-2">
-                <p class="text-[11px] text-muted-foreground/60">WatchDog &mdash; Open-source infrastructure monitoring.</p>
-                <div class="flex items-center space-x-4">
-                    <a href="/terms" class="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors">Terms</a>
-                    <a href="/privacy" class="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors">Privacy</a>
-                </div>
+
+            <div class="mt-8 pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <p class="text-[11px] text-muted-foreground/60">&copy; {{.Year}} WatchDog</p>
+                <p class="text-[11px] text-muted-foreground/60">Open-source infrastructure monitoring</p>
             </div>
         </div>
     </footer>
@@ -385,8 +524,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
+        var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var reveals = document.querySelectorAll('.reveal');
-        if ('IntersectionObserver' in window) {
+        if ('IntersectionObserver' in window && !prefersReducedMotion) {
             var observer = new IntersectionObserver(function(entries) {
                 entries.forEach(function(entry) {
                     if (entry.isIntersecting) {
