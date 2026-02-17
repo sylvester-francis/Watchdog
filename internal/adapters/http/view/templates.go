@@ -38,8 +38,8 @@ func NewTemplates(dir string) (*Templates, error) {
 		"statusBgColor":    statusBgColor,
 		"statusIcon":       statusIcon,
 		"monitorTypeIcon":  monitorTypeIcon,
-		"lower":            strings.ToLower,
-		"upper":            strings.ToUpper,
+		"lower":            func(v interface{}) string { return strings.ToLower(fmt.Sprint(v)) },
+		"upper":            func(v interface{}) string { return strings.ToUpper(fmt.Sprint(v)) },
 		"title":            cases.Title(language.English).String,
 
 		"add":              add,
