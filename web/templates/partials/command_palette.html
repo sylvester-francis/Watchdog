@@ -51,9 +51,9 @@
 
                 <template x-for="(item, index) in results" :key="item.id">
                     <a :href="item.url"
-                       class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-smooth cursor-pointer"
-                       :class="index === selectedIndex ? 'bg-accent/10 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'"
-                       @mouseenter="selectedIndex = index">
+                       data-cp-item
+                       class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-smooth cursor-pointer text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                       @mouseenter="selectItem">
                         <i :data-lucide="item.icon" class="w-4 h-4 shrink-0"></i>
                         <span x-text="item.label" class="flex-1 truncate"></span>
                         <span x-text="item.type"
