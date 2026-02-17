@@ -3,7 +3,7 @@
 {{end}}
 
 {{define "content"}}
-<div x-data="{ view: 'table', selectedIncidents: [], selectAll: false }" class="space-y-4">
+<div x-data="incidentManager" class="space-y-4">
 
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -66,25 +66,25 @@
 
         <div class="flex items-center space-x-3">
             <!-- Bulk Actions (shown when incidents selected) -->
-            <div x-show="selectedIncidents.length > 0" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="flex items-center space-x-2">
-                <span class="text-xs text-muted-foreground" x-text="selectedIncidents.length + ' selected'"></span>
+            <div x-show="hasSelection" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="flex items-center space-x-2">
+                <span class="text-xs text-muted-foreground" x-text="selectionCount"></span>
                 <button @click="bulkAck()" class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-all duration-200">
                     Ack All
                 </button>
                 <button @click="bulkResolve()" class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-all duration-200">
                     Resolve All
                 </button>
-                <button @click="selectedIncidents = []; selectAll = false" class="px-2 py-1 text-muted-foreground hover:text-foreground text-xs transition-all duration-200">
+                <button @click="clearSelection" class="px-2 py-1 text-muted-foreground hover:text-foreground text-xs transition-all duration-200">
                     Clear
                 </button>
             </div>
 
             <!-- View Toggle -->
             <div class="flex items-center bg-card-elevated rounded-lg p-1">
-                <button @click="view = 'table'" :class="view === 'table' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'" class="p-1.5 rounded-md transition-all duration-200">
+                <button @click="showTableView" :class="tableViewClass" class="p-1.5 rounded-md transition-all duration-200">
                     <i data-lucide="table-2" class="w-3.5 h-3.5"></i>
                 </button>
-                <button @click="view = 'timeline'" :class="view === 'timeline' ? 'bg-muted text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'" class="p-1.5 rounded-md transition-all duration-200">
+                <button @click="showTimelineView" :class="timelineViewClass" class="p-1.5 rounded-md transition-all duration-200">
                     <i data-lucide="git-commit-horizontal" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
@@ -94,14 +94,14 @@
     {{if .IncidentsWithMonitors}}
 
     <!-- TABLE VIEW -->
-    <div x-show="view === 'table'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="bg-card border border-border rounded-lg">
+    <div x-show="isTableView" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="bg-card border border-border rounded-lg">
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-border">
                         <th class="px-4 py-3 text-left w-10">
                             <input type="checkbox" x-model="selectAll"
-                                @change="selectAll ? selectedIncidents = [{{range $i, $im := .IncidentsWithMonitors}}{{if $i}},{{end}}'{{$im.Incident.ID}}'{{end}}] : selectedIncidents = []"
+                                @change="toggleSelectAll"
                                 class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-accent/20 focus:ring-offset-0 cursor-pointer">
                         </th>
                         <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
@@ -122,7 +122,7 @@
     </div>
 
     <!-- TIMELINE VIEW -->
-    <div x-show="view === 'timeline'" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="animate-fade-in-up stagger-2">
+    <div x-show="isTimelineView" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="animate-fade-in-up stagger-2">
         <div class="relative">
             <!-- Vertical line -->
             <div class="absolute left-[19px] top-0 bottom-0 w-px bg-border"></div>
@@ -253,7 +253,7 @@ function bulkResolve() {
 {{end}}
 
 {{define "incident_row"}}
-<tr id="incident-{{.Incident.ID}}" class="hover:bg-card-elevated transition-all duration-200 group">
+<tr id="incident-{{.Incident.ID}}" data-incident-id="{{.Incident.ID}}" class="hover:bg-card-elevated transition-all duration-200 group">
     <!-- Checkbox -->
     <td class="px-4 py-3.5">
         <input type="checkbox" :value="'{{.Incident.ID}}'" x-model="selectedIncidents"

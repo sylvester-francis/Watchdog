@@ -18,6 +18,9 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
 
+    <!-- Alpine.js Components (must load before Alpine) -->
+    <script src="/static/js/alpine-components.js"></script>
+
     <!-- Alpine.js (CSP build — no unsafe-eval needed) -->
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.14.8/dist/cdn.min.js"></script>
 
@@ -27,135 +30,13 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        background: '#09090b',
-                        foreground: '#fafafa',
-                        card: { DEFAULT: '#111113', foreground: '#fafafa' },
-                        'card-elevated': '#18181b',
-                        muted: { DEFAULT: '#27272a', foreground: '#a1a1aa' },
-                        accent: { DEFAULT: '#3b82f6', foreground: '#fafafa' },
-                        border: '#27272a',
-                        input: '#27272a',
-                        ring: '#3b82f6',
-                        destructive: { DEFAULT: '#ef4444', foreground: '#fafafa' },
-                        success: '#22c55e',
-                        warning: '#eab308',
-                    },
-                    borderRadius: {
-                        lg: '0.5rem',
-                        md: 'calc(0.5rem - 2px)',
-                        sm: 'calc(0.5rem - 4px)',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
-                    },
-                }
-            }
-        }
-    </script>
-
-    <style>
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .animate-pulse-dot {
-            animation: pulse-dot 2s ease-in-out infinite;
-        }
-
-        /* Smooth transitions */
-        .transition-smooth {
-            transition: all 0.15s ease-in-out;
-        }
-
-        /* Toast animations */
-        @keyframes slide-in {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slide-out {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-        .toast-enter { animation: slide-in 0.3s ease-out; }
-        .toast-exit { animation: slide-out 0.3s ease-in forwards; }
-
-        /* Fade-in-up for page elements */
-        @keyframes fade-in-up {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-            animation: fade-in-up 0.5s ease-out both;
-        }
-        .stagger-1 { animation-delay: 0.05s; }
-        .stagger-2 { animation-delay: 0.1s; }
-        .stagger-3 { animation-delay: 0.15s; }
-        .stagger-4 { animation-delay: 0.2s; }
-
-        /* Skeleton shimmer */
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        .skeleton {
-            background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            border-radius: 0.25rem;
-        }
-
-        /* Scroll reveal */
-        .reveal {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-        }
-        .reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Slide-in from right (for panels) */
-        @keyframes slide-in-right {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-        .animate-slide-in-right {
-            animation: slide-in-right 0.3s ease-out;
-        }
-
-        /* Toast progress bar */
-        @keyframes toast-progress {
-            from { width: 100%; }
-            to { width: 0%; }
-        }
-        .toast-progress {
-            animation: toast-progress 4s linear forwards;
-        }
-
-        /* Hide Alpine-controlled elements until Alpine initializes */
-        [x-cloak] { display: none !important; }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #09090b; }
-        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-    </style>
+    <!-- Tailwind CSS (pre-built) -->
+    <link rel="stylesheet" href="/static/css/output.css">
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen antialiased"
-      x-data="{ sidebarOpen: true, commandPaletteOpen: false }"
-      @keydown.meta.k.prevent="commandPaletteOpen = !commandPaletteOpen"
-      @keydown.ctrl.k.prevent="commandPaletteOpen = !commandPaletteOpen">
+      x-data="baseLayout"
+      @keydown.meta.k.prevent="toggleCommandPalette"
+      @keydown.ctrl.k.prevent="toggleCommandPalette">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         {{template "sidebar" .}}
@@ -167,7 +48,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
                         <!-- Mobile hamburger -->
-                        <button @click="sidebarOpen = !sidebarOpen"
+                        <button @click="toggleSidebar"
                                 aria-label="Toggle navigation menu"
                                 class="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-smooth">
                             <i data-lucide="menu" class="w-5 h-5"></i>
@@ -176,7 +57,7 @@
                     </div>
                     <div class="flex items-center space-x-4">
                         <!-- Cmd+K trigger -->
-                        <button @click="commandPaletteOpen = true"
+                        <button @click="openCommandPalette"
                                 class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-md border border-border bg-card text-muted-foreground text-xs hover:text-foreground hover:border-muted-foreground/30 transition-smooth">
                             <i data-lucide="search" class="w-3.5 h-3.5"></i>
                             <span>Search...</span>
@@ -220,7 +101,6 @@
     <!-- Custom JS -->
     <script src="/static/js/app.js"></script>
     <script src="/static/js/charts.js"></script>
-    <script src="/static/js/command-palette.js"></script>
 </body>
 </html>
 {{end}}
