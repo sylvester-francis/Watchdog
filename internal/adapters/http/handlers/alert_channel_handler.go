@@ -155,10 +155,16 @@ func (h *AlertChannelHandler) TestChannel(c echo.Context) error {
 	defer cancel()
 
 	if err := notifier.NotifyIncidentOpened(ctx, testIncident, testMonitor); err != nil {
-		return c.String(http.StatusBadGateway, "Test failed. Check your configuration.")
+		return c.HTML(http.StatusBadGateway, `<div class="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-md flex items-center space-x-2">
+			<i data-lucide="x-circle" class="w-3.5 h-3.5 text-red-400 shrink-0"></i>
+			<span class="text-xs text-red-400">Test failed. Check your configuration.</span>
+		</div>`)
 	}
 
-	return c.String(http.StatusOK, "Test notification sent!")
+	return c.HTML(http.StatusOK, `<div class="px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center space-x-2">
+		<i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+		<span class="text-xs text-emerald-400">Test notification sent!</span>
+	</div>`)
 }
 
 // extractConfig pulls type-specific config fields from the form.

@@ -30,10 +30,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (id === 'channel-form') {
                 elt.reset();
                 document.getElementById('new-channel-modal').classList.add('hidden');
+                var empty = document.getElementById('channel-empty');
+                if (empty) empty.remove();
             } else if (id === 'token-form') {
                 elt.reset();
             } else if (id === 'monitor-form') {
                 document.getElementById('new-monitor-modal').classList.add('hidden');
+                var monEmpty = document.getElementById('monitors-empty');
+                if (monEmpty) monEmpty.remove();
+                var monTable = document.getElementById('monitors-table-container');
+                if (monTable) monTable.classList.remove('hidden');
             } else if (id === 'admin-user-form') {
                 document.getElementById('new-user-modal').classList.add('hidden');
                 elt.reset();
