@@ -30,18 +30,22 @@ Most self-hosted monitoring tools (Uptime Kuma, Gatus, Statping) run checks from
 
 **Deploy lightweight agents inside your networks.** Each agent connects outbound to the Hub over WebSocket — no inbound firewall rules, no VPN tunnels, no port forwarding. The Hub collects results, manages incidents, and sends alerts.
 
-```
-┌─────────────────────────────┐       ┌──────────────────────────────┐
-│  Your Office / Data Center  │       │        WatchDog Hub          │
-│                             │       │                              │
-│  ┌─────────┐                │       │  Dashboard · API · Alerts    │
-│  │  Agent   │───WebSocket──────────▶│  PostgreSQL + TimescaleDB    │
-│  └────┬─────┘   (outbound)  │       │                              │
-│       │                     │       └──────────────────────────────┘
-│  ┌────▼────┐  ┌──────────┐  │
-│  │ DB:5432 │  │ API:8080 │  │
-│  └─────────┘  └──────────┘  │
-└─────────────────────────────┘
+```mermaid
+graph LR
+    subgraph net["Your Office / Data Center"]
+        Agent["Agent"]
+        DB["DB :5432"]
+        API["API :8080"]
+        Agent --> DB
+        Agent --> API
+    end
+
+    subgraph hub["WatchDog Hub"]
+        Dashboard["Dashboard · API · Alerts"]
+        PG[("PostgreSQL +\nTimescaleDB")]
+    end
+
+    Agent -- "WebSocket (outbound)" --> hub
 ```
 
 ## Features
@@ -251,29 +255,21 @@ Tokens use the format `wd_<32 hex chars>`. Only the SHA-256 hash is stored — t
 
 ## Deployment
 
-### Railway (Recommended)
+### Docker Compose on VPS (Recommended)
 
-The Hub is deployed on [Railway](https://railway.app) at [usewatchdog.dev](https://usewatchdog.dev). To deploy your own instance:
+The live instance at [usewatchdog.dev](https://usewatchdog.dev) runs on a VPS with Docker Compose + Caddy (auto-SSL).
 
-1. Fork this repository
-2. Create a new Railway project and connect your fork
-3. Add a **PostgreSQL** service (Railway provides managed Postgres with TimescaleDB)
-4. Set the required environment variables (`DATABASE_URL`, `ENCRYPTION_KEY`, `SESSION_SECRET`)
-5. Railway auto-detects the `railway.toml` and builds using the Dockerfile
+```bash
+# One-time VPS setup (installs Docker, clones repo, generates secrets)
+bash scripts/vps-setup.sh
 
-The included `railway.toml` configures the build and health check:
-
-```toml
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "deployments/Dockerfile.hub"
-
-[deploy]
-startCommand = "/app/hub"
-healthcheckPath = "/health"
+# Deploy (from deployments/ directory)
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### Docker Compose (Self-Hosted)
+The production stack includes Caddy (reverse proxy with automatic HTTPS), PostgreSQL + TimescaleDB, and the Hub.
+
+### Docker Compose (Local / Development)
 
 ```bash
 # Build and start the full stack (Hub + PostgreSQL + TimescaleDB)
@@ -346,7 +342,7 @@ WatchDog is currently in beta. All users get the full feature set for free:
 | API Docs | OpenAPI 3.0 + Swagger UI |
 | CLI | Pure Go (zero external dependencies) |
 | Icons | Lucide |
-| Deployment | Railway, Docker + Docker Compose |
+| Deployment | Docker Compose + Caddy on VPS |
 
 ## Related Repositories
 
