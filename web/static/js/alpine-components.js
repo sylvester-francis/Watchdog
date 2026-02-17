@@ -14,6 +14,9 @@ Alpine.data('baseLayout', () => ({
     toggleCommandPalette() { this.commandPaletteOpen = !this.commandPaletteOpen; },
     openCommandPalette() { this.commandPaletteOpen = true; },
     closeCommandPalette() { this.commandPaletteOpen = false; },
+    get sidebarClass() {
+        return this.sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0';
+    },
 }));
 
 // 2. commandPalette — partials/command_palette.html
@@ -63,6 +66,27 @@ Alpine.data('commandPalette', () => ({
                 });
             }
         });
+
+        // Highlight selected result via DOM (CSP build can't evaluate ternaries)
+        this.$watch('selectedIndex', () => this.updateHighlight());
+        this.$watch('results', () => this.$nextTick(() => this.updateHighlight()));
+    },
+    selectItem(event) {
+        var items = Array.from(this.$el.querySelectorAll('[data-cp-item]'));
+        var idx = items.indexOf(event.currentTarget);
+        if (idx !== -1) this.selectedIndex = idx;
+    },
+    updateHighlight() {
+        var items = this.$el.querySelectorAll('[data-cp-item]');
+        for (var i = 0; i < items.length; i++) {
+            if (i === this.selectedIndex) {
+                items[i].classList.add('bg-accent/10', 'text-foreground');
+                items[i].classList.remove('text-muted-foreground');
+            } else {
+                items[i].classList.remove('bg-accent/10', 'text-foreground');
+                items[i].classList.add('text-muted-foreground');
+            }
+        }
     },
     search() {
         this.selectedIndex = 0;
@@ -102,16 +126,33 @@ Alpine.data('mobileNav', () => ({
 }));
 
 // 4. dashboardMockup — landing page hero animated demo
+// Classes pre-computed because CSP build can't evaluate ternaries in templates
 Alpine.data('dashboardMockup', () => ({
     stats: { monitors: 12, healthy: 11 },
     services: [
-        { name: 'PostgreSQL', type: 'tcp', status: 'up', latency: '2ms' },
-        { name: 'Redis Cache', type: 'tcp', status: 'up', latency: '1ms' },
-        { name: 'API Gateway', type: 'http', status: 'up', latency: '45ms' },
-        { name: 'Auth Service', type: 'http', status: 'up', latency: '12ms' },
-        { name: 'Vault', type: 'http', status: 'down', latency: 'timeout' },
+        { name: 'PostgreSQL', type: 'tcp', latency: '2ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
+        { name: 'Redis Cache', type: 'tcp', latency: '1ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
+        { name: 'API Gateway', type: 'http', latency: '45ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
+        { name: 'Auth Service', type: 'http', latency: '12ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
+        { name: 'Vault', type: 'http', latency: 'timeout', dotClass: 'bg-red-400', latencyClass: 'text-red-400' },
     ],
-    bars: [35, 42, 38, 55, 40, 62, 45, 90, 48, 35, 42, 38, 44, 50, 35],
+    bars: [
+        { cls: 'bg-emerald-500/40', style: 'height: 35%; animation-delay: 0s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 42%; animation-delay: 0.05s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 38%; animation-delay: 0.1s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 55%; animation-delay: 0.15s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 40%; animation-delay: 0.2s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 62%; animation-delay: 0.25s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 45%; animation-delay: 0.3s;' },
+        { cls: 'bg-red-500/60', style: 'height: 90%; animation-delay: 0.35s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 48%; animation-delay: 0.4s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 35%; animation-delay: 0.45s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 42%; animation-delay: 0.5s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 38%; animation-delay: 0.55s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 44%; animation-delay: 0.6s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 50%; animation-delay: 0.65s;' },
+        { cls: 'bg-emerald-500/40', style: 'height: 35%; animation-delay: 0.7s;' },
+    ],
 }));
 
 // 5. monitorFilter — pages/monitors.html

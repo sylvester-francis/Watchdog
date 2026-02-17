@@ -20,7 +20,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.14.8/dist/cdn.min.js"></script>
 
     <!-- Alpine.js Components (registers via alpine:init, must load before Alpine) -->
-    <script src="/static/js/alpine-components.js?v=2"></script>
+    <script src="/static/js/alpine-components.js?v=3"></script>
 
     <!-- Tailwind CSS (pre-built) -->
     <link rel="stylesheet" href="/static/css/output.css">
@@ -148,12 +148,12 @@
                                         <div class="flex items-center justify-between px-3 py-2">
                                             <div class="flex items-center space-x-2">
                                                 <div class="w-1.5 h-1.5 rounded-full"
-                                                    :class="service.status === 'up' ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'"></div>
+                                                    :class="service.dotClass"></div>
                                                 <span class="text-xs text-foreground" x-text="service.name"></span>
                                                 <span class="text-[9px] text-muted-foreground font-mono uppercase" x-text="service.type"></span>
                                             </div>
                                             <span class="text-[10px] font-mono"
-                                                :class="service.status === 'up' ? 'text-muted-foreground' : 'text-red-400'"
+                                                :class="service.latencyClass"
                                                 x-text="service.latency"></span>
                                         </div>
                                     </template>
@@ -164,10 +164,10 @@
                             <div class="bg-card-elevated rounded-md p-3 border border-border/50">
                                 <p class="text-[9px] text-muted-foreground uppercase tracking-wider mb-2">Response Time (ms)</p>
                                 <div class="flex items-end space-x-1 h-16">
-                                    <template x-for="(h, i) in bars" :key="i">
+                                    <template x-for="bar in bars" :key="bar.style">
                                         <div class="flex-1 rounded-sm bar-animate"
-                                            :class="h > 80 ? 'bg-red-500/60' : 'bg-emerald-500/40'"
-                                            :style="'height: ' + h + '%; animation-delay: ' + (i * 0.05) + 's;'"></div>
+                                            :class="bar.cls"
+                                            :style="bar.style"></div>
                                     </template>
                                 </div>
                             </div>
