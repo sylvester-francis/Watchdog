@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -13,6 +14,12 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/core/domain"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
+
+// DayUptime represents a single day's uptime percentage for a monitor.
+type DayUptime struct {
+	Date    string  // YYYY-MM-DD
+	Percent float64 // 0-100
+}
 
 // StatusPageHandler handles status page HTTP requests.
 type StatusPageHandler struct {
@@ -223,14 +230,18 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 	monitorIDs, _ := h.statusPageRepo.GetMonitorIDs(ctx, page.ID)
 
 	type monitorStatus struct {
-		Name   string
-		Target string
-		Type   string
-		Status string
+		Name          string
+		Target        string
+		Type          string
+		Status        string
+		UptimeHistory []DayUptime
 	}
 
 	var monitors []monitorStatus
 	allUp := true
+	now := time.Now().UTC()
+	ninetyDaysAgo := now.AddDate(0, 0, -90)
+
 	for _, mid := range monitorIDs {
 		m, err := h.monitorRepo.GetByID(ctx, mid)
 		if err != nil || m == nil {
@@ -240,11 +251,40 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 		if m.Status != domain.MonitorStatusUp {
 			allUp = false
 		}
+
+		// Compute 90-day uptime history
+		var uptimeHistory []DayUptime
+		heartbeats, err := h.heartbeatRepo.GetByMonitorIDInRange(ctx, mid, ninetyDaysAgo, now)
+		if err == nil && len(heartbeats) > 0 {
+			// Group by day
+			dayMap := make(map[string]struct{ up, total int })
+			for _, hb := range heartbeats {
+				day := hb.Time.Format("2006-01-02")
+				entry := dayMap[day]
+				entry.total++
+				if hb.Status.IsSuccess() {
+					entry.up++
+				}
+				dayMap[day] = entry
+			}
+			// Build 90-day array
+			for i := 89; i >= 0; i-- {
+				day := now.AddDate(0, 0, -i).Format("2006-01-02")
+				if entry, ok := dayMap[day]; ok && entry.total > 0 {
+					pct := float64(entry.up) / float64(entry.total) * 100
+					uptimeHistory = append(uptimeHistory, DayUptime{Date: day, Percent: pct})
+				} else {
+					uptimeHistory = append(uptimeHistory, DayUptime{Date: day, Percent: -1}) // -1 = no data
+				}
+			}
+		}
+
 		monitors = append(monitors, monitorStatus{
-			Name:   m.Name,
-			Target: m.Target,
-			Type:   string(m.Type),
-			Status: status,
+			Name:          m.Name,
+			Target:        m.Target,
+			Type:          string(m.Type),
+			Status:        status,
+			UptimeHistory: uptimeHistory,
 		})
 	}
 

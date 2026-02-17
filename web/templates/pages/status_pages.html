@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <h1 class="text-lg font-semibold text-foreground">Status Pages</h1>
-        <button onclick="document.getElementById('new-page-modal').classList.remove('hidden')"
+        <button @click="$dispatch('open-page-modal')"
                 class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
             New Status Page
         </button>
@@ -49,7 +49,8 @@
                         Edit
                     </a>
                     <button onclick="showDeleteModal('{{.ID}}', '{{.Name}}')"
-                            class="px-2 py-1 text-xs text-destructive hover:text-destructive/80 transition-colors">
+                            class="px-2 py-1 text-xs text-destructive hover:text-destructive/80 transition-colors"
+                            aria-label="Delete status page {{.Name}}">
                         Delete
                     </button>
                 </div>
@@ -67,12 +68,18 @@
 </div>
 
 <!-- New Status Page Modal -->
-<div id="new-page-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
+<div id="new-page-modal" x-data="{ show: false }" @open-page-modal.window="show = true"
+     x-show="show" x-cloak
+     role="dialog" aria-label="New status page"
+     class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4 modal-enter"
+         @click.outside="show = false">
         <div class="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 class="text-sm font-medium text-foreground">New Status Page</h3>
-            <button onclick="document.getElementById('new-page-modal').classList.add('hidden')"
-                    class="text-muted-foreground hover:text-foreground">
+            <button @click="show = false"
+                    class="text-muted-foreground hover:text-foreground" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -91,7 +98,7 @@
                        placeholder="Current system status">
             </div>
             <div class="flex justify-end space-x-2 pt-2">
-                <button type="button" onclick="document.getElementById('new-page-modal').classList.add('hidden')"
+                <button type="button" @click="show = false"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Cancel
                 </button>
@@ -105,12 +112,18 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="delete-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm mx-4">
+<div id="delete-modal" x-data="{ show: false }" @open-delete-modal.window="show = true"
+     x-show="show" x-cloak
+     role="dialog" aria-label="Delete confirmation"
+     class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm mx-4 modal-enter"
+         @click.outside="show = false">
         <div class="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 class="text-sm font-medium text-foreground">Delete Status Page</h3>
-            <button onclick="hideDeleteModal()"
-                    class="text-muted-foreground hover:text-foreground">
+            <button @click="show = false"
+                    class="text-muted-foreground hover:text-foreground" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -119,7 +132,7 @@
                 Are you sure you want to delete <span id="delete-page-name" class="text-foreground font-medium"></span>? This action cannot be undone.
             </p>
             <div class="flex justify-end space-x-2 mt-4">
-                <button type="button" onclick="hideDeleteModal()"
+                <button type="button" @click="show = false"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Cancel
                 </button>
@@ -138,11 +151,14 @@ var deletePageId = '';
 function showDeleteModal(id, name) {
     deletePageId = id;
     document.getElementById('delete-page-name').textContent = name;
-    document.getElementById('delete-modal').classList.remove('hidden');
+    window.dispatchEvent(new CustomEvent('open-delete-modal'));
 }
 
 function hideDeleteModal() {
-    document.getElementById('delete-modal').classList.add('hidden');
+    var modal = document.getElementById('delete-modal');
+    if (modal && modal._x_dataStack) {
+        modal._x_dataStack[0].show = false;
+    }
     deletePageId = '';
 }
 

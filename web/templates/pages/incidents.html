@@ -13,19 +13,19 @@
         {{if .IncidentStats}}
         <div class="flex items-center space-x-3">
             {{if gt .IncidentStats.Open 0}}
-            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20">
-                <div class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></div>
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20 border-l-[3px] border-l-red-500">
+                <div class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse-dot"></div>
                 <span class="text-xs font-medium text-red-400 font-mono">{{.IncidentStats.Open}} open</span>
             </div>
             {{end}}
             {{if gt .IncidentStats.Acknowledged 0}}
-            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20">
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 border-l-[3px] border-l-amber-500">
                 <div class="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
                 <span class="text-xs font-medium text-yellow-400 font-mono">{{.IncidentStats.Acknowledged}} acked</span>
             </div>
             {{end}}
             {{if gt .IncidentStats.Resolved 0}}
-            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 border-l-[3px] border-l-emerald-500">
                 <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
                 <span class="text-xs font-medium text-emerald-400 font-mono">{{.IncidentStats.Resolved}} resolved</span>
             </div>
@@ -81,10 +81,10 @@
 
             <!-- View Toggle -->
             <div class="flex items-center bg-card-elevated rounded-lg p-1">
-                <button @click="showTableView" :class="tableViewClass" class="p-1.5 rounded-md transition-all duration-200">
+                <button @click="showTableView" :class="tableViewClass" class="p-1.5 rounded-md transition-all duration-200" aria-label="Table view">
                     <i data-lucide="table-2" class="w-3.5 h-3.5"></i>
                 </button>
-                <button @click="showTimelineView" :class="timelineViewClass" class="p-1.5 rounded-md transition-all duration-200">
+                <button @click="showTimelineView" :class="timelineViewClass" class="p-1.5 rounded-md transition-all duration-200" aria-label="Timeline view">
                     <i data-lucide="git-commit-horizontal" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
@@ -133,7 +133,7 @@
                     <!-- Dot -->
                     <div class="relative z-10 flex-shrink-0 w-10 flex justify-center pt-1">
                         <div class="w-3 h-3 rounded-full border-2
-                            {{if eq (print .Incident.Status) "open"}}bg-red-500 border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.4)]
+                            {{if eq (print .Incident.Status) "open"}}bg-red-500 border-red-400 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse-dot
                             {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500 border-yellow-400 shadow-[0_0_8px_rgba(234,179,8,0.4)]
                             {{else}}bg-emerald-500 border-emerald-400{{end}}"></div>
                     </div>
@@ -205,6 +205,7 @@
             </div>
             <h3 class="text-sm font-medium text-foreground mb-1">No active incidents</h3>
             <p class="text-sm text-muted-foreground">All systems are running smoothly.</p>
+            <a href="/incidents?status=all" class="text-xs text-muted-foreground/60 hover:text-muted-foreground mt-2 inline-block transition-smooth">View incident history</a>
             {{else if eq .StatusFilter "resolved"}}
             <div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <i data-lucide="clock" class="w-6 h-6 text-muted-foreground"></i>
@@ -266,7 +267,7 @@ function bulkResolve() {
             <div class="w-2 h-2 rounded-full
                 {{if eq (print .Incident.Status) "open"}}bg-red-400 animate-pulse
                 {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-400
-                {{else}}bg-emerald-400{{end}}"></div>
+                {{else}}bg-emerald-400{{end}}" aria-label="Status: {{.Incident.Status}}"></div>
             <span class="text-xs font-medium px-1.5 py-0.5 rounded
                 {{if eq (print .Incident.Status) "open"}}bg-red-500/15 text-red-400
                 {{else if eq (print .Incident.Status) "acknowledged"}}bg-yellow-500/15 text-yellow-400
@@ -330,14 +331,16 @@ function bulkResolve() {
         <div class="flex items-center justify-end space-x-1.5">
             {{if eq (print .Incident.Status) "open"}}
             <button hx-post="/incidents/{{.Incident.ID}}/ack" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
-                class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-all duration-200">
-                Ack
+                class="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-md text-xs font-medium transition-all duration-200 inline-flex items-center space-x-1">
+                <i data-lucide="check" class="w-3 h-3"></i>
+                <span>Ack</span>
             </button>
             {{end}}
             {{if or (eq (print .Incident.Status) "open") (eq (print .Incident.Status) "acknowledged")}}
             <button hx-post="/incidents/{{.Incident.ID}}/resolve?filter=active" hx-target="#incident-{{.Incident.ID}}" hx-swap="outerHTML"
-                class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-all duration-200">
-                Resolve
+                class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-md text-xs font-medium transition-all duration-200 inline-flex items-center space-x-1">
+                <i data-lucide="check-check" class="w-3 h-3"></i>
+                <span>Resolve</span>
             </button>
             {{end}}
             {{if eq (print .Incident.Status) "resolved"}}

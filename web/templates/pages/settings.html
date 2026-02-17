@@ -7,7 +7,7 @@
     <!-- Page Header -->
     <div>
         <h1 class="text-lg font-semibold text-foreground">Settings</h1>
-        <p class="text-xs text-muted-foreground mt-1">Manage notification channels and API access.</p>
+        <p class="text-xs text-muted-foreground mt-1">Manage your account, notifications, and API access.</p>
     </div>
 
     <!-- Username Section -->
@@ -63,7 +63,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Get notified when incidents open or resolve.</p>
                 </div>
             </div>
-            <button onclick="document.getElementById('new-channel-modal').classList.remove('hidden')"
+            <button @click="$dispatch('open-channel-modal')"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Add Channel</span>
@@ -89,14 +89,26 @@
         </div>
 
         <div class="px-5 py-2.5 border-t border-border/50 bg-muted/10">
-            <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
-                <span class="text-muted-foreground/50 mr-1">Integrations:</span>
-                <span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400/80">Discord</span>
-                <span class="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400/80">Slack</span>
-                <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400/80">Email</span>
-                <span class="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400/80">Telegram</span>
-                <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/80">PagerDuty</span>
-                <span class="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400/80">Webhook</span>
+            <div class="flex flex-wrap items-center gap-2 text-[11px]">
+                <span class="text-muted-foreground/50 mr-0.5">Integrations:</span>
+                <span class="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400/80 inline-flex items-center space-x-1">
+                    <i data-lucide="message-circle" class="w-3 h-3"></i><span>Discord</span>
+                </span>
+                <span class="px-2 py-0.5 rounded bg-green-500/10 text-green-400/80 inline-flex items-center space-x-1">
+                    <i data-lucide="hash" class="w-3 h-3"></i><span>Slack</span>
+                </span>
+                <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400/80 inline-flex items-center space-x-1">
+                    <i data-lucide="mail" class="w-3 h-3"></i><span>Email</span>
+                </span>
+                <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400/80 inline-flex items-center space-x-1">
+                    <i data-lucide="send" class="w-3 h-3"></i><span>Telegram</span>
+                </span>
+                <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400/80 inline-flex items-center space-x-1">
+                    <i data-lucide="phone-call" class="w-3 h-3"></i><span>PagerDuty</span>
+                </span>
+                <span class="px-2 py-0.5 rounded bg-orange-500/10 text-orange-400/80 inline-flex items-center space-x-1">
+                    <i data-lucide="webhook" class="w-3 h-3"></i><span>Webhook</span>
+                </span>
             </div>
         </div>
     </div>
@@ -118,7 +130,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Programmatic access to the WatchDog API.</p>
                 </div>
             </div>
-            <button onclick="document.getElementById('new-token-modal').classList.remove('hidden')"
+            <button @click="$dispatch('open-token-modal')"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Token</span>
@@ -156,9 +168,16 @@
 </div>
 
 <!-- Add Channel Modal -->
-<div id="new-channel-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-     x-data="channelSelector">
-    <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+<div id="new-channel-modal"
+     x-data="channelSelector"
+     x-show="show" x-cloak
+     @open-channel-modal.window="show = true"
+     role="dialog" aria-label="Add alert channel"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+    <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto modal-enter"
+         @click.outside="show = false">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <div class="w-6 h-6 rounded-md bg-accent/10 flex items-center justify-center">
@@ -166,8 +185,8 @@
                 </div>
                 <h3 class="text-sm font-medium text-foreground">Add Alert Channel</h3>
             </div>
-            <button onclick="document.getElementById('new-channel-modal').classList.add('hidden')"
-                    class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">
+            <button @click="show = false"
+                    class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -274,7 +293,7 @@
                 </div>
             </div>
             <div class="px-5 py-3 border-t border-border bg-muted/10 flex justify-end space-x-2">
-                <button type="button" onclick="document.getElementById('new-channel-modal').classList.add('hidden')"
+                <button type="button" @click="show = false"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted">
                     Cancel
                 </button>
@@ -288,8 +307,14 @@
 </div>
 
 <!-- New Token Modal -->
-<div id="new-token-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4">
+<div id="new-token-modal" x-data="{ show: false }" @open-token-modal.window="show = true"
+     x-show="show" x-cloak
+     role="dialog" aria-label="Create API token"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+    <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4 modal-enter"
+         @click.outside="show = false">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <div class="w-6 h-6 rounded-md bg-yellow-500/10 flex items-center justify-center">
@@ -297,8 +322,8 @@
                 </div>
                 <h3 class="text-sm font-medium text-foreground">Create API Token</h3>
             </div>
-            <button onclick="document.getElementById('new-token-modal').classList.add('hidden')"
-                    class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">
+            <button @click="show = false"
+                    class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -315,23 +340,26 @@
                 <div>
                     <label class="block text-xs font-medium text-muted-foreground mb-2">Expiration</label>
                     <div class="grid grid-cols-3 gap-2">
-                        <label class="flex items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                        <label class="flex flex-col items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
                             <input type="radio" name="expires" value="never" checked class="sr-only">
                             <span class="text-xs text-foreground font-medium">Never</span>
+                            <span class="text-[9px] text-muted-foreground/60 mt-0.5">No expiry</span>
                         </label>
-                        <label class="flex items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                        <label class="flex flex-col items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
                             <input type="radio" name="expires" value="30d" class="sr-only">
                             <span class="text-xs text-foreground font-medium">30 days</span>
+                            <span class="text-[9px] text-muted-foreground/60 mt-0.5">Short-lived</span>
                         </label>
-                        <label class="flex items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                        <label class="flex flex-col items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
                             <input type="radio" name="expires" value="90d" class="sr-only">
                             <span class="text-xs text-foreground font-medium">90 days</span>
+                            <span class="text-[9px] text-muted-foreground/60 mt-0.5">Quarterly</span>
                         </label>
                     </div>
                 </div>
             </div>
             <div class="px-5 py-3 border-t border-border bg-muted/10 flex justify-end space-x-2">
-                <button type="button" onclick="document.getElementById('new-token-modal').classList.add('hidden')"
+                <button type="button" @click="show = false"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted">
                     Cancel
                 </button>
@@ -372,7 +400,8 @@
             hx-target="#token-row-{{.ID}}"
             hx-swap="outerHTML"
             hx-confirm="Delete this token? This cannot be undone."
-            class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10 opacity-0 group-hover:opacity-100 shrink-0">
+            class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10 opacity-0 group-hover:opacity-100 shrink-0"
+            aria-label="Delete token {{.Name}}">
         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
     </button>
 </div>
@@ -458,7 +487,8 @@
                     hx-target="#channel-row-{{.ID}}"
                     hx-swap="outerHTML"
                     hx-confirm="Delete this alert channel?"
-                    class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10">
+                    class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10"
+                    aria-label="Delete channel {{.Name}}">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
         </div>

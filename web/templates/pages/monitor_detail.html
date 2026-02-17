@@ -19,7 +19,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center space-x-4">
                 <div class="w-10 h-10 rounded-lg {{if eq (print .Monitor.Status) "up"}}bg-emerald-500/10{{else if eq (print .Monitor.Status) "down"}}bg-red-500/10{{else}}bg-muted/50{{end}} flex items-center justify-center">
-                    <div class="w-3 h-3 rounded-full {{statusBgColor (print .Monitor.Status)}} {{if eq (print .Monitor.Status) "up"}}animate-pulse-dot{{end}}"></div>
+                    <div class="w-3 h-3 rounded-full {{statusBgColor (print .Monitor.Status)}} {{if eq (print .Monitor.Status) "up"}}animate-pulse-dot{{end}}" aria-label="Status: {{.Monitor.Status}}"></div>
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-foreground">{{.Monitor.Name}}</h2>
@@ -29,29 +29,31 @@
                     </div>
                 </div>
             </div>
-            <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium {{statusColor (print .Monitor.Status)}}">{{.Monitor.Status}}</span>
-                <button hx-delete="/monitors/{{.Monitor.ID}}" hx-confirm="Are you sure you want to delete '{{.Monitor.Name}}'? This cannot be undone."
-                    class="ml-4 px-3 py-1.5 text-xs text-muted-foreground hover:text-destructive border border-border hover:border-destructive/30 rounded-md transition-smooth">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5 inline-block"></i>
-                    Delete
-                </button>
-            </div>
+            <span class="text-sm font-medium {{statusColor (print .Monitor.Status)}}">{{.Monitor.Status}}</span>
         </div>
     </div>
 
     <!-- Stats Row -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div class="bg-card border border-border rounded-lg p-4">
-            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Interval</p>
+            <div class="flex items-center space-x-1.5 mb-1">
+                <i data-lucide="clock" class="w-3 h-3 text-muted-foreground"></i>
+                <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Interval</p>
+            </div>
             <p class="text-lg font-semibold text-foreground font-mono">{{.Monitor.IntervalSeconds}}s</p>
         </div>
         <div class="bg-card border border-border rounded-lg p-4">
-            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Timeout</p>
+            <div class="flex items-center space-x-1.5 mb-1">
+                <i data-lucide="timer" class="w-3 h-3 text-muted-foreground"></i>
+                <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Timeout</p>
+            </div>
             <p class="text-lg font-semibold text-foreground font-mono">{{.Monitor.TimeoutSeconds}}s</p>
         </div>
         <div class="bg-card border border-border rounded-lg p-4">
-            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Uptime</p>
+            <div class="flex items-center space-x-1.5 mb-1">
+                <i data-lucide="trending-up" class="w-3 h-3 text-muted-foreground"></i>
+                <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Uptime</p>
+            </div>
             {{if gt .UptimeTotal 0}}
             <p class="text-lg font-semibold text-foreground font-mono">{{formatPercent .UptimePercent}}%</p>
             {{else}}
@@ -59,7 +61,10 @@
             {{end}}
         </div>
         <div class="bg-card border border-border rounded-lg p-4">
-            <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Agent</p>
+            <div class="flex items-center space-x-1.5 mb-1">
+                <i data-lucide="server" class="w-3 h-3 text-muted-foreground"></i>
+                <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Agent</p>
+            </div>
             <p class="text-sm font-medium text-foreground truncate">{{if .Agent}}{{.Agent.Name}}{{else}}Unknown{{end}}</p>
         </div>
     </div>
@@ -72,7 +77,7 @@
         </div>
         <div class="p-5">
             {{if .Latencies}}
-            <div class="h-56">
+            <div class="h-56" id="detail-chart-container">
                 <canvas id="detail-latency-chart"></canvas>
             </div>
             {{else}}
@@ -80,6 +85,7 @@
                 <div class="text-center">
                     <i data-lucide="bar-chart-3" class="w-8 h-8 text-muted-foreground/20 mx-auto mb-2"></i>
                     <p class="text-xs text-muted-foreground">No latency data yet</p>
+                    <p class="text-[10px] text-muted-foreground/50 mt-1">TCP/Ping checks report connect time only</p>
                 </div>
             </div>
             {{end}}
@@ -166,6 +172,25 @@
         </div>
     </div>
     {{end}}
+
+    <!-- Danger Zone -->
+    <div class="bg-card border border-destructive/20 rounded-lg mt-6">
+        <div class="px-5 py-3.5 border-b border-destructive/20">
+            <h3 class="text-sm font-medium text-destructive">Danger Zone</h3>
+        </div>
+        <div class="px-5 py-4 flex items-center justify-between">
+            <div>
+                <p class="text-sm text-foreground">Delete this monitor</p>
+                <p class="text-xs text-muted-foreground mt-0.5">Permanently remove this monitor and all its data. This action cannot be undone.</p>
+            </div>
+            <button hx-delete="/monitors/{{.Monitor.ID}}" hx-confirm="Are you sure you want to delete '{{.Monitor.Name}}'? This cannot be undone."
+                class="px-3 py-1.5 text-xs font-medium text-destructive border border-destructive/30 hover:bg-destructive/10 rounded-md transition-smooth shrink-0 ml-4"
+                aria-label="Delete monitor {{.Monitor.Name}}">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 inline-block mr-1"></i>
+                Delete Monitor
+            </button>
+        </div>
+    </div>
 </div>
 
 {{if .Latencies}}
@@ -177,10 +202,20 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         var latencies = JSON.parse(el.textContent);
         if (latencies && latencies.length > 0) {
+            var labels = latencies.map(function(_, idx) { return idx + 1; });
             var hasData = latencies.some(function(v) { return v > 0; });
             if (hasData) {
-                var labels = latencies.map(function(_, idx) { return idx + 1; });
                 createLatencyChart('detail-latency-chart', labels, latencies);
+            } else {
+                // All zeros — render flat line at 0ms with explanatory text
+                createLatencyChart('detail-latency-chart', labels, latencies);
+                var container = document.getElementById('detail-chart-container');
+                if (container) {
+                    var note = document.createElement('p');
+                    note.className = 'text-[10px] text-muted-foreground/50 text-center mt-2';
+                    note.textContent = 'TCP/Ping checks report connect time only — 0ms indicates sub-millisecond response';
+                    container.parentNode.insertBefore(note, container.nextSibling);
+                }
             }
         }
     } catch(e) {}
