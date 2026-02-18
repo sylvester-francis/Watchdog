@@ -297,11 +297,24 @@ Alpine.data('monitorFilter', () => ({
 }));
 
 // 6. channelSelector — settings.html alert channel modal
-// NOTE: x-show reactivity is broken in Alpine CSP build for property updates.
-// We use direct DOM manipulation via data-section attributes instead.
+// NOTE: Alpine CSP build breaks @change on <select>, x-show reactivity,
+// x-model, and getters. We bypass Alpine entirely for DOM updates:
+// vanilla addEventListener + direct style.display manipulation.
 Alpine.data('channelSelector', () => ({
     channelType: 'discord',
     show: false,
+    _bound: false,
+    init() {
+        var self = this;
+        var sel = this.$el.querySelector('select[name="type"]');
+        if (sel && !this._bound) {
+            this._bound = true;
+            sel.addEventListener('change', function() {
+                self.channelType = sel.value;
+                self._syncSections();
+            });
+        }
+    },
     open() {
         this.show = true;
         this.channelType = 'discord';
@@ -310,13 +323,6 @@ Alpine.data('channelSelector', () => ({
         this._syncSections();
     },
     close() { this.show = false; },
-    updateChannelType() {
-        var sel = this.$el.querySelector('select[name="type"]');
-        if (sel) {
-            this.channelType = sel.value;
-            this._syncSections();
-        }
-    },
     _syncSections() {
         var t = this.channelType;
         var root = this.$el;
