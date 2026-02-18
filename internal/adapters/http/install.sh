@@ -2,15 +2,15 @@
 # WatchDog Agent Installer
 #
 # Usage:
+#   curl -sSL https://usewatchdog.dev/install | sh
 #   curl -sSL https://usewatchdog.dev/install | sh -s -- --api-key YOUR_KEY
-#   curl -sSL https://usewatchdog.dev/install | sh -s -- --api-key YOUR_KEY --hub-url wss://custom.host/ws/agent
 
 set -e
 
 INSTALL_DIR="/usr/local/bin"
 BINARY_NAME="watchdog-agent"
 GITHUB_REPO="sylvester-francis/watchdog-agent"
-DEFAULT_HUB_URL="wss://usewatchdog.dev/ws/agent"
+DEFAULT_HUB_URL="https://usewatchdog.dev"
 
 # Detect OS and architecture
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -36,36 +36,38 @@ while [ $# -gt 0 ]; do
         --api-key) API_KEY="$2"; shift 2 ;;
         --hub|--hub-url) HUB_URL="$2"; shift 2 ;;
         --help|-h)
-            echo "Usage: install.sh --api-key KEY [--hub-url URL]"
+            echo "Usage: install.sh [--api-key KEY] [--hub-url URL]"
             echo ""
             echo "Options:"
-            echo "  --api-key KEY     Agent API key (required)"
-            echo "  --hub-url URL     Hub WebSocket URL (default: $DEFAULT_HUB_URL)"
+            echo "  --api-key KEY     Agent API key (prompted if not provided)"
+            echo "  --hub-url URL     Hub URL (default: $DEFAULT_HUB_URL)"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
 
+echo ""
+echo "  WatchDog Agent Installer"
+echo "  ========================"
+
+# Prompt for API key if not provided
 if [ -z "$API_KEY" ]; then
-    echo "Error: --api-key is required"
-    echo ""
-    echo "Usage:"
-    echo "  curl -sSL https://usewatchdog.dev/install | sh -s -- --api-key YOUR_KEY"
-    echo ""
-    echo "Get your API key from the WatchDog dashboard under Agents."
-    exit 1
+    printf "  API Key: "
+    read -r API_KEY < /dev/tty
+    if [ -z "$API_KEY" ]; then
+        echo "  Error: API key is required."
+        echo "  Get your key from the WatchDog dashboard under Agents."
+        exit 1
+    fi
 fi
 
 # Check for curl
 if ! command -v curl > /dev/null 2>&1; then
-    echo "Error: curl is required but not installed"
+    echo "  Error: curl is required but not installed"
     exit 1
 fi
 
-echo ""
-echo "  WatchDog Agent Installer"
-echo "  ========================"
 echo "  OS:   $OS"
 echo "  Arch: $ARCH"
 echo "  Hub:  $HUB_URL"
@@ -106,7 +108,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=${INSTALL_DIR}/${BINARY_NAME} -hub "${HUB_URL}" -api-key "${API_KEY}"
+ExecStart=${INSTALL_DIR}/${BINARY_NAME} --hub "${HUB_URL}" --api-key "${API_KEY}"
 Restart=always
 RestartSec=5
 LimitNOFILE=65535
@@ -127,7 +129,7 @@ EOF
 else
     echo ""
     echo "  Run the agent:"
-    echo "    ${BINARY_NAME} -hub \"${HUB_URL}\" -api-key \"${API_KEY}\""
+    echo "    ${BINARY_NAME} --hub \"${HUB_URL}\" --api-key \"${API_KEY}\""
 fi
 
 echo ""
