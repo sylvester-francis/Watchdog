@@ -56,10 +56,10 @@ func (h *AgentHandler) Create(c echo.Context) error {
 				return c.HTML(http.StatusForbidden, `
 					<div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
 						<p class="text-yellow-400 font-medium">Agent limit reached</p>
-						<p class="text-gray-400 text-sm mt-1">Upgrade your plan to create more agents.</p>
+						<p class="text-gray-400 text-sm mt-1">You've reached the maximum number of agents for your account.</p>
 					</div>`)
 			}
-			return c.JSON(http.StatusForbidden, map[string]string{"error": "agent limit reached for current plan"})
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "agent limit reached"})
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create agent"})
 	}

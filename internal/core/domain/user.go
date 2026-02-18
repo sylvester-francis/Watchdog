@@ -11,13 +11,10 @@ import (
 // UsernameRegex validates usernames: 3-50 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphens.
 var UsernameRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$`)
 
-// Plan represents a user's subscription tier.
+// Plan represents a user's account type.
 type Plan string
 
 const (
-	PlanFree Plan = "free"
-	PlanPro  Plan = "pro"
-	PlanTeam Plan = "team"
 	PlanBeta Plan = "beta"
 )
 
@@ -29,40 +26,17 @@ type PlanLimits struct {
 
 // Limits returns the resource limits for the plan.
 func (p Plan) Limits() PlanLimits {
-	switch p {
-	case PlanBeta:
-		return PlanLimits{MaxAgents: 10, MaxMonitors: -1}
-	case PlanPro:
-		return PlanLimits{MaxAgents: 3, MaxMonitors: 25}
-	case PlanTeam:
-		return PlanLimits{MaxAgents: 10, MaxMonitors: -1}
-	default:
-		return PlanLimits{MaxAgents: 1, MaxMonitors: 3}
-	}
+	return PlanLimits{MaxAgents: 10, MaxMonitors: -1}
 }
 
-// IsValid returns true if the plan is a recognized tier.
+// IsValid returns true if the plan is a recognized type.
 func (p Plan) IsValid() bool {
-	switch p {
-	case PlanFree, PlanPro, PlanTeam, PlanBeta:
-		return true
-	default:
-		return false
-	}
+	return p == PlanBeta
 }
 
 // String returns the display name for the plan.
 func (p Plan) String() string {
-	switch p {
-	case PlanBeta:
-		return "Beta"
-	case PlanPro:
-		return "Pro"
-	case PlanTeam:
-		return "Team"
-	default:
-		return "Free"
-	}
+	return "Beta"
 }
 
 // User represents a registered user in the system.
@@ -71,9 +45,8 @@ type User struct {
 	Email        string
 	Username     string
 	PasswordHash string
-	Plan         Plan
-	StripeID     *string
-	IsAdmin      bool
+	Plan    Plan
+	IsAdmin bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -113,13 +86,3 @@ func NewUser(email, passwordHash string) *User {
 	}
 }
 
-// SetStripeID sets the Stripe customer ID.
-func (u *User) SetStripeID(stripeID string) {
-	u.StripeID = &stripeID
-	u.UpdatedAt = time.Now()
-}
-
-// HasStripeID returns true if the user has a Stripe customer ID.
-func (u *User) HasStripeID() bool {
-	return u.StripeID != nil && *u.StripeID != ""
-}

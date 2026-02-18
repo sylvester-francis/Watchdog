@@ -4,7 +4,7 @@
 
 ### users
 
-User accounts with Argon2id password hashes and tier-based plans.
+User accounts with Argon2id password hashes.
 
 ```sql
 CREATE TABLE users (
@@ -12,7 +12,6 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     plan VARCHAR(20) DEFAULT 'free',
-    stripe_id VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

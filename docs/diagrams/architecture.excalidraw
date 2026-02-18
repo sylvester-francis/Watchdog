@@ -471,13 +471,13 @@
       "updated": 1700000000000,
       "link": null,
       "locked": false,
-      "text": "CUSTOMER NETWORK",
+      "text": "PRIVATE NETWORK",
       "fontSize": 16,
       "fontFamily": 1,
       "textAlign": "center",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "CUSTOMER NETWORK",
+      "originalText": "PRIVATE NETWORK",
       "lineHeight": 1.25
     },
     {

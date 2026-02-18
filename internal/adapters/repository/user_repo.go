@@ -27,8 +27,8 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	q := r.db.Querier(ctx)
 
 	query := `
-		INSERT INTO users (id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		INSERT INTO users (id, email, username, password_hash, plan, is_admin, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := q.Exec(ctx, query,
 		user.ID,
@@ -36,7 +36,6 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 		user.Username,
 		user.PasswordHash,
 		string(user.Plan),
-		user.StripeID,
 		user.IsAdmin,
 		user.CreatedAt,
 		user.UpdatedAt,
@@ -53,7 +52,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
 		FROM users
 		WHERE id = $1`
 
@@ -64,7 +63,6 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
-		&user.StripeID,
 		&user.IsAdmin,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -84,7 +82,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
 		FROM users
 		WHERE email = $1`
 
@@ -95,7 +93,6 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
-		&user.StripeID,
 		&user.IsAdmin,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -115,7 +112,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, stripe_id, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
 		FROM users
 		WHERE username = $1`
 
@@ -126,7 +123,6 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
-		&user.StripeID,
 		&user.IsAdmin,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -147,7 +143,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 
 	query := `
 		UPDATE users
-		SET email = $2, username = $3, password_hash = $4, plan = $5, stripe_id = $6, is_admin = $7, updated_at = $8
+		SET email = $2, username = $3, password_hash = $4, plan = $5, is_admin = $6, updated_at = $7
 		WHERE id = $1`
 
 	result, err := q.Exec(ctx, query,
@@ -156,7 +152,6 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 		user.Username,
 		user.PasswordHash,
 		string(user.Plan),
-		user.StripeID,
 		user.IsAdmin,
 		user.UpdatedAt,
 	)
@@ -202,7 +197,7 @@ func (r *UserRepository) Count(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// CountByPlan returns the number of users per plan tier.
+// CountByPlan returns the number of users per plan type.
 func (r *UserRepository) CountByPlan(ctx context.Context) (map[domain.Plan]int, error) {
 	q := r.db.Querier(ctx)
 
@@ -244,7 +239,7 @@ func (r *UserRepository) GetUsersNearLimits(ctx context.Context) ([]ports.UserUs
 			FROM monitors m JOIN agents a ON m.agent_id = a.id
 			GROUP BY a.user_id
 		) mc ON mc.user_id = u.id
-		WHERE u.plan != 'team'
+		WHERE 1=1
 		ORDER BY u.email`
 
 	rows, err := q.Query(ctx, query)

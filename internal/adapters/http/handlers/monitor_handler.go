@@ -208,10 +208,10 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 				return c.HTML(http.StatusForbidden, `
 					<div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
 						<p class="text-yellow-400 font-medium">Monitor limit reached</p>
-						<p class="text-gray-400 text-sm mt-1">Upgrade your plan to create more monitors.</p>
+						<p class="text-gray-400 text-sm mt-1">You've reached the maximum number of monitors for your account.</p>
 					</div>`)
 			}
-			return c.JSON(http.StatusForbidden, map[string]string{"error": "monitor limit reached for current plan"})
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "monitor limit reached"})
 		}
 		return h.renderError(c, "Failed to create monitor", userID)
 	}

@@ -26,7 +26,7 @@ func (s AgentStatus) IsValid() bool {
 	}
 }
 
-// Agent represents a monitoring agent deployed in a customer network.
+// Agent represents a monitoring agent deployed in a private network.
 type Agent struct {
 	ID              uuid.UUID
 	UserID          uuid.UUID

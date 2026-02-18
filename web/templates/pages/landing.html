@@ -52,7 +52,6 @@
             </a>
             <div class="hidden sm:flex items-center space-x-5">
                 <a href="#features" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
-                <a href="#pricing" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
                 <a href="/login" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
                 <a href="/register" class="px-3.5 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Deploy Free</a>
             </div>
@@ -66,7 +65,6 @@
         <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2" class="sm:hidden border-t border-border bg-background/95 backdrop-blur-sm">
             <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-3">
                 <a href="#features" @click="close" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
-                <a href="#pricing" @click="close" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
                 <a href="/login" class="block text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
                 <a href="/register" class="block w-full text-center px-3.5 py-2 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Deploy Free</a>
             </div>
@@ -471,47 +469,6 @@
         </div>
     </section>
 
-    <!-- Pricing (Beta) -->
-    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal" id="pricing">
-        <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3">Free during beta</h2>
-            <p class="text-sm text-muted-foreground mb-6 md:mb-8">All features unlocked. No credit card required.</p>
-
-            <div class="bg-card border border-accent/30 rounded-xl p-5 sm:p-8 ring-1 ring-accent/10">
-                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-4">
-                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot"></div>
-                    <span class="text-xs font-medium text-accent">Beta</span>
-                </div>
-
-                <div class="text-4xl font-bold text-foreground font-mono mb-2">$0</div>
-                <p class="text-sm text-muted-foreground mb-6">Everything included while we're in beta.</p>
-
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                    <div>
-                        <div class="text-lg font-bold text-foreground font-mono">10</div>
-                        <div class="text-xs text-muted-foreground">Agents</div>
-                    </div>
-                    <div>
-                        <div class="text-lg font-bold text-foreground font-mono">&infin;</div>
-                        <div class="text-xs text-muted-foreground">Monitors</div>
-                    </div>
-                    <div>
-                        <div class="text-lg font-bold text-foreground font-mono">All</div>
-                        <div class="text-xs text-muted-foreground">Alerts</div>
-                    </div>
-                    <div>
-                        <div class="text-lg font-bold text-foreground font-mono">Full</div>
-                        <div class="text-xs text-muted-foreground">API Access</div>
-                    </div>
-                </div>
-
-                <a href="/register" class="inline-block px-6 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">
-                    Deploy Free
-                </a>
-            </div>
-        </div>
-    </section>
-
     <!-- CTA -->
     <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal">
         <div class="max-w-xl mx-auto px-4 sm:px-6 text-center">
@@ -548,7 +505,6 @@
                     <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Product</h4>
                     <ul class="space-y-2">
                         <li><a href="#features" class="text-xs text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
-                        <li><a href="#pricing" class="text-xs text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
                         <li><a href="/docs" class="text-xs text-muted-foreground hover:text-foreground transition-colors">API Docs</a></li>
                     </ul>
                 </div>
