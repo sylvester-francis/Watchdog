@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"math"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -21,6 +23,16 @@ type DayUptime struct {
 	Percent float64 // 0-100
 }
 
+// publicIncident represents an incident for display on public status pages.
+type publicIncident struct {
+	MonitorName string
+	StartedAt   time.Time
+	ResolvedAt  *time.Time
+	Duration    time.Duration
+	Status      string
+	IsActive    bool
+}
+
 // StatusPageHandler handles status page HTTP requests.
 type StatusPageHandler struct {
 	statusPageRepo ports.StatusPageRepository
@@ -28,6 +40,7 @@ type StatusPageHandler struct {
 	agentRepo      ports.AgentRepository
 	heartbeatRepo  ports.HeartbeatRepository
 	userRepo       ports.UserRepository
+	incidentSvc    ports.IncidentService
 	templates      *view.Templates
 }
 
@@ -38,6 +51,7 @@ func NewStatusPageHandler(
 	agentRepo ports.AgentRepository,
 	heartbeatRepo ports.HeartbeatRepository,
 	userRepo ports.UserRepository,
+	incidentSvc ports.IncidentService,
 	templates *view.Templates,
 ) *StatusPageHandler {
 	return &StatusPageHandler{
@@ -46,6 +60,7 @@ func NewStatusPageHandler(
 		agentRepo:      agentRepo,
 		heartbeatRepo:  heartbeatRepo,
 		userRepo:       userRepo,
+		incidentSvc:    incidentSvc,
 		templates:      templates,
 	}
 }
@@ -230,17 +245,26 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 	monitorIDs, _ := h.statusPageRepo.GetMonitorIDs(ctx, page.ID)
 
 	type monitorStatus struct {
-		Name          string
-		Target        string
-		Type          string
-		Status        string
-		UptimeHistory []DayUptime
+		Name            string
+		Target          string
+		Type            string
+		Status          string
+		UptimePercent   float64 // -1 = no data
+		LatencyMs       int
+		HasLatency      bool
+		MonitoringSince time.Time
+		DataDays        int
+		UptimeHistory   []DayUptime
 	}
 
 	var monitors []monitorStatus
+	var incidents []publicIncident
 	allUp := true
 	now := time.Now().UTC()
 	ninetyDaysAgo := now.AddDate(0, 0, -90)
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+
+	var totalUp, totalChecks int
 
 	for _, mid := range monitorIDs {
 		m, err := h.monitorRepo.GetByID(ctx, mid)
@@ -252,21 +276,44 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 			allUp = false
 		}
 
-		// Compute 90-day uptime history
 		var uptimeHistory []DayUptime
+		var uptimePercent float64 = -1
+		var latencyMs int
+		var hasLatency bool
+
 		heartbeats, err := h.heartbeatRepo.GetByMonitorIDInRange(ctx, mid, ninetyDaysAgo, now)
 		if err == nil && len(heartbeats) > 0 {
-			// Group by day
+			// Find latest latency (heartbeats ordered DESC by time)
+			for _, hb := range heartbeats {
+				if hb.LatencyMs != nil {
+					latencyMs = *hb.LatencyMs
+					hasLatency = true
+					break
+				}
+			}
+
+			// Group by day + count up/total
 			dayMap := make(map[string]struct{ up, total int })
+			monitorUp := 0
+			monitorTotal := 0
 			for _, hb := range heartbeats {
 				day := hb.Time.Format("2006-01-02")
 				entry := dayMap[day]
 				entry.total++
 				if hb.Status.IsSuccess() {
 					entry.up++
+					monitorUp++
 				}
+				monitorTotal++
 				dayMap[day] = entry
 			}
+
+			if monitorTotal > 0 {
+				uptimePercent = float64(monitorUp) / float64(monitorTotal) * 100
+				totalUp += monitorUp
+				totalChecks += monitorTotal
+			}
+
 			// Build 90-day array
 			for i := 89; i >= 0; i-- {
 				day := now.AddDate(0, 0, -i).Format("2006-01-02")
@@ -274,18 +321,59 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 					pct := float64(entry.up) / float64(entry.total) * 100
 					uptimeHistory = append(uptimeHistory, DayUptime{Date: day, Percent: pct})
 				} else {
-					uptimeHistory = append(uptimeHistory, DayUptime{Date: day, Percent: -1}) // -1 = no data
+					uptimeHistory = append(uptimeHistory, DayUptime{Date: day, Percent: -1})
 				}
 			}
 		}
 
+		dataDays := int(math.Min(90, math.Ceil(now.Sub(m.CreatedAt).Hours()/24)))
+		if dataDays < 0 {
+			dataDays = 0
+		}
+
 		monitors = append(monitors, monitorStatus{
-			Name:          m.Name,
-			Target:        m.Target,
-			Type:          string(m.Type),
-			Status:        status,
-			UptimeHistory: uptimeHistory,
+			Name:            m.Name,
+			Target:          m.Target,
+			Type:            string(m.Type),
+			Status:          status,
+			UptimePercent:   uptimePercent,
+			LatencyMs:       latencyMs,
+			HasLatency:      hasLatency,
+			MonitoringSince: m.CreatedAt,
+			DataDays:        dataDays,
+			UptimeHistory:   uptimeHistory,
 		})
+
+		// Fetch incidents for this monitor (last 30 days)
+		monitorIncidents, err := h.incidentSvc.GetIncidentsByMonitor(ctx, mid)
+		if err == nil {
+			for _, inc := range monitorIncidents {
+				if inc.StartedAt.Before(thirtyDaysAgo) {
+					continue
+				}
+				incidents = append(incidents, publicIncident{
+					MonitorName: m.Name,
+					StartedAt:   inc.StartedAt,
+					ResolvedAt:  inc.ResolvedAt,
+					Duration:    inc.Duration(),
+					Status:      string(inc.Status),
+					IsActive:    inc.IsActive(),
+				})
+			}
+		}
+	}
+
+	// Sort incidents: active first, then by StartedAt DESC
+	sort.Slice(incidents, func(i, j int) bool {
+		if incidents[i].IsActive != incidents[j].IsActive {
+			return incidents[i].IsActive
+		}
+		return incidents[i].StartedAt.After(incidents[j].StartedAt)
+	})
+
+	var aggregateUptime float64 = -1
+	if totalChecks > 0 {
+		aggregateUptime = float64(totalUp) / float64(totalChecks) * 100
 	}
 
 	overallStatus := "All Systems Operational"
@@ -297,10 +385,12 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 	}
 
 	return c.Render(http.StatusOK, "status_page_public.html", map[string]interface{}{
-		"Page":          page,
-		"Monitors":      monitors,
-		"OverallStatus": overallStatus,
-		"AllUp":         allUp,
+		"Page":            page,
+		"Monitors":        monitors,
+		"Incidents":       incidents,
+		"OverallStatus":   overallStatus,
+		"AllUp":           allUp,
+		"AggregateUptime": aggregateUptime,
 	})
 }
 
