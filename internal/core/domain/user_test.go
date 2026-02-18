@@ -17,56 +17,9 @@ func TestNewUser(t *testing.T) {
 	assert.NotEqual(t, user.ID.String(), "00000000-0000-0000-0000-000000000000")
 	assert.Equal(t, email, user.Email)
 	assert.Equal(t, passwordHash, user.PasswordHash)
-	assert.Nil(t, user.StripeID)
 	assert.False(t, user.CreatedAt.IsZero())
 	assert.False(t, user.UpdatedAt.IsZero())
 	assert.Equal(t, user.CreatedAt, user.UpdatedAt)
-}
-
-func TestUser_SetStripeID(t *testing.T) {
-	user := NewUser("test@example.com", "hash")
-	originalUpdatedAt := user.UpdatedAt
-
-	stripeID := "cus_123456"
-	user.SetStripeID(stripeID)
-
-	require.NotNil(t, user.StripeID)
-	assert.Equal(t, stripeID, *user.StripeID)
-	assert.True(t, user.UpdatedAt.After(originalUpdatedAt) || user.UpdatedAt.Equal(originalUpdatedAt))
-}
-
-func TestUser_HasStripeID(t *testing.T) {
-	tests := []struct {
-		name     string
-		stripeID *string
-		want     bool
-	}{
-		{
-			name:     "nil stripe ID",
-			stripeID: nil,
-			want:     false,
-		},
-		{
-			name:     "empty stripe ID",
-			stripeID: strPtr(""),
-			want:     false,
-		},
-		{
-			name:     "valid stripe ID",
-			stripeID: strPtr("cus_123456"),
-			want:     true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			user := NewUser("test@example.com", "hash")
-			user.StripeID = tt.stripeID
-
-			got := user.HasStripeID()
-			assert.Equal(t, tt.want, got)
-		})
-	}
 }
 
 func TestPlanBeta_Limits(t *testing.T) {
@@ -82,9 +35,6 @@ func TestPlanBeta_IsValid(t *testing.T) {
 		want bool
 	}{
 		{PlanBeta, true},
-		{PlanFree, true},
-		{PlanPro, true},
-		{PlanTeam, true},
 		{Plan("invalid"), false},
 		{Plan(""), false},
 	}
@@ -98,22 +48,7 @@ func TestPlanBeta_IsValid(t *testing.T) {
 }
 
 func TestPlanBeta_String(t *testing.T) {
-	tests := []struct {
-		plan Plan
-		want string
-	}{
-		{PlanBeta, "Beta"},
-		{PlanFree, "Free"},
-		{PlanPro, "Pro"},
-		{PlanTeam, "Team"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.want, func(t *testing.T) {
-			got := tt.plan.String()
-			assert.Equal(t, tt.want, got)
-		})
-	}
+	assert.Equal(t, "Beta", PlanBeta.String())
 }
 
 func TestNewUser_DefaultsBeta(t *testing.T) {
@@ -185,3 +120,4 @@ func TestNewUser_GeneratesUsername(t *testing.T) {
 func strPtr(s string) *string {
 	return &s
 }
+

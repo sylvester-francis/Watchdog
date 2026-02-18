@@ -64,7 +64,7 @@ func TestCreateMonitor_Success(t *testing.T) {
 	var savedMonitor *domain.Monitor
 	userRepo := &mocks.MockUserRepository{
 		GetByIDFn: func(_ context.Context, _ uuid.UUID) (*domain.User, error) {
-			return &domain.User{ID: userID, Plan: domain.PlanPro}, nil
+			return &domain.User{ID: userID, Plan: domain.PlanBeta}, nil
 		},
 	}
 	monitorRepo := &mocks.MockMonitorRepository{
@@ -95,7 +95,7 @@ func TestCreateMonitor_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	userRepo := &mocks.MockUserRepository{
 		GetByIDFn: func(_ context.Context, _ uuid.UUID) (*domain.User, error) {
-			return &domain.User{ID: userID, Plan: domain.PlanTeam}, nil
+			return &domain.User{ID: userID, Plan: domain.PlanBeta}, nil
 		},
 	}
 	monitorRepo := &mocks.MockMonitorRepository{

@@ -86,10 +86,7 @@
     <div class="px-4 py-3 border-t border-border">
         <div class="flex items-center justify-between">
             {{if .Plan}}
-            <span class="text-xs px-2 py-0.5 rounded-md font-medium cursor-default
-                {{if eq .Plan "Pro"}}bg-blue-500/15 text-blue-400
-                {{else if eq .Plan "Team"}}bg-purple-500/15 text-purple-400
-                {{else}}bg-muted text-muted-foreground{{end}}">
+            <span class="text-xs px-2 py-0.5 rounded-md font-medium cursor-default bg-muted text-muted-foreground">
                 {{.Plan}}
             </span>
             {{else}}

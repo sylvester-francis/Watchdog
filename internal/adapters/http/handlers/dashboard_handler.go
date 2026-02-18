@@ -192,7 +192,7 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 	// Fetch user plan info
 	user, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		user = &domain.User{Plan: domain.PlanFree}
+		user = &domain.User{Plan: domain.PlanBeta}
 	}
 
 	return c.Render(http.StatusOK, "dashboard.html", map[string]interface{}{

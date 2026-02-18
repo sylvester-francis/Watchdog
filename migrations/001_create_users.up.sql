@@ -13,3 +13,4 @@ CREATE INDEX idx_users_email ON users(email);
 
 -- Index for Stripe customer lookups
 CREATE INDEX idx_users_stripe_id ON users(stripe_id) WHERE stripe_id IS NOT NULL;
+
