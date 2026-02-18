@@ -9,10 +9,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
+	"github.com/sylvester-francis/watchdog-proto/protocol"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/core/domain"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 
 // MonitorWithHeartbeats holds a monitor with its sparkline and uptime data.
@@ -31,6 +33,7 @@ type MonitorHandler struct {
 	agentRepo     ports.AgentRepository
 	heartbeatRepo ports.HeartbeatRepository
 	templates     *view.Templates
+	hub           *realtime.Hub
 }
 
 // NewMonitorHandler creates a new MonitorHandler.
@@ -39,12 +42,14 @@ func NewMonitorHandler(
 	agentRepo ports.AgentRepository,
 	heartbeatRepo ports.HeartbeatRepository,
 	templates *view.Templates,
+	hub *realtime.Hub,
 ) *MonitorHandler {
 	return &MonitorHandler{
 		monitorSvc:    monitorSvc,
 		agentRepo:     agentRepo,
 		heartbeatRepo: heartbeatRepo,
 		templates:     templates,
+		hub:           hub,
 	}
 }
 
@@ -238,6 +243,13 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 		}
 	}
 
+	// Notify agent if connected
+	taskMsg := protocol.NewTaskMessage(
+		monitor.ID.String(), string(monitor.Type),
+		monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+	)
+	h.hub.SendToAgent(monitor.AgentID, taskMsg)
+
 	// If HTMX request, return the new row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		c.Response().Header().Set("HX-Trigger", "monitorCreated")
@@ -366,6 +378,17 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
 	}
 
+	// Notify agent of the change
+	if monitor.Enabled {
+		taskMsg := protocol.NewTaskMessage(
+			monitor.ID.String(), string(monitor.Type),
+			monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+		)
+		h.hub.SendToAgent(monitor.AgentID, taskMsg)
+	} else {
+		h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(monitor.ID.String()))
+	}
+
 	// If HTMX request, return updated row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		agent, _ := h.agentRepo.GetByID(ctx, monitor.AgentID)
@@ -388,8 +411,16 @@ func (h *MonitorHandler) Delete(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
 	}
 
+	// Fetch monitor before deletion to get AgentID for notification
+	monitor, _ := h.monitorSvc.GetMonitor(ctx, id)
+
 	if err := h.monitorSvc.DeleteMonitor(ctx, id); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete monitor"})
+	}
+
+	// Notify agent to stop the task
+	if monitor != nil {
+		h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(id.String()))
 	}
 
 	// If HTMX request, return empty response (row removed)

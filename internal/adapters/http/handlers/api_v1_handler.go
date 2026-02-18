@@ -8,9 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
+	"github.com/sylvester-francis/watchdog-proto/protocol"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/core/domain"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 
 // APIV1Handler serves the public JSON API endpoints (token-authenticated).
@@ -21,6 +23,7 @@ type APIV1Handler struct {
 	incidentSvc   ports.IncidentService
 	monitorSvc    ports.MonitorService
 	agentAuthSvc  ports.AgentAuthService
+	hub           *realtime.Hub
 }
 
 // NewAPIV1Handler creates a new APIV1Handler.
@@ -31,6 +34,7 @@ func NewAPIV1Handler(
 	incidentSvc ports.IncidentService,
 	monitorSvc ports.MonitorService,
 	agentAuthSvc ports.AgentAuthService,
+	hub *realtime.Hub,
 ) *APIV1Handler {
 	return &APIV1Handler{
 		agentRepo:     agentRepo,
@@ -39,6 +43,7 @@ func NewAPIV1Handler(
 		incidentSvc:   incidentSvc,
 		monitorSvc:    monitorSvc,
 		agentAuthSvc:  agentAuthSvc,
+		hub:           hub,
 	}
 }
 
@@ -354,6 +359,13 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 		}
 	}
 
+	// Notify agent if connected
+	taskMsg := protocol.NewTaskMessage(
+		monitor.ID.String(), string(monitor.Type),
+		monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+	)
+	h.hub.SendToAgent(monitor.AgentID, taskMsg)
+
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"data": monitorResponse{
 			ID:       monitor.ID.String(),
@@ -431,6 +443,17 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
 	}
 
+	// Notify agent of the change
+	if monitor.Enabled {
+		taskMsg := protocol.NewTaskMessage(
+			monitor.ID.String(), string(monitor.Type),
+			monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+		)
+		h.hub.SendToAgent(monitor.AgentID, taskMsg)
+	} else {
+		h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(monitor.ID.String()))
+	}
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"data": monitorResponse{
 			ID:       monitor.ID.String(),
@@ -474,6 +497,9 @@ func (h *APIV1Handler) DeleteMonitor(c echo.Context) error {
 	if err := h.monitorSvc.DeleteMonitor(ctx, monitorID); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete monitor"})
 	}
+
+	// Notify agent to stop the task
+	h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(monitorID.String()))
 
 	return c.NoContent(http.StatusNoContent)
 }
