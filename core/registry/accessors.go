@@ -1,6 +1,6 @@
 package registry
 
-import "github.com/sylvester-francis/watchdog/internal/core/ports"
+import "github.com/sylvester-francis/watchdog/core/ports"
 
 // Module name constants used by default implementations and typed accessors.
 const (

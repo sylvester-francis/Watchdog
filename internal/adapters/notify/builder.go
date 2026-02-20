@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/sylvester-francis/watchdog/internal/core/domain"
-	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/core/domain"
+	"github.com/sylvester-francis/watchdog/core/ports"
 )
 
 // ChannelNotifierFactory implements ports.NotifierFactory by building
