@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
+	"runtime"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,16 +56,10 @@ type migrationInfo struct {
 	Dirty   bool
 }
 
-// configEntry holds a redacted config key-value for display.
-type configEntry struct {
-	Key   string
-	Value string
-}
-
-// configSection groups config entries under a heading.
-type configSection struct {
-	Name    string
-	Entries []configEntry
+// tableSizeInfo holds a table name and its formatted disk size.
+type tableSizeInfo struct {
+	Name string
+	Size string
 }
 
 // auditLogView holds an audit log entry enriched with user email.
@@ -135,106 +129,85 @@ func (h *AdminHandler) Dashboard(c echo.Context) error {
 		slog.Error("admin: failed to fetch migration status", "error", err)
 	}
 
-	// Count total available migrations
-	totalMigrations := 0
-	migRows, err := h.db.Pool.Query(ctx, "SELECT version FROM schema_migrations")
-	if err == nil {
-		defer migRows.Close()
-		for migRows.Next() {
-			totalMigrations++
-		}
-	}
+	// --- Operational Metrics ---
 
-	// Query configured alert channel types from database
-	channelTypes := make(map[string]bool)
-	ctRows, err := h.db.Pool.Query(ctx, "SELECT DISTINCT type FROM alert_channels")
+	// Heartbeat throughput: count in last hour + per-minute rate
+	var hbLastHour int64
+	_ = h.db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM heartbeats WHERE time > NOW() - INTERVAL '1 hour'").Scan(&hbLastHour)
+	hbPerMinute := float64(hbLastHour) / 60.0
+
+	// Database size
+	var dbSizeBytes int64
+	_ = h.db.Pool.QueryRow(ctx, "SELECT pg_database_size(current_database())").Scan(&dbSizeBytes)
+
+	// Top tables by size
+	tableSizes := make([]tableSizeInfo, 0)
+	tblRows, err := h.db.Pool.Query(ctx, `
+		SELECT relname, pg_total_relation_size(quote_ident(relname))
+		FROM pg_class
+		WHERE relkind = 'r' AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+		ORDER BY pg_total_relation_size(quote_ident(relname)) DESC
+		LIMIT 5`)
 	if err == nil {
-		defer ctRows.Close()
-		for ctRows.Next() {
-			var t string
-			if ctRows.Scan(&t) == nil {
-				channelTypes[t] = true
+		defer tblRows.Close()
+		for tblRows.Next() {
+			var name string
+			var bytes int64
+			if tblRows.Scan(&name, &bytes) == nil {
+				tableSizes = append(tableSizes, tableSizeInfo{Name: name, Size: formatBytes(bytes)})
 			}
 		}
 	}
 
-	// Config overview (redacted)
-	configSections := h.buildConfigOverview(channelTypes)
+	// Recent errors: heartbeats with status != 'up' in last hour
+	var errorsLastHour int64
+	_ = h.db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM heartbeats WHERE time > NOW() - INTERVAL '1 hour' AND status != 'up'").Scan(&errorsLastHour)
 
-	return c.Render(http.StatusOK, "admin.html", map[string]interface{}{
-		"Title":           "System",
-		"DBHealthy":       dbHealthy,
-		"PingLatency":     fmt.Sprintf("%.0fms", float64(pingLatency.Microseconds())/1000.0),
-		"PoolAcquired":    poolStats.AcquiredConns(),
-		"PoolIdle":        poolStats.IdleConns(),
-		"PoolTotal":       poolStats.TotalConns(),
-		"AgentCount":      agentCount,
-		"Uptime":          formatUptime(uptime),
-		"Migration":       migration,
-		"TotalMigrations": totalMigrations,
-		"ConfigSections":  configSections,
-		"AuditLogs":       auditViews,
+	// Runtime stats
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	goroutines := runtime.NumGoroutine()
+
+	return c.Render(http.StatusOK, "system.html", map[string]interface{}{
+		"Title":          "System",
+		"DBHealthy":      dbHealthy,
+		"PingLatency":    fmt.Sprintf("%.0fms", float64(pingLatency.Microseconds())/1000.0),
+		"PoolAcquired":   poolStats.AcquiredConns(),
+		"PoolIdle":       poolStats.IdleConns(),
+		"PoolTotal":      poolStats.TotalConns(),
+		"AgentCount":     agentCount,
+		"Uptime":         formatUptime(uptime),
+		"Migration":      migration,
+		"HBPerMinute":    fmt.Sprintf("%.1f", hbPerMinute),
+		"HBLastHour":     hbLastHour,
+		"DBSize":         formatBytes(dbSizeBytes),
+		"TableSizes":     tableSizes,
+		"ErrorsLastHour": errorsLastHour,
+		"Goroutines":     goroutines,
+		"HeapMB":         fmt.Sprintf("%.1f", float64(memStats.HeapAlloc)/(1024*1024)),
+		"StackMB":        fmt.Sprintf("%.1f", float64(memStats.StackInuse)/(1024*1024)),
+		"GCPauseMs":      fmt.Sprintf("%.2f", float64(memStats.PauseNs[(memStats.NumGC+255)%256])/1e6),
+		"AuditLogs":      auditViews,
 	})
 }
 
-// buildConfigOverview returns config sections with secrets redacted.
-// channelTypes contains distinct alert channel types configured in the database.
-func (h *AdminHandler) buildConfigOverview(channelTypes map[string]bool) []configSection {
-	cfg := h.cfg
-
-	server := configSection{
-		Name: "Server",
-		Entries: []configEntry{
-			{Key: "Host", Value: cfg.Server.Host},
-			{Key: "Port", Value: fmt.Sprintf("%d", cfg.Server.Port)},
-			{Key: "Secure Cookies", Value: fmt.Sprintf("%v", cfg.Server.SecureCookies)},
-			{Key: "Allowed Origins", Value: strings.Join(cfg.Server.AllowedOrigins, ", ")},
-		},
+// formatBytes formats bytes into a human-readable string.
+func formatBytes(b int64) string {
+	const (
+		kb = 1024
+		mb = kb * 1024
+		gb = mb * 1024
+	)
+	switch {
+	case b >= gb:
+		return fmt.Sprintf("%.1f GB", float64(b)/float64(gb))
+	case b >= mb:
+		return fmt.Sprintf("%.1f MB", float64(b)/float64(mb))
+	case b >= kb:
+		return fmt.Sprintf("%.1f KB", float64(b)/float64(kb))
+	default:
+		return fmt.Sprintf("%d B", b)
 	}
-	if server.Entries[3].Value == "" {
-		server.Entries[3].Value = "(default)"
-	}
-
-	database := configSection{
-		Name: "Database",
-		Entries: []configEntry{
-			{Key: "URL", Value: "********"},
-			{Key: "Max Connections", Value: fmt.Sprintf("%d", cfg.Database.MaxConns)},
-			{Key: "Min Connections", Value: fmt.Sprintf("%d", cfg.Database.MinConns)},
-			{Key: "Max Conn Lifetime", Value: cfg.Database.MaxConnLifetime.String()},
-			{Key: "Max Conn Idle Time", Value: cfg.Database.MaxConnIdleTime.String()},
-		},
-	}
-
-	notifiers := configSection{
-		Name: "Notifiers",
-		Entries: []configEntry{
-			{Key: "Slack", Value: boolIndicator(channelTypes["slack"])},
-			{Key: "Discord", Value: boolIndicator(channelTypes["discord"])},
-			{Key: "Webhook", Value: boolIndicator(channelTypes["webhook"])},
-			{Key: "Email (SMTP)", Value: boolIndicator(channelTypes["email"])},
-			{Key: "Telegram", Value: boolIndicator(channelTypes["telegram"])},
-			{Key: "PagerDuty", Value: boolIndicator(channelTypes["pagerduty"])},
-		},
-	}
-
-	security := configSection{
-		Name: "Security",
-		Entries: []configEntry{
-			{Key: "Encryption Key", Value: "********"},
-			{Key: "Session Secret", Value: "********"},
-		},
-	}
-
-	return []configSection{server, database, notifiers, security}
-}
-
-// boolIndicator returns a check or x string.
-func boolIndicator(enabled bool) string {
-	if enabled {
-		return "enabled"
-	}
-	return "disabled"
 }
 
 // formatUptime formats a duration as a human-readable uptime string.

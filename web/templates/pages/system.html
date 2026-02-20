@@ -1,4 +1,4 @@
-{{define "admin.html"}}
+{{define "system.html"}}
 {{template "base" .}}
 {{end}}
 
@@ -54,58 +54,114 @@
     </div>
 </div>
 
-<!-- Migration Status + Config Overview -->
+<!-- Operational Metrics -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-    <!-- Migration Status -->
+    <!-- Heartbeat Throughput -->
     <div class="bg-card rounded-lg border border-border">
         <div class="px-4 py-3 border-b border-border flex items-center space-x-2">
             <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-                <i data-lucide="arrow-up-circle" class="w-3 h-3 text-muted-foreground"></i>
+                <i data-lucide="heart-pulse" class="w-3 h-3 text-muted-foreground"></i>
             </div>
-            <h2 class="text-sm font-medium text-foreground">Migration Status</h2>
+            <h2 class="text-sm font-medium text-foreground">Heartbeat Throughput</h2>
         </div>
         <div class="px-4 py-3">
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Current Version</span>
-                <span class="text-sm font-medium text-foreground font-mono">{{.Migration.Version}}</span>
+                <span class="text-xs text-muted-foreground">Rate</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.HBPerMinute}}/min</span>
             </div>
             <div class="border-t border-border/30"></div>
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Dirty</span>
-                {{if .Migration.Dirty}}
-                <span class="px-2 py-0.5 text-[10px] font-medium rounded bg-red-500/15 text-red-400">Yes</span>
+                <span class="text-xs text-muted-foreground">Last Hour</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.HBLastHour}}</span>
+            </div>
+            <div class="border-t border-border/30"></div>
+            <div class="flex items-center justify-between py-2">
+                <span class="text-xs text-muted-foreground">Failed Checks (1h)</span>
+                {{if gt .ErrorsLastHour 0}}
+                <span class="text-sm font-medium font-mono text-red-400">{{.ErrorsLastHour}}</span>
                 {{else}}
-                <span class="px-2 py-0.5 text-[10px] font-medium rounded bg-green-500/15 text-green-400">No</span>
+                <span class="text-sm font-medium font-mono text-green-400">0</span>
                 {{end}}
-            </div>
-            <div class="border-t border-border/30"></div>
-            <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Total Applied</span>
-                <span class="text-sm font-medium text-foreground font-mono">{{.TotalMigrations}}</span>
             </div>
         </div>
     </div>
 
-    <!-- Config Overview -->
+    <!-- Storage & Runtime -->
     <div class="bg-card rounded-lg border border-border">
         <div class="px-4 py-3 border-b border-border flex items-center space-x-2">
             <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-                <i data-lucide="sliders-horizontal" class="w-3 h-3 text-muted-foreground"></i>
+                <i data-lucide="hard-drive" class="w-3 h-3 text-muted-foreground"></i>
             </div>
-            <h2 class="text-sm font-medium text-foreground">Config Overview</h2>
+            <h2 class="text-sm font-medium text-foreground">Storage & Runtime</h2>
         </div>
-        <div class="px-4 py-2 max-h-80 overflow-y-auto">
-            {{range $i, $section := .ConfigSections}}
-            {{if $i}}<div class="border-t border-border/30 my-1"></div>{{end}}
-            <div class="py-1">
-                <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider py-1.5">{{.Name}}</p>
-                {{range .Entries}}
-                <div class="flex items-center justify-between py-1.5 min-h-[28px]">
-                    <span class="text-xs text-muted-foreground">{{.Key}}</span>
-                    <span class="text-xs font-mono text-right ml-4 {{if eq .Value "enabled"}}text-green-400{{else if eq .Value "disabled"}}text-muted-foreground/50{{else if eq .Value "********"}}text-muted-foreground/30{{else}}text-foreground{{end}}">{{.Value}}</span>
-                </div>
-                {{end}}
+        <div class="px-4 py-3">
+            <div class="flex items-center justify-between py-2">
+                <span class="text-xs text-muted-foreground">Database Size</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.DBSize}}</span>
             </div>
+            <div class="border-t border-border/30"></div>
+            <div class="flex items-center justify-between py-2">
+                <span class="text-xs text-muted-foreground">Goroutines</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.Goroutines}}</span>
+            </div>
+            <div class="border-t border-border/30"></div>
+            <div class="flex items-center justify-between py-2">
+                <span class="text-xs text-muted-foreground">Heap Memory</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.HeapMB}} MB</span>
+            </div>
+            <div class="border-t border-border/30"></div>
+            <div class="flex items-center justify-between py-2">
+                <span class="text-xs text-muted-foreground">Last GC Pause</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.GCPauseMs}} ms</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Sizes -->
+{{if .TableSizes}}
+<div class="bg-card rounded-lg border border-border mb-6">
+    <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
+                <i data-lucide="database" class="w-3 h-3 text-muted-foreground"></i>
+            </div>
+            <h2 class="text-sm font-medium text-foreground">Table Sizes</h2>
+        </div>
+        <span class="text-[10px] text-muted-foreground font-mono">Top 5 by disk usage</span>
+    </div>
+    <div class="px-4 py-2">
+        {{range $i, $t := .TableSizes}}
+        {{if $i}}<div class="border-t border-border/30"></div>{{end}}
+        <div class="flex items-center justify-between py-2">
+            <span class="text-xs text-muted-foreground font-mono">{{.Name}}</span>
+            <span class="text-xs font-medium text-foreground font-mono">{{.Size}}</span>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+
+<!-- Migration Status -->
+<div class="bg-card rounded-lg border border-border mb-6">
+    <div class="px-4 py-3 border-b border-border flex items-center space-x-2">
+        <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
+            <i data-lucide="arrow-up-circle" class="w-3 h-3 text-muted-foreground"></i>
+        </div>
+        <h2 class="text-sm font-medium text-foreground">Migration Status</h2>
+    </div>
+    <div class="px-4 py-3 flex items-center space-x-4">
+        <div class="flex items-center space-x-2">
+            <span class="text-xs text-muted-foreground">Version</span>
+            <span class="text-sm font-medium text-foreground font-mono">{{.Migration.Version}}</span>
+        </div>
+        <div class="w-px h-4 bg-border/50"></div>
+        <div class="flex items-center space-x-2">
+            <span class="text-xs text-muted-foreground">Dirty</span>
+            {{if .Migration.Dirty}}
+            <span class="px-2 py-0.5 text-[10px] font-medium rounded bg-red-500/15 text-red-400">Yes</span>
+            {{else}}
+            <span class="px-2 py-0.5 text-[10px] font-medium rounded bg-green-500/15 text-green-400">No</span>
             {{end}}
         </div>
     </div>
