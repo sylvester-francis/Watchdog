@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
-	"github.com/sylvester-francis/watchdog/internal/core/ports"
-	"github.com/sylvester-francis/watchdog/internal/core/registry"
+	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/core/registry"
 )
 
 const moduleDashboardRenderer = "dashboard_renderer"

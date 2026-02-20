@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
 // WaitlistRepository implements ports.WaitlistRepository using PostgreSQL.

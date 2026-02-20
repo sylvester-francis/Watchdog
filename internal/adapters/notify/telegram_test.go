@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
-	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
 func TestTelegramNotifier_IncidentOpened_Success(t *testing.T) {

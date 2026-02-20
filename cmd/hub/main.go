@@ -21,7 +21,7 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
-	"github.com/sylvester-francis/watchdog/internal/core/registry"
+	"github.com/sylvester-francis/watchdog/core/registry"
 	"github.com/sylvester-francis/watchdog/internal/core/services"
 	"github.com/sylvester-francis/watchdog/internal/crypto"
 	"github.com/sylvester-francis/watchdog/internal/defaults"

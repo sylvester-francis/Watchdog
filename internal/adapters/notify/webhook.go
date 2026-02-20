@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
 // WebhookNotifier sends notifications to a generic webhook URL.
