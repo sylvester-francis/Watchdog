@@ -202,6 +202,11 @@ func (e *Engine) Pool() *pgxpool.Pool {
 	return e.db.Pool
 }
 
+// Echo returns the underlying Echo instance for route extensions.
+func (e *Engine) Echo() *echo.Echo {
+	return e.echo
+}
+
 // Logger returns the configured logger.
 func (e *Engine) Logger() *slog.Logger {
 	return e.logger
