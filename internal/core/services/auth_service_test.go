@@ -88,7 +88,7 @@ func TestLogin_Success(t *testing.T) {
 	hash, _ := hasher.Hash("correctpassword")
 
 	userRepo := &mocks.MockUserRepository{
-		GetByEmailFn: func(_ context.Context, _ string) (*domain.User, error) {
+		GetByEmailGlobalFn: func(_ context.Context, _ string) (*domain.User, error) {
 			return &domain.User{
 				ID:           uuid.New(),
 				Email:        "test@example.com",
@@ -107,7 +107,7 @@ func TestLogin_Success(t *testing.T) {
 
 func TestLogin_UserNotFound(t *testing.T) {
 	userRepo := &mocks.MockUserRepository{
-		GetByEmailFn: func(_ context.Context, _ string) (*domain.User, error) {
+		GetByEmailGlobalFn: func(_ context.Context, _ string) (*domain.User, error) {
 			return nil, nil
 		},
 	}
@@ -124,7 +124,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	hash, _ := hasher.Hash("correctpassword")
 
 	userRepo := &mocks.MockUserRepository{
-		GetByEmailFn: func(_ context.Context, _ string) (*domain.User, error) {
+		GetByEmailGlobalFn: func(_ context.Context, _ string) (*domain.User, error) {
 			return &domain.User{
 				ID:           uuid.New(),
 				Email:        "test@example.com",
