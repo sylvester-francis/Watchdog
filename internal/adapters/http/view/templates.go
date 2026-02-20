@@ -47,6 +47,9 @@ func NewTemplates(dir string) (*Templates, error) {
 		"dict":             dict,
 		"toJSON":           toJSON,
 		"deref":            deref,
+		"timeago":          timeago,
+		"hasPrefix":        strings.HasPrefix,
+		"hasSuffix":        strings.HasSuffix,
 	}
 
 	// Build the shared base: layouts + partials
@@ -330,6 +333,22 @@ func deref(v interface{}) interface{} {
 		}
 	}
 	return nil
+}
+
+// timeago formats a time.Time as a compact relative string (e.g. "2m ago", "1h ago", "3d ago").
+func timeago(t time.Time) string {
+	d := time.Since(t)
+
+	if d < time.Minute {
+		return "just now"
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	}
+	if d < 24*time.Hour {
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	}
+	return fmt.Sprintf("%dd ago", int(d.Hours()/24))
 }
 
 // toJSON serializes a value to JSON for embedding in templates.

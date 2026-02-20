@@ -13,6 +13,7 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
+	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 	"github.com/sylvester-francis/watchdog/core/registry"
@@ -37,6 +38,10 @@ type Dependencies struct {
 	Hub              *realtime.Hub
 	Hasher           *crypto.PasswordHasher
 	AuditService     ports.AuditService
+	AuditLogRepo     ports.AuditLogRepository
+	DB               *repository.DB
+	Config           *config.Config
+	StartTime        time.Time
 	Logger           *slog.Logger
 	SessionSecret    string
 	TemplatesDir     string
@@ -107,7 +112,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates, deps.Hub, deps.AuditService)
 	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, templates, deps.AuditService)
 	r.agentHandler = handlers.NewAgentHandler(deps.AgentAuthService, deps.AgentRepo, templates, deps.AuditService)
-	r.adminHandler = handlers.NewAdminHandler(deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.UsageEventRepo, deps.Hasher, templates)
+	r.adminHandler = handlers.NewAdminHandler(deps.AuditLogRepo, deps.UserRepo, deps.Hub, deps.DB, deps.Config, deps.StartTime, templates)
 	r.landingHandler = handlers.NewLandingHandler(deps.WaitlistRepo, templates)
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
@@ -243,12 +248,8 @@ func (r *Router) RegisterRoutes() {
 	protected.POST("/settings/alerts/:id/test", r.alertChannelHandler.TestChannel)
 	protected.POST("/settings/username", r.apiTokenHandler.UpdateUsername)
 
-	// Admin routes
-	admin := protected.Group("/admin", middleware.AdminRequired(r.deps.UserRepo))
-	admin.GET("", r.adminHandler.Dashboard)
-	admin.POST("/users", r.adminHandler.CreateUser)
-	admin.POST("/users/:id", r.adminHandler.UpdateUser)
-	admin.DELETE("/users/:id", r.adminHandler.DeleteUser)
+	// System dashboard (accessible to all authenticated users)
+	protected.GET("/admin", r.adminHandler.Dashboard)
 
 	// Public API v1 (token-authenticated)
 	v1 := e.Group("/api/v1")
