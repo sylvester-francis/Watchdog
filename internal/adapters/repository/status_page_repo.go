@@ -21,10 +21,11 @@ func NewStatusPageRepository(db *DB) *StatusPageRepository {
 
 // Create inserts a new status page.
 func (r *StatusPageRepository) Create(ctx context.Context, page *domain.StatusPage) error {
+	q := r.db.Querier(ctx)
 	query := `INSERT INTO status_pages (id, user_id, name, slug, description, is_public, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	_, err := r.db.Pool.Exec(ctx, query,
+	_, err := q.Exec(ctx, query,
 		page.ID, page.UserID, page.Name, page.Slug, page.Description, page.IsPublic, page.CreatedAt, page.UpdatedAt,
 	)
 	if err != nil {
@@ -38,8 +39,9 @@ func (r *StatusPageRepository) GetByID(ctx context.Context, id uuid.UUID) (*doma
 	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
 		FROM status_pages WHERE id = $1`
 
+	q := r.db.Querier(ctx)
 	page := &domain.StatusPage{}
-	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
+	err := q.QueryRow(ctx, query, id).Scan(
 		&page.ID, &page.UserID, &page.Name, &page.Slug, &page.Description, &page.IsPublic, &page.CreatedAt, &page.UpdatedAt,
 	)
 	if err != nil {
@@ -55,8 +57,9 @@ func (r *StatusPageRepository) GetByUserAndSlug(ctx context.Context, username, s
 		JOIN users u ON sp.user_id = u.id
 		WHERE u.username = $1 AND sp.slug = $2`
 
+	q := r.db.Querier(ctx)
 	page := &domain.StatusPage{}
-	err := r.db.Pool.QueryRow(ctx, query, username, slug).Scan(
+	err := q.QueryRow(ctx, query, username, slug).Scan(
 		&page.ID, &page.UserID, &page.Name, &page.Slug, &page.Description, &page.IsPublic, &page.CreatedAt, &page.UpdatedAt,
 	)
 	if err != nil {
@@ -70,7 +73,8 @@ func (r *StatusPageRepository) GetByUserID(ctx context.Context, userID uuid.UUID
 	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
 		FROM status_pages WHERE user_id = $1 ORDER BY created_at DESC`
 
-	rows, err := r.db.Pool.Query(ctx, query, userID)
+	q := r.db.Querier(ctx)
+	rows, err := q.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get status pages by user: %w", err)
 	}
@@ -94,7 +98,8 @@ func (r *StatusPageRepository) Update(ctx context.Context, page *domain.StatusPa
 	query := `UPDATE status_pages SET name = $1, slug = $2, description = $3, is_public = $4, updated_at = NOW()
 		WHERE id = $5`
 
-	_, err := r.db.Pool.Exec(ctx, query, page.Name, page.Slug, page.Description, page.IsPublic, page.ID)
+	q := r.db.Querier(ctx)
+	_, err := q.Exec(ctx, query, page.Name, page.Slug, page.Description, page.IsPublic, page.ID)
 	if err != nil {
 		return fmt.Errorf("update status page: %w", err)
 	}
@@ -103,7 +108,8 @@ func (r *StatusPageRepository) Update(ctx context.Context, page *domain.StatusPa
 
 // Delete removes a status page.
 func (r *StatusPageRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	_, err := r.db.Pool.Exec(ctx, `DELETE FROM status_pages WHERE id = $1`, id)
+	q := r.db.Querier(ctx)
+	_, err := q.Exec(ctx, `DELETE FROM status_pages WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("delete status page: %w", err)
 	}
@@ -112,33 +118,32 @@ func (r *StatusPageRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 // SetMonitors replaces all monitors for a status page.
 func (r *StatusPageRepository) SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error {
-	tx, err := r.db.Pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback(ctx)
+	return r.db.WithTransaction(ctx, func(txCtx context.Context) error {
+		q := r.db.Querier(txCtx)
 
-	_, err = tx.Exec(ctx, `DELETE FROM status_page_monitors WHERE status_page_id = $1`, pageID)
-	if err != nil {
-		return fmt.Errorf("clear monitors: %w", err)
-	}
-
-	for i, monitorID := range monitorIDs {
-		_, err = tx.Exec(ctx,
-			`INSERT INTO status_page_monitors (status_page_id, monitor_id, sort_order) VALUES ($1, $2, $3)`,
-			pageID, monitorID, i,
-		)
+		_, err := q.Exec(txCtx, `DELETE FROM status_page_monitors WHERE status_page_id = $1`, pageID)
 		if err != nil {
-			return fmt.Errorf("insert monitor %s: %w", monitorID, err)
+			return fmt.Errorf("clear monitors: %w", err)
 		}
-	}
 
-	return tx.Commit(ctx)
+		for i, monitorID := range monitorIDs {
+			_, err = q.Exec(txCtx,
+				`INSERT INTO status_page_monitors (status_page_id, monitor_id, sort_order) VALUES ($1, $2, $3)`,
+				pageID, monitorID, i,
+			)
+			if err != nil {
+				return fmt.Errorf("insert monitor %s: %w", monitorID, err)
+			}
+		}
+
+		return nil
+	})
 }
 
 // GetMonitorIDs returns the monitor IDs for a status page.
 func (r *StatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error) {
-	rows, err := r.db.Pool.Query(ctx,
+	q := r.db.Querier(ctx)
+	rows, err := q.Query(ctx,
 		`SELECT monitor_id FROM status_page_monitors WHERE status_page_id = $1 ORDER BY sort_order`,
 		pageID,
 	)
@@ -160,8 +165,9 @@ func (r *StatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UU
 
 // SlugExistsForUser checks if a slug is already taken by a specific user.
 func (r *StatusPageRepository) SlugExistsForUser(ctx context.Context, userID uuid.UUID, slug string) (bool, error) {
+	q := r.db.Querier(ctx)
 	var exists bool
-	err := r.db.Pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM status_pages WHERE user_id = $1 AND slug = $2)`, userID, slug).Scan(&exists)
+	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM status_pages WHERE user_id = $1 AND slug = $2)`, userID, slug).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("check slug exists for user: %w", err)
 	}
