@@ -344,7 +344,7 @@ Alpine.data('channelSelector', () => ({
     },
 }));
 
-// 7. planEditor — admin.html per-row plan editor
+// 7. planEditor — system.html per-row plan editor
 Alpine.data('planEditor', () => ({
     editing: false,
     toggle() { this.editing = !this.editing; },
