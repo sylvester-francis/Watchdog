@@ -27,6 +27,7 @@ func NewAlertChannelRepository(db *DB, encryptor *crypto.Encryptor) *AlertChanne
 // Create inserts a new alert channel with encrypted config.
 func (r *AlertChannelRepository) Create(ctx context.Context, channel *domain.AlertChannel) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	encrypted, err := r.encryptConfig(channel.Config)
 	if err != nil {
@@ -34,8 +35,8 @@ func (r *AlertChannelRepository) Create(ctx context.Context, channel *domain.Ale
 	}
 
 	query := `
-		INSERT INTO alert_channels (id, user_id, type, name, config_encrypted, enabled, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO alert_channels (id, user_id, type, name, config_encrypted, enabled, created_at, updated_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err = q.Exec(ctx, query,
 		channel.ID,
@@ -46,6 +47,7 @@ func (r *AlertChannelRepository) Create(ctx context.Context, channel *domain.Ale
 		channel.Enabled,
 		channel.CreatedAt,
 		channel.UpdatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("alertChannelRepo.Create: %w", err)
@@ -57,13 +59,14 @@ func (r *AlertChannelRepository) Create(ctx context.Context, channel *domain.Ale
 // GetByID retrieves an alert channel by ID and decrypts the config.
 func (r *AlertChannelRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.AlertChannel, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, type, name, config_encrypted, enabled, created_at, updated_at
 		FROM alert_channels
-		WHERE id = $1`
+		WHERE id = $1 AND tenant_id = $2`
 
-	channel, err := r.scanChannel(q.QueryRow(ctx, query, id))
+	channel, err := r.scanChannel(q.QueryRow(ctx, query, id, tenantID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -77,14 +80,15 @@ func (r *AlertChannelRepository) GetByID(ctx context.Context, id uuid.UUID) (*do
 // GetByUserID retrieves all alert channels for a user.
 func (r *AlertChannelRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, type, name, config_encrypted, enabled, created_at, updated_at
 		FROM alert_channels
-		WHERE user_id = $1
+		WHERE user_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC`
 
-	rows, err := q.Query(ctx, query, userID)
+	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("alertChannelRepo.GetByUserID: %w", err)
 	}
@@ -105,14 +109,15 @@ func (r *AlertChannelRepository) GetByUserID(ctx context.Context, userID uuid.UU
 // GetEnabledByUserID retrieves only enabled alert channels for a user.
 func (r *AlertChannelRepository) GetEnabledByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.AlertChannel, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, type, name, config_encrypted, enabled, created_at, updated_at
 		FROM alert_channels
-		WHERE user_id = $1 AND enabled = true
+		WHERE user_id = $1 AND tenant_id = $2 AND enabled = true
 		ORDER BY created_at DESC`
 
-	rows, err := q.Query(ctx, query, userID)
+	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("alertChannelRepo.GetEnabledByUserID: %w", err)
 	}
@@ -133,6 +138,7 @@ func (r *AlertChannelRepository) GetEnabledByUserID(ctx context.Context, userID 
 // Update updates an alert channel's name, enabled status, and config.
 func (r *AlertChannelRepository) Update(ctx context.Context, channel *domain.AlertChannel) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	encrypted, err := r.encryptConfig(channel.Config)
 	if err != nil {
@@ -142,9 +148,9 @@ func (r *AlertChannelRepository) Update(ctx context.Context, channel *domain.Ale
 	query := `
 		UPDATE alert_channels
 		SET name = $1, config_encrypted = $2, enabled = $3, updated_at = NOW()
-		WHERE id = $4`
+		WHERE id = $4 AND tenant_id = $5`
 
-	result, err := q.Exec(ctx, query, channel.Name, encrypted, channel.Enabled, channel.ID)
+	result, err := q.Exec(ctx, query, channel.Name, encrypted, channel.Enabled, channel.ID, tenantID)
 	if err != nil {
 		return fmt.Errorf("alertChannelRepo.Update: %w", err)
 	}
@@ -158,8 +164,9 @@ func (r *AlertChannelRepository) Update(ctx context.Context, channel *domain.Ale
 // Delete removes an alert channel.
 func (r *AlertChannelRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	result, err := q.Exec(ctx, `DELETE FROM alert_channels WHERE id = $1`, id)
+	result, err := q.Exec(ctx, `DELETE FROM alert_channels WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("alertChannelRepo.Delete(%s): %w", id, err)
 	}

@@ -36,14 +36,16 @@ func scanUsageEvent(row pgx.Row) (*domain.UsageEvent, error) {
 // Create inserts a new usage event into the database.
 func (r *UsageEventRepository) Create(ctx context.Context, event *domain.UsageEvent) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO usage_events (id, user_id, event_type, resource_type, current_count, max_allowed, plan, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO usage_events (id, user_id, event_type, resource_type, current_count, max_allowed, plan, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		event.ID, event.UserID, event.EventType, event.ResourceType,
 		event.CurrentCount, event.MaxAllowed, event.Plan, event.CreatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("usageEventRepo.Create: %w", err)
@@ -55,15 +57,16 @@ func (r *UsageEventRepository) Create(ctx context.Context, event *domain.UsageEv
 // GetRecentByUserID retrieves recent usage events for a specific user.
 func (r *UsageEventRepository) GetRecentByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.UsageEvent, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, event_type, resource_type, current_count, max_allowed, plan, created_at
 		FROM usage_events
-		WHERE user_id = $1
+		WHERE user_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC
-		LIMIT $2`
+		LIMIT $3`
 
-	rows, err := q.Query(ctx, query, userID, limit)
+	rows, err := q.Query(ctx, query, userID, tenantID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("usageEventRepo.GetRecentByUserID(%s): %w", userID, err)
 	}
@@ -84,14 +87,16 @@ func (r *UsageEventRepository) GetRecentByUserID(ctx context.Context, userID uui
 // GetRecent retrieves the most recent usage events across all users.
 func (r *UsageEventRepository) GetRecent(ctx context.Context, limit int) ([]*domain.UsageEvent, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, event_type, resource_type, current_count, max_allowed, plan, created_at
 		FROM usage_events
+		WHERE tenant_id = $1
 		ORDER BY created_at DESC
-		LIMIT $1`
+		LIMIT $2`
 
-	rows, err := q.Query(ctx, query, limit)
+	rows, err := q.Query(ctx, query, tenantID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("usageEventRepo.GetRecent: %w", err)
 	}
@@ -112,11 +117,12 @@ func (r *UsageEventRepository) GetRecent(ctx context.Context, limit int) ([]*dom
 // CountByEventType returns the number of events of a given type since a timestamp.
 func (r *UsageEventRepository) CountByEventType(ctx context.Context, eventType domain.EventType, since time.Time) (int, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT COUNT(*) FROM usage_events WHERE event_type = $1 AND created_at >= $2`
+	query := `SELECT COUNT(*) FROM usage_events WHERE event_type = $1 AND created_at >= $2 AND tenant_id = $3`
 
 	var count int
-	err := q.QueryRow(ctx, query, eventType, since).Scan(&count)
+	err := q.QueryRow(ctx, query, eventType, since, tenantID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("usageEventRepo.CountByEventType(%s): %w", eventType, err)
 	}

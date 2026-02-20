@@ -51,14 +51,16 @@ func scanMonitors(rows pgx.Rows) ([]*domain.Monitor, error) {
 // Create inserts a new monitor into the database.
 func (r *MonitorRepository) Create(ctx context.Context, monitor *domain.Monitor) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO monitors (id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+		INSERT INTO monitors (id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := q.Exec(ctx, query,
 		monitor.ID, monitor.AgentID, monitor.Name, monitor.Type, monitor.Target,
 		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.CreatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("monitorRepo.Create: %w", err)
@@ -70,10 +72,11 @@ func (r *MonitorRepository) Create(ctx context.Context, monitor *domain.Monitor)
 // GetByID retrieves a monitor by its ID.
 func (r *MonitorRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Monitor, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE id = $1`
+	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE id = $1 AND tenant_id = $2`
 
-	monitor, err := scanMonitor(q.QueryRow(ctx, query, id))
+	monitor, err := scanMonitor(q.QueryRow(ctx, query, id, tenantID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -87,10 +90,11 @@ func (r *MonitorRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.
 // GetByAgentID retrieves all monitors belonging to an agent.
 func (r *MonitorRepository) GetByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 ORDER BY created_at DESC`
+	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`
 
-	rows, err := q.Query(ctx, query, agentID)
+	rows, err := q.Query(ctx, query, agentID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("monitorRepo.GetByAgentID(%s): %w", agentID, err)
 	}
@@ -106,10 +110,11 @@ func (r *MonitorRepository) GetByAgentID(ctx context.Context, agentID uuid.UUID)
 // GetEnabledByAgentID retrieves all enabled monitors for an agent.
 func (r *MonitorRepository) GetEnabledByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 AND enabled = true ORDER BY created_at DESC`
+	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 AND tenant_id = $2 AND enabled = true ORDER BY created_at DESC`
 
-	rows, err := q.Query(ctx, query, agentID)
+	rows, err := q.Query(ctx, query, agentID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("monitorRepo.GetEnabledByAgentID(%s): %w", agentID, err)
 	}
@@ -125,15 +130,17 @@ func (r *MonitorRepository) GetEnabledByAgentID(ctx context.Context, agentID uui
 // Update updates an existing monitor in the database.
 func (r *MonitorRepository) Update(ctx context.Context, monitor *domain.Monitor) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		UPDATE monitors
 		SET name = $2, type = $3, target = $4, interval_seconds = $5, timeout_seconds = $6, status = $7, enabled = $8
-		WHERE id = $1`
+		WHERE id = $1 AND tenant_id = $9`
 
 	result, err := q.Exec(ctx, query,
 		monitor.ID, monitor.Name, monitor.Type, monitor.Target,
 		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("monitorRepo.Update(%s): %w", monitor.ID, err)
@@ -149,10 +156,11 @@ func (r *MonitorRepository) Update(ctx context.Context, monitor *domain.Monitor)
 // Delete removes a monitor from the database.
 func (r *MonitorRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `DELETE FROM monitors WHERE id = $1`
+	query := `DELETE FROM monitors WHERE id = $1 AND tenant_id = $2`
 
-	result, err := q.Exec(ctx, query, id)
+	result, err := q.Exec(ctx, query, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("monitorRepo.Delete(%s): %w", id, err)
 	}
@@ -167,11 +175,12 @@ func (r *MonitorRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // CountByUserID returns the total number of monitors belonging to a user across all their agents.
 func (r *MonitorRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT COUNT(*) FROM monitors m JOIN agents a ON m.agent_id = a.id WHERE a.user_id = $1`
+	query := `SELECT COUNT(*) FROM monitors m JOIN agents a ON m.agent_id = a.id WHERE a.user_id = $1 AND m.tenant_id = $2`
 
 	var count int
-	err := q.QueryRow(ctx, query, userID).Scan(&count)
+	err := q.QueryRow(ctx, query, userID, tenantID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("monitorRepo.CountByUserID(%s): %w", userID, err)
 	}
@@ -182,10 +191,11 @@ func (r *MonitorRepository) CountByUserID(ctx context.Context, userID uuid.UUID)
 // UpdateStatus updates only the status of a monitor.
 func (r *MonitorRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `UPDATE monitors SET status = $2 WHERE id = $1`
+	query := `UPDATE monitors SET status = $2 WHERE id = $1 AND tenant_id = $3`
 
-	result, err := q.Exec(ctx, query, id, status)
+	result, err := q.Exec(ctx, query, id, status, tenantID)
 	if err != nil {
 		return fmt.Errorf("monitorRepo.UpdateStatus(%s, %s): %w", id, status, err)
 	}

@@ -25,10 +25,11 @@ func NewAgentRepository(db *DB) *AgentRepository {
 // Create inserts a new agent into the database.
 func (r *AgentRepository) Create(ctx context.Context, agent *domain.Agent) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO agents (id, user_id, name, api_key_encrypted, last_seen_at, status, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		INSERT INTO agents (id, user_id, name, api_key_encrypted, last_seen_at, status, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := q.Exec(ctx, query,
 		agent.ID,
@@ -38,6 +39,7 @@ func (r *AgentRepository) Create(ctx context.Context, agent *domain.Agent) error
 		agent.LastSeenAt,
 		agent.Status,
 		agent.CreatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("agentRepo.Create: %w", err)
@@ -49,14 +51,15 @@ func (r *AgentRepository) Create(ctx context.Context, agent *domain.Agent) error
 // GetByID retrieves an agent by its ID.
 func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Agent, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, created_at
 		FROM agents
-		WHERE id = $1`
+		WHERE id = $1 AND tenant_id = $2`
 
 	agent := &domain.Agent{}
-	err := q.QueryRow(ctx, query, id).Scan(
+	err := q.QueryRow(ctx, query, id, tenantID).Scan(
 		&agent.ID,
 		&agent.UserID,
 		&agent.Name,
@@ -78,14 +81,15 @@ func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ag
 // GetByUserID retrieves all agents belonging to a user.
 func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, created_at
 		FROM agents
-		WHERE user_id = $1
+		WHERE user_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC`
 
-	rows, err := q.Query(ctx, query, userID)
+	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("agentRepo.GetByUserID(%s): %w", userID, err)
 	}
@@ -119,11 +123,12 @@ func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]
 // Update updates an existing agent in the database.
 func (r *AgentRepository) Update(ctx context.Context, agent *domain.Agent) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		UPDATE agents
 		SET name = $2, api_key_encrypted = $3, last_seen_at = $4, status = $5
-		WHERE id = $1`
+		WHERE id = $1 AND tenant_id = $6`
 
 	result, err := q.Exec(ctx, query,
 		agent.ID,
@@ -131,6 +136,7 @@ func (r *AgentRepository) Update(ctx context.Context, agent *domain.Agent) error
 		agent.APIKeyEncrypted,
 		agent.LastSeenAt,
 		agent.Status,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("agentRepo.Update(%s): %w", agent.ID, err)
@@ -146,10 +152,11 @@ func (r *AgentRepository) Update(ctx context.Context, agent *domain.Agent) error
 // Delete removes an agent from the database.
 func (r *AgentRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `DELETE FROM agents WHERE id = $1`
+	query := `DELETE FROM agents WHERE id = $1 AND tenant_id = $2`
 
-	result, err := q.Exec(ctx, query, id)
+	result, err := q.Exec(ctx, query, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("agentRepo.Delete(%s): %w", id, err)
 	}
@@ -164,10 +171,11 @@ func (r *AgentRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // UpdateStatus updates only the status of an agent.
 func (r *AgentRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `UPDATE agents SET status = $2 WHERE id = $1`
+	query := `UPDATE agents SET status = $2 WHERE id = $1 AND tenant_id = $3`
 
-	result, err := q.Exec(ctx, query, id, status)
+	result, err := q.Exec(ctx, query, id, status, tenantID)
 	if err != nil {
 		return fmt.Errorf("agentRepo.UpdateStatus(%s, %s): %w", id, status, err)
 	}
@@ -182,11 +190,12 @@ func (r *AgentRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status
 // CountByUserID returns the number of agents belonging to a user.
 func (r *AgentRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT COUNT(*) FROM agents WHERE user_id = $1`
+	query := `SELECT COUNT(*) FROM agents WHERE user_id = $1 AND tenant_id = $2`
 
 	var count int
-	err := q.QueryRow(ctx, query, userID).Scan(&count)
+	err := q.QueryRow(ctx, query, userID, tenantID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("agentRepo.CountByUserID(%s): %w", userID, err)
 	}
@@ -197,10 +206,11 @@ func (r *AgentRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (
 // UpdateLastSeen updates only the last_seen_at timestamp of an agent.
 func (r *AgentRepository) UpdateLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `UPDATE agents SET last_seen_at = $2 WHERE id = $1`
+	query := `UPDATE agents SET last_seen_at = $2 WHERE id = $1 AND tenant_id = $3`
 
-	result, err := q.Exec(ctx, query, id, lastSeen)
+	result, err := q.Exec(ctx, query, id, lastSeen, tenantID)
 	if err != nil {
 		return fmt.Errorf("agentRepo.UpdateLastSeen(%s): %w", id, err)
 	}
