@@ -62,10 +62,12 @@ graph LR
 - **CLI Tool** — Manage monitors, agents, and incidents from the command line
 - **Interactive API Docs** — Swagger UI at `/docs` with OpenAPI 3.0 spec
 - **6 Alert Channels** — Slack, Discord, Email (SMTP), Telegram, PagerDuty, and generic webhooks
-- **Security Audit Logging** — Track all authentication and resource changes
+- **Security Audit Logging** — All CRUD operations tracked with viewer in System dashboard
+- **API Key Scoping** — Admin and read-only token scopes with IP tracking
+- **Agent Fingerprinting** — Device identity verification on connect
 - **Brute Force Protection** — Per-IP and per-email login rate limiting with lockout
-- **Security Headers** — HSTS, CSP (no unsafe-eval), Permissions-Policy, and more
-- **Admin Panel** — User management, plan assignment, and system overview
+- **Security Headers** — CSP, X-Frame-Options, HSTS, Permissions-Policy
+- **System Dashboard** — Audit log viewer, system health, migration status, runtime config overview
 
 ## Architecture
 
@@ -210,7 +212,7 @@ Interactive API documentation is available at `/docs` (Swagger UI).
 
 ### API Token Format
 
-Tokens use the format `wd_<32 hex chars>`. Only the SHA-256 hash is stored — the plaintext is shown once at creation and cannot be retrieved.
+Tokens use the format `wd_<32 hex chars>`. Only the SHA-256 hash is stored — the plaintext is shown once at creation and cannot be retrieved. Tokens are scoped (`admin` or `read_only`) and track the last-used IP address.
 
 ## Configuration
 
@@ -320,9 +322,11 @@ WatchDog is in active development. All features are available to all users:
 
 - Up to 10 agents per account
 - Unlimited monitors and status pages
-- All check types: HTTP, TCP, Ping, DNS, TLS
+- All check types: HTTP, TCP, Ping, DNS, TLS certificate monitoring
 - All 6 alert channels
-- Full REST API access
+- Full REST API access with scoped tokens
+- Security audit logging with System dashboard viewer
+- Agent fingerprinting for device identity verification
 
 ## Tech Stack
 
