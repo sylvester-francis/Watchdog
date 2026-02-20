@@ -249,7 +249,7 @@ func (r *Router) RegisterRoutes() {
 	protected.POST("/settings/username", r.apiTokenHandler.UpdateUsername)
 
 	// System dashboard (accessible to all authenticated users)
-	protected.GET("/admin", r.adminHandler.Dashboard)
+	protected.GET("/system", r.adminHandler.Dashboard)
 
 	// Public API v1 (token-authenticated)
 	v1 := e.Group("/api/v1")
