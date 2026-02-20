@@ -13,6 +13,7 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/core/registry"
 	"github.com/sylvester-francis/watchdog/internal/crypto"
 )
 
@@ -39,6 +40,8 @@ type Dependencies struct {
 	TemplatesDir     string
 	SecureCookies    bool
 	AllowedOrigins   []string
+	Templates        *view.Templates      // optional: pre-created templates instance
+	Registry         *registry.Registry   // optional: module registry for health checks
 }
 
 // Router handles HTTP routing and handler registration.
@@ -71,9 +74,13 @@ type Router struct {
 
 // NewRouter creates a new Router instance.
 func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
-	templates, err := view.NewTemplates(deps.TemplatesDir)
-	if err != nil {
-		return nil, err
+	templates := deps.Templates
+	if templates == nil {
+		var err error
+		templates, err = view.NewTemplates(deps.TemplatesDir)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	e.Renderer = templates
@@ -301,9 +308,28 @@ func (r *Router) privacyPage(c echo.Context) error {
 	})
 }
 
-// healthCheck returns health status.
+// healthCheck returns health status including module health when registry is present.
 func (r *Router) healthCheck(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{
+	result := map[string]any{
 		"status": "healthy",
-	})
+	}
+
+	if r.deps.Registry != nil {
+		modules := make(map[string]string)
+		for name, err := range r.deps.Registry.HealthAll(c.Request().Context()) {
+			if err != nil {
+				modules[name] = err.Error()
+				result["status"] = "degraded"
+			} else {
+				modules[name] = "healthy"
+			}
+		}
+		result["modules"] = modules
+	}
+
+	status := http.StatusOK
+	if result["status"] == "degraded" {
+		status = http.StatusServiceUnavailable
+	}
+	return c.JSON(status, result)
 }
