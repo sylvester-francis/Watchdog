@@ -187,8 +187,8 @@ func (r *Router) RegisterRoutes() {
 	protected := e.Group("")
 	protected.Use(middleware.NoCacheHeaders)
 	protected.Use(middleware.AuthRequired)
-	protected.Use(middleware.UserContext(r.deps.UserRepo))
 	protected.Use(tenantMW)
+	protected.Use(middleware.UserContext(r.deps.UserRepo))
 
 	// Root redirect
 	e.GET("/", r.rootRedirect)
@@ -251,7 +251,7 @@ func (r *Router) RegisterRoutes() {
 
 	// Public API v1 (token-authenticated)
 	v1 := e.Group("/api/v1")
-	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo, r.deps.UserRepo))
+	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo))
 	v1.Use(tenantMW)
 	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
 	v1.GET("/monitors/:id", r.apiV1Handler.GetMonitor)

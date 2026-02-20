@@ -48,17 +48,19 @@ func (r *APITokenRepository) Create(ctx context.Context, token *domain.APIToken)
 }
 
 // GetByTokenHash retrieves an API token by its SHA-256 hash.
+// This query is intentionally unscoped by tenant — the token_hash column has a
+// global UNIQUE constraint, and the lookup must succeed before tenant context
+// is established (e.g. during API token authentication).
 func (r *APITokenRepository) GetByTokenHash(ctx context.Context, tokenHash string) (*domain.APIToken, error) {
 	q := r.db.Querier(ctx)
-	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, name, token_hash, prefix, last_used_at, expires_at, created_at
 		FROM api_tokens
-		WHERE token_hash = $1 AND tenant_id = $2`
+		WHERE token_hash = $1`
 
 	token := &domain.APIToken{}
-	err := q.QueryRow(ctx, query, tokenHash, tenantID).Scan(
+	err := q.QueryRow(ctx, query, tokenHash).Scan(
 		&token.ID,
 		&token.UserID,
 		&token.Name,
