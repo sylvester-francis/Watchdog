@@ -23,6 +23,7 @@ func NewAuditLogRepository(db *DB) *AuditLogRepository {
 // Create inserts a new audit log entry.
 func (r *AuditLogRepository) Create(ctx context.Context, log *domain.AuditLog) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	metadata, err := json.Marshal(log.Metadata)
 	if err != nil {
@@ -30,11 +31,12 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *domain.AuditLog) e
 	}
 
 	query := `
-		INSERT INTO audit_logs (id, user_id, action, metadata, ip_address, created_at)
-		VALUES ($1, $2, $3, $4, $5::inet, $6)`
+		INSERT INTO audit_logs (id, user_id, action, metadata, ip_address, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5::inet, $6, $7)`
 
 	_, err = q.Exec(ctx, query,
 		log.ID, log.UserID, string(log.Action), metadata, nullableIP(log.IPAddress), log.CreatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("auditLogRepo.Create: %w", err)
@@ -46,15 +48,16 @@ func (r *AuditLogRepository) Create(ctx context.Context, log *domain.AuditLog) e
 // GetByUserID returns audit logs for a specific user.
 func (r *AuditLogRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.AuditLog, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, action, metadata, ip_address::text, created_at
 		FROM audit_logs
-		WHERE user_id = $1
+		WHERE user_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC
-		LIMIT $2`
+		LIMIT $3`
 
-	rows, err := q.Query(ctx, query, userID, limit)
+	rows, err := q.Query(ctx, query, userID, tenantID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("auditLogRepo.GetByUserID: %w", err)
 	}
@@ -66,14 +69,16 @@ func (r *AuditLogRepository) GetByUserID(ctx context.Context, userID uuid.UUID, 
 // GetRecent returns the most recent audit logs across all users.
 func (r *AuditLogRepository) GetRecent(ctx context.Context, limit int) ([]*domain.AuditLog, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, action, metadata, ip_address::text, created_at
 		FROM audit_logs
+		WHERE tenant_id = $1
 		ORDER BY created_at DESC
-		LIMIT $1`
+		LIMIT $2`
 
-	rows, err := q.Query(ctx, query, limit)
+	rows, err := q.Query(ctx, query, tenantID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("auditLogRepo.GetRecent: %w", err)
 	}

@@ -22,11 +22,14 @@ func NewStatusPageRepository(db *DB) *StatusPageRepository {
 // Create inserts a new status page.
 func (r *StatusPageRepository) Create(ctx context.Context, page *domain.StatusPage) error {
 	q := r.db.Querier(ctx)
-	query := `INSERT INTO status_pages (id, user_id, name, slug, description, is_public, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `INSERT INTO status_pages (id, user_id, name, slug, description, is_public, created_at, updated_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		page.ID, page.UserID, page.Name, page.Slug, page.Description, page.IsPublic, page.CreatedAt, page.UpdatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("create status page: %w", err)
@@ -36,12 +39,14 @@ func (r *StatusPageRepository) Create(ctx context.Context, page *domain.StatusPa
 
 // GetByID returns a status page by ID.
 func (r *StatusPageRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error) {
-	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
-		FROM status_pages WHERE id = $1`
-
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
+		FROM status_pages WHERE id = $1 AND tenant_id = $2`
+
 	page := &domain.StatusPage{}
-	err := q.QueryRow(ctx, query, id).Scan(
+	err := q.QueryRow(ctx, query, id, tenantID).Scan(
 		&page.ID, &page.UserID, &page.Name, &page.Slug, &page.Description, &page.IsPublic, &page.CreatedAt, &page.UpdatedAt,
 	)
 	if err != nil {
@@ -52,14 +57,16 @@ func (r *StatusPageRepository) GetByID(ctx context.Context, id uuid.UUID) (*doma
 
 // GetByUserAndSlug returns a status page by username and slug.
 func (r *StatusPageRepository) GetByUserAndSlug(ctx context.Context, username, slug string) (*domain.StatusPage, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
 	query := `SELECT sp.id, sp.user_id, sp.name, sp.slug, sp.description, sp.is_public, sp.created_at, sp.updated_at
 		FROM status_pages sp
 		JOIN users u ON sp.user_id = u.id
-		WHERE u.username = $1 AND sp.slug = $2`
+		WHERE u.username = $1 AND sp.slug = $2 AND sp.tenant_id = $3`
 
-	q := r.db.Querier(ctx)
 	page := &domain.StatusPage{}
-	err := q.QueryRow(ctx, query, username, slug).Scan(
+	err := q.QueryRow(ctx, query, username, slug, tenantID).Scan(
 		&page.ID, &page.UserID, &page.Name, &page.Slug, &page.Description, &page.IsPublic, &page.CreatedAt, &page.UpdatedAt,
 	)
 	if err != nil {
@@ -70,11 +77,13 @@ func (r *StatusPageRepository) GetByUserAndSlug(ctx context.Context, username, s
 
 // GetByUserID returns all status pages for a user.
 func (r *StatusPageRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error) {
-	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
-		FROM status_pages WHERE user_id = $1 ORDER BY created_at DESC`
-
 	q := r.db.Querier(ctx)
-	rows, err := q.Query(ctx, query, userID)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
+		FROM status_pages WHERE user_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`
+
+	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("get status pages by user: %w", err)
 	}
@@ -95,11 +104,13 @@ func (r *StatusPageRepository) GetByUserID(ctx context.Context, userID uuid.UUID
 
 // Update updates a status page.
 func (r *StatusPageRepository) Update(ctx context.Context, page *domain.StatusPage) error {
-	query := `UPDATE status_pages SET name = $1, slug = $2, description = $3, is_public = $4, updated_at = NOW()
-		WHERE id = $5`
-
 	q := r.db.Querier(ctx)
-	_, err := q.Exec(ctx, query, page.Name, page.Slug, page.Description, page.IsPublic, page.ID)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `UPDATE status_pages SET name = $1, slug = $2, description = $3, is_public = $4, updated_at = NOW()
+		WHERE id = $5 AND tenant_id = $6`
+
+	_, err := q.Exec(ctx, query, page.Name, page.Slug, page.Description, page.IsPublic, page.ID, tenantID)
 	if err != nil {
 		return fmt.Errorf("update status page: %w", err)
 	}
@@ -109,7 +120,9 @@ func (r *StatusPageRepository) Update(ctx context.Context, page *domain.StatusPa
 // Delete removes a status page.
 func (r *StatusPageRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	q := r.db.Querier(ctx)
-	_, err := q.Exec(ctx, `DELETE FROM status_pages WHERE id = $1`, id)
+	tenantID := TenantIDFromContext(ctx)
+
+	_, err := q.Exec(ctx, `DELETE FROM status_pages WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("delete status page: %w", err)
 	}
@@ -143,6 +156,7 @@ func (r *StatusPageRepository) SetMonitors(ctx context.Context, pageID uuid.UUID
 // GetMonitorIDs returns the monitor IDs for a status page.
 func (r *StatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error) {
 	q := r.db.Querier(ctx)
+
 	rows, err := q.Query(ctx,
 		`SELECT monitor_id FROM status_page_monitors WHERE status_page_id = $1 ORDER BY sort_order`,
 		pageID,
@@ -166,8 +180,10 @@ func (r *StatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UU
 // SlugExistsForUser checks if a slug is already taken by a specific user.
 func (r *StatusPageRepository) SlugExistsForUser(ctx context.Context, userID uuid.UUID, slug string) (bool, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
 	var exists bool
-	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM status_pages WHERE user_id = $1 AND slug = $2)`, userID, slug).Scan(&exists)
+	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM status_pages WHERE user_id = $1 AND slug = $2 AND tenant_id = $3)`, userID, slug, tenantID).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("check slug exists for user: %w", err)
 	}
