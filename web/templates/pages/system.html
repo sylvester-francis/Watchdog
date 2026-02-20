@@ -14,31 +14,31 @@
             </div>
         </div>
         <p class="text-2xl font-semibold text-foreground font-mono tracking-tight">{{.PingLatency}}</p>
-        <p class="text-xs text-muted-foreground mt-1">{{if .DBHealthy}}Healthy{{else}}Unreachable{{end}} &middot; ping latency</p>
+        <p class="text-xs text-muted-foreground mt-1">{{if .DBHealthy}}Healthy{{else}}Unreachable{{end}} &middot; response time to database</p>
     </div>
 
     <!-- Connection Pool -->
     <div class="bg-card rounded-lg border border-border p-3">
         <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-medium text-muted-foreground">Connection Pool</p>
+            <p class="text-xs font-medium text-muted-foreground">DB Connections</p>
             <div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
                 <i data-lucide="layers" class="w-3 h-3 text-muted-foreground"></i>
             </div>
         </div>
         <p class="text-2xl font-semibold text-foreground font-mono tracking-tight">{{.PoolAcquired}} <span class="text-sm font-normal text-muted-foreground">/ {{.PoolTotal}}</span></p>
-        <p class="text-xs text-muted-foreground mt-1">{{.PoolIdle}} idle connections</p>
+        <p class="text-xs text-muted-foreground mt-1">{{.PoolIdle}} available &middot; {{.PoolAcquired}} in use right now</p>
     </div>
 
     <!-- Connected Agents -->
     <div class="bg-card rounded-lg border border-border p-3">
         <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-medium text-muted-foreground">Connected Agents</p>
+            <p class="text-xs font-medium text-muted-foreground">Agents Online</p>
             <div class="w-6 h-6 {{if gt .AgentCount 0}}bg-emerald-500/10{{else}}bg-muted/50{{end}} rounded flex items-center justify-center">
                 <i data-lucide="server" class="w-3 h-3 {{if gt .AgentCount 0}}text-emerald-400{{else}}text-muted-foreground{{end}}"></i>
             </div>
         </div>
         <p class="text-2xl font-semibold text-foreground font-mono tracking-tight">{{.AgentCount}}</p>
-        <p class="text-xs text-muted-foreground mt-1">Active WebSocket connections</p>
+        <p class="text-xs text-muted-foreground mt-1">{{if gt .AgentCount 0}}Reporting health checks{{else}}No agents connected{{end}}</p>
     </div>
 
     <!-- Uptime -->
@@ -50,7 +50,7 @@
             </div>
         </div>
         <p class="text-2xl font-semibold text-foreground font-mono tracking-tight">{{.Uptime}}</p>
-        <p class="text-xs text-muted-foreground mt-1">Since last restart</p>
+        <p class="text-xs text-muted-foreground mt-1">Time since server was started</p>
     </div>
 </div>
 
@@ -66,17 +66,17 @@
         </div>
         <div class="px-4 py-3">
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Rate</span>
+                <span class="text-xs text-muted-foreground">Checks per minute</span>
                 <span class="text-sm font-medium text-foreground font-mono">{{.HBPerMinute}}/min</span>
             </div>
             <div class="border-t border-border/30"></div>
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Last Hour</span>
+                <span class="text-xs text-muted-foreground">Total checks in last hour</span>
                 <span class="text-sm font-medium text-foreground font-mono">{{.HBLastHour}}</span>
             </div>
             <div class="border-t border-border/30"></div>
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Failed Checks (1h)</span>
+                <span class="text-xs text-muted-foreground">Failed checks in last hour</span>
                 {{if gt .ErrorsLastHour 0}}
                 <span class="text-sm font-medium font-mono text-red-400">{{.ErrorsLastHour}}</span>
                 {{else}}
@@ -96,22 +96,22 @@
         </div>
         <div class="px-4 py-3">
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Database Size</span>
+                <span class="text-xs text-muted-foreground">Total disk used by database</span>
                 <span class="text-sm font-medium text-foreground font-mono">{{.DBSize}}</span>
             </div>
             <div class="border-t border-border/30"></div>
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Goroutines</span>
+                <span class="text-xs text-muted-foreground">Active background tasks</span>
                 <span class="text-sm font-medium text-foreground font-mono">{{.Goroutines}}</span>
             </div>
             <div class="border-t border-border/30"></div>
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Heap Memory</span>
+                <span class="text-xs text-muted-foreground">Memory in use</span>
                 <span class="text-sm font-medium text-foreground font-mono">{{.HeapMB}} MB</span>
             </div>
             <div class="border-t border-border/30"></div>
             <div class="flex items-center justify-between py-2">
-                <span class="text-xs text-muted-foreground">Last GC Pause</span>
+                <span class="text-xs text-muted-foreground">Last garbage collection pause</span>
                 <span class="text-sm font-medium text-foreground font-mono">{{.GCPauseMs}} ms</span>
             </div>
         </div>
@@ -128,7 +128,7 @@
             </div>
             <h2 class="text-sm font-medium text-foreground">Table Sizes</h2>
         </div>
-        <span class="text-[10px] text-muted-foreground font-mono">Top 5 by disk usage</span>
+        <span class="text-[10px] text-muted-foreground font-mono">Largest 5 tables by disk space</span>
     </div>
     <div class="px-4 py-2">
         {{range $i, $t := .TableSizes}}
@@ -152,12 +152,12 @@
     </div>
     <div class="px-4 py-3 flex items-center space-x-4">
         <div class="flex items-center space-x-2">
-            <span class="text-xs text-muted-foreground">Version</span>
+            <span class="text-xs text-muted-foreground">Schema version</span>
             <span class="text-sm font-medium text-foreground font-mono">{{.Migration.Version}}</span>
         </div>
         <div class="w-px h-4 bg-border/50"></div>
         <div class="flex items-center space-x-2">
-            <span class="text-xs text-muted-foreground">Dirty</span>
+            <span class="text-xs text-muted-foreground">Failed migration</span>
             {{if .Migration.Dirty}}
             <span class="px-2 py-0.5 text-[10px] font-medium rounded bg-red-500/15 text-red-400">Yes</span>
             {{else}}
