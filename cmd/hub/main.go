@@ -216,6 +216,8 @@ func main() {
 		TemplatesDir:     "web/templates",
 		SecureCookies:    cfg.Server.SecureCookies,
 		AllowedOrigins:   cfg.Server.AllowedOrigins,
+		Templates:        templates,
+		Registry:         reg,
 	})
 	if err != nil {
 		logger.Error("failed to initialize router", slog.String("error", err.Error()))
