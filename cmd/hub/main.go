@@ -16,12 +16,15 @@ import (
 
 	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/core/registry"
 	"github.com/sylvester-francis/watchdog/internal/core/services"
 	"github.com/sylvester-francis/watchdog/internal/crypto"
+	"github.com/sylvester-francis/watchdog/internal/defaults"
 )
 
 func main() {
@@ -123,6 +126,31 @@ func main() {
 	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 
+	// Initialize templates
+	templates, err := view.NewTemplates("web/templates")
+	if err != nil {
+		logger.Error("failed to load templates", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	// Initialize module registry
+	reg := registry.New(logger)
+	defaults.RegisterAll(reg, defaults.Deps{
+		AuthService:    authSvc,
+		AgentAuth:      authSvc,
+		AgentRepo:      agentRepo,
+		Notifier:       notifier,
+		AuditService:   auditSvc,
+		StatusPageRepo: statusPageRepo,
+		DB:             db,
+		Templates:      templates,
+		Logger:         logger,
+	})
+	if err := reg.InitAll(context.Background()); err != nil {
+		logger.Error("failed to initialize modules", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	// Initialize WebSocket hub
 	hub := realtime.NewHub(logger)
 	go hub.Run()
@@ -220,6 +248,9 @@ func main() {
 
 	hub.Stop()
 	router.Stop()
+	if err := reg.ShutdownAll(ctx); err != nil {
+		logger.Error("module shutdown error", slog.String("error", err.Error()))
+	}
 
 	if err := e.Shutdown(ctx); err != nil {
 		logger.Error("shutdown error", slog.String("error", err.Error()))
