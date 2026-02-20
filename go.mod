@@ -10,12 +10,10 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.15.0
 	github.com/stretchr/testify v1.11.1
-	github.com/sylvester-francis/watchdog-proto v0.3.0
+	github.com/sylvester-francis/watchdog-proto v0.3.1-0.20260220194312-4629b7b26d29
 	golang.org/x/crypto v0.47.0
 	golang.org/x/text v0.34.0
 )
-
-replace github.com/sylvester-francis/watchdog-proto => ../watchdog-proto
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
