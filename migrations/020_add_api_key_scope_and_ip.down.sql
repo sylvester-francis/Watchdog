@@ -1,0 +1,2 @@
+ALTER TABLE api_tokens DROP COLUMN IF EXISTS last_used_ip;
+ALTER TABLE api_tokens DROP COLUMN IF EXISTS scope;

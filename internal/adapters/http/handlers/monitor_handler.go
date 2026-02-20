@@ -34,6 +34,7 @@ type MonitorHandler struct {
 	heartbeatRepo ports.HeartbeatRepository
 	templates     *view.Templates
 	hub           *realtime.Hub
+	auditSvc      ports.AuditService
 }
 
 // NewMonitorHandler creates a new MonitorHandler.
@@ -43,6 +44,7 @@ func NewMonitorHandler(
 	heartbeatRepo ports.HeartbeatRepository,
 	templates *view.Templates,
 	hub *realtime.Hub,
+	auditSvc ports.AuditService,
 ) *MonitorHandler {
 	return &MonitorHandler{
 		monitorSvc:    monitorSvc,
@@ -50,6 +52,7 @@ func NewMonitorHandler(
 		heartbeatRepo: heartbeatRepo,
 		templates:     templates,
 		hub:           hub,
+		auditSvc:      auditSvc,
 	}
 }
 
@@ -243,6 +246,16 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 		}
 	}
 
+	// Audit log
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorCreated, c.RealIP(), map[string]string{
+			"monitor_id": monitor.ID.String(),
+			"name":       monitor.Name,
+			"type":       string(monitor.Type),
+			"target":     monitor.Target,
+		})
+	}
+
 	// Notify agent if connected
 	taskMsg := protocol.NewTaskMessage(
 		monitor.ID.String(), string(monitor.Type),
@@ -305,16 +318,27 @@ func (h *MonitorHandler) Detail(c echo.Context) error {
 		uptimePercent = float64(up) / float64(len(heartbeats)) * 100
 	}
 
+	// Get latest heartbeat for TLS cert data
+	latestHB, _ := h.heartbeatRepo.GetLatestByMonitorID(ctx, monitor.ID)
+	var certExpiryDays *int
+	var certIssuer *string
+	if latestHB != nil {
+		certExpiryDays = latestHB.CertExpiryDays
+		certIssuer = latestHB.CertIssuer
+	}
+
 	return c.Render(http.StatusOK, "monitor_detail.html", map[string]interface{}{
-		"Title":         monitor.Name,
-		"Monitor":       monitor,
-		"Agent":         agent,
-		"Heartbeats":    heartbeats,
-		"Latencies":     latencies,
-		"UptimeUp":      up,
-		"UptimeDown":    down,
-		"UptimeTotal":   len(heartbeats),
-		"UptimePercent": uptimePercent,
+		"Title":          monitor.Name,
+		"Monitor":        monitor,
+		"Agent":          agent,
+		"Heartbeats":     heartbeats,
+		"Latencies":      latencies,
+		"UptimeUp":       up,
+		"UptimeDown":     down,
+		"UptimeTotal":    len(heartbeats),
+		"UptimePercent":  uptimePercent,
+		"CertExpiryDays": certExpiryDays,
+		"CertIssuer":     certIssuer,
 	})
 }
 
@@ -378,6 +402,15 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
 	}
 
+	// Audit log
+	if h.auditSvc != nil {
+		userID, _ := middleware.GetUserID(c)
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorUpdated, c.RealIP(), map[string]string{
+			"monitor_id": monitor.ID.String(),
+			"name":       monitor.Name,
+		})
+	}
+
 	// Notify agent of the change
 	if monitor.Enabled {
 		taskMsg := protocol.NewTaskMessage(
@@ -416,6 +449,16 @@ func (h *MonitorHandler) Delete(c echo.Context) error {
 
 	if err := h.monitorSvc.DeleteMonitor(ctx, id); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete monitor"})
+	}
+
+	// Audit log
+	if h.auditSvc != nil {
+		userID, _ := middleware.GetUserID(c)
+		meta := map[string]string{"monitor_id": id.String()}
+		if monitor != nil {
+			meta["name"] = monitor.Name
+		}
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorDeleted, c.RealIP(), meta)
 	}
 
 	// Notify agent to stop the task

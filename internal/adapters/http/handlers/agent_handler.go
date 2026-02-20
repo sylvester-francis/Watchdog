@@ -19,6 +19,7 @@ type AgentHandler struct {
 	agentAuthSvc ports.AgentAuthService
 	agentRepo    ports.AgentRepository
 	templates    *view.Templates
+	auditSvc     ports.AuditService
 }
 
 // NewAgentHandler creates a new AgentHandler.
@@ -26,11 +27,13 @@ func NewAgentHandler(
 	agentAuthSvc ports.AgentAuthService,
 	agentRepo ports.AgentRepository,
 	templates *view.Templates,
+	auditSvc ports.AuditService,
 ) *AgentHandler {
 	return &AgentHandler{
 		agentAuthSvc: agentAuthSvc,
 		agentRepo:    agentRepo,
 		templates:    templates,
+		auditSvc:     auditSvc,
 	}
 }
 
@@ -62,6 +65,14 @@ func (h *AgentHandler) Create(c echo.Context) error {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "agent limit reached"})
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create agent"})
+	}
+
+	// Audit log
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditAgentCreated, c.RealIP(), map[string]string{
+			"agent_id": agent.ID.String(),
+			"name":     agent.Name,
+		})
 	}
 
 	// If HTMX request, return HTML with the API key displayed
@@ -119,6 +130,14 @@ func (h *AgentHandler) Delete(c echo.Context) error {
 
 	if err := h.agentRepo.Delete(ctx, id); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})
+	}
+
+	// Audit log
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditAgentDeleted, c.RealIP(), map[string]string{
+			"agent_id": id.String(),
+			"name":     agent.Name,
+		})
 	}
 
 	if c.Request().Header.Get("HX-Request") == "true" {

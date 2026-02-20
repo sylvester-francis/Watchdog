@@ -69,6 +69,33 @@
         </div>
     </div>
 
+    <!-- TLS Certificate Info (shown only for TLS monitors with cert data) -->
+    {{if and (eq (print .Monitor.Type) "tls") .CertExpiryDays}}
+    <div class="bg-card border border-border rounded-lg mb-6">
+        <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-muted-foreground"></i>
+            <h3 class="text-sm font-medium text-foreground">TLS Certificate</h3>
+        </div>
+        <div class="px-5 py-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Days Until Expiry</p>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 rounded-full {{if gt (deref .CertExpiryDays) 30}}bg-emerald-400{{else if gt (deref .CertExpiryDays) 14}}bg-yellow-400{{else if gt (deref .CertExpiryDays) 7}}bg-orange-400{{else}}bg-red-400{{end}}"></div>
+                        <span class="text-lg font-semibold font-mono {{if gt (deref .CertExpiryDays) 30}}text-emerald-400{{else if gt (deref .CertExpiryDays) 14}}text-yellow-400{{else if gt (deref .CertExpiryDays) 7}}text-orange-400{{else}}text-red-400{{end}}">{{deref .CertExpiryDays}} days</span>
+                    </div>
+                </div>
+                {{if .CertIssuer}}
+                <div>
+                    <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Issuer</p>
+                    <span class="text-sm text-foreground font-mono">{{deref .CertIssuer}}</span>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    {{end}}
+
     <!-- Latency Chart -->
     <div class="bg-card border border-border rounded-lg mb-6">
         <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">

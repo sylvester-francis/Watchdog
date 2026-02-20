@@ -28,8 +28,8 @@ func (r *HeartbeatRepository) Create(ctx context.Context, heartbeat *domain.Hear
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO heartbeats (time, monitor_id, agent_id, status, latency_ms, error_message, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		INSERT INTO heartbeats (time, monitor_id, agent_id, status, latency_ms, error_message, cert_expiry_days, cert_issuer, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		heartbeat.Time,
@@ -38,6 +38,8 @@ func (r *HeartbeatRepository) Create(ctx context.Context, heartbeat *domain.Hear
 		heartbeat.Status,
 		heartbeat.LatencyMs,
 		heartbeat.ErrorMessage,
+		heartbeat.CertExpiryDays,
+		heartbeat.CertIssuer,
 		tenantID,
 	)
 	if err != nil {
@@ -58,7 +60,7 @@ func (r *HeartbeatRepository) CreateBatch(ctx context.Context, heartbeats []*dom
 	_, err := r.db.CopyFrom(
 		ctx,
 		pgx.Identifier{"heartbeats"},
-		[]string{"time", "monitor_id", "agent_id", "status", "latency_ms", "error_message", "tenant_id"},
+		[]string{"time", "monitor_id", "agent_id", "status", "latency_ms", "error_message", "cert_expiry_days", "cert_issuer", "tenant_id"},
 		pgx.CopyFromSlice(len(heartbeats), func(i int) ([]any, error) {
 			h := heartbeats[i]
 			return []any{
@@ -68,6 +70,8 @@ func (r *HeartbeatRepository) CreateBatch(ctx context.Context, heartbeats []*dom
 				h.Status,
 				h.LatencyMs,
 				h.ErrorMessage,
+				h.CertExpiryDays,
+				h.CertIssuer,
 				tenantID,
 			}, nil
 		}),
@@ -85,7 +89,7 @@ func (r *HeartbeatRepository) GetByMonitorID(ctx context.Context, monitorID uuid
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT time, monitor_id, agent_id, status, latency_ms, error_message
+		SELECT time, monitor_id, agent_id, status, latency_ms, error_message, cert_expiry_days, cert_issuer
 		FROM heartbeats
 		WHERE monitor_id = $1 AND tenant_id = $2
 		ORDER BY time DESC
@@ -106,7 +110,7 @@ func (r *HeartbeatRepository) GetByMonitorIDInRange(ctx context.Context, monitor
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT time, monitor_id, agent_id, status, latency_ms, error_message
+		SELECT time, monitor_id, agent_id, status, latency_ms, error_message, cert_expiry_days, cert_issuer
 		FROM heartbeats
 		WHERE monitor_id = $1 AND tenant_id = $2 AND time >= $3 AND time <= $4
 		ORDER BY time DESC`
@@ -126,7 +130,7 @@ func (r *HeartbeatRepository) GetLatestByMonitorID(ctx context.Context, monitorI
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT time, monitor_id, agent_id, status, latency_ms, error_message
+		SELECT time, monitor_id, agent_id, status, latency_ms, error_message, cert_expiry_days, cert_issuer
 		FROM heartbeats
 		WHERE monitor_id = $1 AND tenant_id = $2
 		ORDER BY time DESC
@@ -140,6 +144,8 @@ func (r *HeartbeatRepository) GetLatestByMonitorID(ctx context.Context, monitorI
 		&heartbeat.Status,
 		&heartbeat.LatencyMs,
 		&heartbeat.ErrorMessage,
+		&heartbeat.CertExpiryDays,
+		&heartbeat.CertIssuer,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -159,7 +165,7 @@ func (r *HeartbeatRepository) GetRecentFailures(ctx context.Context, monitorID u
 
 	// Get the most recent `count` heartbeats that are not 'up' status
 	query := `
-		SELECT time, monitor_id, agent_id, status, latency_ms, error_message
+		SELECT time, monitor_id, agent_id, status, latency_ms, error_message, cert_expiry_days, cert_issuer
 		FROM heartbeats
 		WHERE monitor_id = $1 AND tenant_id = $2 AND status != 'up'
 		ORDER BY time DESC
@@ -202,6 +208,8 @@ func scanHeartbeats(rows pgx.Rows, contextID uuid.UUID) ([]*domain.Heartbeat, er
 			&heartbeat.Status,
 			&heartbeat.LatencyMs,
 			&heartbeat.ErrorMessage,
+			&heartbeat.CertExpiryDays,
+			&heartbeat.CertIssuer,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan: %w", err)

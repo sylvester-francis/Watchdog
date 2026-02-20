@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
+	echomw "github.com/labstack/echo/v4/middleware"
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
@@ -103,15 +104,15 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	// Initialize handlers
 	r.authHandler = handlers.NewAuthHandler(deps.UserAuthService, deps.UserRepo, templates, loginLimiter, deps.AuditService)
 	r.dashboardHandler = handlers.NewDashboardHandler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.UserRepo, templates)
-	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates, deps.Hub)
-	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, templates)
-	r.agentHandler = handlers.NewAgentHandler(deps.AgentAuthService, deps.AgentRepo, templates)
+	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates, deps.Hub, deps.AuditService)
+	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, templates, deps.AuditService)
+	r.agentHandler = handlers.NewAgentHandler(deps.AgentAuthService, deps.AgentRepo, templates, deps.AuditService)
 	r.adminHandler = handlers.NewAdminHandler(deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.UsageEventRepo, deps.Hasher, templates)
 	r.landingHandler = handlers.NewLandingHandler(deps.WaitlistRepo, templates)
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
-	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, templates)
+	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, templates, deps.AuditService)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub)
 	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.UserRepo, deps.IncidentService, templates)
 	r.alertChannelHandler = handlers.NewAlertChannelHandler(deps.AlertChannelRepo, templates)
@@ -251,6 +252,12 @@ func (r *Router) RegisterRoutes() {
 
 	// Public API v1 (token-authenticated)
 	v1 := e.Group("/api/v1")
+	v1.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+		AllowOrigins: r.deps.AllowedOrigins,
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders: []string{echo.HeaderAuthorization, echo.HeaderContentType},
+		MaxAge:       86400,
+	}))
 	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo))
 	v1.Use(tenantMW)
 	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
