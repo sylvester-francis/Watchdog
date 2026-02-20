@@ -11,6 +11,7 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 	"github.com/sylvester-francis/watchdog/core/registry"
@@ -179,11 +180,15 @@ func (r *Router) RegisterRoutes() {
 	// WebSocket endpoint for agents (public - authenticated via API key in handshake)
 	e.GET("/ws/agent", r.wsHandler.HandleConnection)
 
+	// Tenant scope middleware — resolve tenant ID into request context
+	tenantMW := r.tenantMiddleware()
+
 	// Protected routes (auth required)
 	protected := e.Group("")
 	protected.Use(middleware.NoCacheHeaders)
 	protected.Use(middleware.AuthRequired)
 	protected.Use(middleware.UserContext(r.deps.UserRepo))
+	protected.Use(tenantMW)
 
 	// Root redirect
 	e.GET("/", r.rootRedirect)
@@ -247,6 +252,7 @@ func (r *Router) RegisterRoutes() {
 	// Public API v1 (token-authenticated)
 	v1 := e.Group("/api/v1")
 	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo, r.deps.UserRepo))
+	v1.Use(tenantMW)
 	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
 	v1.GET("/monitors/:id", r.apiV1Handler.GetMonitor)
 	v1.POST("/monitors", r.apiV1Handler.CreateMonitor)
@@ -269,6 +275,27 @@ func (r *Router) rootRedirect(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}
 	return r.landingHandler.Page(c)
+}
+
+// tenantMiddleware returns the tenant scope middleware.
+// If a TenantResolver is registered in the module registry, it is used.
+// Otherwise, a default middleware that injects "default" is used.
+func (r *Router) tenantMiddleware() echo.MiddlewareFunc {
+	if r.deps.Registry != nil {
+		if mod, ok := r.deps.Registry.Get("tenant_resolver"); ok {
+			if resolver, ok := mod.(ports.TenantResolver); ok {
+				return middleware.TenantScope(resolver)
+			}
+		}
+	}
+	// Fallback: inject "default" tenant into every request context.
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ctx := repository.WithTenantID(c.Request().Context(), "default")
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c)
+		}
+	}
 }
 
 // Stop cleans up router resources (rate limiters).
