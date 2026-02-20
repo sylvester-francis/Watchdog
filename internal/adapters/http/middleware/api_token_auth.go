@@ -49,14 +49,16 @@ func APITokenAuth(tokenRepo ports.APITokenRepository) echo.MiddlewareFunc {
 				})
 			}
 
-			// Set user ID in context (same key as session auth)
+			// Set user ID and token scope in context (same key as session auth)
 			c.Set(UserIDKey, token.UserID.String())
+			c.Set("token_scope", string(token.Scope))
 
-			// Update last used (fire-and-forget with dedicated context)
+			// Update last used + IP (fire-and-forget with dedicated context)
+			ip := c.RealIP()
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				_ = tokenRepo.UpdateLastUsed(ctx, token.ID)
+				_ = tokenRepo.UpdateLastUsed(ctx, token.ID, ip)
 			}()
 
 			return next(c)

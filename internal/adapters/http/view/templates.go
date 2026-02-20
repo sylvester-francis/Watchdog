@@ -46,6 +46,7 @@ func NewTemplates(dir string) (*Templates, error) {
 		"sub":              sub,
 		"dict":             dict,
 		"toJSON":           toJSON,
+		"deref":            deref,
 	}
 
 	// Build the shared base: layouts + partials
@@ -309,6 +310,26 @@ func dict(values ...interface{}) map[string]interface{} {
 		result[key] = values[i+1]
 	}
 	return result
+}
+
+// deref dereferences a pointer value for use in templates.
+// Supports *int, *string, and *time.Time.
+func deref(v interface{}) interface{} {
+	switch p := v.(type) {
+	case *int:
+		if p != nil {
+			return *p
+		}
+	case *string:
+		if p != nil {
+			return *p
+		}
+	case *time.Time:
+		if p != nil {
+			return *p
+		}
+	}
+	return nil
 }
 
 // toJSON serializes a value to JSON for embedding in templates.

@@ -1,0 +1,2 @@
+ALTER TABLE api_tokens ADD COLUMN scope VARCHAR(20) NOT NULL DEFAULT 'admin';
+ALTER TABLE api_tokens ADD COLUMN last_used_ip VARCHAR(45);

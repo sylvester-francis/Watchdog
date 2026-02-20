@@ -28,13 +28,15 @@ func (s AgentStatus) IsValid() bool {
 
 // Agent represents a monitoring agent deployed in a private network.
 type Agent struct {
-	ID              uuid.UUID
-	UserID          uuid.UUID
-	Name            string
-	APIKeyEncrypted []byte
-	LastSeenAt      *time.Time
-	Status          AgentStatus
-	CreatedAt       time.Time
+	ID                    uuid.UUID
+	UserID                uuid.UUID
+	Name                  string
+	APIKeyEncrypted       []byte
+	LastSeenAt            *time.Time
+	Status                AgentStatus
+	Fingerprint           map[string]string
+	FingerprintVerifiedAt *time.Time
+	CreatedAt             time.Time
 }
 
 // NewAgent creates a new Agent with generated ID and offline status.

@@ -81,7 +81,7 @@
                 <div>
                     <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-4 sm:mb-6">
                         <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot"></div>
-                        <span class="text-xs font-medium text-accent">Open source &middot; Self-hosted</span>
+                        <span class="text-xs font-medium text-accent">Open source &middot; Self-hosted &middot; Zero-trust</span>
                     </div>
 
                     <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-[1.15] tracking-tight mb-3 sm:mb-4">
@@ -383,6 +383,28 @@
                         <span class="text-xs text-foreground">3-strike rule &mdash; no false alarms</span>
                     </div>
                 </div>
+                <div class="bg-card border border-border rounded-lg p-4">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Network exposure</p>
+                    <div class="flex items-start space-x-2 mb-1.5">
+                        <span class="text-muted-foreground/50 text-xs mt-0.5 shrink-0">Before:</span>
+                        <span class="text-xs text-muted-foreground">Open inbound ports for probes</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-emerald-400/70 text-xs mt-0.5 shrink-0">WatchDog:</span>
+                        <span class="text-xs text-foreground">Zero inbound ports &mdash; outbound-only</span>
+                    </div>
+                </div>
+                <div class="bg-card border border-border rounded-lg p-4">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Data path</p>
+                    <div class="flex items-start space-x-2 mb-1.5">
+                        <span class="text-muted-foreground/50 text-xs mt-0.5 shrink-0">Before:</span>
+                        <span class="text-xs text-muted-foreground">Credentials sent to third-party SaaS</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-emerald-400/70 text-xs mt-0.5 shrink-0">WatchDog:</span>
+                        <span class="text-xs text-foreground">Self-hosted &mdash; credentials never leave your infra</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Desktop: table -->
@@ -420,6 +442,16 @@
                             <td class="py-3 px-4 text-muted-foreground font-medium">Alert verification</td>
                             <td class="py-3 px-4 text-muted-foreground">Often single-check</td>
                             <td class="py-3 px-4 text-foreground">3-strike rule &mdash; no false alarms</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 text-muted-foreground font-medium">Network exposure</td>
+                            <td class="py-3 px-4 text-muted-foreground">Open inbound ports for probes</td>
+                            <td class="py-3 px-4 text-foreground">Zero inbound ports &mdash; outbound-only</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 text-muted-foreground font-medium">Data path</td>
+                            <td class="py-3 px-4 text-muted-foreground">Credentials sent to third-party SaaS</td>
+                            <td class="py-3 px-4 text-foreground">Self-hosted &mdash; credentials never leave your infra</td>
                         </tr>
                     </tbody>
                 </table>
@@ -465,6 +497,38 @@
                 <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">TimescaleDB</span>
                 <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">WebSocket</span>
                 <span class="px-2.5 py-1 rounded-md bg-card border border-border text-xs text-muted-foreground font-mono">HTMX</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security -->
+    <section class="py-12 md:py-16 lg:py-20 border-t border-border reveal" id="security">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3 text-center">Security by design</h2>
+            <p class="text-sm text-muted-foreground text-center mb-6 md:mb-10">Your infrastructure credentials never leave your network.</p>
+
+            <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="shield-off" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Zero inbound ports</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">The agent connects outbound to the hub over WebSocket. No listening ports, no attack surface on your network.</p>
+                </div>
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="scan" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Minimal attack surface</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Single static Go binary. No runtime dependencies, no interpreters, no package managers. Agent fingerprinting detects impersonation.</p>
+                </div>
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="lock" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Credentials stay local</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed">Self-hosted hub means your database passwords, API keys, and service endpoints never leave your infrastructure.</p>
+                </div>
             </div>
         </div>
     </section>

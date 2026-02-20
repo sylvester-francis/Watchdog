@@ -15,6 +15,8 @@ require (
 	golang.org/x/text v0.34.0
 )
 
+replace github.com/sylvester-francis/watchdog-proto => ../watchdog-proto
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect

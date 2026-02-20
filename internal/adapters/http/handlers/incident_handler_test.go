@@ -56,7 +56,7 @@ func TestIncidentAcknowledge_Success(t *testing.T) {
 		GetByIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Monitor, error) {
 			return &domain.Monitor{ID: monitorID}, nil
 		},
-	}, nil)
+	}, nil, nil)
 
 	c, rec := newIncidentTestContext(http.MethodPost, "/incidents/"+incidentID.String()+"/ack", userID)
 	c.SetParamNames("id")
@@ -70,7 +70,7 @@ func TestIncidentAcknowledge_Success(t *testing.T) {
 }
 
 func TestIncidentAcknowledge_Unauthorized(t *testing.T) {
-	h := handlers.NewIncidentHandler(&mocks.MockIncidentService{}, &mocks.MockMonitorRepository{}, nil)
+	h := handlers.NewIncidentHandler(&mocks.MockIncidentService{}, &mocks.MockMonitorRepository{}, nil, nil)
 
 	c, rec := newIncidentTestContext(http.MethodPost, "/incidents/"+uuid.New().String()+"/ack", uuid.Nil)
 	c.SetParamNames("id")
@@ -83,7 +83,7 @@ func TestIncidentAcknowledge_Unauthorized(t *testing.T) {
 
 func TestIncidentAcknowledge_InvalidID(t *testing.T) {
 	userID := uuid.New()
-	h := handlers.NewIncidentHandler(&mocks.MockIncidentService{}, &mocks.MockMonitorRepository{}, nil)
+	h := handlers.NewIncidentHandler(&mocks.MockIncidentService{}, &mocks.MockMonitorRepository{}, nil, nil)
 
 	c, rec := newIncidentTestContext(http.MethodPost, "/incidents/bad-id/ack", userID)
 	c.SetParamNames("id")
@@ -107,7 +107,7 @@ func TestIncidentResolve_Success(t *testing.T) {
 		},
 	}
 
-	h := handlers.NewIncidentHandler(incidentSvc, &mocks.MockMonitorRepository{}, nil)
+	h := handlers.NewIncidentHandler(incidentSvc, &mocks.MockMonitorRepository{}, nil, nil)
 
 	c, rec := newIncidentTestContext(http.MethodPost, "/incidents/"+incidentID.String()+"/resolve", userID)
 	c.SetParamNames("id")
@@ -129,7 +129,7 @@ func TestIncidentResolve_ServiceError(t *testing.T) {
 		},
 	}
 
-	h := handlers.NewIncidentHandler(incidentSvc, &mocks.MockMonitorRepository{}, nil)
+	h := handlers.NewIncidentHandler(incidentSvc, &mocks.MockMonitorRepository{}, nil, nil)
 
 	c, rec := newIncidentTestContext(http.MethodPost, "/incidents/"+incidentID.String()+"/resolve", userID)
 	c.SetParamNames("id")
@@ -142,7 +142,7 @@ func TestIncidentResolve_ServiceError(t *testing.T) {
 
 func TestIncidentResolve_InvalidID(t *testing.T) {
 	userID := uuid.New()
-	h := handlers.NewIncidentHandler(&mocks.MockIncidentService{}, &mocks.MockMonitorRepository{}, nil)
+	h := handlers.NewIncidentHandler(&mocks.MockIncidentService{}, &mocks.MockMonitorRepository{}, nil, nil)
 
 	c, rec := newIncidentTestContext(http.MethodPost, "/incidents/bad-id/resolve", userID)
 	c.SetParamNames("id")

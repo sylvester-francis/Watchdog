@@ -333,6 +333,21 @@
                            class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                 </div>
                 <div>
+                    <label class="block text-xs font-medium text-muted-foreground mb-2">Scope</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex flex-col items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                            <input type="radio" name="scope" value="admin" checked class="sr-only">
+                            <span class="text-xs text-foreground font-medium">Admin</span>
+                            <span class="text-[9px] text-muted-foreground/60 mt-0.5">Full access</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                            <input type="radio" name="scope" value="read_only" class="sr-only">
+                            <span class="text-xs text-foreground font-medium">Read Only</span>
+                            <span class="text-[9px] text-muted-foreground/60 mt-0.5">GET requests</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-muted-foreground mb-2">Expiration</label>
                     <div class="grid grid-cols-3 gap-2">
                         <label class="flex flex-col items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
@@ -379,6 +394,7 @@
             <div class="flex items-center space-x-2">
                 <span class="text-sm font-medium text-foreground truncate">{{.Name}}</span>
                 <code class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{{.Prefix}}...</code>
+                <span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 {{if eq (print .Scope) "read_only"}}bg-blue-500/10 text-blue-400{{else}}bg-yellow-500/10 text-yellow-400{{end}}">{{if eq (print .Scope) "read_only"}}read-only{{else}}admin{{end}}</span>
             </div>
             <div class="flex items-center space-x-3 mt-0.5">
                 <span class="text-[10px] text-muted-foreground/60">Created {{formatTimeAgo .CreatedAt}}</span>
@@ -388,6 +404,7 @@
                 <span class="text-[10px] text-muted-foreground/40">No expiry</span>
                 {{end}}
                 <span class="text-[10px] text-muted-foreground/60 hidden sm:inline">Last used: {{formatTimeAgoPtr .LastUsedAt}}</span>
+                {{if .LastUsedIP}}<span class="text-[10px] text-muted-foreground/40 hidden sm:inline font-mono">IP: {{deref .LastUsedIP}}</span>{{end}}
             </div>
         </div>
     </div>
