@@ -14,6 +14,23 @@ import (
 // txKey is the context key for storing a transaction.
 type txKey struct{}
 
+// tenantKey is the context key for storing the tenant ID.
+type tenantKey struct{}
+
+// WithTenantID returns a context with the given tenant ID.
+func WithTenantID(ctx context.Context, tenantID string) context.Context {
+	return context.WithValue(ctx, tenantKey{}, tenantID)
+}
+
+// TenantIDFromContext extracts the tenant ID from context.
+// Returns "default" if no tenant ID is set (single-tenant mode).
+func TenantIDFromContext(ctx context.Context) string {
+	if id, ok := ctx.Value(tenantKey{}).(string); ok && id != "" {
+		return id
+	}
+	return "default"
+}
+
 // Querier is an interface that both pgxpool.Pool and pgx.Tx satisfy.
 // This allows repositories to work with or without transactions transparently.
 type Querier interface {
