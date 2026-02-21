@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- New Agent Modal -->
 <div id="new-agent-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
+    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div class="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 class="text-sm font-medium text-foreground">Create Agent</h3>
             <button onclick="document.getElementById('new-agent-modal').classList.add('hidden')"
@@ -386,12 +386,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <form id="agent-form" hx-post="/agents" hx-target="#agent-result" hx-swap="innerHTML">
             {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
-            <div class="p-4 space-y-4">
-                <div>
-                    <label class="block text-xs text-muted-foreground mb-1">Agent Name</label>
-                    <input type="text" name="name" required placeholder="e.g. Homelab, Production, Staging"
-                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
-                </div>
+            <div class="p-4">
+                <label class="block text-xs text-muted-foreground mb-1">Agent Name</label>
+                <input type="text" name="name" required placeholder="e.g. Homelab, Production, Staging"
+                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
             </div>
             <div class="px-4 py-3 border-t border-border flex justify-end space-x-2">
                 <button type="button" onclick="document.getElementById('new-agent-modal').classList.add('hidden')"
@@ -404,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
         </form>
-        <div id="agent-result" class="px-4 pb-4"></div>
+        <div id="agent-result" class="px-4 pb-4 overflow-hidden"></div>
     </div>
 </div>
 {{end}}
