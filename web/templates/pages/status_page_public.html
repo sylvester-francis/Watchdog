@@ -67,7 +67,7 @@
                     {{.OverallStatus}}
                 </span>
             </div>
-            {{if and (gt .AggregateUptime 0) (gt (len .Monitors) 0)}}
+            {{if and (gt .AggregateUptime 0.0) (gt (len .Monitors) 0)}}
             <p class="text-xs text-muted-foreground mt-1.5">{{formatPercent .AggregateUptime}}% uptime over the last 90 days</p>
             {{end}}
         </div>
