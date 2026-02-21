@@ -297,40 +297,44 @@ Alpine.data('monitorFilter', () => ({
 }));
 
 // 6. channelSelector — settings.html alert channel modal
-// NOTE: x-model and getters are broken in Alpine CSP build.
-// We use plain boolean properties + @change + DOM sync instead.
+// NOTE: x-show reactivity is broken in Alpine CSP build for property updates.
+// We use direct DOM manipulation via data-section attributes instead.
 Alpine.data('channelSelector', () => ({
     channelType: 'discord',
     show: false,
-    showWebhook: true,
-    showGenericWebhook: false,
-    showEmail: false,
-    showTelegram: false,
-    showPagerduty: false,
     open() {
         this.show = true;
         this.channelType = 'discord';
-        this._updateVisibility();
-        this.$nextTick(() => {
-            var sel = this.$el.querySelector('select[name="type"]');
-            if (sel) sel.value = 'discord';
-        });
+        var sel = this.$el.querySelector('select[name="type"]');
+        if (sel) sel.value = 'discord';
+        this._syncSections();
     },
     close() { this.show = false; },
     updateChannelType() {
         var sel = this.$el.querySelector('select[name="type"]');
         if (sel) {
             this.channelType = sel.value;
-            this._updateVisibility();
+            this._syncSections();
         }
     },
-    _updateVisibility() {
+    _syncSections() {
         var t = this.channelType;
-        this.showWebhook = (t === 'discord' || t === 'slack');
-        this.showGenericWebhook = (t === 'webhook');
-        this.showEmail = (t === 'email');
-        this.showTelegram = (t === 'telegram');
-        this.showPagerduty = (t === 'pagerduty');
+        var root = this.$el;
+        var sections = root.querySelectorAll('[data-section]');
+        for (var i = 0; i < sections.length; i++) {
+            var s = sections[i];
+            var types = s.getAttribute('data-section').split(',');
+            s.style.display = types.indexOf(t) >= 0 ? '' : 'none';
+        }
+        // Update webhook placeholder based on type
+        var webhookInput = root.querySelector('input[name="webhook_url"]');
+        if (webhookInput) {
+            if (t === 'slack') {
+                webhookInput.placeholder = 'https://hooks.slack.com/services/...';
+            } else {
+                webhookInput.placeholder = 'https://discord.com/api/webhooks/...';
+            }
+        }
     },
 }));
 
