@@ -1,60 +1,113 @@
 {{define "status_page_public.html"}}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Page.Name}} - Status</title>
-    <link rel="stylesheet" href="/static/css/output.css">
+    <title>{{.Page.Name}} — Status</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#09090b',
+                        foreground: '#fafafa',
+                        card: { DEFAULT: '#111113', foreground: '#fafafa' },
+                        'card-elevated': '#18181b',
+                        muted: { DEFAULT: '#27272a', foreground: '#a1a1aa' },
+                        accent: { DEFAULT: '#3b82f6', foreground: '#fafafa' },
+                        border: '#27272a',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        body { background: #0a0a0b; color: #e4e4e7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
-        .status-card { background: #18181b; border: 1px solid #27272a; border-radius: 0.5rem; }
-        .status-up { color: #4ade80; }
-        .status-down { color: #f87171; }
-        .status-unknown { color: #a1a1aa; }
-        .dot-up { background: #4ade80; }
-        .dot-down { background: #f87171; }
-        .dot-unknown { background: #a1a1aa; }
-        .overall-up { background: #052e16; border-color: #166534; color: #4ade80; }
-        .overall-down { background: #450a0a; border-color: #991b1b; color: #f87171; }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
     </style>
 </head>
-<body class="min-h-screen">
-    <div class="max-w-2xl mx-auto px-4 py-12">
+<body class="bg-background text-foreground font-sans min-h-screen antialiased">
+
+    <!-- Nav -->
+    <nav class="border-b border-border bg-background/80 backdrop-blur-sm">
+        <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+            <a href="/" class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 bg-accent rounded-md flex items-center justify-center">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-white"></i>
+                </div>
+                <span class="text-sm font-semibold text-foreground">WatchDog</span>
+            </a>
+            <a href="/register" class="px-3.5 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-medium rounded-md transition-colors">
+                Sign Up
+            </a>
+        </div>
+    </nav>
+
+    <div class="max-w-3xl mx-auto px-6 py-12">
+
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-white">{{.Page.Name}}</h1>
+            <h1 class="text-2xl font-bold text-foreground tracking-tight">{{.Page.Name}}</h1>
             {{if .Page.Description}}
-            <p class="text-sm text-zinc-400 mt-1">{{.Page.Description}}</p>
+            <p class="text-sm text-muted-foreground mt-2 max-w-md mx-auto">{{.Page.Description}}</p>
             {{end}}
         </div>
 
-        <!-- Overall Status -->
-        <div class="status-card p-4 mb-6 text-center border
-            {{if .AllUp}}overall-up{{else}}overall-down{{end}}">
-            <span class="text-sm font-medium">{{.OverallStatus}}</span>
+        <!-- Overall Status Banner -->
+        <div class="rounded-lg border p-4 mb-8 flex items-center justify-center space-x-2.5
+            {{if and .AllUp (gt (len .Monitors) 0)}}bg-emerald-500/[0.07] border-emerald-500/20
+            {{else if gt (len .Monitors) 0}}bg-red-500/[0.07] border-red-500/20
+            {{else}}bg-card border-border{{end}}">
+            {{if gt (len .Monitors) 0}}
+            <div class="w-2 h-2 rounded-full animate-pulse-dot
+                {{if .AllUp}}bg-emerald-400{{else}}bg-red-400{{end}}"></div>
+            {{end}}
+            <span class="text-sm font-medium
+                {{if and .AllUp (gt (len .Monitors) 0)}}text-emerald-400
+                {{else if gt (len .Monitors) 0}}text-red-400
+                {{else}}text-muted-foreground{{end}}">
+                {{.OverallStatus}}
+            </span>
         </div>
 
         <!-- Monitors -->
         {{if .Monitors}}
-        <div class="space-y-2">
-            {{range .Monitors}}
-            <div class="status-card px-4 py-3 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-2 h-2 rounded-full
-                        {{if eq .Status "up"}}dot-up
-                        {{else if eq .Status "down"}}dot-down
-                        {{else}}dot-unknown{{end}}">
-                    </div>
-                    <div>
-                        <span class="text-sm font-medium text-zinc-200">{{.Name}}</span>
-                        <span class="text-xs text-zinc-500 ml-2">{{.Type}}</span>
-                    </div>
+        <div class="bg-card border border-border rounded-lg overflow-hidden">
+            {{range $i, $m := .Monitors}}
+            <div class="px-5 py-3.5 flex items-center justify-between{{if $i}} border-t border-border{{end}}">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <div class="w-2 h-2 rounded-full shrink-0
+                        {{if eq .Status "up"}}bg-emerald-400
+                        {{else if eq .Status "down"}}bg-red-400
+                        {{else}}bg-zinc-500{{end}}"></div>
+                    <span class="text-sm font-medium text-foreground truncate">{{.Name}}</span>
+                    <span class="hidden sm:inline-flex px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded
+                        {{if eq .Type "http"}}bg-blue-500/10 text-blue-400
+                        {{else if eq .Type "tcp"}}bg-purple-500/10 text-purple-400
+                        {{else if eq .Type "ping"}}bg-amber-500/10 text-amber-400
+                        {{else if eq .Type "dns"}}bg-cyan-500/10 text-cyan-400
+                        {{else if eq .Type "tls"}}bg-emerald-500/10 text-emerald-400
+                        {{else}}bg-muted text-muted-foreground{{end}}">{{.Type}}</span>
                 </div>
-                <span class="text-xs font-medium
-                    {{if eq .Status "up"}}status-up
-                    {{else if eq .Status "down"}}status-down
-                    {{else}}status-unknown{{end}}">
+                <span class="text-xs font-medium shrink-0 ml-4
+                    {{if eq .Status "up"}}text-emerald-400
+                    {{else if eq .Status "down"}}text-red-400
+                    {{else}}text-muted-foreground{{end}}">
                     {{if eq .Status "up"}}Operational
                     {{else if eq .Status "down"}}Down
                     {{else}}Unknown{{end}}
@@ -63,16 +116,19 @@
             {{end}}
         </div>
         {{else}}
-        <div class="status-card p-8 text-center">
-            <p class="text-sm text-zinc-500">No monitors configured for this page.</p>
+        <div class="bg-card border border-border rounded-lg p-10 text-center">
+            <i data-lucide="activity" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-3"></i>
+            <p class="text-sm text-muted-foreground">No monitors configured for this status page.</p>
         </div>
         {{end}}
 
         <!-- Footer -->
-        <div class="text-center mt-8 text-xs text-zinc-600">
-            Powered by <a href="/" class="text-zinc-500 hover:text-zinc-400">WatchDog</a>
+        <div class="mt-10 text-center text-xs text-muted-foreground/50">
+            Powered by <a href="/" class="text-muted-foreground/70 hover:text-muted-foreground transition-colors">WatchDog</a>
         </div>
     </div>
+
+    <script>lucide.createIcons();</script>
 </body>
 </html>
 {{end}}
