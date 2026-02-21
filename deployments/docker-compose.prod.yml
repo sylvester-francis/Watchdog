@@ -1,0 +1,53 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: watchdog-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - hub
+    restart: unless-stopped
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: watchdog-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-watchdog}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-watchdog}
+    volumes:
+      - watchdog_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U watchdog -d watchdog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  hub:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.hub
+    container_name: watchdog-hub
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-watchdog}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-watchdog}?sslmode=disable
+      PORT: 8080
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      SERVER_SECURE_COOKIES: "true"
+      ALLOWED_ORIGINS: https://usewatchdog.dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  watchdog_data:
+  caddy_data:
+  caddy_config:
