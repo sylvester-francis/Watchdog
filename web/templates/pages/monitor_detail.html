@@ -277,10 +277,10 @@
                         </td>
                         <td class="px-5 py-2.5">
                             {{if eq (print $.Monitor.Type) "system"}}
-                            {{if and .ErrorMessage (not .Status.IsSuccess)}}
-                            <span class="text-xs text-red-400 truncate max-w-[300px] block" title="{{.ErrorMessage}}">{{.ErrorMessage}}</span>
+                            {{if not .Status.IsSuccess}}
+                            <span class="text-xs text-red-400 truncate max-w-[300px] block" title="{{deref .ErrorMessage}}">Threshold exceeded</span>
                             {{else}}
-                            <span class="text-xs text-muted-foreground">--</span>
+                            <span class="text-xs text-emerald-400">OK</span>
                             {{end}}
                             {{else}}
                             {{if .ErrorMessage}}
