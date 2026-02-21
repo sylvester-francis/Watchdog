@@ -182,7 +182,7 @@
                         <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Name</th>
                         <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Type</th>
                         <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Target</th>
-                        <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Uptime</th>
+                        <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Health</th>
                         <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Details</th>
                         <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Interval</th>
                         <th class="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
@@ -209,7 +209,9 @@
                             <span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] block" title="{{.Monitor.Target}}">{{.Monitor.Target}}</span>
                         </td>
                         <td class="px-5 py-3 hidden lg:table-cell">
-                            {{if gt .UptimeTotal 0}}
+                            {{if and (eq (print .Monitor.Type) "system") .MetricValue}}
+                            <span class="text-xs font-mono text-foreground">{{.MetricValue}}</span>
+                            {{else if gt .UptimeTotal 0}}
                             <div class="w-20 h-2 bg-muted rounded-full overflow-hidden flex gap-px" title="{{.UptimeUp}} up / {{.UptimeDown}} down">
                                 {{if gt .UptimeUp 0}}
                                 <div class="bg-emerald-500 h-full rounded-sm" style="width: calc({{.UptimeUp}} / {{.UptimeTotal}} * 100%)"></div>
