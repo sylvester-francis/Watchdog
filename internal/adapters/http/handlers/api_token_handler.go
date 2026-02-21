@@ -152,6 +152,69 @@ func (h *APITokenHandler) Delete(c echo.Context) error {
 	return c.String(http.StatusOK, "")
 }
 
+// Regenerate handles POST /settings/tokens/:id/regenerate.
+// It deletes the old token and creates a new one with the same name, scope, and remaining expiry.
+func (h *APITokenHandler) Regenerate(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.String(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.String(http.StatusBadRequest, "Invalid token ID")
+	}
+
+	// Verify ownership and find the old token
+	tokens, err := h.tokenRepo.GetByUserID(c.Request().Context(), userID)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to verify token ownership")
+	}
+
+	var old *domain.APIToken
+	for _, t := range tokens {
+		if t.ID == id {
+			old = t
+			break
+		}
+	}
+	if old == nil {
+		return c.String(http.StatusForbidden, "Token not found")
+	}
+
+	// Delete old token
+	if err := h.tokenRepo.Delete(c.Request().Context(), id); err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to delete old token")
+	}
+
+	// Create new token with same name, scope, and expiry
+	newToken, plaintext, err := domain.GenerateAPIToken(userID, old.Name, old.ExpiresAt, old.Scope)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to generate token")
+	}
+
+	if err := h.tokenRepo.Create(c.Request().Context(), newToken); err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to save token")
+	}
+
+	// Audit log
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditAPITokenRevoked, c.RealIP(), map[string]string{
+			"token_id": id.String(),
+		})
+		h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditAPITokenCreated, c.RealIP(), map[string]string{
+			"token_id": newToken.ID.String(),
+			"name":     newToken.Name,
+			"scope":    string(newToken.Scope),
+		})
+	}
+
+	return c.Render(http.StatusOK, "token_regenerated", map[string]interface{}{
+		"Token":     newToken,
+		"Plaintext": plaintext,
+	})
+}
+
 // UpdateUsername handles POST /settings/username.
 func (h *APITokenHandler) UpdateUsername(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
