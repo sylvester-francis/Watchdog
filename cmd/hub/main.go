@@ -119,7 +119,8 @@ func main() {
 	// Initialize services
 	auditSvc := services.NewAuditService(auditLogRepo, logger)
 	authSvc := services.NewAuthService(userRepo, agentRepo, usageEventRepo, hasher, encryptor, logger)
-	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, db, logger)
+	notifierFactory := notify.NewChannelNotifierFactory()
+	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 
 	// Initialize WebSocket hub
