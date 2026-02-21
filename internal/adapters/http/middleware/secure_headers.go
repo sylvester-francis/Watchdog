@@ -5,7 +5,10 @@ import (
 )
 
 // SecureHeaders adds security-related HTTP headers to responses.
-func SecureHeaders() echo.MiddlewareFunc {
+// When secureCookies is true, HSTS is also enabled (production with HTTPS).
+func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
+	enableHSTS := len(secureCookies) > 0 && secureCookies[0]
+
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			h := c.Response().Header()
@@ -22,35 +25,20 @@ func SecureHeaders() echo.MiddlewareFunc {
 			// Control referrer information
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-			// Content Security Policy — allow CDN scripts, fonts, and SSE/source-map connections
-			// Alpine.js requires 'unsafe-eval' for expression evaluation
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+			// Content Security Policy — allow CDN scripts, fonts, and SSE connections
+			// Uses Alpine.js CSP build (no unsafe-eval needed)
+			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
 
-			// Permissions Policy (formerly Feature-Policy)
+			// Permissions Policy
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
-			return next(c)
-		}
-	}
-}
+			// Prevent cross-domain policy loading
+			h.Set("X-Permitted-Cross-Domain-Policies", "none")
 
-// SecureHeadersStrict adds stricter security headers including HSTS.
-// Use this for production with HTTPS enabled.
-func SecureHeadersStrict() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			h := c.Response().Header()
-
-			// All standard headers
-			h.Set("X-XSS-Protection", "1; mode=block")
-			h.Set("X-Content-Type-Options", "nosniff")
-			h.Set("X-Frame-Options", "DENY")
-			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
-			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-
-			// HSTS - enforce HTTPS for 1 year, include subdomains
-			h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			// HSTS when running behind HTTPS
+			if enableHSTS {
+				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			}
 
 			return next(c)
 		}

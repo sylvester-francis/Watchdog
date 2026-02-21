@@ -1,0 +1,78 @@
+{{define "status_page_public.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Page.Name}} - Status</title>
+    <link rel="stylesheet" href="/static/css/output.css">
+    <style>
+        body { background: #0a0a0b; color: #e4e4e7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+        .status-card { background: #18181b; border: 1px solid #27272a; border-radius: 0.5rem; }
+        .status-up { color: #4ade80; }
+        .status-down { color: #f87171; }
+        .status-unknown { color: #a1a1aa; }
+        .dot-up { background: #4ade80; }
+        .dot-down { background: #f87171; }
+        .dot-unknown { background: #a1a1aa; }
+        .overall-up { background: #052e16; border-color: #166534; color: #4ade80; }
+        .overall-down { background: #450a0a; border-color: #991b1b; color: #f87171; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="max-w-2xl mx-auto px-4 py-12">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-white">{{.Page.Name}}</h1>
+            {{if .Page.Description}}
+            <p class="text-sm text-zinc-400 mt-1">{{.Page.Description}}</p>
+            {{end}}
+        </div>
+
+        <!-- Overall Status -->
+        <div class="status-card p-4 mb-6 text-center border
+            {{if .AllUp}}overall-up{{else}}overall-down{{end}}">
+            <span class="text-sm font-medium">{{.OverallStatus}}</span>
+        </div>
+
+        <!-- Monitors -->
+        {{if .Monitors}}
+        <div class="space-y-2">
+            {{range .Monitors}}
+            <div class="status-card px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-2 h-2 rounded-full
+                        {{if eq .Status "up"}}dot-up
+                        {{else if eq .Status "down"}}dot-down
+                        {{else}}dot-unknown{{end}}">
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-zinc-200">{{.Name}}</span>
+                        <span class="text-xs text-zinc-500 ml-2">{{.Type}}</span>
+                    </div>
+                </div>
+                <span class="text-xs font-medium
+                    {{if eq .Status "up"}}status-up
+                    {{else if eq .Status "down"}}status-down
+                    {{else}}status-unknown{{end}}">
+                    {{if eq .Status "up"}}Operational
+                    {{else if eq .Status "down"}}Down
+                    {{else}}Unknown{{end}}
+                </span>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="status-card p-8 text-center">
+            <p class="text-sm text-zinc-500">No monitors configured for this page.</p>
+        </div>
+        {{end}}
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-xs text-zinc-600">
+            Powered by <a href="/" class="text-zinc-500 hover:text-zinc-400">WatchDog</a>
+        </div>
+    </div>
+</body>
+</html>
+{{end}}

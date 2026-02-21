@@ -15,22 +15,38 @@ type Config struct {
 	Notify   NotifyConfig
 }
 
-// NotifyConfig holds notification webhook configuration.
-// All fields are optional. Set a URL to activate that notifier.
+// NotifyConfig holds notification configuration.
+// All fields are optional. Set the relevant config to activate a notifier.
 type NotifyConfig struct {
 	SlackWebhookURL   string `envconfig:"SLACK_WEBHOOK_URL"`
 	DiscordWebhookURL string `envconfig:"DISCORD_WEBHOOK_URL"`
 	WebhookURL        string `envconfig:"WEBHOOK_URL"`
+
+	// Email (SMTP)
+	SMTPHost     string `envconfig:"SMTP_HOST"`
+	SMTPPort     int    `envconfig:"SMTP_PORT" default:"587"`
+	SMTPUsername string `envconfig:"SMTP_USERNAME"`
+	SMTPPassword string `envconfig:"SMTP_PASSWORD"`
+	SMTPFrom     string `envconfig:"SMTP_FROM"`
+	SMTPTo       string `envconfig:"SMTP_TO"`
+
+	// Telegram
+	TelegramBotToken string `envconfig:"TELEGRAM_BOT_TOKEN"`
+	TelegramChatID   string `envconfig:"TELEGRAM_CHAT_ID"`
+
+	// PagerDuty
+	PagerDutyRoutingKey string `envconfig:"PAGERDUTY_ROUTING_KEY"`
 }
 
 // ServerConfig holds HTTP server configuration.
 type ServerConfig struct {
-	Host          string        `envconfig:"SERVER_HOST" default:"0.0.0.0"`
-	Port          int           `envconfig:"SERVER_PORT" default:"8080"`
-	ReadTimeout   time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"15s"`
-	WriteTimeout  time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"15s"`
-	IdleTimeout   time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"60s"`
-	SecureCookies bool          `envconfig:"SERVER_SECURE_COOKIES" default:"false"`
+	Host           string        `envconfig:"SERVER_HOST" default:"0.0.0.0"`
+	Port           int           `envconfig:"SERVER_PORT" default:"8080"`
+	ReadTimeout    time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"15s"`
+	WriteTimeout   time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"15s"`
+	IdleTimeout    time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"60s"`
+	SecureCookies  bool          `envconfig:"SERVER_SECURE_COOKIES" default:"false"`
+	AllowedOrigins []string      `envconfig:"ALLOWED_ORIGINS"`
 }
 
 // Address returns the server address in host:port format.

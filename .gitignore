@@ -1,5 +1,6 @@
 # Binaries
 bin/
+hub
 tmp/
 
 # Planning docs (local only)
