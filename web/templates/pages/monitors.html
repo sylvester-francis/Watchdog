@@ -174,9 +174,8 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
-        <form action="/monitors" method="POST" class="p-5 space-y-4"
-            hx-post="/monitors" hx-target="#monitors-table" hx-swap="beforeend"
-            hx-on::after-request="if(event.detail.successful) document.getElementById('new-monitor-modal').classList.add('hidden')">
+        <form id="monitor-form" action="/monitors" method="POST" class="p-5 space-y-4"
+            hx-post="/monitors" hx-target="#monitors-table" hx-swap="beforeend">
             {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
 
             <div>

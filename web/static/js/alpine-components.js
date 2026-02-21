@@ -1,6 +1,8 @@
 // WatchDog Alpine.js Components (CSP-safe)
-// All components registered with Alpine.data() before Alpine initializes.
-// This file must load BEFORE the Alpine <script defer> tag.
+// Registers all components via alpine:init event, which fires right before
+// Alpine initializes — so Alpine global is available at that point.
+
+document.addEventListener('alpine:init', () => {
 
 // 1. baseLayout — body element in layouts/base.html
 // Controls sidebar visibility and command palette toggle
@@ -220,3 +222,5 @@ Alpine.data('incidentManager', () => ({
             : 'text-muted-foreground hover:text-foreground';
     },
 }));
+
+}); // end alpine:init
