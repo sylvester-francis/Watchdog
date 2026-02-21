@@ -1,0 +1,222 @@
+// WatchDog Alpine.js Components (CSP-safe)
+// All components registered with Alpine.data() before Alpine initializes.
+// This file must load BEFORE the Alpine <script defer> tag.
+
+// 1. baseLayout — body element in layouts/base.html
+// Controls sidebar visibility and command palette toggle
+Alpine.data('baseLayout', () => ({
+    sidebarOpen: true,
+    commandPaletteOpen: false,
+    toggleSidebar() { this.sidebarOpen = !this.sidebarOpen; },
+    closeSidebar() { this.sidebarOpen = false; },
+    toggleCommandPalette() { this.commandPaletteOpen = !this.commandPaletteOpen; },
+    openCommandPalette() { this.commandPaletteOpen = true; },
+    closeCommandPalette() { this.commandPaletteOpen = false; },
+}));
+
+// 2. commandPalette — partials/command_palette.html
+// Cmd+K search palette with keyboard navigation
+Alpine.data('commandPalette', () => ({
+    query: '',
+    selectedIndex: 0,
+    results: [],
+    allItems: [
+        { id: 'nav-dashboard', label: 'Dashboard', url: '/dashboard', icon: 'layout-dashboard', type: 'Page' },
+        { id: 'nav-monitors', label: 'Monitors', url: '/monitors', icon: 'activity', type: 'Page' },
+        { id: 'nav-incidents', label: 'Incidents', url: '/incidents', icon: 'alert-triangle', type: 'Page' },
+        { id: 'nav-new-monitor', label: 'New Monitor', url: '/monitors/new', icon: 'plus-circle', type: 'Action' }
+    ],
+    init() {
+        // Parse server-injected monitor data
+        var monitorData = document.getElementById('monitor-data');
+        if (monitorData) {
+            try {
+                var monitors = JSON.parse(monitorData.textContent);
+                for (var i = 0; i < monitors.length; i++) {
+                    var m = monitors[i];
+                    this.allItems.push({
+                        id: 'mon-' + (m.ID || m.id),
+                        label: m.Name || m.name,
+                        url: '/monitors/' + (m.ID || m.id),
+                        icon: 'monitor',
+                        type: (m.Type || m.type || '').toUpperCase()
+                    });
+                }
+            } catch(e) {
+                // Silently ignore parse errors
+            }
+        }
+        this.results = this.allItems.slice(0, 8);
+
+        // Focus search input when palette opens (replaces x-effect)
+        this.$watch('commandPaletteOpen', (open) => {
+            if (open) {
+                this.$nextTick(() => {
+                    if (this.$refs.searchInput) {
+                        this.$refs.searchInput.focus();
+                        this.$refs.searchInput.value = '';
+                    }
+                    this.query = '';
+                    this.search();
+                });
+            }
+        });
+    },
+    search() {
+        this.selectedIndex = 0;
+        if (!this.query) {
+            this.results = this.allItems.slice(0, 8);
+            return;
+        }
+        var q = this.query.toLowerCase();
+        this.results = this.allItems
+            .filter(function(item) {
+                return item.label.toLowerCase().indexOf(q) !== -1;
+            })
+            .slice(0, 8);
+    },
+    onKeydown(event) {
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            this.selectedIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+        } else if (event.key === 'Enter' && this.results.length > 0) {
+            event.preventDefault();
+            window.location.href = this.results[this.selectedIndex].url;
+        }
+    },
+    get noResults() {
+        return this.results.length === 0 && this.query.length > 0;
+    },
+}));
+
+// 3. mobileNav — nav in pages/landing.html
+Alpine.data('mobileNav', () => ({
+    mobileOpen: false,
+    toggle() { this.mobileOpen = !this.mobileOpen; },
+    close() { this.mobileOpen = false; },
+}));
+
+// 4. dashboardMockup — landing page hero animated demo
+Alpine.data('dashboardMockup', () => ({
+    stats: { monitors: 12, healthy: 11 },
+    services: [
+        { name: 'PostgreSQL', type: 'tcp', status: 'up', latency: '2ms' },
+        { name: 'Redis Cache', type: 'tcp', status: 'up', latency: '1ms' },
+        { name: 'API Gateway', type: 'http', status: 'up', latency: '45ms' },
+        { name: 'Auth Service', type: 'http', status: 'up', latency: '12ms' },
+        { name: 'Vault', type: 'http', status: 'down', latency: 'timeout' },
+    ],
+    bars: [35, 42, 38, 55, 40, 62, 45, 90, 48, 35, 42, 38, 44, 50, 35],
+}));
+
+// 5. monitorFilter — pages/monitors.html
+// Uses JS-driven filtering (not x-show) for CSP compatibility
+Alpine.data('monitorFilter', () => ({
+    search: '',
+    filterType: 'all',
+    init() {
+        this.$watch('search', () => this.filterRows());
+        this.$watch('filterType', () => this.filterRows());
+    },
+    setFilterAll() { this.filterType = 'all'; },
+    setFilterHttp() { this.filterType = 'http'; },
+    setFilterTcp() { this.filterType = 'tcp'; },
+    setFilterPing() { this.filterType = 'ping'; },
+    setFilterDns() { this.filterType = 'dns'; },
+    get filterAllClass() {
+        return this.filterType === 'all'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
+    },
+    get filterHttpClass() {
+        return this.filterType === 'http'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
+    },
+    get filterTcpClass() {
+        return this.filterType === 'tcp'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
+    },
+    get filterPingClass() {
+        return this.filterType === 'ping'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
+    },
+    get filterDnsClass() {
+        return this.filterType === 'dns'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
+    },
+    filterRows() {
+        var rows = document.querySelectorAll('#monitors-table tr[data-type]');
+        var ft = this.filterType;
+        var q = this.search.toLowerCase();
+        rows.forEach(function(row) {
+            var type = row.dataset.type;
+            var name = row.dataset.name || '';
+            var target = row.dataset.target || '';
+            var matchType = ft === 'all' || ft === type;
+            var matchSearch = q === '' || name.indexOf(q) !== -1 || target.indexOf(q) !== -1;
+            row.style.display = (matchType && matchSearch) ? '' : 'none';
+        });
+    },
+}));
+
+// 6. channelSelector — settings.html alert channel modal
+Alpine.data('channelSelector', () => ({
+    channelType: 'discord',
+    get isWebhook() { return this.channelType === 'discord' || this.channelType === 'slack'; },
+    get isGenericWebhook() { return this.channelType === 'webhook'; },
+    get isEmail() { return this.channelType === 'email'; },
+    get isTelegram() { return this.channelType === 'telegram'; },
+    get isPagerduty() { return this.channelType === 'pagerduty'; },
+}));
+
+// 7. planEditor — admin.html per-row plan editor
+Alpine.data('planEditor', () => ({
+    editing: false,
+    toggle() { this.editing = !this.editing; },
+    submitPlan() {
+        var form = this.$el.closest('form');
+        if (form) form.requestSubmit();
+    },
+}));
+
+// 8. incidentManager — pages/incidents.html
+Alpine.data('incidentManager', () => ({
+    view: 'table',
+    selectedIncidents: [],
+    selectAll: false,
+    showTableView() { this.view = 'table'; },
+    showTimelineView() { this.view = 'timeline'; },
+    get isTableView() { return this.view === 'table'; },
+    get isTimelineView() { return this.view === 'timeline'; },
+    get hasSelection() { return this.selectedIncidents.length > 0; },
+    get selectionCount() { return this.selectedIncidents.length + ' selected'; },
+    clearSelection() { this.selectedIncidents = []; this.selectAll = false; },
+    toggleSelectAll() {
+        if (this.selectAll) {
+            var ids = [];
+            document.querySelectorAll('[data-incident-id]').forEach(function(el) {
+                ids.push(el.dataset.incidentId);
+            });
+            this.selectedIncidents = ids;
+        } else {
+            this.selectedIncidents = [];
+        }
+    },
+    get tableViewClass() {
+        return this.view === 'table'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground';
+    },
+    get timelineViewClass() {
+        return this.view === 'timeline'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground';
+    },
+}));

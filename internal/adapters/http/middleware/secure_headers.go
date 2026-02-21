@@ -27,7 +27,7 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 
 			// Content Security Policy — allow CDN scripts, fonts, and SSE connections
 			// Uses Alpine.js CSP build (no unsafe-eval needed)
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
 
 			// Permissions Policy
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")

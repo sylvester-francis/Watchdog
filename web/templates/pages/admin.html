@@ -237,8 +237,8 @@
         <span class="text-sm text-foreground">{{.User.Email}}</span>
     </td>
     <td class="px-4 py-3">
-        <div x-data="{ editing: false }" class="relative">
-            <button @click="editing = !editing" x-show="!editing"
+        <div x-data="planEditor" class="relative">
+            <button @click="toggle" x-show="!editing"
                 class="px-2 py-0.5 text-xs rounded cursor-pointer hover:ring-1 hover:ring-border transition-smooth
                     {{if eq .User.Plan.String "Pro"}}bg-blue-500/20 text-blue-400
                     {{else if eq .User.Plan.String "Team"}}bg-muted text-muted-foreground
@@ -249,7 +249,7 @@
                 hx-post="/admin/users/{{.User.ID}}" hx-target="#user-{{.User.ID}}" hx-swap="outerHTML"
                 class="flex items-center space-x-1">
                 {{if $.CSRFToken}}<input type="hidden" name="_csrf" value="{{$.CSRFToken}}">{{end}}
-                <select name="plan" @change="$el.form.requestSubmit()"
+                <select name="plan" @change="submitPlan"
                     class="px-1.5 py-0.5 bg-card-elevated border border-border rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
                     <option value="free" {{if eq .User.Plan.String "Free"}}selected{{end}}>Free</option>
                     <option value="pro" {{if eq .User.Plan.String "Pro"}}selected{{end}}>Pro</option>

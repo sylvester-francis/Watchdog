@@ -13,49 +13,7 @@
     <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.14.8/dist/cdn.min.js"></script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        background: '#09090b',
-                        foreground: '#fafafa',
-                        card: { DEFAULT: '#111113', foreground: '#fafafa' },
-                        'card-elevated': '#18181b',
-                        muted: { DEFAULT: '#27272a', foreground: '#a1a1aa' },
-                        border: '#27272a',
-                        input: '#27272a',
-                        accent: '#3b82f6',
-                        ring: '#3b82f6',
-                        destructive: { DEFAULT: '#ef4444', foreground: '#fafafa' },
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style>
-        [x-cloak] { display: none !important; }
-        @keyframes fade-in-up {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-            animation: fade-in-up 0.5s ease-out both;
-        }
-        @keyframes pulse-slow {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 0.7; }
-        }
-        .animate-pulse-slow {
-            animation: pulse-slow 4s ease-in-out infinite;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/output.css">
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen antialiased">
     <div class="flex min-h-screen">

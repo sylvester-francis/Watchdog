@@ -106,7 +106,7 @@
 
 <!-- Add Channel Modal -->
 <div id="new-channel-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-     x-data="{ channelType: 'discord' }">
+     x-data="channelSelector">
     <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div class="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 class="text-sm font-medium text-foreground">Add Alert Channel</h3>
@@ -140,21 +140,21 @@
                 </div>
 
                 <!-- Discord / Slack -->
-                <div x-show="channelType === 'discord' || channelType === 'slack'">
+                <div x-show="isWebhook">
                     <label class="block text-xs text-muted-foreground mb-1">Webhook URL</label>
                     <input type="url" name="webhook_url" placeholder="https://discord.com/api/webhooks/..."
                            class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
                 </div>
 
                 <!-- Generic Webhook -->
-                <div x-show="channelType === 'webhook'">
+                <div x-show="isGenericWebhook">
                     <label class="block text-xs text-muted-foreground mb-1">URL</label>
                     <input type="url" name="url" placeholder="https://your-service.com/webhook"
                            class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
                 </div>
 
                 <!-- Email SMTP -->
-                <template x-if="channelType === 'email'">
+                <template x-if="isEmail">
                     <div class="space-y-3">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
@@ -196,7 +196,7 @@
                 </template>
 
                 <!-- Telegram -->
-                <template x-if="channelType === 'telegram'">
+                <template x-if="isTelegram">
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs text-muted-foreground mb-1">Bot Token</label>
@@ -212,7 +212,7 @@
                 </template>
 
                 <!-- PagerDuty -->
-                <div x-show="channelType === 'pagerduty'">
+                <div x-show="isPagerduty">
                     <label class="block text-xs text-muted-foreground mb-1">Routing Key</label>
                     <input type="text" name="routing_key" placeholder="Events API v2 integration key"
                            class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">

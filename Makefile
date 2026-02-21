@@ -1,4 +1,4 @@
-.PHONY: help dev dev-hub build build-hub build-cli build-all test test-short test-e2e test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build clean deps install-tools pre-commit-install pre-commit-run
+.PHONY: help dev dev-hub build build-hub build-cli build-all test test-short test-e2e test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build css css-build clean deps install-tools pre-commit-install pre-commit-run
 
 # Default target
 help:
@@ -34,6 +34,10 @@ help:
 	@echo "  make fmt               - Format code"
 	@echo "  make sec               - Run security scan (gosec)"
 	@echo "  make vuln              - Check for vulnerabilities"
+	@echo ""
+	@echo "CSS:"
+	@echo "  make css           - Watch and rebuild Tailwind CSS"
+	@echo "  make css-build     - Build minified Tailwind CSS"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make deps              - Download Go dependencies"
@@ -160,6 +164,13 @@ pre-commit-install:
 pre-commit-run:
 	@command -v pre-commit > /dev/null || (echo "Please install pre-commit: pip install pre-commit" && exit 1)
 	pre-commit run --all-files
+
+# CSS
+css:
+	npx tailwindcss -i web/static/css/input.css -o web/static/css/output.css --watch
+
+css-build:
+	npx tailwindcss -i web/static/css/input.css -o web/static/css/output.css --minify
 
 # Cleanup
 clean:
