@@ -15,7 +15,7 @@
 <aside class="fixed left-0 top-0 h-full w-64 bg-card border-r border-border z-50 flex flex-col transition-transform duration-200"
        :class="sidebarClass">
     <!-- Logo -->
-    <div class="px-5 py-4 border-b border-border">
+    <div class="px-5 h-14 flex items-center border-b border-border">
         <a href="/dashboard" class="flex items-center space-x-3" title="WatchDog v0.1.0-beta">
             <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
                 <i data-lucide="shield-check" class="w-4 h-4 text-white"></i>
@@ -81,8 +81,8 @@
     </nav>
 
     <!-- Footer -->
-    <div class="px-4 py-3 border-t border-border">
-        <div class="flex items-center justify-between">
+    <div class="px-4 h-12 flex items-center border-t border-border/50">
+        <div class="flex items-center justify-between w-full">
             {{if .Plan}}
             <span class="text-xs px-2 py-0.5 rounded-md font-medium cursor-default bg-muted text-muted-foreground">
                 {{.Plan}}
