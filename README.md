@@ -354,3 +354,5 @@ WatchDog is currently in beta. All users get the full feature set for free:
 ## License
 
 The WatchDog Hub is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). The agent and protocol repositories are licensed under the MIT License.
+
+**Commercial Licensing** — If you want to use WatchDog without AGPL obligations (e.g. as part of an MSP offering or embedded in a proprietary product), commercial licenses are available. Contact [techwithsyl@gmail.com](mailto:techwithsyl@gmail.com) for details.
