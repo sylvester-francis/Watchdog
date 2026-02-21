@@ -124,12 +124,25 @@ func (h *MonitorHandler) List(c echo.Context) error {
 		}
 	}
 
+	// Split monitors into service (network) and infrastructure (local) groups
+	var serviceMonitors, infraMonitors []MonitorWithHeartbeats
+	for _, mwh := range monitorsWithHeartbeats {
+		switch domain.MonitorType(mwh.Monitor.Type) {
+		case domain.MonitorTypeDocker, domain.MonitorTypeDatabase, domain.MonitorTypeSystem:
+			infraMonitors = append(infraMonitors, mwh)
+		default:
+			serviceMonitors = append(serviceMonitors, mwh)
+		}
+	}
+
 	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
 		"Title":                  "Monitors",
 		"Agents":                 agents,
 		"AgentsWithMonitors":     agentsWithMonitors,
 		"Monitors":               allMonitors,
 		"MonitorsWithHeartbeats": monitorsWithHeartbeats,
+		"ServiceMonitors":        serviceMonitors,
+		"InfraMonitors":          infraMonitors,
 		"MonitorTypes":           domain.ValidMonitorTypeStrings(),
 	})
 }
