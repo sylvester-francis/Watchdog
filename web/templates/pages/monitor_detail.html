@@ -148,6 +148,21 @@
     </div>
     {{end}}
 
+    <!-- Metric Usage Chart (system monitors only) -->
+    {{if and (eq (print .Monitor.Type) "system") .MetricValues}}
+    <div class="bg-card border border-border rounded-lg mb-6">
+        <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-accent"></i>
+            <h3 class="text-sm font-medium text-foreground">{{.MetricName}} Usage (Last 20 checks)</h3>
+        </div>
+        <div class="p-5">
+            <div class="h-56" id="detail-metric-container">
+                <canvas id="detail-metric-chart"></canvas>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
     <!-- Latency Chart (hidden for system/docker — no meaningful latency) -->
     {{if and (ne (print .Monitor.Type) "system") (ne (print .Monitor.Type) "docker")}}
     <div class="bg-card border border-border rounded-lg mb-6">
@@ -216,8 +231,8 @@
                     <tr class="border-b border-border">
                         <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
                         <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Latency</th>
-                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Error</th>
+                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{{if eq (print $.Monitor.Type) "system"}}Value{{else}}Latency{{end}}</th>
+                        <th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{{if eq (print $.Monitor.Type) "system"}}Message{{else}}Error{{end}}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border/30">
@@ -233,17 +248,33 @@
                             </div>
                         </td>
                         <td class="px-5 py-2.5">
+                            {{if eq (print $.Monitor.Type) "system"}}
+                            {{if .ErrorMessage}}
+                            <span class="text-xs text-foreground font-mono">{{.ErrorMessage}}</span>
+                            {{else}}
+                            <span class="text-xs text-muted-foreground">--</span>
+                            {{end}}
+                            {{else}}
                             {{if .LatencyMs}}
                             <span class="text-xs text-foreground font-mono">{{.LatencyMs}}ms</span>
                             {{else}}
                             <span class="text-xs text-muted-foreground">--</span>
                             {{end}}
+                            {{end}}
                         </td>
                         <td class="px-5 py-2.5">
+                            {{if eq (print $.Monitor.Type) "system"}}
+                            {{if and .ErrorMessage (not .Status.IsSuccess)}}
+                            <span class="text-xs text-red-400 truncate max-w-[300px] block" title="{{.ErrorMessage}}">{{.ErrorMessage}}</span>
+                            {{else}}
+                            <span class="text-xs text-muted-foreground">--</span>
+                            {{end}}
+                            {{else}}
                             {{if .ErrorMessage}}
                             <span class="text-xs text-red-400 truncate max-w-[300px] block" title="{{.ErrorMessage}}">{{.ErrorMessage}}</span>
                             {{else}}
                             <span class="text-xs text-muted-foreground">--</span>
+                            {{end}}
                             {{end}}
                         </td>
                     </tr>
@@ -298,6 +329,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     container.parentNode.insertBefore(note, container.nextSibling);
                 }
             }
+        }
+    } catch(e) {}
+});
+</script>
+{{end}}
+
+{{if and (eq (print .Monitor.Type) "system") .MetricValues}}
+<script type="application/json" id="detail-metric-data">{"values":{{toJSON .MetricValues}},"threshold":{{.MetricThreshold}},"metric":"{{.MetricName}}"}</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('detail-metric-data');
+    if (!el) return;
+    try {
+        var data = JSON.parse(el.textContent);
+        if (data.values && data.values.length > 0) {
+            var labels = data.values.map(function(_, idx) { return idx + 1; });
+            createMetricChart('detail-metric-chart', labels, data.values, data.threshold, data.metric);
         }
     } catch(e) {}
 });

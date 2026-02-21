@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"html"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -359,18 +361,38 @@ func (h *MonitorHandler) Detail(c echo.Context) error {
 		certIssuer = latestHB.CertIssuer
 	}
 
+	// For system monitors, extract metric values from heartbeat error messages
+	var metricValues []float64
+	var metricName string
+	var metricThreshold float64
+	if monitor.Type == domain.MonitorTypeSystem {
+		metricName, metricThreshold = parseSystemTarget(monitor.Target)
+		if len(metricName) > 0 {
+			metricName = strings.ToUpper(metricName[:1]) + metricName[1:]
+		}
+		for i := len(heartbeats) - 1; i >= 0; i-- {
+			hb := heartbeats[i]
+			if hb.ErrorMessage != nil {
+				metricValues = append(metricValues, parseMetricValue(*hb.ErrorMessage))
+			}
+		}
+	}
+
 	return c.Render(http.StatusOK, "monitor_detail.html", map[string]interface{}{
-		"Title":          monitor.Name,
-		"Monitor":        monitor,
-		"Agent":          agent,
-		"Heartbeats":     heartbeats,
-		"Latencies":      latencies,
-		"UptimeUp":       up,
-		"UptimeDown":     down,
-		"UptimeTotal":    len(heartbeats),
-		"UptimePercent":  uptimePercent,
-		"CertExpiryDays": certExpiryDays,
-		"CertIssuer":     certIssuer,
+		"Title":           monitor.Name,
+		"Monitor":         monitor,
+		"Agent":           agent,
+		"Heartbeats":      heartbeats,
+		"Latencies":       latencies,
+		"UptimeUp":        up,
+		"UptimeDown":      down,
+		"UptimeTotal":     len(heartbeats),
+		"UptimePercent":   uptimePercent,
+		"CertExpiryDays":  certExpiryDays,
+		"CertIssuer":      certIssuer,
+		"MetricValues":    metricValues,
+		"MetricName":      metricName,
+		"MetricThreshold": metricThreshold,
 	})
 }
 
@@ -504,6 +526,42 @@ func (h *MonitorHandler) Delete(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusFound, "/monitors")
+}
+
+// parseSystemTarget extracts metric name and threshold from a system monitor target.
+// e.g. "cpu:90" → ("cpu", 90), "disk:85:/" → ("disk", 85)
+func parseSystemTarget(target string) (string, float64) {
+	parts := strings.SplitN(target, ":", 2)
+	if len(parts) < 2 {
+		return "", 0
+	}
+	metric := parts[0]
+	rest := parts[1]
+	var threshold float64
+	if metric == "disk" {
+		diskParts := strings.SplitN(rest, ":", 2)
+		fmt.Sscanf(diskParts[0], "%f", &threshold)
+	} else {
+		fmt.Sscanf(rest, "%f", &threshold)
+	}
+	return metric, threshold
+}
+
+// parseMetricValue extracts the numeric usage value from a heartbeat error message.
+// e.g. "cpu usage 23.5%" → 23.5, "disk usage 45.2%" → 45.2
+func parseMetricValue(msg string) float64 {
+	idx := strings.Index(msg, "usage ")
+	if idx == -1 {
+		return 0
+	}
+	rest := msg[idx+6:]
+	pctIdx := strings.Index(rest, "%")
+	if pctIdx == -1 {
+		return 0
+	}
+	var val float64
+	fmt.Sscanf(rest[:pctIdx], "%f", &val)
+	return val
 }
 
 // renderError is a helper to render error messages.

@@ -233,8 +233,11 @@ Alpine.data('monitorFilter', () => ({
         this.$watch('search', () => this.filterRows());
         this.$watch('filterType', () => this.filterRows());
     },
+    _allRows() {
+        return document.querySelectorAll('#monitors-table tr[data-type], #infra-monitors-table tr[data-type]');
+    },
     countTypes() {
-        var rows = document.querySelectorAll('#monitors-table tr[data-type]');
+        var rows = this._allRows();
         var counts = { http: 0, tcp: 0, ping: 0, dns: 0, tls: 0, docker: 0, database: 0, system: 0 };
         rows.forEach(function(row) {
             var type = row.dataset.type;
@@ -288,10 +291,12 @@ Alpine.data('monitorFilter', () => ({
         return this.visibleCount === 0 && this.totalCount > 0;
     },
     filterRows() {
-        var rows = document.querySelectorAll('#monitors-table tr[data-type]');
+        var rows = this._allRows();
         var ft = this.filterType;
         var q = this.search.toLowerCase();
         var visible = 0;
+        var serviceVisible = 0;
+        var infraVisible = 0;
         rows.forEach(function(row) {
             var type = row.dataset.type;
             var name = row.dataset.name || '';
@@ -300,9 +305,17 @@ Alpine.data('monitorFilter', () => ({
             var matchSearch = q === '' || name.indexOf(q) !== -1 || target.indexOf(q) !== -1;
             var show = matchType && matchSearch;
             row.style.display = show ? '' : 'none';
-            if (show) visible++;
+            if (show) {
+                visible++;
+                var inInfra = row.closest('#infra-monitors-table');
+                if (inInfra) { infraVisible++; } else { serviceVisible++; }
+            }
         });
         this.visibleCount = visible;
+        var svc = document.getElementById('services-section');
+        var infra = document.getElementById('infra-section');
+        if (svc) svc.style.display = serviceVisible > 0 ? '' : 'none';
+        if (infra) infra.style.display = infraVisible > 0 ? '' : 'none';
     },
 }));
 
