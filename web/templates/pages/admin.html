@@ -11,14 +11,10 @@
         <p class="text-xl font-semibold text-foreground mt-1">{{.TotalUsers}}</p>
     </div>
 
-    <!-- Plan Breakdown -->
+    <!-- Plan -->
     <div class="bg-card rounded-lg border border-border px-4 py-3">
-        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Plan Breakdown</p>
-        <div class="flex items-center space-x-2">
-            <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">Free: {{.PlanFree}}</span>
-            <span class="px-2 py-0.5 text-xs rounded bg-blue-500/20 text-blue-400">Pro: {{.PlanPro}}</span>
-            <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">Team: {{.PlanTeam}}</span>
-        </div>
+        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</p>
+        <p class="text-xl font-semibold text-foreground mt-1">Beta</p>
     </div>
 
     <!-- Limit Hits (24h) -->
@@ -67,11 +63,11 @@
     {{end}}
 </div>
 
-<!-- Upgrade Candidates -->
+<!-- Users Near Limits -->
 <div class="bg-card rounded-lg border border-border mb-6">
     <div class="px-4 py-3 border-b border-border">
-        <h2 class="text-sm font-medium text-foreground">Upgrade Candidates</h2>
-        <p class="text-xs text-muted-foreground">Users at 80%+ of their plan limits</p>
+        <h2 class="text-sm font-medium text-foreground">Users Near Limits</h2>
+        <p class="text-xs text-muted-foreground">Users at 80%+ of their resource limits</p>
     </div>
     {{if .NearLimitUsers}}
     <div class="overflow-x-auto">
@@ -90,9 +86,7 @@
                 <tr class="hover:bg-card-elevated transition-smooth">
                     <td class="px-4 py-3 text-sm text-foreground">{{.Email}}</td>
                     <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 text-xs rounded
-                            {{if eq .Plan.String "Pro"}}bg-blue-500/20 text-blue-400
-                            {{else}}bg-muted text-muted-foreground{{end}}">
+                        <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">
                             {{.Plan.String}}
                         </span>
                     </td>
@@ -149,9 +143,7 @@
                     <td class="px-4 py-3 text-sm text-muted-foreground capitalize">{{.ResourceType}}</td>
                     <td class="px-4 py-3 text-sm text-muted-foreground">{{.CurrentCount}} / {{.MaxAllowed}}</td>
                     <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 text-xs rounded
-                            {{if eq .Plan.String "Pro"}}bg-blue-500/20 text-blue-400
-                            {{else}}bg-muted text-muted-foreground{{end}}">
+                        <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">
                             {{.Plan.String}}
                         </span>
                     </td>
@@ -201,9 +193,7 @@
                     <label class="block text-xs font-medium text-muted-foreground mb-1.5">Plan</label>
                     <select name="plan"
                         class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
-                        <option value="free">Free</option>
-                        <option value="pro">Pro</option>
-                        <option value="team">Team</option>
+                        <option value="beta" selected>Beta</option>
                     </select>
                 </div>
                 <div class="pt-5">
@@ -236,26 +226,9 @@
         <span class="text-sm text-foreground">{{.User.Email}}</span>
     </td>
     <td class="px-4 py-3">
-        <div x-data="planEditor" class="relative">
-            <button @click="toggle" x-show="!editing"
-                class="px-2 py-0.5 text-xs rounded cursor-pointer hover:ring-1 hover:ring-border transition-smooth
-                    {{if eq .User.Plan.String "Pro"}}bg-blue-500/20 text-blue-400
-                    {{else if eq .User.Plan.String "Team"}}bg-muted text-muted-foreground
-                    {{else}}bg-muted text-muted-foreground{{end}}">
-                {{.User.Plan.String}}
-            </button>
-            <form x-show="editing" x-cloak
-                hx-post="/admin/users/{{.User.ID}}" hx-target="#user-{{.User.ID}}" hx-swap="outerHTML"
-                class="flex items-center space-x-1">
-                {{if $.CSRFToken}}<input type="hidden" name="_csrf" value="{{$.CSRFToken}}">{{end}}
-                <select name="plan" @change="submitPlan"
-                    class="px-1.5 py-0.5 bg-card-elevated border border-border rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
-                    <option value="free" {{if eq .User.Plan.String "Free"}}selected{{end}}>Free</option>
-                    <option value="pro" {{if eq .User.Plan.String "Pro"}}selected{{end}}>Pro</option>
-                    <option value="team" {{if eq .User.Plan.String "Team"}}selected{{end}}>Team</option>
-                </select>
-            </form>
-        </div>
+        <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">
+            {{.User.Plan.String}}
+        </span>
     </td>
     <td class="px-4 py-3">
         {{if .User.IsAdmin}}

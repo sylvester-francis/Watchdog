@@ -80,7 +80,7 @@ graph TB
         end
     end
 
-    subgraph Net["Customer Network"]
+    subgraph Net["Private Network"]
         subgraph Agent
             HTTP["HTTP<br/>Checker"]
             TCP["TCP<br/>Checker"]
@@ -314,19 +314,15 @@ make sec              # gosec security scan
 make vuln             # govulncheck
 ```
 
-## Beta Plan
+## Current Status
 
-WatchDog is currently in beta. All users get the full feature set for free:
+WatchDog is in active development. All features are available to all users:
 
-| | Beta (Current) |
-|---|---|
-| Agents | 10 |
-| Monitors | Unlimited |
-| Check Types | HTTP, TCP, Ping, DNS, TLS |
-| Alert Channels | All 6 |
-| Status Pages | Unlimited |
-| API Access | Full CRUD |
-| Price | **Free** |
+- Up to 10 agents per account
+- Unlimited monitors and status pages
+- All check types: HTTP, TCP, Ping, DNS, TLS
+- All 6 alert channels
+- Full REST API access
 
 ## Tech Stack
 
@@ -355,4 +351,3 @@ WatchDog is currently in beta. All users get the full feature set for free:
 
 The WatchDog Hub is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). The agent and protocol repositories are licensed under the MIT License.
 
-**Commercial Licensing** — If you want to use WatchDog without AGPL obligations (e.g. as part of an MSP offering or embedded in a proprietary product), commercial licenses are available. Contact [techwithsyl@gmail.com](mailto:techwithsyl@gmail.com) for details.

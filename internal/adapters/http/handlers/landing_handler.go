@@ -14,16 +14,6 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/core/ports"
 )
 
-// PlanInfo holds display data for a pricing plan.
-type PlanInfo struct {
-	Name        string
-	Slug        string
-	Price       string
-	Agents      string
-	Monitors    string
-	Highlighted bool
-}
-
 // LandingHandler handles the public landing page and waitlist signups.
 type LandingHandler struct {
 	waitlistRepo ports.WaitlistRepository
@@ -70,20 +60,10 @@ func (h *LandingHandler) JoinWaitlist(c echo.Context) error {
 }
 
 func (h *LandingHandler) renderPage(c echo.Context, success, errMsg string) error {
-	betaPlan := PlanInfo{
-		Name:        "Beta",
-		Slug:        "beta",
-		Price:       "Free",
-		Agents:      "10 Agents",
-		Monitors:    "Unlimited Monitors",
-		Highlighted: true,
-	}
-
 	return c.Render(http.StatusOK, "landing.html", map[string]interface{}{
-		"Title":    "WatchDog - Monitor Services Behind Your Firewall",
-		"BetaPlan": betaPlan,
-		"Year":     time.Now().Year(),
-		"Success":  success,
-		"Error":    errMsg,
+		"Title":   "WatchDog - Monitor Services Behind Your Firewall",
+		"Year":    time.Now().Year(),
+		"Success": success,
+		"Error":   errMsg,
 	})
 }

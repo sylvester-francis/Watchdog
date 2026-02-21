@@ -225,7 +225,7 @@ func TestCreateAgent_Success(t *testing.T) {
 	userID := uuid.New()
 	userRepo := &mocks.MockUserRepository{
 		GetByIDFn: func(_ context.Context, _ uuid.UUID) (*domain.User, error) {
-			return &domain.User{ID: userID, Plan: domain.PlanFree}, nil
+			return &domain.User{ID: userID, Plan: domain.PlanBeta}, nil
 		},
 	}
 	agentRepo := &mocks.MockAgentRepository{
@@ -268,7 +268,7 @@ func TestCreateAgent_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	userRepo := &mocks.MockUserRepository{
 		GetByIDFn: func(_ context.Context, _ uuid.UUID) (*domain.User, error) {
-			return &domain.User{ID: userID, Plan: domain.PlanTeam}, nil
+			return &domain.User{ID: userID, Plan: domain.PlanBeta}, nil
 		},
 	}
 	agentRepo := &mocks.MockAgentRepository{

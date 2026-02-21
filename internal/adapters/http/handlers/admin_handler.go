@@ -47,12 +47,6 @@ func NewAdminHandler(
 func (h *AdminHandler) Dashboard(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// Plan breakdown
-	planCounts, err := h.userRepo.CountByPlan(ctx)
-	if err != nil {
-		planCounts = map[domain.Plan]int{}
-	}
-
 	// Platform stats
 	totalUsers, _ := h.userRepo.Count(ctx)
 
@@ -80,9 +74,6 @@ func (h *AdminHandler) Dashboard(c echo.Context) error {
 	return c.Render(http.StatusOK, "admin.html", map[string]interface{}{
 		"Title":          "Admin",
 		"IsAdmin":        true,
-		"PlanFree":       planCounts[domain.PlanFree],
-		"PlanPro":        planCounts[domain.PlanPro],
-		"PlanTeam":       planCounts[domain.PlanTeam],
 		"TotalUsers":     totalUsers,
 		"AllUsers":       allUsers,
 		"NearLimitUsers": nearLimitUsers,
@@ -108,7 +99,7 @@ func (h *AdminHandler) CreateUser(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Password must be at least 8 characters")
 	}
 	if !plan.IsValid() {
-		plan = domain.PlanFree
+		plan = domain.PlanBeta
 	}
 
 	// Check email uniqueness
