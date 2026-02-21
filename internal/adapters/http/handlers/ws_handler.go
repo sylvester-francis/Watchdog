@@ -208,6 +208,10 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 			if payload.LatencyMs == 0 {
 				heartbeat.LatencyMs = nil
 			}
+			// Preserve ErrorMessage for system monitors (contains metric reading e.g. "cpu usage 23.5%")
+			if payload.ErrorMessage != "" {
+				heartbeat.ErrorMessage = &payload.ErrorMessage
+			}
 		} else {
 			heartbeat = domain.NewFailureHeartbeat(monitorID, agentID, status, payload.ErrorMessage)
 		}
