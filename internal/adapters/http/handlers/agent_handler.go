@@ -83,8 +83,7 @@ func (h *AgentHandler) Create(c echo.Context) error {
 					</button>
 				</div>
 				<p class="text-[11px] text-muted-foreground/60">Then run: <code class="text-muted-foreground break-all">watchdog-agent -hub "wss://usewatchdog.dev/ws/agent" -api-key "YOUR_KEY"</code></p>
-			</div>
-			<script>lucide.createIcons();</script>`)
+			</div>`)
 	}
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
