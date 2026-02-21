@@ -110,6 +110,19 @@ document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
         }
     });
+
+    // Intercept hx-confirm to show custom modal instead of native confirm()
+    document.body.addEventListener('htmx:confirm', function(evt) {
+        evt.preventDefault();
+        var el = evt.detail.elt;
+        var message = el.getAttribute('hx-confirm');
+        var actionLabel = el.getAttribute('data-confirm-action') || 'Confirm';
+        var destructive = el.hasAttribute('data-confirm-destructive');
+        var modal = document.getElementById('confirm-modal');
+        if (modal && modal._x_dataStack) {
+            modal._x_dataStack[0].open(message, actionLabel, destructive, evt);
+        }
+    });
 });
 
 // Toast Notification System
@@ -158,10 +171,6 @@ function showToast(message, type) {
     }, 4000);
 }
 
-// Confirmation Dialog
-function confirmAction(message) {
-    return confirm(message);
-}
 
 // SSE Connection Management
 var sseConnection = null;

@@ -150,6 +150,7 @@
                                     </a>
                                     <button hx-delete="/monitors/{{.Monitor.ID}}" hx-target="#monitor-{{.Monitor.ID}}" hx-swap="outerHTML"
                                         hx-confirm="Are you sure you want to delete '{{.Monitor.Name}}'? This cannot be undone."
+                                        data-confirm-destructive data-confirm-action="Delete"
                                         class="w-full flex items-center space-x-2 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-smooth">
                                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                         <span>Delete</span>
@@ -251,6 +252,7 @@
                                     </a>
                                     <button hx-delete="/monitors/{{.Monitor.ID}}" hx-target="#monitor-{{.Monitor.ID}}" hx-swap="outerHTML"
                                         hx-confirm="Are you sure you want to delete '{{.Monitor.Name}}'? This cannot be undone."
+                                        data-confirm-destructive data-confirm-action="Delete"
                                         class="w-full flex items-center space-x-2 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-smooth">
                                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                         <span>Delete</span>
@@ -517,6 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </a>
                 <button hx-delete="/monitors/{{.Monitor.ID}}" hx-target="#monitor-{{.Monitor.ID}}" hx-swap="outerHTML"
                     hx-confirm="Are you sure you want to delete '{{.Monitor.Name}}'? This cannot be undone."
+                    data-confirm-destructive data-confirm-action="Delete"
                     class="w-full flex items-center space-x-2 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-smooth">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                     <span>Delete</span>
