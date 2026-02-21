@@ -92,7 +92,7 @@
                         WatchDog deploys lightweight agents inside your network to monitor internal services, databases, and APIs that external tools can't reach. Real-time dashboard. Instant alerts. Zero configuration.
                     </p>
 
-                    <div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8">
+                    <div class="flex flex-col sm:flex-row gap-3 mb-4 md:mb-5">
                         <a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
                             Deploy Free
                         </a>
@@ -100,6 +100,27 @@
                             See How It Works
                         </a>
                     </div>
+
+                    {{if ge .SignupCount 10}}
+                    <p class="text-xs text-muted-foreground mb-6 md:mb-8">
+                        <span class="inline-flex items-center space-x-1.5">
+                            <span class="flex -space-x-1.5">
+                                <span class="w-5 h-5 rounded-full bg-card-elevated border border-border flex items-center justify-center text-[9px] text-muted-foreground">
+                                    <i data-lucide="user" class="w-2.5 h-2.5"></i>
+                                </span>
+                                <span class="w-5 h-5 rounded-full bg-card-elevated border border-border flex items-center justify-center text-[9px] text-muted-foreground">
+                                    <i data-lucide="user" class="w-2.5 h-2.5"></i>
+                                </span>
+                                <span class="w-5 h-5 rounded-full bg-card-elevated border border-border flex items-center justify-center text-[9px] text-muted-foreground">
+                                    <i data-lucide="user" class="w-2.5 h-2.5"></i>
+                                </span>
+                            </span>
+                            <span>{{.SignupCount}}+ engineers already in the beta</span>
+                        </span>
+                    </p>
+                    {{else}}
+                    <div class="mb-6 md:mb-8"></div>
+                    {{end}}
 
                     <!-- Install snippet with copy button -->
                     <div class="bg-card border border-border rounded-lg p-3 sm:p-4 max-w-md text-left" x-data="copyInstall">
