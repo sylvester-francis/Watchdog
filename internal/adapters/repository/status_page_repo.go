@@ -48,17 +48,19 @@ func (r *StatusPageRepository) GetByID(ctx context.Context, id uuid.UUID) (*doma
 	return page, nil
 }
 
-// GetBySlug returns a status page by slug.
-func (r *StatusPageRepository) GetBySlug(ctx context.Context, slug string) (*domain.StatusPage, error) {
-	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
-		FROM status_pages WHERE slug = $1`
+// GetByUserAndSlug returns a status page by username and slug.
+func (r *StatusPageRepository) GetByUserAndSlug(ctx context.Context, username, slug string) (*domain.StatusPage, error) {
+	query := `SELECT sp.id, sp.user_id, sp.name, sp.slug, sp.description, sp.is_public, sp.created_at, sp.updated_at
+		FROM status_pages sp
+		JOIN users u ON sp.user_id = u.id
+		WHERE u.username = $1 AND sp.slug = $2`
 
 	page := &domain.StatusPage{}
-	err := r.db.Pool.QueryRow(ctx, query, slug).Scan(
+	err := r.db.Pool.QueryRow(ctx, query, username, slug).Scan(
 		&page.ID, &page.UserID, &page.Name, &page.Slug, &page.Description, &page.IsPublic, &page.CreatedAt, &page.UpdatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("get status page by slug: %w", err)
+		return nil, fmt.Errorf("get status page by user and slug: %w", err)
 	}
 	return page, nil
 }
@@ -156,12 +158,12 @@ func (r *StatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UU
 	return ids, nil
 }
 
-// SlugExists checks if a slug is already taken.
-func (r *StatusPageRepository) SlugExists(ctx context.Context, slug string) (bool, error) {
+// SlugExistsForUser checks if a slug is already taken by a specific user.
+func (r *StatusPageRepository) SlugExistsForUser(ctx context.Context, userID uuid.UUID, slug string) (bool, error) {
 	var exists bool
-	err := r.db.Pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM status_pages WHERE slug = $1)`, slug).Scan(&exists)
+	err := r.db.Pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM status_pages WHERE user_id = $1 AND slug = $2)`, userID, slug).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("check slug exists: %w", err)
+		return false, fmt.Errorf("check slug exists for user: %w", err)
 	}
 	return exists, nil
 }

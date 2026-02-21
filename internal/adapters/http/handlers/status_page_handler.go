@@ -20,6 +20,7 @@ type StatusPageHandler struct {
 	monitorRepo    ports.MonitorRepository
 	agentRepo      ports.AgentRepository
 	heartbeatRepo  ports.HeartbeatRepository
+	userRepo       ports.UserRepository
 	templates      *view.Templates
 }
 
@@ -29,6 +30,7 @@ func NewStatusPageHandler(
 	monitorRepo ports.MonitorRepository,
 	agentRepo ports.AgentRepository,
 	heartbeatRepo ports.HeartbeatRepository,
+	userRepo ports.UserRepository,
 	templates *view.Templates,
 ) *StatusPageHandler {
 	return &StatusPageHandler{
@@ -36,6 +38,7 @@ func NewStatusPageHandler(
 		monitorRepo:    monitorRepo,
 		agentRepo:      agentRepo,
 		heartbeatRepo:  heartbeatRepo,
+		userRepo:       userRepo,
 		templates:      templates,
 	}
 }
@@ -76,8 +79,8 @@ func (h *StatusPageHandler) Create(c echo.Context) error {
 
 	slug := domain.GenerateSlug(name)
 
-	// Ensure slug uniqueness
-	exists, _ := h.statusPageRepo.SlugExists(ctx, slug)
+	// Ensure slug uniqueness within this user's pages
+	exists, _ := h.statusPageRepo.SlugExistsForUser(ctx, userID, slug)
 	if exists {
 		slug = slug + "-" + uuid.New().String()[:8]
 	}
@@ -205,9 +208,10 @@ func (h *StatusPageHandler) Delete(c echo.Context) error {
 // PublicView renders a public status page (no auth required).
 func (h *StatusPageHandler) PublicView(c echo.Context) error {
 	ctx := c.Request().Context()
+	username := c.Param("username")
 	slug := c.Param("slug")
 
-	page, err := h.statusPageRepo.GetBySlug(ctx, slug)
+	page, err := h.statusPageRepo.GetByUserAndSlug(ctx, username, slug)
 	if err != nil {
 		return c.Render(http.StatusNotFound, "status_page_not_found.html", nil)
 	}
