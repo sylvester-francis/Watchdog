@@ -12,11 +12,10 @@ Monitor services behind firewalls, across data centers, and inside private netwo
 
 > **Live at [usewatchdog.dev](https://usewatchdog.dev)** — Currently in open beta. All features free.
 
+[![GitHub stars](https://img.shields.io/github/stars/sylvester-francis/Watchdog?style=flat)](https://github.com/sylvester-francis/Watchdog/stargazers)
+[![GitHub release](https://img.shields.io/github/v/release/sylvester-francis/Watchdog?include_prereleases)](https://github.com/sylvester-francis/Watchdog/releases)
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
-![Echo](https://img.shields.io/badge/Echo-v4-00ADD8)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
-![TimescaleDB](https://img.shields.io/badge/TimescaleDB-Hypertable-FDB515)
-![HTMX](https://img.shields.io/badge/HTMX-Real--Time-3366CC)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 
@@ -70,6 +69,21 @@ graph LR
 - **Security Headers** — CSP, X-Frame-Options, HSTS, Permissions-Policy
 - **System Dashboard** — Audit log viewer, system health, migration status, runtime config overview
 
+## Comparison
+
+| Feature | WatchDog | Uptime Kuma | Gatus | UptimeRobot |
+|---------|----------|-------------|-------|-------------|
+| Architecture | Distributed agents | Single server | Single server | SaaS |
+| Monitor private networks | Yes (agent runs locally) | Requires VPN/tunnels | Requires VPN/tunnels | No |
+| Inbound firewall rules | None needed | Needed for targets | Needed for targets | N/A |
+| Check types | 8 (HTTP, TCP, Ping, DNS, TLS, Docker, DB, System) | HTTP, TCP, Ping, DNS, and more | HTTP, TCP, DNS, SSH, and more | HTTP, Ping, Port |
+| Agent configuration | Zero-config (hub pushes tasks) | N/A | Config file | N/A |
+| Public status pages | Yes | Yes | Yes | Paid |
+| REST API | Yes | Yes | No | Paid |
+| Alert channels | 6 (Slack, Discord, Email, Telegram, PagerDuty, Webhook) | 90+ | 14+ | Email, SMS, Webhook |
+| Self-hosted | Yes (AGPL-3.0) | Yes (MIT) | Yes (Apache-2.0) | No |
+| Real-time dashboard | Yes (SSE) | Yes (WebSocket) | No | No |
+
 ## Architecture
 
 ```mermaid
@@ -118,27 +132,28 @@ The system is split across three repositories:
 
 ## Quick Start
 
+### Docker (Recommended)
+
+```bash
+git clone https://github.com/sylvester-francis/watchdog.git
+cd watchdog
+docker compose -f deployments/docker-compose.yml up -d --build
+```
+
+The Hub will be available at `http://localhost:8080`. Register an account, create an agent, and connect it.
+
+### From Source
+
 **Prerequisites:** Go 1.25+, Docker, Make
 
 ```bash
-# Clone the repository
 git clone https://github.com/sylvester-francis/watchdog.git
 cd watchdog
-
-# Install development tools
-make install-tools
-
-# Start the database
-make docker-db
-
-# Run database migrations
-make migrate-up
-
-# Start the Hub (with hot reload)
-make dev-hub
+make install-tools   # Install dev tools
+make docker-db       # Start PostgreSQL + TimescaleDB
+make migrate-up      # Run migrations
+make dev-hub         # Start hub with hot reload
 ```
-
-The Hub will be available at `http://localhost:8080`.
 
 ### Connect an Agent
 
