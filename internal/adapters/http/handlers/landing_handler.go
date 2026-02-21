@@ -60,10 +60,13 @@ func (h *LandingHandler) JoinWaitlist(c echo.Context) error {
 }
 
 func (h *LandingHandler) renderPage(c echo.Context, success, errMsg string) error {
+	signupCount, _ := h.waitlistRepo.Count(c.Request().Context())
+
 	return c.Render(http.StatusOK, "landing.html", map[string]interface{}{
-		"Title":   "WatchDog - Monitor Services Behind Your Firewall",
-		"Year":    time.Now().Year(),
-		"Success": success,
-		"Error":   errMsg,
+		"Title":       "WatchDog - Monitor Services Behind Your Firewall",
+		"Year":        time.Now().Year(),
+		"Success":     success,
+		"Error":       errMsg,
+		"SignupCount": signupCount,
 	})
 }

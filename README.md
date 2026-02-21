@@ -51,8 +51,9 @@ graph LR
 ## Features
 
 - **Private Agent Architecture** — Monitor internal databases, APIs, and services without exposing them to the internet
-- **5 Check Types** — HTTP, TCP, Ping, DNS, and TLS/SSL certificate monitoring
+- **8 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), and System metrics (CPU, memory, disk)
 - **TLS Certificate Monitoring** — Track certificate expiry, get alerted before certs expire
+- **Infrastructure Monitoring** — Docker container health, database connectivity, system resource thresholds
 - **3-Strike Rule** — Verifies failures before alerting, eliminating false positives from transient network issues
 - **Incident Lifecycle** — Automatic incident creation, acknowledgment workflow, and resolution with TTR tracking
 - **Real-Time Dashboard** — Live status updates via SSE and HTMX, no page refresh needed
@@ -84,21 +85,27 @@ graph TB
 
     subgraph Net["Private Network"]
         subgraph Agent
-            HTTP["HTTP<br/>Checker"]
-            TCP["TCP<br/>Checker"]
-            Ping["Ping<br/>Checker"]
-            DNS["DNS<br/>Checker"]
-            TLS["TLS<br/>Checker"]
+            HTTP["HTTP"]
+            TCP["TCP"]
+            Ping["Ping"]
+            DNS["DNS"]
+            TLS["TLS"]
+            Docker["Docker"]
+            DBCheck["Database"]
+            Sys["System"]
         end
         T1["Database"]
         T2["Internal API"]
         T3["Service"]
+        T4["Containers"]
     end
 
     Agent -- "WebSocket<br/>(outbound only)" --> Hub
     HTTP --> T2
     TCP --> T1
     Ping --> T3
+    Docker --> T4
+    DBCheck --> T1
 ```
 
 The system is split across three repositories:
@@ -322,7 +329,7 @@ WatchDog is in active development. All features are available to all users:
 
 - Up to 10 agents per account
 - Unlimited monitors and status pages
-- All check types: HTTP, TCP, Ping, DNS, TLS certificate monitoring
+- All check types: HTTP, TCP, Ping, DNS, TLS, Docker, Database, System
 - All 6 alert channels
 - Full REST API access with scoped tokens
 - Security audit logging with System dashboard viewer
