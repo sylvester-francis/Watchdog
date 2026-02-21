@@ -49,7 +49,7 @@
 </div>
 
 <!-- Stats Grid -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
     <div class="bg-card border border-border rounded-lg p-3 border-l-[3px] border-l-muted">
         <div class="flex items-center justify-between mb-2">
             <p class="text-xs font-medium text-muted-foreground">Monitors</p>
@@ -209,7 +209,7 @@
                     <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.OnlineAgents}}/{{.Stats.TotalAgents}} online</span>
                 </div>
             </div>
-            <button @click="$dispatch('open-agent-modal')"
+            <button onclick="window.dispatchEvent(new CustomEvent('open-agent-modal'))"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors"
                     aria-label="Create new agent">
                 New Agent
@@ -263,7 +263,7 @@
                         <span class="shrink-0 w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
                         <div>
                             <p class="text-xs font-medium text-foreground">Create monitors</p>
-                            <p class="text-[10px] text-muted-foreground mt-0.5">Add HTTP, TCP, ping, or DNS monitors to track your services.</p>
+                            <p class="text-[10px] text-muted-foreground mt-0.5">Add HTTP, TCP, Ping, or TLS monitors to track your services.</p>
                         </div>
                     </div>
                 </div>
@@ -365,8 +365,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         seg.style.width = '5px';
                         seg.style.height = '16px';
                         seg.style.borderRadius = '2px';
-                        seg.className = s.CheckResults[j] === 1 ? 'bg-emerald-500/70' : 'bg-red-500/70';
-                        seg.title = successCount + '/' + s.CheckResults.length + ' checks successful';
+                        var isUp = s.CheckResults[j] === 1;
+                        seg.className = isUp ? 'bg-emerald-500/70' : 'bg-red-500/70';
+                        seg.title = 'Check ' + (j + 1) + ': ' + (isUp ? 'up' : 'down') + ' (' + successCount + '/' + s.CheckResults.length + ' total)';
                         container.appendChild(seg);
                     }
                     for (var k = s.CheckResults.length; k < 20; k++) {
@@ -386,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
 {{end}}
 
 <!-- New Agent Modal -->
-<div id="new-agent-modal" x-data="{ show: false }" @open-agent-modal.window="show = true"
+<div id="new-agent-modal" x-data="agentModal" @open-agent-modal.window="open"
      x-show="show" x-cloak
      role="dialog" aria-label="Create agent"
      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -396,10 +397,10 @@ document.addEventListener('DOMContentLoaded', function() {
          x-show="show"
          x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
          x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-         @click.outside="show = false">
+         @click.outside="close">
         <div class="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 class="text-sm font-medium text-foreground">Create Agent</h3>
-            <button @click="show = false"
+            <button @click="close"
                     class="text-muted-foreground hover:text-foreground" aria-label="Close">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
@@ -412,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
             </div>
             <div class="px-4 py-3 border-t border-border flex justify-end space-x-2">
-                <button type="button" @click="show = false"
+                <button type="button" @click="close"
                         class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Cancel
                 </button>

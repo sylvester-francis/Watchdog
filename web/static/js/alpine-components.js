@@ -1,13 +1,18 @@
 // WatchDog Alpine.js Components (CSP-safe)
 // Registers all components via alpine:init event, which fires right before
 // Alpine initializes — so Alpine global is available at that point.
+//
+// IMPORTANT: Alpine CSP build cannot evaluate inline expressions.
+// All x-data must reference registered component names.
+// All event handlers (@click, @input, etc.) must reference method names.
+// All x-text, :class, etc. must reference properties or getters.
 
 document.addEventListener('alpine:init', () => {
 
 // 1. baseLayout — body element in layouts/base.html
 // Controls sidebar visibility and command palette toggle
 Alpine.data('baseLayout', () => ({
-    sidebarOpen: true,
+    sidebarOpen: false,
     commandPaletteOpen: false,
     toggleSidebar() { this.sidebarOpen = !this.sidebarOpen; },
     closeSidebar() { this.sidebarOpen = false; },
@@ -66,6 +71,9 @@ Alpine.data('commandPalette', () => ({
                 });
             }
         });
+
+        // Re-run search when query changes (CSP build can't use @input="search()")
+        this.$watch('query', () => this.search());
 
         // Highlight selected result via DOM (CSP build can't evaluate ternaries)
         this.$watch('selectedIndex', () => this.updateHighlight());
@@ -206,7 +214,8 @@ Alpine.data('monitorFilter', () => ({
     httpCount: 0,
     tcpCount: 0,
     pingCount: 0,
-    dnsCount: 0,
+    tlsCount: 0,
+    visibleCount: 0,
     init() {
         this.countTypes();
         this.$watch('search', () => this.filterRows());
@@ -214,22 +223,29 @@ Alpine.data('monitorFilter', () => ({
     },
     countTypes() {
         var rows = document.querySelectorAll('#monitors-table tr[data-type]');
-        var counts = { http: 0, tcp: 0, ping: 0, dns: 0 };
+        var counts = { http: 0, tcp: 0, ping: 0, tls: 0 };
         rows.forEach(function(row) {
             var type = row.dataset.type;
             if (counts[type] !== undefined) counts[type]++;
         });
         this.totalCount = rows.length;
+        this.visibleCount = rows.length;
         this.httpCount = counts.http;
         this.tcpCount = counts.tcp;
         this.pingCount = counts.ping;
-        this.dnsCount = counts.dns;
+        this.tlsCount = counts.tls;
     },
     setFilterAll() { this.filterType = 'all'; },
     setFilterHttp() { this.filterType = 'http'; },
     setFilterTcp() { this.filterType = 'tcp'; },
     setFilterPing() { this.filterType = 'ping'; },
-    setFilterDns() { this.filterType = 'dns'; },
+    setFilterTls() { this.filterType = 'tls'; },
+    // CSP-safe count labels (replaces inline x-text expressions)
+    get totalCountLabel() { return '(' + this.totalCount + ')'; },
+    get httpCountLabel() { return this.httpCount > 0 ? '(' + this.httpCount + ')' : ''; },
+    get tcpCountLabel() { return this.tcpCount > 0 ? '(' + this.tcpCount + ')' : ''; },
+    get pingCountLabel() { return this.pingCount > 0 ? '(' + this.pingCount + ')' : ''; },
+    get tlsCountLabel() { return this.tlsCount > 0 ? '(' + this.tlsCount + ')' : ''; },
     get filterAllClass() {
         return this.filterType === 'all'
             ? 'bg-muted text-foreground shadow-sm'
@@ -250,23 +266,30 @@ Alpine.data('monitorFilter', () => ({
             ? 'bg-muted text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
     },
-    get filterDnsClass() {
-        return this.filterType === 'dns'
+    get filterTlsClass() {
+        return this.filterType === 'tls'
             ? 'bg-muted text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
+    },
+    get showNoResults() {
+        return this.visibleCount === 0 && this.totalCount > 0;
     },
     filterRows() {
         var rows = document.querySelectorAll('#monitors-table tr[data-type]');
         var ft = this.filterType;
         var q = this.search.toLowerCase();
+        var visible = 0;
         rows.forEach(function(row) {
             var type = row.dataset.type;
             var name = row.dataset.name || '';
             var target = row.dataset.target || '';
             var matchType = ft === 'all' || ft === type;
             var matchSearch = q === '' || name.indexOf(q) !== -1 || target.indexOf(q) !== -1;
-            row.style.display = (matchType && matchSearch) ? '' : 'none';
+            var show = matchType && matchSearch;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
         });
+        this.visibleCount = visible;
     },
 }));
 
@@ -274,6 +297,8 @@ Alpine.data('monitorFilter', () => ({
 Alpine.data('channelSelector', () => ({
     channelType: 'discord',
     show: false,
+    open() { this.show = true; },
+    close() { this.show = false; },
     get isWebhook() { return this.channelType === 'discord' || this.channelType === 'slack'; },
     get isGenericWebhook() { return this.channelType === 'webhook'; },
     get isEmail() { return this.channelType === 'email'; },
@@ -314,6 +339,23 @@ Alpine.data('incidentManager', () => ({
             this.selectedIncidents = [];
         }
     },
+    bulkAck() {
+        if (this.selectedIncidents.length === 0) return;
+        if (!confirm('Acknowledge ' + this.selectedIncidents.length + ' incident(s)?')) return;
+        this.selectedIncidents.forEach(function(id) {
+            fetch('/incidents/' + id + '/ack', { method: 'POST' });
+        });
+        setTimeout(function() { window.location.reload(); }, 500);
+    },
+    bulkResolve() {
+        if (this.selectedIncidents.length === 0) return;
+        if (!confirm('Resolve ' + this.selectedIncidents.length + ' incident(s)?')) return;
+        var filter = new URLSearchParams(window.location.search).get('status') || 'active';
+        this.selectedIncidents.forEach(function(id) {
+            fetch('/incidents/' + id + '/resolve?filter=' + filter, { method: 'POST' });
+        });
+        setTimeout(function() { window.location.reload(); }, 500);
+    },
     get tableViewClass() {
         return this.view === 'table'
             ? 'bg-muted text-foreground shadow-sm'
@@ -324,6 +366,54 @@ Alpine.data('incidentManager', () => ({
             ? 'bg-muted text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground';
     },
+}));
+
+// 9. dropdown — generic kebab/action menu (replaces inline x-data="{ open: false }")
+Alpine.data('dropdown', () => ({
+    open: false,
+    toggle() { this.open = !this.open; },
+    close() { this.open = false; },
+}));
+
+// 10. monitorModal — monitors.html new monitor dialog
+Alpine.data('monitorModal', () => ({
+    show: false,
+    init() {
+        // Auto-open when navigating to /monitors/new
+        if (document.getElementById('auto-open-modal')) {
+            this.$nextTick(() => { this.show = true; });
+        }
+    },
+    open() { this.show = true; },
+    close() { this.show = false; },
+}));
+
+// 11. agentModal — dashboard.html new agent dialog
+Alpine.data('agentModal', () => ({
+    show: false,
+    open() { this.show = true; },
+    close() { this.show = false; },
+}));
+
+// 12. tokenModal — settings.html new API token dialog
+Alpine.data('tokenModal', () => ({
+    show: false,
+    open() { this.show = true; },
+    close() { this.show = false; },
+}));
+
+// 13. statusPageModal — status_pages.html new page dialog
+Alpine.data('statusPageModal', () => ({
+    show: false,
+    open() { this.show = true; },
+    close() { this.show = false; },
+}));
+
+// 14. deleteConfirmModal — status_pages.html delete confirmation
+Alpine.data('deleteConfirmModal', () => ({
+    show: false,
+    open() { this.show = true; },
+    close() { this.show = false; },
 }));
 
 }); // end alpine:init

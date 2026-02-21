@@ -35,10 +35,11 @@
                 <i data-lucide="search" class="w-4 h-4 text-muted-foreground shrink-0"></i>
                 <input x-ref="searchInput"
                        x-model="query"
-                       @input="search()"
+                       @input="search"
                        @keydown="onKeydown"
                        type="text"
                        placeholder="Search pages and monitors..."
+                       aria-label="Search pages and monitors"
                        class="w-full bg-transparent px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none">
                 <kbd class="shrink-0 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-mono">ESC</kbd>
             </div>
