@@ -99,11 +99,13 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-border">
+                        {{if eq .StatusFilter "active"}}
                         <th class="px-4 py-3 text-left w-10">
                             <input type="checkbox" x-model="selectAll"
                                 @change="toggleSelectAll"
                                 class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-accent/20 focus:ring-offset-0 cursor-pointer">
                         </th>
+                        {{end}}
                         <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitor</th>
                         <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Target</th>
@@ -114,7 +116,7 @@
                 </thead>
                 <tbody class="divide-y divide-border/50" id="incidents-list">
                     {{range .IncidentsWithMonitors}}
-                    {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor}}
+                    {{template "incident_row" dict "Incident" .Incident "Monitor" .Monitor "StatusFilter" $.StatusFilter}}
                     {{end}}
                 </tbody>
             </table>
@@ -228,11 +230,13 @@
 
 {{define "incident_row"}}
 <tr id="incident-{{.Incident.ID}}" data-incident-id="{{.Incident.ID}}" class="hover:bg-card-elevated transition-all duration-200 group">
-    <!-- Checkbox -->
+    <!-- Checkbox (active filter only) -->
+    {{if eq .StatusFilter "active"}}
     <td class="px-4 py-3.5">
         <input type="checkbox" :value="'{{.Incident.ID}}'" x-model="selectedIncidents"
             class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-accent/20 focus:ring-offset-0 cursor-pointer">
     </td>
+    {{end}}
 
     <!-- Status -->
     <td class="px-4 py-3.5">
