@@ -1,0 +1,1 @@
+ALTER TABLE monitors ADD COLUMN metadata JSONB NOT NULL DEFAULT '{}';

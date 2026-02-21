@@ -204,7 +204,26 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 		return h.renderError(c, "Invalid monitor type", userID)
 	}
 
-	monitor, err := h.monitorSvc.CreateMonitor(ctx, userID, agentID, name, mt, target)
+	// Parse type-specific metadata
+	metadata := make(map[string]string)
+	switch mt {
+	case domain.MonitorTypeHTTP:
+		if ec := c.FormValue("expected_content"); ec != "" {
+			metadata["expected_content"] = ec
+		}
+	case domain.MonitorTypeDatabase:
+		if dbType := c.FormValue("db_type"); dbType != "" {
+			metadata["db_type"] = dbType
+		}
+		if cs := c.FormValue("connection_string"); cs != "" {
+			metadata["connection_string"] = cs
+		}
+		if pw := c.FormValue("password"); pw != "" {
+			metadata["password"] = pw
+		}
+	}
+
+	monitor, err := h.monitorSvc.CreateMonitor(ctx, userID, agentID, name, mt, target, metadata)
 	if err != nil {
 		if errors.Is(err, domain.ErrMonitorLimitReached) {
 			if c.Request().Header.Get("HX-Request") == "true" {
@@ -257,9 +276,9 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 	}
 
 	// Notify agent if connected
-	taskMsg := protocol.NewTaskMessage(
+	taskMsg := protocol.NewTaskMessageWithMetadata(
 		monitor.ID.String(), string(monitor.Type),
-		monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+		monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Metadata,
 	)
 	h.hub.SendToAgent(monitor.AgentID, taskMsg)
 
@@ -413,9 +432,9 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 
 	// Notify agent of the change
 	if monitor.Enabled {
-		taskMsg := protocol.NewTaskMessage(
+		taskMsg := protocol.NewTaskMessageWithMetadata(
 			monitor.ID.String(), string(monitor.Type),
-			monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+			monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Metadata,
 		)
 		h.hub.SendToAgent(monitor.AgentID, taskMsg)
 	} else {

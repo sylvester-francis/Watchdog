@@ -139,10 +139,10 @@ Alpine.data('mobileNav', () => ({
 Alpine.data('dashboardMockup', () => ({
     stats: { monitors: 12, healthy: 11 },
     services: [
-        { name: 'PostgreSQL', type: 'tcp', latency: '2ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
-        { name: 'Redis Cache', type: 'tcp', latency: '1ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
+        { name: 'PostgreSQL', type: 'database', latency: '2ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
+        { name: 'Redis Cache', type: 'database', latency: '1ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
         { name: 'API Gateway', type: 'http', latency: '45ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
-        { name: 'Auth Service', type: 'http', latency: '12ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
+        { name: 'nginx-proxy', type: 'docker', latency: '0ms', dotClass: 'bg-emerald-400 animate-pulse-dot', latencyClass: 'text-muted-foreground' },
         { name: 'Vault', type: 'http', latency: 'timeout', dotClass: 'bg-red-400', latencyClass: 'text-red-400' },
     ],
     _vaultDown: true,
@@ -155,9 +155,14 @@ Alpine.data('dashboardMockup', () => ({
             // Cycle a healthy service's latency
             var idx = self._tick % 4; // cycle through first 4 services
             var latIdx = self._tick % self._latencies.length;
-            self.services[idx].latency = self.services[idx].type === 'tcp'
-                ? (1 + (self._tick % 3)) + 'ms'
-                : self._latencies[latIdx];
+            var svcType = self.services[idx].type;
+            if (svcType === 'database') {
+                self.services[idx].latency = (1 + (self._tick % 3)) + 'ms';
+            } else if (svcType === 'docker') {
+                self.services[idx].latency = '0ms';
+            } else {
+                self.services[idx].latency = self._latencies[latIdx];
+            }
             // Toggle Vault between timeout and recovery
             if (self._tick % 3 === 0) {
                 self._vaultDown = !self._vaultDown;
@@ -219,6 +224,9 @@ Alpine.data('monitorFilter', () => ({
     pingCount: 0,
     dnsCount: 0,
     tlsCount: 0,
+    dockerCount: 0,
+    databaseCount: 0,
+    systemCount: 0,
     visibleCount: 0,
     init() {
         this.countTypes();
@@ -227,7 +235,7 @@ Alpine.data('monitorFilter', () => ({
     },
     countTypes() {
         var rows = document.querySelectorAll('#monitors-table tr[data-type]');
-        var counts = { http: 0, tcp: 0, ping: 0, dns: 0, tls: 0 };
+        var counts = { http: 0, tcp: 0, ping: 0, dns: 0, tls: 0, docker: 0, database: 0, system: 0 };
         rows.forEach(function(row) {
             var type = row.dataset.type;
             if (counts[type] !== undefined) counts[type]++;
@@ -239,6 +247,9 @@ Alpine.data('monitorFilter', () => ({
         this.pingCount = counts.ping;
         this.dnsCount = counts.dns;
         this.tlsCount = counts.tls;
+        this.dockerCount = counts.docker;
+        this.databaseCount = counts.database;
+        this.systemCount = counts.system;
     },
     setFilterAll() { this.filterType = 'all'; },
     setFilterHttp() { this.filterType = 'http'; },
@@ -246,6 +257,9 @@ Alpine.data('monitorFilter', () => ({
     setFilterPing() { this.filterType = 'ping'; },
     setFilterDns() { this.filterType = 'dns'; },
     setFilterTls() { this.filterType = 'tls'; },
+    setFilterDocker() { this.filterType = 'docker'; },
+    setFilterDatabase() { this.filterType = 'database'; },
+    setFilterSystem() { this.filterType = 'system'; },
     // CSP-safe count labels (replaces inline x-text expressions)
     get totalCountLabel() { return '(' + this.totalCount + ')'; },
     get httpCountLabel() { return this.httpCount > 0 ? '(' + this.httpCount + ')' : ''; },
@@ -253,36 +267,23 @@ Alpine.data('monitorFilter', () => ({
     get pingCountLabel() { return this.pingCount > 0 ? '(' + this.pingCount + ')' : ''; },
     get dnsCountLabel() { return this.dnsCount > 0 ? '(' + this.dnsCount + ')' : ''; },
     get tlsCountLabel() { return this.tlsCount > 0 ? '(' + this.tlsCount + ')' : ''; },
-    get filterAllClass() {
-        return this.filterType === 'all'
+    get dockerCountLabel() { return this.dockerCount > 0 ? '(' + this.dockerCount + ')' : ''; },
+    get databaseCountLabel() { return this.databaseCount > 0 ? '(' + this.databaseCount + ')' : ''; },
+    get systemCountLabel() { return this.systemCount > 0 ? '(' + this.systemCount + ')' : ''; },
+    _filterClass(type) {
+        return this.filterType === type
             ? 'bg-muted text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
     },
-    get filterHttpClass() {
-        return this.filterType === 'http'
-            ? 'bg-muted text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
-    },
-    get filterTcpClass() {
-        return this.filterType === 'tcp'
-            ? 'bg-muted text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
-    },
-    get filterPingClass() {
-        return this.filterType === 'ping'
-            ? 'bg-muted text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
-    },
-    get filterDnsClass() {
-        return this.filterType === 'dns'
-            ? 'bg-muted text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
-    },
-    get filterTlsClass() {
-        return this.filterType === 'tls'
-            ? 'bg-muted text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
-    },
+    get filterAllClass() { return this._filterClass('all'); },
+    get filterHttpClass() { return this._filterClass('http'); },
+    get filterTcpClass() { return this._filterClass('tcp'); },
+    get filterPingClass() { return this._filterClass('ping'); },
+    get filterDnsClass() { return this._filterClass('dns'); },
+    get filterTlsClass() { return this._filterClass('tls'); },
+    get filterDockerClass() { return this._filterClass('docker'); },
+    get filterDatabaseClass() { return this._filterClass('database'); },
+    get filterSystemClass() { return this._filterClass('system'); },
     get showNoResults() {
         return this.visibleCount === 0 && this.totalCount > 0;
     },
@@ -425,14 +426,63 @@ Alpine.data('dropdown', () => ({
 // 10. monitorModal — monitors.html new monitor dialog
 Alpine.data('monitorModal', () => ({
     show: false,
+    _bound: false,
     init() {
         // Auto-open when navigating to /monitors/new
         if (document.getElementById('auto-open-modal')) {
             this.$nextTick(() => { this.show = true; });
         }
+        // Bind type-switching on select change
+        var self = this;
+        var sel = this.$el.querySelector('select[name="type"]');
+        if (sel && !this._bound) {
+            this._bound = true;
+            sel.addEventListener('change', function() {
+                self._syncTypeFields(sel.value);
+            });
+        }
     },
-    open() { this.show = true; },
+    open() {
+        this.show = true;
+        // Reset type fields when opening
+        var sel = this.$el.querySelector('select[name="type"]');
+        if (sel) this._syncTypeFields(sel.value);
+    },
     close() { this.show = false; },
+    _syncTypeFields(type) {
+        var root = this.$el;
+        // Show/hide conditional fields
+        var fields = root.querySelectorAll('[data-monitor-type-field]');
+        for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            f.style.display = f.getAttribute('data-monitor-type-field') === type ? '' : 'none';
+        }
+        // Update target placeholder and hint
+        var targetInput = root.querySelector('#monitor-target-input');
+        var targetHint = root.querySelector('#monitor-target-hint');
+        var placeholders = {
+            http: 'https://example.com/health',
+            tcp: 'host:port (e.g. db.internal:5432)',
+            ping: 'hostname or IP address',
+            dns: 'example.com',
+            tls: 'example.com',
+            docker: 'container-name or container-id',
+            database: 'host:port (e.g. db.internal:5432)',
+            system: 'cpu:90 or memory:85 or disk:90:/'
+        };
+        var hints = {
+            http: 'Full URL including protocol (https://)',
+            tcp: 'Host and port separated by colon',
+            ping: 'Hostname or IP to check reachability',
+            dns: 'Domain name to resolve',
+            tls: 'Domain name to check certificate',
+            docker: 'Container name or ID (agent must have Docker socket access)',
+            database: 'Host:port of the database server',
+            system: 'Format: metric:threshold (disk also needs path: disk:90:/)'
+        };
+        if (targetInput) targetInput.placeholder = placeholders[type] || 'target';
+        if (targetHint) targetHint.textContent = hints[type] || '';
+    },
 }));
 
 // 11. agentModal — dashboard.html new agent dialog

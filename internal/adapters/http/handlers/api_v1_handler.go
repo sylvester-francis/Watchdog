@@ -301,12 +301,13 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 // --- CRUD endpoints ---
 
 type createMonitorRequest struct {
-	AgentID  string `json:"agent_id"`
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Target   string `json:"target"`
-	Interval int    `json:"interval_seconds"`
-	Timeout  int    `json:"timeout_seconds"`
+	AgentID  string            `json:"agent_id"`
+	Name     string            `json:"name"`
+	Type     string            `json:"type"`
+	Target   string            `json:"target"`
+	Interval int               `json:"interval_seconds"`
+	Timeout  int               `json:"timeout_seconds"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 // CreateMonitor creates a new monitor.
@@ -338,7 +339,7 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "agent not found"})
 	}
 
-	monitor, err := h.monitorSvc.CreateMonitor(ctx, userID, agentID, req.Name, domain.MonitorType(req.Type), req.Target)
+	monitor, err := h.monitorSvc.CreateMonitor(ctx, userID, agentID, req.Name, domain.MonitorType(req.Type), req.Target, req.Metadata)
 	if err != nil {
 		if errors.Is(err, domain.ErrMonitorLimitReached) {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
@@ -360,9 +361,9 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 	}
 
 	// Notify agent if connected
-	taskMsg := protocol.NewTaskMessage(
+	taskMsg := protocol.NewTaskMessageWithMetadata(
 		monitor.ID.String(), string(monitor.Type),
-		monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+		monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Metadata,
 	)
 	h.hub.SendToAgent(monitor.AgentID, taskMsg)
 
@@ -445,9 +446,9 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 
 	// Notify agent of the change
 	if monitor.Enabled {
-		taskMsg := protocol.NewTaskMessage(
+		taskMsg := protocol.NewTaskMessageWithMetadata(
 			monitor.ID.String(), string(monitor.Type),
-			monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds,
+			monitor.Target, monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Metadata,
 		)
 		h.hub.SendToAgent(monitor.AgentID, taskMsg)
 	} else {

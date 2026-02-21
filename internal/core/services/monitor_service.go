@@ -51,7 +51,7 @@ func NewMonitorService(
 }
 
 // CreateMonitor creates a new monitor for an agent, enforcing plan limits.
-func (s *MonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error) {
+func (s *MonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error) {
 	// Enforce plan limits
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -83,6 +83,9 @@ func (s *MonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, ag
 	}
 
 	monitor := domain.NewMonitor(agentID, name, monitorType, target)
+	if metadata != nil {
+		monitor.Metadata = metadata
+	}
 
 	if err := s.monitorRepo.Create(ctx, monitor); err != nil {
 		return nil, fmt.Errorf("monitorService.CreateMonitor: %w", err)

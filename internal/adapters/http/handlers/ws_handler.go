@@ -272,12 +272,13 @@ func (h *WSHandler) sendTasks(ctx context.Context, client *realtime.Client, agen
 			continue
 		}
 
-		taskMsg := protocol.NewTaskMessage(
+		taskMsg := protocol.NewTaskMessageWithMetadata(
 			monitor.ID.String(),
 			string(monitor.Type),
 			monitor.Target,
 			monitor.IntervalSeconds,
 			monitor.TimeoutSeconds,
+			monitor.Metadata,
 		)
 		client.Send(taskMsg)
 	}

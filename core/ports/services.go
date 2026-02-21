@@ -22,7 +22,7 @@ type AgentAuthService interface {
 
 // MonitorService defines the interface for monitor orchestration.
 type MonitorService interface {
-	CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error)
+	CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error)
 	GetMonitor(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetMonitorsByAgent(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	UpdateMonitor(ctx context.Context, monitor *domain.Monitor) error

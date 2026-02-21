@@ -61,7 +61,7 @@ func (m *MockAgentAuthService) CreateAgent(ctx context.Context, userID string, n
 
 // MockMonitorService is a mock implementation of ports.MonitorService.
 type MockMonitorService struct {
-	CreateMonitorFn    func(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error)
+	CreateMonitorFn    func(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error)
 	GetMonitorFn       func(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetMonitorsByAgentFn func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	UpdateMonitorFn    func(ctx context.Context, monitor *domain.Monitor) error
@@ -69,9 +69,9 @@ type MockMonitorService struct {
 	ProcessHeartbeatFn func(ctx context.Context, heartbeat *domain.Heartbeat) error
 }
 
-func (m *MockMonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string) (*domain.Monitor, error) {
+func (m *MockMonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error) {
 	if m.CreateMonitorFn != nil {
-		return m.CreateMonitorFn(ctx, userID, agentID, name, monitorType, target)
+		return m.CreateMonitorFn(ctx, userID, agentID, name, monitorType, target, metadata)
 	}
 	return nil, nil
 }
