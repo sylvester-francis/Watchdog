@@ -129,8 +129,9 @@ Alpine.data('commandPalette', () => ({
 // 3. mobileNav — nav in pages/landing.html
 Alpine.data('mobileNav', () => ({
     mobileOpen: false,
-    toggle() { this.mobileOpen = !this.mobileOpen; },
-    close() { this.mobileOpen = false; },
+    mobileClosed: true,
+    toggle() { this.mobileOpen = !this.mobileOpen; this.mobileClosed = !this.mobileOpen; },
+    close() { this.mobileOpen = false; this.mobileClosed = true; },
 }));
 
 // 4. dashboardMockup — landing page hero animated demo
@@ -196,11 +197,13 @@ Alpine.data('dashboardMockup', () => ({
 // 4b. copyInstall — landing page terminal copy button
 Alpine.data('copyInstall', () => ({
     copied: false,
+    notCopied: true,
     copy() {
         var self = this;
         navigator.clipboard.writeText('curl -sSL https://usewatchdog.dev/install | sh').then(function() {
             self.copied = true;
-            setTimeout(function() { self.copied = false; }, 2000);
+            self.notCopied = false;
+            setTimeout(function() { self.copied = false; self.notCopied = true; }, 2000);
         });
     },
 }));
