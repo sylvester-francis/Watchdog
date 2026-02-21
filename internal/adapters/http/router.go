@@ -105,7 +105,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, templates)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub)
-	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.UserRepo, templates)
+	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.UserRepo, deps.IncidentService, templates)
 	r.alertChannelHandler = handlers.NewAlertChannelHandler(deps.AlertChannelRepo, templates)
 
 	return r, nil
