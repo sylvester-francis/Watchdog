@@ -403,6 +403,7 @@
                     hx-target="#token-row-{{.ID}}"
                     hx-swap="outerHTML"
                     hx-confirm="Regenerate this token? The old key will stop working immediately."
+                    data-confirm-action="Regenerate"
                     class="px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50">
                 Regenerate
             </button>
@@ -410,6 +411,8 @@
                     hx-target="#token-row-{{.ID}}"
                     hx-swap="outerHTML"
                     hx-confirm="Delete this token? This cannot be undone."
+                    data-confirm-destructive
+                    data-confirm-action="Delete"
                     class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10"
                     aria-label="Delete token {{.Name}}">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -525,6 +528,8 @@
                     hx-target="#channel-row-{{.ID}}"
                     hx-swap="outerHTML"
                     hx-confirm="Delete this alert channel?"
+                    data-confirm-destructive
+                    data-confirm-action="Delete"
                     class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10"
                     aria-label="Delete channel {{.Name}}">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>

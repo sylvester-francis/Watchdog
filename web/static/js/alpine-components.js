@@ -519,7 +519,41 @@ Alpine.data('statusPageModal', () => ({
     close() { this.show = false; },
 }));
 
-// 14. deleteConfirmModal — status_pages.html delete confirmation
+// 14. confirmModal — global destructive-action confirmation dialog
+// Intercepts htmx:confirm events to replace native confirm() with a styled modal.
+Alpine.data('confirmModal', () => ({
+    show: false,
+    message: '',
+    actionLabel: 'Confirm',
+    destructive: false,
+    _pendingEvent: null,
+    open(message, actionLabel, destructive, evt) {
+        this.message = message;
+        this.actionLabel = actionLabel || 'Confirm';
+        this.destructive = !!destructive;
+        this._pendingEvent = evt;
+        this.show = true;
+    },
+    confirm() {
+        if (this._pendingEvent) {
+            this._pendingEvent.detail.issueRequest();
+        }
+        this._close();
+    },
+    cancel() { this._close(); },
+    _close() {
+        this.show = false;
+        this.message = '';
+        this._pendingEvent = null;
+    },
+    get actionBtnClass() {
+        return this.destructive
+            ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            : 'bg-accent text-accent-foreground hover:bg-accent/90';
+    },
+}));
+
+// 15. deleteConfirmModal — status_pages.html delete confirmation
 Alpine.data('deleteConfirmModal', () => ({
     show: false,
     open() { this.show = true; },
