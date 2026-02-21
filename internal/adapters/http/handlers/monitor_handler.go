@@ -27,6 +27,7 @@ type MonitorWithHeartbeats struct {
 	UptimeUp    int
 	UptimeDown  int
 	UptimeTotal int
+	MetricValue string // system monitors: e.g. "CPU 23.5%"
 }
 
 // MonitorHandler handles monitor-related HTTP requests.
@@ -115,6 +116,17 @@ func (h *MonitorHandler) List(c echo.Context) error {
 					down++
 				}
 			}
+			// Extract metric value for system monitors
+			var metricValue string
+			if m.Type == domain.MonitorTypeSystem && len(heartbeats) > 0 {
+				for _, hb := range heartbeats {
+					if hb.ErrorMessage != nil {
+						metricValue = formatMetricReading(m.Target, *hb.ErrorMessage)
+						break
+					}
+				}
+			}
+
 			monitorsWithHeartbeats = append(monitorsWithHeartbeats, MonitorWithHeartbeats{
 				Monitor:     m,
 				Agent:       agent,
@@ -122,6 +134,7 @@ func (h *MonitorHandler) List(c echo.Context) error {
 				UptimeUp:    up,
 				UptimeDown:  down,
 				UptimeTotal: len(heartbeats),
+				MetricValue: metricValue,
 			})
 		}
 	}

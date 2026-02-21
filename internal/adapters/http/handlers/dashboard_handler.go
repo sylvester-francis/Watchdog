@@ -44,6 +44,7 @@ type MonitorSparkline struct {
 	UptimeTotal int
 	// CheckResults holds per-check results: 1=success, 0=failure, -1=unknown (oldest first)
 	CheckResults []int
+	MetricValue  string // system monitors: e.g. "CPU 23.5%"
 }
 
 // DashboardHandler handles dashboard-related HTTP requests.
@@ -156,6 +157,18 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 				checkResults = append(checkResults, 0)
 			}
 		}
+
+		// Extract metric value for system monitors
+		var metricValue string
+		if m.Type == domain.MonitorTypeSystem && len(heartbeats) > 0 {
+			for _, hb := range heartbeats {
+				if hb.ErrorMessage != nil {
+					metricValue = formatMetricReading(m.Target, *hb.ErrorMessage)
+					break
+				}
+			}
+		}
+
 		sparklines = append(sparklines, MonitorSparkline{
 			MonitorID:    m.ID.String(),
 			Name:         m.Name,
@@ -167,12 +180,24 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 			UptimeDown:   monDown,
 			UptimeTotal:  len(heartbeats),
 			CheckResults: checkResults,
+			MetricValue:  metricValue,
 		})
 	}
 
 	// Compute uptime percentage
 	if totalHeartbeats > 0 {
 		stats.UptimePercent = float64(successHeartbeats) / float64(totalHeartbeats) * 100
+	}
+
+	// Split sparklines into service (network) and infrastructure (local) groups
+	var serviceSparklines, infraSparklines []MonitorSparkline
+	for _, s := range sparklines {
+		switch domain.MonitorType(s.Type) {
+		case domain.MonitorTypeDocker, domain.MonitorTypeDatabase, domain.MonitorTypeSystem:
+			infraSparklines = append(infraSparklines, s)
+		default:
+			serviceSparklines = append(serviceSparklines, s)
+		}
 	}
 
 	// Enrich incidents with monitor names (cap at 5 for dashboard)
@@ -202,6 +227,8 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		"IncidentsWithMonitors": incidentsWithMonitors,
 		"Monitors":              allMonitors,
 		"Sparklines":            sparklines,
+		"ServiceSparklines":     serviceSparklines,
+		"InfraSparklines":       infraSparklines,
 		"Stats":                 stats,
 		"Plan":                  user.Plan.String(),
 		"PlanLimits":            user.Plan.Limits(),
