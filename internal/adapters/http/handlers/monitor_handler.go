@@ -143,14 +143,6 @@ func (h *MonitorHandler) NewForm(c echo.Context) error {
 		})
 	}
 
-	// If HTMX request, return just the form partial
-	if c.Request().Header.Get("HX-Request") == "true" {
-		return c.Render(http.StatusOK, "monitor_form.html", map[string]interface{}{
-			"Agents":       agents,
-			"MonitorTypes": domain.ValidMonitorTypeStrings(),
-		})
-	}
-
 	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
 		"Title":        "New Monitor",
 		"ShowForm":     true,
@@ -329,10 +321,7 @@ func (h *MonitorHandler) EditForm(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
 	}
 
-	return c.Render(http.StatusOK, "monitor_edit.html", map[string]interface{}{
-		"Monitor":      monitor,
-		"MonitorTypes": domain.ValidMonitorTypeStrings(),
-	})
+	return c.Redirect(http.StatusFound, "/monitors/"+id.String())
 }
 
 // Update handles monitor update.
