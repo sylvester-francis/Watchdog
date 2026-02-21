@@ -48,7 +48,7 @@
                        class="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                         Edit
                     </a>
-                    <button onclick="deleteStatusPage('{{.ID}}')"
+                    <button onclick="showDeleteModal('{{.ID}}', '{{.Name}}')"
                             class="px-2 py-1 text-xs text-destructive hover:text-destructive/80 transition-colors">
                         Delete
                     </button>
@@ -104,14 +104,56 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm mx-4">
+        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h3 class="text-sm font-medium text-foreground">Delete Status Page</h3>
+            <button onclick="hideDeleteModal()"
+                    class="text-muted-foreground hover:text-foreground">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="p-4">
+            <p class="text-sm text-muted-foreground">
+                Are you sure you want to delete <span id="delete-page-name" class="text-foreground font-medium"></span>? This action cannot be undone.
+            </p>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" onclick="hideDeleteModal()"
+                        class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmDelete()"
+                        class="px-3 py-1.5 bg-destructive text-destructive-foreground text-xs font-medium rounded-md hover:bg-destructive/90 transition-colors">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function deleteStatusPage(id) {
-    if (!confirm('Delete this status page?')) return;
+var deletePageId = '';
+
+function showDeleteModal(id, name) {
+    deletePageId = id;
+    document.getElementById('delete-page-name').textContent = name;
+    document.getElementById('delete-modal').classList.remove('hidden');
+}
+
+function hideDeleteModal() {
+    document.getElementById('delete-modal').classList.add('hidden');
+    deletePageId = '';
+}
+
+function confirmDelete() {
+    if (!deletePageId) return;
     var token = document.querySelector('meta[name="csrf-token"]');
-    fetch('/status-pages/' + id, {
+    fetch('/status-pages/' + deletePageId, {
         method: 'DELETE',
         headers: token ? {'X-CSRF-Token': token.content} : {}
     }).then(function() { window.location.reload(); });
+    hideDeleteModal();
 }
 </script>
 {{end}}
