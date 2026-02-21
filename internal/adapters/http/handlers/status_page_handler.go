@@ -252,6 +252,7 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 		UptimePercent   float64 // -1 = no data
 		LatencyMs       int
 		HasLatency      bool
+		MetricValue     string // system monitors: e.g. "CPU 23.5%"
 		MonitoringSince time.Time
 		DataDays        int
 		UptimeHistory   []DayUptime
@@ -281,14 +282,30 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 		var latencyMs int
 		var hasLatency bool
 
+		isSystemOrDocker := m.Type == domain.MonitorTypeSystem || m.Type == domain.MonitorTypeDocker
+		var metricValue string
+
 		heartbeats, err := h.heartbeatRepo.GetByMonitorIDInRange(ctx, mid, ninetyDaysAgo, now)
 		if err == nil && len(heartbeats) > 0 {
-			// Find latest latency (heartbeats ordered DESC by time)
-			for _, hb := range heartbeats {
-				if hb.LatencyMs != nil {
-					latencyMs = *hb.LatencyMs
-					hasLatency = true
-					break
+			if isSystemOrDocker {
+				// System/docker: latency is always 0, not meaningful
+				// For system monitors, extract metric reading from latest ErrorMessage
+				if m.Type == domain.MonitorTypeSystem {
+					for _, hb := range heartbeats {
+						if hb.ErrorMessage != nil {
+							metricValue = formatMetricReading(m.Target, *hb.ErrorMessage)
+							break
+						}
+					}
+				}
+			} else {
+				// Network monitors: find latest latency
+				for _, hb := range heartbeats {
+					if hb.LatencyMs != nil {
+						latencyMs = *hb.LatencyMs
+						hasLatency = true
+						break
+					}
 				}
 			}
 
@@ -339,6 +356,7 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 			UptimePercent:   uptimePercent,
 			LatencyMs:       latencyMs,
 			HasLatency:      hasLatency,
+			MetricValue:     metricValue,
 			MonitoringSince: m.CreatedAt,
 			DataDays:        dataDays,
 			UptimeHistory:   uptimeHistory,
@@ -392,6 +410,28 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 		"AllUp":           allUp,
 		"AggregateUptime": aggregateUptime,
 	})
+}
+
+// formatMetricReading turns a system monitor's target + error message into a short label.
+// e.g. target="cpu:90", msg="cpu usage 23.5%" → "CPU 23.5%"
+//      target="disk:85:/", msg="disk usage 45.2%" → "Disk 45.2%"
+func formatMetricReading(target, msg string) string {
+	parts := strings.SplitN(target, ":", 2)
+	if len(parts) < 1 {
+		return ""
+	}
+	metric := strings.ToUpper(parts[0][:1]) + parts[0][1:]
+
+	idx := strings.Index(msg, "usage ")
+	if idx == -1 {
+		return ""
+	}
+	rest := msg[idx+6:]
+	pctIdx := strings.Index(rest, "%")
+	if pctIdx == -1 {
+		return ""
+	}
+	return metric + " " + rest[:pctIdx] + "%"
 }
 
 // getUserMonitors returns all monitors owned by the user.

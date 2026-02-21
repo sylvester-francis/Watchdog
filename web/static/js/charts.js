@@ -119,6 +119,71 @@ function createLatencyChart(canvasId, labels, data) {
     });
 }
 
+// System metric usage chart (CPU/memory/disk %) with threshold line
+function createMetricChart(canvasId, labels, data, threshold, metricName) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+
+    var datasets = [{
+        label: metricName + ' usage (%)',
+        data: data,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 2,
+        pointBackgroundColor: '#3b82f6'
+    }];
+
+    if (threshold > 0) {
+        datasets.push({
+            label: 'Threshold (' + threshold + '%)',
+            data: data.map(function() { return threshold; }),
+            borderColor: '#ef4444',
+            borderWidth: 1.5,
+            borderDash: [5, 3],
+            pointRadius: 0,
+            fill: false
+        });
+    }
+
+    return new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            plugins: {
+                legend: {
+                    display: threshold > 0,
+                    labels: { boxWidth: 12, padding: 16, font: { size: 10 } }
+                },
+                tooltip: {
+                    backgroundColor: '#111113',
+                    borderColor: '#27272a',
+                    borderWidth: 1,
+                    titleFont: { family: "'Inter'" },
+                    bodyFont: { family: "'JetBrains Mono'", size: 12 },
+                    callbacks: {
+                        label: function(ctx) { return ctx.parsed.y.toFixed(1) + '%'; }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: '#27272a' },
+                    ticks: { maxTicksLimit: 8 }
+                },
+                y: {
+                    grid: { color: '#27272a' },
+                    ticks: { callback: function(v) { return v + '%'; } },
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
 // Count-up animation for stat numbers
 function animateCounter(element, target, duration) {
     duration = duration || 1200;
