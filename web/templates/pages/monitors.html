@@ -29,6 +29,11 @@
             :class="filterPingClass">
             Ping <span class="ml-0.5 text-muted-foreground" x-text="pingCountLabel"></span>
         </button>
+        <button @click="setFilterDns"
+            class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth shrink-0"
+            :class="filterDnsClass">
+            DNS <span class="ml-0.5 text-muted-foreground" x-text="dnsCountLabel"></span>
+        </button>
         <button @click="setFilterTls"
             class="px-2.5 py-1 rounded-md text-xs font-medium transition-smooth shrink-0"
             :class="filterTlsClass">
@@ -226,6 +231,7 @@
                         <option value="http">HTTP</option>
                         <option value="tcp">TCP</option>
                         <option value="ping">Ping</option>
+                        <option value="dns">DNS</option>
                         <option value="tls">TLS Certificate</option>
                     </select>
                 </div>
