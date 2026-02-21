@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -140,6 +141,8 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		errMsg := "Registration failed"
 		if errors.Is(err, services.ErrEmailAlreadyExists) {
 			errMsg = "Email already registered"
+		} else {
+			slog.Error("registration failed", "email", email, "error", err)
 		}
 		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
 			"Title":      "Register",

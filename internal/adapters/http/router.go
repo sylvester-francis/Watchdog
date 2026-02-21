@@ -30,6 +30,7 @@ type Dependencies struct {
 	WaitlistRepo     ports.WaitlistRepository
 	APITokenRepo     ports.APITokenRepository
 	StatusPageRepo   ports.StatusPageRepository
+	AlertChannelRepo ports.AlertChannelRepository
 	Hub              *realtime.Hub
 	Hasher           *crypto.PasswordHasher
 	AuditService     ports.AuditService
@@ -59,7 +60,8 @@ type Router struct {
 	apiHandler        *handlers.APIHandler
 	apiTokenHandler   *handlers.APITokenHandler
 	apiV1Handler      *handlers.APIV1Handler
-	statusPageHandler *handlers.StatusPageHandler
+	statusPageHandler    *handlers.StatusPageHandler
+	alertChannelHandler *handlers.AlertChannelHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -101,9 +103,10 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
-	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, templates)
+	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, deps.AlertChannelRepo, templates)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService)
 	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, templates)
+	r.alertChannelHandler = handlers.NewAlertChannelHandler(deps.AlertChannelRepo, templates)
 
 	return r, nil
 }
@@ -153,6 +156,9 @@ func (r *Router) RegisterRoutes() {
 
 	// API docs (public)
 	e.GET("/docs", r.apiDocs)
+
+	// Agent install script (public)
+	e.GET("/install", r.installScript)
 
 	// Public status pages (no auth required)
 	e.GET("/status/:slug", r.statusPageHandler.PublicView)
@@ -207,10 +213,14 @@ func (r *Router) RegisterRoutes() {
 	protected.POST("/status-pages/:id", r.statusPageHandler.Update)
 	protected.DELETE("/status-pages/:id", r.statusPageHandler.Delete)
 
-	// Settings (API tokens)
+	// Settings (API tokens + alert channels)
 	protected.GET("/settings", r.apiTokenHandler.List)
 	protected.POST("/settings/tokens", r.apiTokenHandler.Create)
 	protected.DELETE("/settings/tokens/:id", r.apiTokenHandler.Delete)
+	protected.POST("/settings/alerts", r.alertChannelHandler.Create)
+	protected.DELETE("/settings/alerts/:id", r.alertChannelHandler.Delete)
+	protected.POST("/settings/alerts/:id/toggle", r.alertChannelHandler.Toggle)
+	protected.POST("/settings/alerts/:id/test", r.alertChannelHandler.TestChannel)
 
 	// Admin routes
 	admin := protected.Group("/admin", middleware.AdminRequired(r.deps.UserRepo))
@@ -261,6 +271,11 @@ func (r *Router) Stop() {
 // apiDocs renders the Swagger UI page.
 func (r *Router) apiDocs(c echo.Context) error {
 	return c.Render(http.StatusOK, "api_docs.html", nil)
+}
+
+// installScript serves the agent install script for curl-pipe-sh installs.
+func (r *Router) installScript(c echo.Context) error {
+	return c.Blob(http.StatusOK, "text/plain; charset=utf-8", installScriptContent)
 }
 
 // healthCheck returns health status.
