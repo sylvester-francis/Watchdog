@@ -294,16 +294,41 @@ Alpine.data('monitorFilter', () => ({
 }));
 
 // 6. channelSelector — settings.html alert channel modal
+// NOTE: x-model and getters are broken in Alpine CSP build.
+// We use plain boolean properties + @change + DOM sync instead.
 Alpine.data('channelSelector', () => ({
     channelType: 'discord',
     show: false,
-    open() { this.show = true; },
+    showWebhook: true,
+    showGenericWebhook: false,
+    showEmail: false,
+    showTelegram: false,
+    showPagerduty: false,
+    open() {
+        this.show = true;
+        this.channelType = 'discord';
+        this._updateVisibility();
+        this.$nextTick(() => {
+            var sel = this.$el.querySelector('select[name="type"]');
+            if (sel) sel.value = 'discord';
+        });
+    },
     close() { this.show = false; },
-    get isWebhook() { return this.channelType === 'discord' || this.channelType === 'slack'; },
-    get isGenericWebhook() { return this.channelType === 'webhook'; },
-    get isEmail() { return this.channelType === 'email'; },
-    get isTelegram() { return this.channelType === 'telegram'; },
-    get isPagerduty() { return this.channelType === 'pagerduty'; },
+    updateChannelType() {
+        var sel = this.$el.querySelector('select[name="type"]');
+        if (sel) {
+            this.channelType = sel.value;
+            this._updateVisibility();
+        }
+    },
+    _updateVisibility() {
+        var t = this.channelType;
+        this.showWebhook = (t === 'discord' || t === 'slack');
+        this.showGenericWebhook = (t === 'webhook');
+        this.showEmail = (t === 'email');
+        this.showTelegram = (t === 'telegram');
+        this.showPagerduty = (t === 'pagerduty');
+    },
 }));
 
 // 7. planEditor — admin.html per-row plan editor
