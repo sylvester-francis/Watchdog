@@ -41,7 +41,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: root
+          username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/watchdog/Watchdog
