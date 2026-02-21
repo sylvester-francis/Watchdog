@@ -201,6 +201,17 @@ func (s *IncidentService) CreateIncidentIfNeeded(ctx context.Context, monitorID 
 
 // notifyAll sends notifications via the global notifier and all per-user alert channels.
 func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
+	action := "opened"
+	if !opened {
+		action = "resolved"
+	}
+	s.logger.Info("notifyAll called",
+		"incident_id", incident.ID,
+		"monitor_id", monitor.ID,
+		"monitor_name", monitor.Name,
+		"action", action,
+	)
+
 	// 1. Global notifier (env-based, server admin)
 	var globalErr error
 	if opened {
@@ -235,6 +246,11 @@ func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incide
 		return
 	}
 
+	s.logger.Info("alert channels found",
+		"user_id", agent.UserID,
+		"count", len(channels),
+	)
+
 	for _, ch := range channels {
 		notifier, err := s.notifierFactory.BuildFromChannel(ch)
 		if err != nil {
@@ -258,6 +274,12 @@ func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incide
 				"channel_name", ch.Name,
 				"channel_type", ch.Type,
 				"error", notifyErr,
+			)
+		} else {
+			s.logger.Info("notification sent successfully",
+				"channel_id", ch.ID,
+				"channel_name", ch.Name,
+				"channel_type", ch.Type,
 			)
 		}
 	}
