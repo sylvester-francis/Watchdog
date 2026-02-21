@@ -10,6 +10,8 @@
 
 Monitor services behind firewalls, across data centers, and inside private networks — all from a single dashboard.
 
+> **Live at [usewatchdog.dev](https://usewatchdog.dev)** — Currently in open beta. All features free.
+
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![Echo](https://img.shields.io/badge/Echo-v4-00ADD8)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
@@ -249,7 +251,29 @@ Tokens use the format `wd_<32 hex chars>`. Only the SHA-256 hash is stored — t
 
 ## Deployment
 
-### Docker Compose
+### Railway (Recommended)
+
+The Hub is deployed on [Railway](https://railway.app) at [usewatchdog.dev](https://usewatchdog.dev). To deploy your own instance:
+
+1. Fork this repository
+2. Create a new Railway project and connect your fork
+3. Add a **PostgreSQL** service (Railway provides managed Postgres with TimescaleDB)
+4. Set the required environment variables (`DATABASE_URL`, `ENCRYPTION_KEY`, `SESSION_SECRET`)
+5. Railway auto-detects the `railway.toml` and builds using the Dockerfile
+
+The included `railway.toml` configures the build and health check:
+
+```toml
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "deployments/Dockerfile.hub"
+
+[deploy]
+startCommand = "/app/hub"
+healthcheckPath = "/health"
+```
+
+### Docker Compose (Self-Hosted)
 
 ```bash
 # Build and start the full stack (Hub + PostgreSQL + TimescaleDB)
@@ -322,7 +346,7 @@ WatchDog is currently in beta. All users get the full feature set for free:
 | API Docs | OpenAPI 3.0 + Swagger UI |
 | CLI | Pure Go (zero external dependencies) |
 | Icons | Lucide |
-| Deployment | Docker + Docker Compose |
+| Deployment | Railway, Docker + Docker Compose |
 
 ## Related Repositories
 
