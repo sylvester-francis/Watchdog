@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: timescale/timescaledb:latest-pg16-alpine
+    image: timescale/timescaledb:latest-pg16
     container_name: watchdog-db
     environment:
       POSTGRES_USER: watchdog
