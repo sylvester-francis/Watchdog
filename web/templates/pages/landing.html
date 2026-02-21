@@ -306,7 +306,13 @@
                         <i data-lucide="zap" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Zero config agent</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed break-words">The agent takes a hub URL and an API key. That's it. Monitor configs are pushed from the hub over WebSocket &mdash; no config files, no restarts.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">The agent takes a hub URL and an API key. That's it. Monitor configs are pushed from the hub over WebSocket &mdash; no config files, no restarts.</p>
+                    <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground overflow-x-auto">
+                        <div class="whitespace-nowrap"><span class="text-foreground">$</span> ./watchdog-agent <span class="text-border">\</span></div>
+                        <div class="whitespace-nowrap">    --hub  <span class="text-blue-400">https://hub.example.com</span> <span class="text-border">\</span></div>
+                        <div class="whitespace-nowrap">    --key  <span class="text-blue-400">wdg_a8f29c...</span></div>
+                        <div class="whitespace-nowrap mt-2"><span class="text-emerald-400">[connected]</span> receiving 6 monitors...</div>
+                    </div>
                 </div>
 
                 <!-- Incident Tracking -->
@@ -315,7 +321,14 @@
                         <i data-lucide="flame" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Incident tracking</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed break-words">Incidents are created automatically on failure. Acknowledge, resolve, and track time-to-resolution. Full history per monitor.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">Incidents are created automatically on failure. Acknowledge, resolve, and track time-to-resolution. Full history per monitor.</p>
+                    <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground overflow-x-auto">
+                        <div class="whitespace-nowrap flex items-center justify-between gap-3"><span><span class="text-foreground">#1042</span>  postgres:5432</span> <span class="text-red-400">● open</span></div>
+                        <div class="whitespace-nowrap mt-1.5"><span class="text-border">├─</span> Failure detected <span class="text-foreground ml-3">09:41:03</span></div>
+                        <div class="whitespace-nowrap"><span class="text-border">├─</span> Acknowledged <span class="text-foreground ml-3">09:42:18</span></div>
+                        <div class="whitespace-nowrap"><span class="text-border">└─</span> <span class="text-emerald-400">Resolved</span> <span class="text-foreground ml-3">09:44:51</span></div>
+                        <div class="whitespace-nowrap mt-1 text-muted-foreground/70">   TTR: <span class="text-foreground">3m 48s</span></div>
+                    </div>
                 </div>
 
                 <!-- Public Status Pages -->
