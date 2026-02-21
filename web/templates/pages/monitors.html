@@ -125,9 +125,9 @@
             </tbody>
         </table>
     </div>
-    {{else if .Monitors}}
-    {{/* Fallback for Monitors without heartbeat data (from monitor_row renders) */}}
-    <div class="overflow-x-auto">
+    {{else}}
+    {{/* Table for monitors without heartbeat data (new or not yet checked) */}}
+    <div class="overflow-x-auto {{if not .Monitors}}hidden{{end}}" id="monitors-table-container">
         <table class="w-full">
             <thead>
                 <tr class="border-b border-border">
@@ -146,8 +146,8 @@
             </tbody>
         </table>
     </div>
-    {{else}}
-    <div class="text-center py-16">
+    {{if not .Monitors}}
+    <div id="monitors-empty" class="text-center py-16">
         <i data-lucide="activity" class="w-12 h-12 text-muted-foreground/30 mx-auto mb-3"></i>
         <h3 class="text-sm font-medium text-foreground mb-1">No monitors yet</h3>
         <p class="text-sm text-muted-foreground mb-4">Create your first monitor to start tracking your services.</p>
@@ -156,6 +156,7 @@
             Create Monitor
         </button>
     </div>
+    {{end}}
     {{end}}
 </div>
 

@@ -3,102 +3,117 @@
 {{end}}
 
 {{define "content"}}
-<div class="space-y-4">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div>
         <h1 class="text-lg font-semibold text-foreground">Settings</h1>
+        <p class="text-xs text-muted-foreground mt-1">Manage notification channels and API access.</p>
     </div>
 
     <!-- Alert Channels Section -->
-    <div class="bg-card border border-border rounded-lg">
-        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <i data-lucide="bell" class="w-4 h-4 text-muted-foreground"></i>
-                <h2 class="text-sm font-medium text-foreground">Alert Channels</h2>
+    <div class="bg-card border border-border rounded-lg overflow-hidden">
+        <div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                    <i data-lucide="bell" class="w-4 h-4 text-accent"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-sm font-medium text-foreground">Alert Channels</h2>
+                        {{if .Channels}}
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{{len .Channels}}</span>
+                        {{end}}
+                    </div>
+                    <p class="text-[11px] text-muted-foreground mt-0.5">Get notified when incidents open or resolve.</p>
+                </div>
             </div>
             <button onclick="document.getElementById('new-channel-modal').classList.remove('hidden')"
-                    class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
-                Add Channel
+                    class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add Channel</span>
             </button>
         </div>
 
         <div class="p-4">
-            <p class="text-xs text-muted-foreground mb-4">
-                Get notified when incidents are created or resolved. Configure one or more channels below.
-            </p>
-
-            {{if .Channels}}
             <div id="channel-list" class="space-y-2">
+                {{if .Channels}}
                 {{range .Channels}}
                 {{template "alert_channel_row" .}}
                 {{end}}
+                {{else}}
+                <div id="channel-empty" class="text-center py-10">
+                    <div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="bell-off" class="w-6 h-6 text-muted-foreground/40"></i>
+                    </div>
+                    <p class="text-sm text-muted-foreground font-medium">No alert channels</p>
+                    <p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Add Discord, Slack, Email, or other integrations to receive incident alerts.</p>
+                </div>
+                {{end}}
             </div>
-            {{else}}
-            <div id="channel-list" class="text-center py-8">
-                <i data-lucide="bell-off" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2"></i>
-                <p class="text-xs text-muted-foreground">No alert channels configured</p>
-                <p class="text-[11px] text-muted-foreground/60 mt-1">Add a channel to receive incident notifications.</p>
-            </div>
-            {{end}}
         </div>
 
-        <div id="channel-test-result"></div>
+        <div class="px-5 py-2.5 border-t border-border/50 bg-muted/10">
+            <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
+                <span class="text-muted-foreground/50 mr-1">Integrations:</span>
+                <span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400/80">Discord</span>
+                <span class="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400/80">Slack</span>
+                <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400/80">Email</span>
+                <span class="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400/80">Telegram</span>
+                <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/80">PagerDuty</span>
+                <span class="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400/80">Webhook</span>
+            </div>
+        </div>
     </div>
 
     <!-- API Tokens Section -->
-    <div class="bg-card border border-border rounded-lg">
-        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <i data-lucide="key" class="w-4 h-4 text-muted-foreground"></i>
-                <h2 class="text-sm font-medium text-foreground">API Tokens</h2>
+    <div class="bg-card border border-border rounded-lg overflow-hidden">
+        <div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+                    <i data-lucide="key" class="w-4 h-4 text-yellow-400"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-sm font-medium text-foreground">API Tokens</h2>
+                        {{if .Tokens}}
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{{len .Tokens}}</span>
+                        {{end}}
+                    </div>
+                    <p class="text-[11px] text-muted-foreground mt-0.5">Programmatic access to the WatchDog API.</p>
+                </div>
             </div>
             <button onclick="document.getElementById('new-token-modal').classList.remove('hidden')"
-                    class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
-                New Token
+                    class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>New Token</span>
             </button>
         </div>
 
-        <div class="p-4">
-            <p class="text-xs text-muted-foreground mb-4">
-                Use API tokens for programmatic access to the WatchDog API. Tokens inherit your account permissions.
-                <span class="font-mono text-muted-foreground/80">Authorization: Bearer wd_...</span>
-            </p>
-
+        <div>
             {{if .Tokens}}
-            <div class="overflow-x-auto">
-                <table class="w-full text-xs">
-                    <thead>
-                        <tr class="border-b border-border/50">
-                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Name</th>
-                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Prefix</th>
-                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Last Used</th>
-                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Expires</th>
-                            <th class="text-left py-2 px-3 text-muted-foreground font-medium">Created</th>
-                            <th class="text-right py-2 px-3 text-muted-foreground font-medium">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="token-table-body">
-                        {{range .Tokens}}
-                        {{template "token_row" .}}
-                        {{end}}
-                    </tbody>
-                </table>
+            <div id="token-table-body" class="divide-y divide-border/30">
+                {{range .Tokens}}
+                {{template "token_row" .}}
+                {{end}}
             </div>
             {{else}}
-            <div class="text-center py-8">
-                <i data-lucide="key" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2"></i>
-                <p class="text-xs text-muted-foreground">No API tokens yet</p>
+            <div class="text-center py-10">
+                <div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="key" class="w-6 h-6 text-muted-foreground/40"></i>
+                </div>
+                <p class="text-sm text-muted-foreground font-medium">No API tokens</p>
+                <p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Create tokens for CI/CD pipelines, Grafana, or custom integrations.</p>
             </div>
             {{end}}
         </div>
 
-        <!-- API Docs Hint -->
-        <div class="px-4 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between">
-            <p class="text-[11px] text-muted-foreground/60">
-                Base URL: <span class="font-mono">/api/v1</span> &mdash; Monitors, Agents, Incidents
+        <div class="px-5 py-2.5 border-t border-border/50 bg-muted/10 flex items-center justify-between">
+            <p class="text-[11px] text-muted-foreground/50 font-mono">
+                Authorization: Bearer wd_...
             </p>
-            <a href="/docs" target="_blank" class="text-[11px] text-accent hover:text-accent/80 transition-colors font-medium">
-                API Docs &rarr;
+            <a href="/docs" target="_blank" class="text-[11px] text-accent hover:text-accent/80 transition-colors font-medium flex items-center space-x-1">
+                <span>API Docs</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
             </a>
         </div>
     </div>
@@ -107,11 +122,16 @@
 <!-- Add Channel Modal -->
 <div id="new-channel-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
      x-data="channelSelector">
-    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
-            <h3 class="text-sm font-medium text-foreground">Add Alert Channel</h3>
+    <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-6 h-6 rounded-md bg-accent/10 flex items-center justify-center">
+                    <i data-lucide="bell-plus" class="w-3.5 h-3.5 text-accent"></i>
+                </div>
+                <h3 class="text-sm font-medium text-foreground">Add Alert Channel</h3>
+            </div>
             <button onclick="document.getElementById('new-channel-modal').classList.add('hidden')"
-                    class="text-muted-foreground hover:text-foreground">
+                    class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -119,11 +139,11 @@
               hx-target="#channel-list"
               hx-swap="beforeend">
             <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-            <div class="p-4 space-y-4">
+            <div class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs text-muted-foreground mb-1">Channel Type</label>
+                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">Channel Type</label>
                     <select name="type" x-model="channelType"
-                            class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent">
+                            class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                         <option value="discord">Discord</option>
                         <option value="slack">Slack</option>
                         <option value="email">Email (SMTP)</option>
@@ -133,23 +153,23 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs text-muted-foreground mb-1">Name</label>
+                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">Name</label>
                     <input type="text" name="name" required placeholder="e.g. Infra Alerts"
-                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                 </div>
 
                 <!-- Discord / Slack -->
                 <div x-show="isWebhook">
-                    <label class="block text-xs text-muted-foreground mb-1">Webhook URL</label>
+                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">Webhook URL</label>
                     <input type="url" name="webhook_url" placeholder="https://discord.com/api/webhooks/..."
-                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                 </div>
 
                 <!-- Generic Webhook -->
                 <div x-show="isGenericWebhook">
-                    <label class="block text-xs text-muted-foreground mb-1">URL</label>
+                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">URL</label>
                     <input type="url" name="url" placeholder="https://your-service.com/webhook"
-                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                 </div>
 
                 <!-- Email SMTP -->
@@ -157,38 +177,38 @@
                     <div class="space-y-3">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs text-muted-foreground mb-1">SMTP Host</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">SMTP Host</label>
                                 <input type="text" name="host" placeholder="smtp.gmail.com"
-                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                             </div>
                             <div>
-                                <label class="block text-xs text-muted-foreground mb-1">Port</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">Port</label>
                                 <input type="number" name="port" value="587" placeholder="587"
-                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs text-muted-foreground mb-1">Username</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">Username</label>
                                 <input type="text" name="username" placeholder="user@gmail.com"
-                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                             </div>
                             <div>
-                                <label class="block text-xs text-muted-foreground mb-1">Password</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">Password</label>
                                 <input type="password" name="password" placeholder="App password"
-                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs text-muted-foreground mb-1">From</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">From</label>
                                 <input type="email" name="from" placeholder="alerts@example.com"
-                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                             </div>
                             <div>
-                                <label class="block text-xs text-muted-foreground mb-1">To</label>
+                                <label class="block text-xs font-medium text-muted-foreground mb-1.5">To</label>
                                 <input type="email" name="to" placeholder="you@example.com"
-                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                       class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                             </div>
                         </div>
                     </div>
@@ -198,32 +218,32 @@
                 <template x-if="isTelegram">
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs text-muted-foreground mb-1">Bot Token</label>
+                            <label class="block text-xs font-medium text-muted-foreground mb-1.5">Bot Token</label>
                             <input type="text" name="bot_token" placeholder="123456:ABC-DEF..."
-                                   class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                   class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                         </div>
                         <div>
-                            <label class="block text-xs text-muted-foreground mb-1">Chat ID</label>
+                            <label class="block text-xs font-medium text-muted-foreground mb-1.5">Chat ID</label>
                             <input type="text" name="chat_id" placeholder="-1001234567890"
-                                   class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                                   class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                         </div>
                     </div>
                 </template>
 
                 <!-- PagerDuty -->
                 <div x-show="isPagerduty">
-                    <label class="block text-xs text-muted-foreground mb-1">Routing Key</label>
+                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">Routing Key</label>
                     <input type="text" name="routing_key" placeholder="Events API v2 integration key"
-                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                 </div>
             </div>
-            <div class="px-4 py-3 border-t border-border flex justify-end space-x-2">
+            <div class="px-5 py-3 border-t border-border bg-muted/10 flex justify-end space-x-2">
                 <button type="button" onclick="document.getElementById('new-channel-modal').classList.add('hidden')"
-                        class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                        class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted">
                     Cancel
                 </button>
                 <button type="submit"
-                        class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
+                        class="px-4 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
                     Add Channel
                 </button>
             </div>
@@ -233,11 +253,16 @@
 
 <!-- New Token Modal -->
 <div id="new-token-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
-        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
-            <h3 class="text-sm font-medium text-foreground">Create API Token</h3>
+    <div class="bg-card border border-border rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-6 h-6 rounded-md bg-yellow-500/10 flex items-center justify-center">
+                    <i data-lucide="key" class="w-3.5 h-3.5 text-yellow-400"></i>
+                </div>
+                <h3 class="text-sm font-medium text-foreground">Create API Token</h3>
+            </div>
             <button onclick="document.getElementById('new-token-modal').classList.add('hidden')"
-                    class="text-muted-foreground hover:text-foreground">
+                    class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -245,65 +270,76 @@
               hx-target="#token-result"
               hx-swap="innerHTML">
             <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-            <div class="p-4 space-y-4">
+            <div class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs text-muted-foreground mb-1">Token Name</label>
+                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">Token Name</label>
                     <input type="text" name="name" required placeholder="e.g. CI Pipeline, Grafana"
-                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent">
+                           class="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background">
                 </div>
                 <div>
-                    <label class="block text-xs text-muted-foreground mb-2">Expiration</label>
-                    <div class="space-y-1.5">
-                        <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="expires" value="never" checked class="text-accent">
-                            <span class="text-xs text-foreground">Never expires</span>
+                    <label class="block text-xs font-medium text-muted-foreground mb-2">Expiration</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                            <input type="radio" name="expires" value="never" checked class="sr-only">
+                            <span class="text-xs text-foreground font-medium">Never</span>
                         </label>
-                        <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="expires" value="30d" class="text-accent">
-                            <span class="text-xs text-foreground">30 days</span>
+                        <label class="flex items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                            <input type="radio" name="expires" value="30d" class="sr-only">
+                            <span class="text-xs text-foreground font-medium">30 days</span>
                         </label>
-                        <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="expires" value="90d" class="text-accent">
-                            <span class="text-xs text-foreground">90 days</span>
+                        <label class="flex items-center justify-center px-3 py-2 rounded-md border border-border bg-background cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5 transition-colors">
+                            <input type="radio" name="expires" value="90d" class="sr-only">
+                            <span class="text-xs text-foreground font-medium">90 days</span>
                         </label>
                     </div>
                 </div>
             </div>
-            <div class="px-4 py-3 border-t border-border flex justify-end space-x-2">
+            <div class="px-5 py-3 border-t border-border bg-muted/10 flex justify-end space-x-2">
                 <button type="button" onclick="document.getElementById('new-token-modal').classList.add('hidden')"
-                        class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                        class="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted">
                     Cancel
                 </button>
                 <button type="submit"
-                        class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
+                        class="px-4 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
                     Create Token
                 </button>
             </div>
         </form>
-        <div id="token-result" class="px-4 pb-4"></div>
+        <div id="token-result" class="px-5 pb-4 empty:hidden"></div>
     </div>
 </div>
 {{end}}
 
 {{define "token_row"}}
-<tr id="token-row-{{.ID}}" class="border-b border-border/30 hover:bg-muted/20">
-    <td class="py-2 px-3 text-foreground font-medium">{{.Name}}</td>
-    <td class="py-2 px-3 font-mono text-muted-foreground">{{.Prefix}}...</td>
-    <td class="py-2 px-3 text-muted-foreground">{{formatTimeAgoPtr .LastUsedAt}}</td>
-    <td class="py-2 px-3 text-muted-foreground">
-        {{if .ExpiresAt}}{{formatTimeAgoPtr .ExpiresAt}}{{else}}<span class="text-muted-foreground/50">Never</span>{{end}}
-    </td>
-    <td class="py-2 px-3 text-muted-foreground">{{formatTimeAgo .CreatedAt}}</td>
-    <td class="py-2 px-3 text-right">
-        <button hx-delete="/settings/tokens/{{.ID}}"
-                hx-target="#token-row-{{.ID}}"
-                hx-swap="outerHTML"
-                hx-confirm="Delete this token? This cannot be undone."
-                class="text-red-400/60 hover:text-red-400 transition-colors">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-        </button>
-    </td>
-</tr>
+<div id="token-row-{{.ID}}" class="flex items-center justify-between px-5 py-3 hover:bg-muted/20 transition-colors group">
+    <div class="flex items-center space-x-3 min-w-0">
+        <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+            <i data-lucide="key" class="w-3.5 h-3.5 text-yellow-400/70"></i>
+        </div>
+        <div class="min-w-0">
+            <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-foreground truncate">{{.Name}}</span>
+                <code class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{{.Prefix}}...</code>
+            </div>
+            <div class="flex items-center space-x-3 mt-0.5">
+                <span class="text-[10px] text-muted-foreground/60">Created {{formatTimeAgo .CreatedAt}}</span>
+                {{if .ExpiresAt}}
+                <span class="text-[10px] text-yellow-400/70">Expires {{formatTimeAgoPtr .ExpiresAt}}</span>
+                {{else}}
+                <span class="text-[10px] text-muted-foreground/40">No expiry</span>
+                {{end}}
+                <span class="text-[10px] text-muted-foreground/60 hidden sm:inline">Last used: {{formatTimeAgoPtr .LastUsedAt}}</span>
+            </div>
+        </div>
+    </div>
+    <button hx-delete="/settings/tokens/{{.ID}}"
+            hx-target="#token-row-{{.ID}}"
+            hx-swap="outerHTML"
+            hx-confirm="Delete this token? This cannot be undone."
+            class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10 opacity-0 group-hover:opacity-100 shrink-0">
+        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+    </button>
+</div>
 {{end}}
 
 {{define "token_created"}}
@@ -324,50 +360,75 @@
 {{end}}
 
 {{define "alert_channel_row"}}
-<div id="channel-row-{{.ID}}" class="flex items-center justify-between p-3 bg-background border border-border/50 rounded-md">
-    <div class="flex items-center space-x-3 min-w-0">
-        <span class="text-[10px] px-2 py-0.5 rounded font-medium uppercase tracking-wide
-            {{if eq (lower .Type) "discord"}}bg-indigo-500/15 text-indigo-400
-            {{else if eq (lower .Type) "slack"}}bg-green-500/15 text-green-400
-            {{else if eq (lower .Type) "email"}}bg-blue-500/15 text-blue-400
-            {{else if eq (lower .Type) "telegram"}}bg-cyan-500/15 text-cyan-400
-            {{else if eq (lower .Type) "pagerduty"}}bg-emerald-500/15 text-emerald-400
-            {{else}}bg-orange-500/15 text-orange-400{{end}}">
-            {{.Type}}
-        </span>
-        <span class="text-sm text-foreground font-medium truncate">{{.Name}}</span>
-        {{if .Enabled}}
-        <span class="flex items-center space-x-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-            <span class="text-[10px] text-green-400">Enabled</span>
-        </span>
-        {{else}}
-        <span class="flex items-center space-x-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-muted-foreground/40"></span>
-            <span class="text-[10px] text-muted-foreground">Disabled</span>
-        </span>
-        {{end}}
+<div id="channel-row-{{.ID}}" class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
+    <div class="flex items-center justify-between p-3 gap-3">
+        <div class="flex items-center space-x-3 min-w-0">
+            <!-- Channel type icon -->
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                {{if eq (lower .Type) "discord"}}bg-indigo-500/10
+                {{else if eq (lower .Type) "slack"}}bg-green-500/10
+                {{else if eq (lower .Type) "email"}}bg-blue-500/10
+                {{else if eq (lower .Type) "telegram"}}bg-cyan-500/10
+                {{else if eq (lower .Type) "pagerduty"}}bg-emerald-500/10
+                {{else}}bg-orange-500/10{{end}}">
+                {{if eq (lower .Type) "discord"}}<i data-lucide="message-circle" class="w-4 h-4 text-indigo-400"></i>
+                {{else if eq (lower .Type) "slack"}}<i data-lucide="hash" class="w-4 h-4 text-green-400"></i>
+                {{else if eq (lower .Type) "email"}}<i data-lucide="mail" class="w-4 h-4 text-blue-400"></i>
+                {{else if eq (lower .Type) "telegram"}}<i data-lucide="send" class="w-4 h-4 text-cyan-400"></i>
+                {{else if eq (lower .Type) "pagerduty"}}<i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i>
+                {{else}}<i data-lucide="webhook" class="w-4 h-4 text-orange-400"></i>{{end}}
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-foreground truncate">{{.Name}}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide shrink-0
+                        {{if eq (lower .Type) "discord"}}bg-indigo-500/15 text-indigo-400
+                        {{else if eq (lower .Type) "slack"}}bg-green-500/15 text-green-400
+                        {{else if eq (lower .Type) "email"}}bg-blue-500/15 text-blue-400
+                        {{else if eq (lower .Type) "telegram"}}bg-cyan-500/15 text-cyan-400
+                        {{else if eq (lower .Type) "pagerduty"}}bg-emerald-500/15 text-emerald-400
+                        {{else}}bg-orange-500/15 text-orange-400{{end}}">
+                        {{.Type}}
+                    </span>
+                </div>
+                <div class="flex items-center space-x-1.5 mt-0.5">
+                    {{if .Enabled}}
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    <span class="text-[10px] text-green-400">Active</span>
+                    {{else}}
+                    <span class="w-1.5 h-1.5 rounded-full bg-muted-foreground/40"></span>
+                    <span class="text-[10px] text-muted-foreground">Paused</span>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-1 shrink-0">
+            <button hx-post="/settings/alerts/{{.ID}}/test"
+                    hx-target="#channel-test-{{.ID}}"
+                    hx-swap="innerHTML"
+                    class="px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50">
+                Test
+            </button>
+            <button hx-post="/settings/alerts/{{.ID}}/toggle"
+                    hx-target="#channel-row-{{.ID}}"
+                    hx-swap="outerHTML"
+                    class="px-2.5 py-1 text-[11px] rounded-md transition-colors
+                        {{if .Enabled}}text-yellow-400/70 hover:text-yellow-400 hover:bg-yellow-500/10
+                        {{else}}text-emerald-400/70 hover:text-emerald-400 hover:bg-emerald-500/10{{end}}">
+                {{if .Enabled}}Disable{{else}}Enable{{end}}
+            </button>
+            <button hx-delete="/settings/alerts/{{.ID}}"
+                    hx-target="#channel-row-{{.ID}}"
+                    hx-swap="outerHTML"
+                    hx-confirm="Delete this alert channel?"
+                    class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
     </div>
-    <div class="flex items-center space-x-1 ml-3 shrink-0">
-        <button hx-post="/settings/alerts/{{.ID}}/test"
-                hx-target="#channel-test-result"
-                hx-swap="innerHTML"
-                class="px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            Test
-        </button>
-        <button hx-post="/settings/alerts/{{.ID}}/toggle"
-                hx-target="#channel-row-{{.ID}}"
-                hx-swap="outerHTML"
-                class="px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            {{if .Enabled}}Disable{{else}}Enable{{end}}
-        </button>
-        <button hx-delete="/settings/alerts/{{.ID}}"
-                hx-target="#channel-row-{{.ID}}"
-                hx-swap="outerHTML"
-                hx-confirm="Delete this alert channel?"
-                class="text-red-400/60 hover:text-red-400 transition-colors p-1">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-        </button>
-    </div>
+
+    <!-- Per-channel test result -->
+    <div id="channel-test-{{.ID}}" class="empty:hidden px-3 pb-3"></div>
 </div>
 {{end}}
