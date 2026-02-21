@@ -10,15 +10,21 @@ import (
 type MonitorType string
 
 const (
-	MonitorTypePing MonitorType = "ping"
-	MonitorTypeHTTP MonitorType = "http"
-	MonitorTypeTCP  MonitorType = "tcp"
-	MonitorTypeDNS  MonitorType = "dns"
-	MonitorTypeTLS  MonitorType = "tls"
+	MonitorTypePing     MonitorType = "ping"
+	MonitorTypeHTTP     MonitorType = "http"
+	MonitorTypeTCP      MonitorType = "tcp"
+	MonitorTypeDNS      MonitorType = "dns"
+	MonitorTypeTLS      MonitorType = "tls"
+	MonitorTypeDocker   MonitorType = "docker"
+	MonitorTypeDatabase MonitorType = "database"
+	MonitorTypeSystem   MonitorType = "system"
 )
 
 // ValidMonitorTypes lists all valid monitor types.
-var ValidMonitorTypes = []MonitorType{MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS}
+var ValidMonitorTypes = []MonitorType{
+	MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS,
+	MonitorTypeDocker, MonitorTypeDatabase, MonitorTypeSystem,
+}
 
 // ValidMonitorTypeStrings returns monitor types as strings (for templates).
 func ValidMonitorTypeStrings() []string {
@@ -32,7 +38,8 @@ func ValidMonitorTypeStrings() []string {
 // IsValid checks if the type is a valid MonitorType.
 func (t MonitorType) IsValid() bool {
 	switch t {
-	case MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS:
+	case MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS,
+		MonitorTypeDocker, MonitorTypeDatabase, MonitorTypeSystem:
 		return true
 	default:
 		return false
@@ -75,6 +82,7 @@ type Monitor struct {
 	TimeoutSeconds  int
 	Status          MonitorStatus
 	Enabled         bool
+	Metadata        map[string]string
 	CreatedAt       time.Time
 }
 
@@ -100,6 +108,7 @@ func NewMonitor(agentID uuid.UUID, name string, monitorType MonitorType, target 
 		TimeoutSeconds:  DefaultTimeoutSeconds,
 		Status:          MonitorStatusPending,
 		Enabled:         true,
+		Metadata:        make(map[string]string),
 		CreatedAt:       time.Now(),
 	}
 }

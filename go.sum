@@ -43,8 +43,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/sylvester-francis/watchdog-proto v0.4.0 h1:AYZ7hBUGTPM7ub8bP6KpAACZVwV3zkLEG6ifBrZjY8A=
-github.com/sylvester-francis/watchdog-proto v0.4.0/go.mod h1:7Q6YKuGUQI/scuhisv4C4dlsTiGeH4s4O9ntP2US4ZE=
+github.com/sylvester-francis/watchdog-proto v0.5.0 h1:qyhiMOQzEmgp/lieAaMdpBbT9iL/y84ldXP1VNWEQlA=
+github.com/sylvester-francis/watchdog-proto v0.5.0/go.mod h1:7Q6YKuGUQI/scuhisv4C4dlsTiGeH4s4O9ntP2US4ZE=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.2.2 h1:lxLXG0uE3Qnshl9QyaK6XJxMXlQZELvChBOCmQD0Loo=

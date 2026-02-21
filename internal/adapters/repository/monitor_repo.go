@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
-const monitorColumns = "id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, created_at"
+const monitorColumns = "id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, metadata, created_at"
 
 // MonitorRepository implements ports.MonitorRepository using PostgreSQL.
 type MonitorRepository struct {
@@ -25,12 +26,17 @@ func NewMonitorRepository(db *DB) *MonitorRepository {
 
 func scanMonitor(scanner interface{ Scan(dest ...any) error }) (*domain.Monitor, error) {
 	m := &domain.Monitor{}
+	var metadataBytes []byte
 	err := scanner.Scan(
 		&m.ID, &m.AgentID, &m.Name, &m.Type, &m.Target,
-		&m.IntervalSeconds, &m.TimeoutSeconds, &m.Status, &m.Enabled, &m.CreatedAt,
+		&m.IntervalSeconds, &m.TimeoutSeconds, &m.Status, &m.Enabled, &metadataBytes, &m.CreatedAt,
 	)
 	if err != nil {
 		return nil, err
+	}
+	m.Metadata = make(map[string]string)
+	if len(metadataBytes) > 0 {
+		_ = json.Unmarshal(metadataBytes, &m.Metadata)
 	}
 	return m, nil
 }
@@ -53,13 +59,18 @@ func (r *MonitorRepository) Create(ctx context.Context, monitor *domain.Monitor)
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
-	query := `
-		INSERT INTO monitors (id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, created_at, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+	metadataJSON, err := json.Marshal(monitor.Metadata)
+	if err != nil {
+		return fmt.Errorf("monitorRepo.Create: marshal metadata: %w", err)
+	}
 
-	_, err := q.Exec(ctx, query,
+	query := `
+		INSERT INTO monitors (id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, metadata, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
+
+	_, err = q.Exec(ctx, query,
 		monitor.ID, monitor.AgentID, monitor.Name, monitor.Type, monitor.Target,
-		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.CreatedAt,
+		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, metadataJSON, monitor.CreatedAt,
 		tenantID,
 	)
 	if err != nil {
@@ -132,14 +143,19 @@ func (r *MonitorRepository) Update(ctx context.Context, monitor *domain.Monitor)
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	metadataJSON, err := json.Marshal(monitor.Metadata)
+	if err != nil {
+		return fmt.Errorf("monitorRepo.Update(%s): marshal metadata: %w", monitor.ID, err)
+	}
+
 	query := `
 		UPDATE monitors
-		SET name = $2, type = $3, target = $4, interval_seconds = $5, timeout_seconds = $6, status = $7, enabled = $8
-		WHERE id = $1 AND tenant_id = $9`
+		SET name = $2, type = $3, target = $4, interval_seconds = $5, timeout_seconds = $6, status = $7, enabled = $8, metadata = $9
+		WHERE id = $1 AND tenant_id = $10`
 
 	result, err := q.Exec(ctx, query,
 		monitor.ID, monitor.Name, monitor.Type, monitor.Target,
-		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled,
+		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, metadataJSON,
 		tenantID,
 	)
 	if err != nil {

@@ -79,7 +79,7 @@ func TestCreateMonitor_Success(t *testing.T) {
 	svc := services.NewMonitorService(monitorRepo, &mocks.MockHeartbeatRepository{}, &mocks.MockIncidentRepository{}, &mocks.MockIncidentService{}, userRepo, &mocks.MockUsageEventRepository{}, slog.Default())
 
 	agentID := uuid.New()
-	monitor, err := svc.CreateMonitor(context.Background(), userID, agentID, "Test HTTP", domain.MonitorTypeHTTP, "https://example.com")
+	monitor, err := svc.CreateMonitor(context.Background(), userID, agentID, "Test HTTP", domain.MonitorTypeHTTP, "https://example.com", nil)
 
 	require.NoError(t, err)
 	assert.NotNil(t, monitor)
@@ -105,7 +105,7 @@ func TestCreateMonitor_RepoError(t *testing.T) {
 	}
 	svc := services.NewMonitorService(monitorRepo, &mocks.MockHeartbeatRepository{}, &mocks.MockIncidentRepository{}, &mocks.MockIncidentService{}, userRepo, &mocks.MockUsageEventRepository{}, slog.Default())
 
-	monitor, err := svc.CreateMonitor(context.Background(), userID, uuid.New(), "Test", domain.MonitorTypePing, "8.8.8.8")
+	monitor, err := svc.CreateMonitor(context.Background(), userID, uuid.New(), "Test", domain.MonitorTypePing, "8.8.8.8", nil)
 
 	assert.Nil(t, monitor)
 	assert.ErrorIs(t, err, repoErr)
