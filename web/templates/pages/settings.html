@@ -137,14 +137,13 @@
         </div>
 
         <div>
-            {{if .Tokens}}
             <div id="token-table-body" class="divide-y divide-border/30">
                 {{range .Tokens}}
                 {{template "token_row" .}}
                 {{end}}
             </div>
-            {{else}}
-            <div class="text-center py-10">
+            {{if not .Tokens}}
+            <div id="token-empty" class="text-center py-10">
                 <div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
                     <i data-lucide="key" class="w-6 h-6 text-muted-foreground/40"></i>
                 </div>
@@ -408,14 +407,24 @@
             </div>
         </div>
     </div>
-    <button hx-delete="/settings/tokens/{{.ID}}"
-            hx-target="#token-row-{{.ID}}"
-            hx-swap="outerHTML"
-            hx-confirm="Delete this token? This cannot be undone."
-            class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10 opacity-0 group-hover:opacity-100 shrink-0"
-            aria-label="Delete token {{.Name}}">
-        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-    </button>
+    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
+        <button hx-post="/settings/tokens/{{.ID}}/regenerate"
+                hx-target="#token-row-{{.ID}}"
+                hx-swap="outerHTML"
+                hx-confirm="Regenerate this token? The old key will stop working immediately."
+                class="text-muted-foreground/40 hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted/50"
+                aria-label="Regenerate token {{.Name}}">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        </button>
+        <button hx-delete="/settings/tokens/{{.ID}}"
+                hx-target="#token-row-{{.ID}}"
+                hx-swap="outerHTML"
+                hx-confirm="Delete this token? This cannot be undone."
+                class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10"
+                aria-label="Delete token {{.Name}}">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+    </div>
 </div>
 {{end}}
 
@@ -433,6 +442,32 @@
         </button>
     </div>
     <p class="text-[11px] text-muted-foreground/60">Copy this token now. You won't be able to see it again.</p>
+</div>
+<!-- OOB: append token row to list -->
+<div id="token-table-body" hx-swap-oob="beforeend">
+    {{template "token_row" .Token}}
+</div>
+<!-- OOB: remove empty state if present -->
+<div id="token-empty" hx-swap-oob="outerHTML"></div>
+{{end}}
+
+{{define "token_regenerated"}}
+<div id="token-row-{{.Token.ID}}" class="px-5 py-3">
+    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md p-3 space-y-2">
+        <div class="flex items-center space-x-2">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-400"></i>
+            <span class="text-xs font-medium text-emerald-400">Token regenerated!</span>
+            <code class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{{.Token.Name}}</code>
+        </div>
+        <div class="flex items-center space-x-2">
+            <code id="token-plaintext-{{.Token.ID}}" class="flex-1 text-xs font-mono bg-background px-3 py-2 rounded border border-border text-foreground select-all break-all">{{.Plaintext}}</code>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('token-plaintext-{{.Token.ID}}').textContent); this.innerHTML='<i data-lucide=&quot;check&quot; class=&quot;w-3.5 h-3.5&quot;></i>'; lucide.createIcons({nodes: [this]})"
+                    class="shrink-0 px-2 py-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+        <p class="text-[11px] text-muted-foreground/60">Copy this token now. You won't be able to see it again. The old key has been revoked.</p>
+    </div>
 </div>
 {{end}}
 
