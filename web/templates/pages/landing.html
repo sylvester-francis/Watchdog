@@ -273,7 +273,7 @@
                         <i data-lucide="activity" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Live dashboard</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed break-words">Status updates stream over SSE. Sparkline charts show latency trends. No refresh needed.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">Real-time status via SSE. Latency sparklines, uptime bars, system metric charts, and incident timeline. No page refresh.</p>
                 </div>
 
                 <!-- Smart Alerts -->
@@ -291,7 +291,7 @@
                         <i data-lucide="terminal" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Eight check types</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">HTTP with content validation, TCP, Ping, DNS, TLS certificates, Docker containers, database connectivity (PostgreSQL, MySQL, Redis), and system metrics.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">HTTP with content validation, TCP, Ping, DNS, TLS certificate expiry tracking, Docker containers, database connectivity (PostgreSQL, MySQL, Redis), and system metrics with threshold alerts.</p>
                     <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground overflow-x-auto">
                         <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> api.internal/health <span class="text-border">....</span> <span class="text-foreground">12ms</span></div>
                         <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> postgres:5432 <span class="text-border">.........</span> <span class="text-foreground">2ms</span></div>
@@ -316,6 +316,33 @@
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Incident tracking</h3>
                     <p class="text-sm text-muted-foreground leading-relaxed break-words">Incidents are created automatically on failure. Acknowledge, resolve, and track time-to-resolution. Full history per monitor.</p>
+                </div>
+
+                <!-- Public Status Pages -->
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="globe" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Public status pages</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">Share real-time service health with your team or customers. 90-day uptime history, incident timeline, and custom URLs. No authentication required to view.</p>
+                </div>
+
+                <!-- REST API -->
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="code" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">REST API</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">Token-authenticated API for programmatic access. Manage monitors, agents, and incidents from your own scripts or CI/CD pipelines.</p>
+                </div>
+
+                <!-- Audit Trail -->
+                <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
+                    <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
+                        <i data-lucide="scroll-text" class="w-5 h-5 text-muted-foreground"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Audit trail</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">Every login, monitor change, and incident action is logged with timestamps, user IDs, and IP addresses. Full event history for compliance and debugging.</p>
                 </div>
             </div>
         </div>
