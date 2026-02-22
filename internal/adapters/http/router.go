@@ -3,6 +3,9 @@ package http
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -72,6 +75,7 @@ type Router struct {
 	apiV1Handler      *handlers.APIV1Handler
 	statusPageHandler    *handlers.StatusPageHandler
 	alertChannelHandler *handlers.AlertChannelHandler
+	authAPIHandler      *handlers.AuthAPIHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -121,6 +125,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub)
 	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.UserRepo, deps.IncidentService, templates)
 	r.alertChannelHandler = handlers.NewAlertChannelHandler(deps.AlertChannelRepo, templates)
+	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, deps.AuditService)
 
 	return r, nil
 }
@@ -253,28 +258,60 @@ func (r *Router) RegisterRoutes() {
 	// System dashboard (accessible to all authenticated users)
 	protected.GET("/system", r.adminHandler.Dashboard)
 
-	// Public API v1 (token-authenticated)
+	// Public API v1 auth routes (no auth required)
+	v1Public := e.Group("/api/v1")
+	v1Public.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+		AllowOrigins:   r.deps.AllowedOrigins,
+		AllowMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:   []string{echo.HeaderAuthorization, echo.HeaderContentType},
+		AllowCredentials: true,
+		MaxAge:         86400,
+	}))
+	loginLLJSON := r.loginLimiter.MiddlewareJSON()
+	v1Public.POST("/auth/login", r.authAPIHandler.Login, authRL, loginLLJSON)
+	v1Public.POST("/auth/register", r.authAPIHandler.Register, authRL)
+	v1Public.POST("/auth/setup", r.authAPIHandler.Setup, authRL)
+	v1Public.GET("/auth/needs-setup", r.authAPIHandler.NeedsSetup)
+
+	// API v1 (hybrid auth: Bearer token OR session cookie)
 	v1 := e.Group("/api/v1")
 	v1.Use(echomw.CORSWithConfig(echomw.CORSConfig{
-		AllowOrigins: r.deps.AllowedOrigins,
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderAuthorization, echo.HeaderContentType},
-		MaxAge:       86400,
+		AllowOrigins:   r.deps.AllowedOrigins,
+		AllowMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:   []string{echo.HeaderAuthorization, echo.HeaderContentType},
+		AllowCredentials: true,
+		MaxAge:         86400,
 	}))
-	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo))
+	v1.Use(middleware.HybridAuth(r.deps.APITokenRepo))
+	v1.Use(middleware.RequireWriteScope())
 	v1.Use(tenantMW)
+
+	// Auth API (authenticated)
+	v1.GET("/auth/me", r.authAPIHandler.Me)
+	v1.POST("/auth/logout", r.authAPIHandler.Logout)
+
+	// Monitors
 	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
 	v1.GET("/monitors/:id", r.apiV1Handler.GetMonitor)
 	v1.POST("/monitors", r.apiV1Handler.CreateMonitor)
 	v1.PUT("/monitors/:id", r.apiV1Handler.UpdateMonitor)
 	v1.DELETE("/monitors/:id", r.apiV1Handler.DeleteMonitor)
+
+	// Agents
 	v1.GET("/agents", r.apiV1Handler.ListAgents)
 	v1.POST("/agents", r.apiV1Handler.CreateAgent)
 	v1.DELETE("/agents/:id", r.apiV1Handler.DeleteAgent)
+
+	// Incidents
 	v1.GET("/incidents", r.apiV1Handler.ListIncidents)
 	v1.POST("/incidents/:id/acknowledge", r.apiV1Handler.AcknowledgeIncident)
 	v1.POST("/incidents/:id/resolve", r.apiV1Handler.ResolveIncident)
+
+	// Dashboard
 	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
+
+	// SvelteKit SPA — serve build output if available
+	r.registerSvelteRoutes()
 }
 
 // rootRedirect shows the setup wizard when no users exist,
@@ -342,6 +379,41 @@ func (r *Router) termsPage(c echo.Context) error {
 func (r *Router) privacyPage(c echo.Context) error {
 	return c.Render(http.StatusOK, "privacy.html", map[string]any{
 		"Title": "Privacy Policy",
+	})
+}
+
+// registerSvelteRoutes serves the SvelteKit build output from web/svelte/build/.
+// If the build directory doesn't exist, the routes are silently skipped.
+func (r *Router) registerSvelteRoutes() {
+	buildDir := "web/svelte/build"
+	if _, err := os.Stat(buildDir); os.IsNotExist(err) {
+		return
+	}
+
+	slog.Info("serving SvelteKit SPA from " + buildDir)
+
+	// Serve static assets from the build directory
+	r.echo.Static("/app", buildDir)
+
+	// SPA fallback: serve index.html for all /app/* routes that don't match a static file
+	absBuildDir, _ := filepath.Abs(buildDir)
+	indexHTML := filepath.Join(absBuildDir, "index.html")
+	r.echo.GET("/app/*", func(c echo.Context) error {
+		// Sanitize path to prevent directory traversal
+		cleanPath := filepath.Clean(c.Param("*"))
+		if strings.Contains(cleanPath, "..") {
+			return c.File(indexHTML)
+		}
+		requestedFile := filepath.Join(absBuildDir, cleanPath)
+		// Verify resolved path stays within build directory
+		if !strings.HasPrefix(requestedFile, absBuildDir) {
+			return c.File(indexHTML)
+		}
+		if info, err := os.Stat(requestedFile); err == nil && !info.IsDir() {
+			return c.File(requestedFile)
+		}
+		// Fall back to index.html for client-side routing
+		return c.File(indexHTML)
 	})
 }
 
