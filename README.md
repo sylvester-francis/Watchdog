@@ -53,7 +53,7 @@ graph LR
 - **8 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), and System metrics (CPU, memory, disk)
 - **TLS Certificate Monitoring** — Track certificate expiry, get alerted before certs expire
 - **Infrastructure Monitoring** — Docker container health, database connectivity, system resource thresholds
-- **3-Strike Rule** — Verifies failures before alerting, eliminating false positives from transient network issues
+- **Configurable Failure Threshold** — Default 3 consecutive failures before alerting (configurable 1-10 per monitor), eliminating false positives from transient network issues
 - **Incident Lifecycle** — Automatic incident creation, acknowledgment workflow, and resolution with TTR tracking
 - **Real-Time Dashboard** — Live status updates via SSE and HTMX, no page refresh needed
 - **Public Status Pages** — Create branded status pages with custom slugs for your users
