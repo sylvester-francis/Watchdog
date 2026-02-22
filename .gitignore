@@ -6,7 +6,6 @@ tmp/
 # Planning docs (local only)
 CLAUDE.md
 gemini.md
-docs/PLAN.md
 tasks.md
 
 # Environment
