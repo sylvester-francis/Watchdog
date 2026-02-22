@@ -222,60 +222,50 @@ func (h *APIV1Handler) ListAgents(c echo.Context) error {
 // GET /api/v1/incidents?status=open|acknowledged|resolved|all
 func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 	ctx := c.Request().Context()
-	_, ok := middleware.GetUserID(c)
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 	}
 
 	status := c.QueryParam("status")
-	var incidents []*struct {
-		ID             uuid.UUID
-		MonitorID      uuid.UUID
-		Status         string
-		StartedAt      time.Time
-		ResolvedAt     *time.Time
-		AcknowledgedAt *time.Time
-	}
+	var rawIncidents []*domain.Incident
+	var err error
 
 	switch status {
 	case "resolved":
-		raw, err := h.incidentSvc.GetResolvedIncidents(ctx)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
-		}
-		for _, i := range raw {
-			incidents = append(incidents, &struct {
-				ID             uuid.UUID
-				MonitorID      uuid.UUID
-				Status         string
-				StartedAt      time.Time
-				ResolvedAt     *time.Time
-				AcknowledgedAt *time.Time
-			}{i.ID, i.MonitorID, string(i.Status), i.StartedAt, i.ResolvedAt, i.AcknowledgedAt})
-		}
+		rawIncidents, err = h.incidentSvc.GetResolvedIncidents(ctx)
 	default:
-		raw, err := h.incidentSvc.GetActiveIncidents(ctx)
+		rawIncidents, err = h.incidentSvc.GetActiveIncidents(ctx)
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
+	}
+
+	// Filter incidents to only those belonging to the user's monitors
+	agents, err := h.agentRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
+	}
+	userMonitorIDs := make(map[uuid.UUID]struct{})
+	for _, agent := range agents {
+		monitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
+			continue
 		}
-		for _, i := range raw {
-			incidents = append(incidents, &struct {
-				ID             uuid.UUID
-				MonitorID      uuid.UUID
-				Status         string
-				StartedAt      time.Time
-				ResolvedAt     *time.Time
-				AcknowledgedAt *time.Time
-			}{i.ID, i.MonitorID, string(i.Status), i.StartedAt, i.ResolvedAt, i.AcknowledgedAt})
+		for _, m := range monitors {
+			userMonitorIDs[m.ID] = struct{}{}
 		}
 	}
 
 	var result []incidentResponse
-	for _, i := range incidents {
+	for _, i := range rawIncidents {
+		if _, owns := userMonitorIDs[i.MonitorID]; !owns {
+			continue
+		}
 		resp := incidentResponse{
 			ID:        i.ID.String(),
 			MonitorID: i.MonitorID.String(),
-			Status:    i.Status,
+			Status:    string(i.Status),
 			StartedAt: i.StartedAt.Format(time.RFC3339),
 		}
 		if i.ResolvedAt != nil {
@@ -584,6 +574,14 @@ func (h *APIV1Handler) AcknowledgeIncident(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
 	}
 
+	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, incidentID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to acknowledge incident"})
+	}
+	if incident == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+	}
+
 	if err := h.incidentSvc.AcknowledgeIncident(ctx, incidentID, userID); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to acknowledge incident"})
 	}
@@ -595,7 +593,7 @@ func (h *APIV1Handler) AcknowledgeIncident(c echo.Context) error {
 // POST /api/v1/incidents/:id/resolve
 func (h *APIV1Handler) ResolveIncident(c echo.Context) error {
 	ctx := c.Request().Context()
-	_, ok := middleware.GetUserID(c)
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 	}
@@ -603,6 +601,14 @@ func (h *APIV1Handler) ResolveIncident(c echo.Context) error {
 	incidentID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
+	}
+
+	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, incidentID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resolve incident"})
+	}
+	if incident == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
 	}
 
 	if err := h.incidentSvc.ResolveIncident(ctx, incidentID); err != nil {

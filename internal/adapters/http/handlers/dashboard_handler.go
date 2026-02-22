@@ -283,6 +283,11 @@ func (h *DashboardHandler) AgentsJSON(c echo.Context) error {
 func (h *DashboardHandler) AgentJSON(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -293,7 +298,7 @@ func (h *DashboardHandler) AgentJSON(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load agent"})
 	}
-	if agent == nil {
+	if agent == nil || agent.UserID != userID {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "agent not found"})
 	}
 
