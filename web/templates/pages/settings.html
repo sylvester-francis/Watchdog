@@ -13,8 +13,8 @@
     <div class="bg-card border border-border rounded-lg overflow-hidden">
         <div class="px-5 py-4 border-b border-border">
             <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                    <i data-lucide="at-sign" class="w-4 h-4 text-blue-400"></i>
+                <div class="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                    <i data-lucide="at-sign" class="w-4 h-4 text-muted-foreground"></i>
                 </div>
                 <div>
                     <h2 class="text-sm font-medium text-foreground">Username</h2>
@@ -49,8 +49,8 @@
     <div class="bg-card border border-border rounded-lg overflow-hidden">
         <div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                    <i data-lucide="bell" class="w-4 h-4 text-accent"></i>
+                <div class="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                    <i data-lucide="bell" class="w-4 h-4 text-muted-foreground"></i>
                 </div>
                 <div>
                     <div class="flex items-center space-x-2">
@@ -86,38 +86,14 @@
                 {{end}}
             </div>
         </div>
-
-        <div class="px-5 py-2.5 border-t border-border/50 bg-muted/10">
-            <div class="flex flex-wrap items-center gap-2 text-[11px] opacity-60">
-                <span class="text-muted-foreground/50 mr-0.5">Integrations:</span>
-                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-                    <i data-lucide="message-circle" class="w-3 h-3"></i><span>Discord</span>
-                </span>
-                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-                    <i data-lucide="hash" class="w-3 h-3"></i><span>Slack</span>
-                </span>
-                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-                    <i data-lucide="mail" class="w-3 h-3"></i><span>Email</span>
-                </span>
-                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-                    <i data-lucide="send" class="w-3 h-3"></i><span>Telegram</span>
-                </span>
-                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-                    <i data-lucide="phone-call" class="w-3 h-3"></i><span>PagerDuty</span>
-                </span>
-                <span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-                    <i data-lucide="webhook" class="w-3 h-3"></i><span>Webhook</span>
-                </span>
-            </div>
-        </div>
     </div>
 
     <!-- API Tokens Section -->
     <div class="bg-card border border-border rounded-lg overflow-hidden">
         <div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
-                    <i data-lucide="key" class="w-4 h-4 text-yellow-400"></i>
+                <div class="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                    <i data-lucide="key" class="w-4 h-4 text-muted-foreground"></i>
                 </div>
                 <div>
                     <div class="flex items-center space-x-2">
@@ -179,8 +155,8 @@
          @click.outside="close">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
             <div class="flex items-center space-x-2">
-                <div class="w-6 h-6 rounded-md bg-accent/10 flex items-center justify-center">
-                    <i data-lucide="bell-plus" class="w-3.5 h-3.5 text-accent"></i>
+                <div class="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center">
+                    <i data-lucide="bell-plus" class="w-3.5 h-3.5 text-muted-foreground"></i>
                 </div>
                 <h3 class="text-sm font-medium text-foreground">Add Alert Channel</h3>
             </div>
@@ -312,8 +288,8 @@
          @click.outside="close">
         <div class="px-5 py-4 border-b border-border flex items-center justify-between">
             <div class="flex items-center space-x-2">
-                <div class="w-6 h-6 rounded-md bg-yellow-500/10 flex items-center justify-center">
-                    <i data-lucide="key" class="w-3.5 h-3.5 text-yellow-400"></i>
+                <div class="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center">
+                    <i data-lucide="key" class="w-3.5 h-3.5 text-muted-foreground"></i>
                 </div>
                 <h3 class="text-sm font-medium text-foreground">Create API Token</h3>
             </div>
@@ -385,10 +361,10 @@
 {{end}}
 
 {{define "token_row"}}
-<div id="token-row-{{.ID}}" class="flex items-center justify-between px-5 py-3 hover:bg-muted/20 transition-colors group">
+<div id="token-row-{{.ID}}" class="flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition-colors group">
     <div class="flex items-center space-x-3 min-w-0">
-        <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
-            <i data-lucide="key" class="w-3.5 h-3.5 text-yellow-400/70"></i>
+        <div class="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+            <i data-lucide="key" class="w-3.5 h-3.5 text-muted-foreground"></i>
         </div>
         <div class="min-w-0">
             <div class="flex items-center space-x-2">
@@ -396,7 +372,7 @@
                 <code class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{{.Prefix}}...</code>
                 <span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 {{if eq (print .Scope) "read_only"}}bg-blue-500/10 text-blue-400{{else}}bg-yellow-500/10 text-yellow-400{{end}}">{{if eq (print .Scope) "read_only"}}read-only{{else}}admin{{end}}</span>
             </div>
-            <div class="flex items-center space-x-3 mt-0.5">
+            <div class="flex items-center gap-x-3 mt-1">
                 <span class="text-[10px] text-muted-foreground/60">Created {{formatTimeAgo .CreatedAt}}</span>
                 {{if .ExpiresAt}}
                 <span class="text-[10px] text-yellow-400/70">Expires {{formatTimeAgoPtr .ExpiresAt}}</span>
@@ -404,7 +380,7 @@
                 <span class="text-[10px] text-muted-foreground/40">No expiry</span>
                 {{end}}
                 <span class="text-[10px] text-muted-foreground/60 hidden sm:inline">Last used: {{formatTimeAgoPtr .LastUsedAt}}</span>
-                {{if .LastUsedIP}}<span class="text-[10px] text-muted-foreground/40 hidden sm:inline font-mono">IP: {{deref .LastUsedIP}}</span>{{end}}
+                {{if .LastUsedIP}}<span class="text-[10px] text-muted-foreground/40 hidden md:inline font-mono">{{deref .LastUsedIP}}</span>{{end}}
             </div>
         </div>
     </div>
@@ -412,7 +388,7 @@
             hx-target="#token-row-{{.ID}}"
             hx-swap="outerHTML"
             hx-confirm="Delete this token? This cannot be undone."
-            class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10 opacity-0 group-hover:opacity-100 shrink-0"
+            class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10 opacity-0 group-hover:opacity-100 shrink-0 ml-3"
             aria-label="Delete token {{.Name}}">
         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
     </button>
@@ -441,32 +417,18 @@
     <div class="flex items-center justify-between p-3 gap-3">
         <div class="flex items-center space-x-3 min-w-0">
             <!-- Channel type icon -->
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                {{if eq (lower .Type) "discord"}}bg-indigo-500/10
-                {{else if eq (lower .Type) "slack"}}bg-green-500/10
-                {{else if eq (lower .Type) "email"}}bg-blue-500/10
-                {{else if eq (lower .Type) "telegram"}}bg-cyan-500/10
-                {{else if eq (lower .Type) "pagerduty"}}bg-emerald-500/10
-                {{else}}bg-orange-500/10{{end}}">
-                {{if eq (lower .Type) "discord"}}<i data-lucide="message-circle" class="w-4 h-4 text-indigo-400"></i>
-                {{else if eq (lower .Type) "slack"}}<i data-lucide="hash" class="w-4 h-4 text-green-400"></i>
-                {{else if eq (lower .Type) "email"}}<i data-lucide="mail" class="w-4 h-4 text-blue-400"></i>
-                {{else if eq (lower .Type) "telegram"}}<i data-lucide="send" class="w-4 h-4 text-cyan-400"></i>
-                {{else if eq (lower .Type) "pagerduty"}}<i data-lucide="phone-call" class="w-4 h-4 text-emerald-400"></i>
-                {{else}}<i data-lucide="webhook" class="w-4 h-4 text-orange-400"></i>{{end}}
+            <div class="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                {{if eq (lower .Type) "discord"}}<i data-lucide="message-circle" class="w-4 h-4 text-muted-foreground"></i>
+                {{else if eq (lower .Type) "slack"}}<i data-lucide="hash" class="w-4 h-4 text-muted-foreground"></i>
+                {{else if eq (lower .Type) "email"}}<i data-lucide="mail" class="w-4 h-4 text-muted-foreground"></i>
+                {{else if eq (lower .Type) "telegram"}}<i data-lucide="send" class="w-4 h-4 text-muted-foreground"></i>
+                {{else if eq (lower .Type) "pagerduty"}}<i data-lucide="phone-call" class="w-4 h-4 text-muted-foreground"></i>
+                {{else}}<i data-lucide="webhook" class="w-4 h-4 text-muted-foreground"></i>{{end}}
             </div>
             <div class="min-w-0">
                 <div class="flex items-center space-x-2">
                     <span class="text-sm font-medium text-foreground truncate">{{.Name}}</span>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide shrink-0
-                        {{if eq (lower .Type) "discord"}}bg-indigo-500/15 text-indigo-400
-                        {{else if eq (lower .Type) "slack"}}bg-green-500/15 text-green-400
-                        {{else if eq (lower .Type) "email"}}bg-blue-500/15 text-blue-400
-                        {{else if eq (lower .Type) "telegram"}}bg-cyan-500/15 text-cyan-400
-                        {{else if eq (lower .Type) "pagerduty"}}bg-emerald-500/15 text-emerald-400
-                        {{else}}bg-orange-500/15 text-orange-400{{end}}">
-                        {{.Type}}
-                    </span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide shrink-0 bg-muted text-muted-foreground">{{.Type}}</span>
                 </div>
                 <div class="flex items-center space-x-1.5 mt-0.5">
                     {{if .Enabled}}
