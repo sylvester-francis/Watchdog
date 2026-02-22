@@ -22,7 +22,7 @@
                             {{end}}
                         </h2>
                         <p class="text-xs text-muted-foreground mt-0.5">
-                            {{.Stats.MonitorsUp}} of {{.Stats.TotalMonitors}} monitors healthy &middot; Last 20 checks
+                            {{.Stats.MonitorsUp}} of {{.Stats.TotalMonitors}} monitors healthy &middot; Last 24 hours
                         </p>
                     </div>
                 </div>
@@ -118,7 +118,8 @@
     <div class="hidden sm:flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
         <div class="w-5 shrink-0"></div>
         <div class="flex-1 min-w-0 ml-2">Service</div>
-        <div class="w-36 shrink-0 text-center hidden md:block">Uptime (last 20)</div>
+        <div class="w-36 shrink-0 text-center hidden md:block">Uptime (24h)</div>
+        <div class="w-14 shrink-0 text-right hidden md:block">Uptime</div>
         <div class="w-16 shrink-0 text-right hidden md:block">Latency</div>
         <div class="w-14 shrink-0 text-right hidden md:block">Response</div>
         <div class="w-5 shrink-0"></div>
@@ -147,6 +148,12 @@
                 {{else}}
                 <span class="text-[9px] text-muted-foreground">No data</span>
                 {{end}}
+            </div>
+            <div class="w-14 shrink-0 hidden md:flex items-center justify-end">
+                <span class="text-xs font-mono font-medium
+                    {{if ge .UptimePercent 99.0}}text-emerald-400
+                    {{else if ge .UptimePercent 95.0}}text-amber-400
+                    {{else}}text-red-400{{end}}">{{formatPercent .UptimePercent}}%</span>
             </div>
             <div class="w-16 shrink-0 hidden md:flex items-center justify-end">
                 {{if .Latencies}}
@@ -186,7 +193,8 @@
     <div class="hidden sm:flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
         <div class="w-5 shrink-0"></div>
         <div class="flex-1 min-w-0 ml-2">Service</div>
-        <div class="w-36 shrink-0 text-center hidden md:block">Health (last 20)</div>
+        <div class="w-36 shrink-0 text-center hidden md:block">Health (24h)</div>
+        <div class="w-14 shrink-0 text-right hidden md:block">Uptime</div>
         <div class="w-20 shrink-0 text-right hidden md:block">Value</div>
         <div class="w-5 shrink-0"></div>
     </div>
@@ -214,6 +222,12 @@
                 {{else}}
                 <span class="text-[9px] text-muted-foreground">No data</span>
                 {{end}}
+            </div>
+            <div class="w-14 shrink-0 hidden md:flex items-center justify-end">
+                <span class="text-xs font-mono font-medium
+                    {{if ge .UptimePercent 99.0}}text-emerald-400
+                    {{else if ge .UptimePercent 95.0}}text-amber-400
+                    {{else}}text-red-400{{end}}">{{formatPercent .UptimePercent}}%</span>
             </div>
             <div class="w-20 shrink-0 hidden md:flex items-center justify-end">
                 {{if eq .Type "system"}}

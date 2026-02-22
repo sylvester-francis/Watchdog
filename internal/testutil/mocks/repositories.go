@@ -363,13 +363,15 @@ func (m *MockIncidentRepository) Resolve(ctx context.Context, id uuid.UUID) erro
 
 // MockHeartbeatRepository is a mock implementation of ports.HeartbeatRepository.
 type MockHeartbeatRepository struct {
-	CreateFn               func(ctx context.Context, heartbeat *domain.Heartbeat) error
-	CreateBatchFn          func(ctx context.Context, heartbeats []*domain.Heartbeat) error
-	GetByMonitorIDFn       func(ctx context.Context, monitorID uuid.UUID, limit int) ([]*domain.Heartbeat, error)
+	CreateFn                func(ctx context.Context, heartbeat *domain.Heartbeat) error
+	CreateBatchFn           func(ctx context.Context, heartbeats []*domain.Heartbeat) error
+	GetByMonitorIDFn        func(ctx context.Context, monitorID uuid.UUID, limit int) ([]*domain.Heartbeat, error)
 	GetByMonitorIDInRangeFn func(ctx context.Context, monitorID uuid.UUID, from, to time.Time) ([]*domain.Heartbeat, error)
-	GetLatestByMonitorIDFn func(ctx context.Context, monitorID uuid.UUID) (*domain.Heartbeat, error)
-	GetRecentFailuresFn    func(ctx context.Context, monitorID uuid.UUID, count int) ([]*domain.Heartbeat, error)
-	DeleteOlderThanFn      func(ctx context.Context, before time.Time) (int64, error)
+	GetLatestByMonitorIDFn  func(ctx context.Context, monitorID uuid.UUID) (*domain.Heartbeat, error)
+	GetRecentFailuresFn     func(ctx context.Context, monitorID uuid.UUID, count int) ([]*domain.Heartbeat, error)
+	GetUptimePercentFn      func(ctx context.Context, monitorID uuid.UUID, since time.Time) (float64, error)
+	GetLatencyHistoryFn     func(ctx context.Context, monitorID uuid.UUID, since time.Time, bucketInterval string) ([]domain.LatencyPoint, error)
+	DeleteOlderThanFn       func(ctx context.Context, before time.Time) (int64, error)
 }
 
 func (m *MockHeartbeatRepository) Create(ctx context.Context, heartbeat *domain.Heartbeat) error {
@@ -410,6 +412,20 @@ func (m *MockHeartbeatRepository) GetLatestByMonitorID(ctx context.Context, moni
 func (m *MockHeartbeatRepository) GetRecentFailures(ctx context.Context, monitorID uuid.UUID, count int) ([]*domain.Heartbeat, error) {
 	if m.GetRecentFailuresFn != nil {
 		return m.GetRecentFailuresFn(ctx, monitorID, count)
+	}
+	return nil, nil
+}
+
+func (m *MockHeartbeatRepository) GetUptimePercent(ctx context.Context, monitorID uuid.UUID, since time.Time) (float64, error) {
+	if m.GetUptimePercentFn != nil {
+		return m.GetUptimePercentFn(ctx, monitorID, since)
+	}
+	return 100.0, nil
+}
+
+func (m *MockHeartbeatRepository) GetLatencyHistory(ctx context.Context, monitorID uuid.UUID, since time.Time, bucketInterval string) ([]domain.LatencyPoint, error) {
+	if m.GetLatencyHistoryFn != nil {
+		return m.GetLatencyHistoryFn(ctx, monitorID, since, bucketInterval)
 	}
 	return nil, nil
 }
