@@ -10,8 +10,8 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
-	"github.com/sylvester-francis/watchdog/internal/core/domain"
-	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/core/domain"
+	"github.com/sylvester-francis/watchdog/core/ports"
 )
 
 // LandingHandler handles the public landing page and waitlist signups.

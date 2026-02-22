@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/core/ports"
 )
 
 // HeartbeatPoint is the JSON-serializable heartbeat for chart data.

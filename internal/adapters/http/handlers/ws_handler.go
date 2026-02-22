@@ -13,8 +13,8 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/sylvester-francis/watchdog-proto/protocol"
-	"github.com/sylvester-francis/watchdog/internal/core/domain"
-	"github.com/sylvester-francis/watchdog/internal/core/ports"
+	"github.com/sylvester-francis/watchdog/core/domain"
+	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 

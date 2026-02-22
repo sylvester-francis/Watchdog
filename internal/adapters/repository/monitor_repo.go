@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sylvester-francis/watchdog/internal/core/domain"
+	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
 const monitorColumns = "id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, created_at"
