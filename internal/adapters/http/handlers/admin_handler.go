@@ -145,8 +145,21 @@ func (h *AdminHandler) Dashboard(c echo.Context) error {
 		}
 	}
 
+	// Query configured alert channel types from database
+	channelTypes := make(map[string]bool)
+	ctRows, err := h.db.Pool.Query(ctx, "SELECT DISTINCT type FROM alert_channels")
+	if err == nil {
+		defer ctRows.Close()
+		for ctRows.Next() {
+			var t string
+			if ctRows.Scan(&t) == nil {
+				channelTypes[t] = true
+			}
+		}
+	}
+
 	// Config overview (redacted)
-	configSections := h.buildConfigOverview()
+	configSections := h.buildConfigOverview(channelTypes)
 
 	return c.Render(http.StatusOK, "admin.html", map[string]interface{}{
 		"Title":           "System",
@@ -165,7 +178,8 @@ func (h *AdminHandler) Dashboard(c echo.Context) error {
 }
 
 // buildConfigOverview returns config sections with secrets redacted.
-func (h *AdminHandler) buildConfigOverview() []configSection {
+// channelTypes contains distinct alert channel types configured in the database.
+func (h *AdminHandler) buildConfigOverview(channelTypes map[string]bool) []configSection {
 	cfg := h.cfg
 
 	server := configSection{
@@ -195,12 +209,12 @@ func (h *AdminHandler) buildConfigOverview() []configSection {
 	notifiers := configSection{
 		Name: "Notifiers",
 		Entries: []configEntry{
-			{Key: "Slack", Value: boolIndicator(cfg.Notify.SlackWebhookURL != "")},
-			{Key: "Discord", Value: boolIndicator(cfg.Notify.DiscordWebhookURL != "")},
-			{Key: "Webhook", Value: boolIndicator(cfg.Notify.WebhookURL != "")},
-			{Key: "Email (SMTP)", Value: boolIndicator(cfg.Notify.SMTPHost != "")},
-			{Key: "Telegram", Value: boolIndicator(cfg.Notify.TelegramBotToken != "")},
-			{Key: "PagerDuty", Value: boolIndicator(cfg.Notify.PagerDutyRoutingKey != "")},
+			{Key: "Slack", Value: boolIndicator(channelTypes["slack"])},
+			{Key: "Discord", Value: boolIndicator(channelTypes["discord"])},
+			{Key: "Webhook", Value: boolIndicator(channelTypes["webhook"])},
+			{Key: "Email (SMTP)", Value: boolIndicator(channelTypes["email"])},
+			{Key: "Telegram", Value: boolIndicator(channelTypes["telegram"])},
+			{Key: "PagerDuty", Value: boolIndicator(channelTypes["pagerduty"])},
 		},
 	}
 
