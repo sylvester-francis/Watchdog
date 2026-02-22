@@ -326,6 +326,11 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 func (h *MonitorHandler) Detail(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -337,7 +342,11 @@ func (h *MonitorHandler) Detail(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/monitors")
 	}
 
-	agent, _ := h.agentRepo.GetByID(ctx, monitor.AgentID)
+	// Verify ownership: monitor's agent must belong to user
+	agent, err := h.agentRepo.GetByID(ctx, monitor.AgentID)
+	if err != nil || agent == nil || agent.UserID != userID {
+		return c.Redirect(http.StatusFound, "/monitors")
+	}
 
 	// Fetch recent heartbeats for this monitor
 	heartbeats, err := h.heartbeatRepo.GetByMonitorID(ctx, monitor.ID, 20)
@@ -431,6 +440,11 @@ func (h *MonitorHandler) EditForm(c echo.Context) error {
 func (h *MonitorHandler) Update(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -439,6 +453,12 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 
 	monitor, err := h.monitorSvc.GetMonitor(ctx, id)
 	if err != nil || monitor == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+	}
+
+	// Verify ownership: monitor's agent must belong to user
+	ownerAgent, err := h.agentRepo.GetByID(ctx, monitor.AgentID)
+	if err != nil || ownerAgent == nil || ownerAgent.UserID != userID {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
 	}
 
@@ -471,7 +491,6 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 
 	// Audit log
 	if h.auditSvc != nil {
-		userID, _ := middleware.GetUserID(c)
 		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorUpdated, c.RealIP(), map[string]string{
 			"monitor_id": monitor.ID.String(),
 			"name":       monitor.Name,
@@ -505,6 +524,11 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 func (h *MonitorHandler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -513,6 +537,15 @@ func (h *MonitorHandler) Delete(c echo.Context) error {
 
 	// Fetch monitor before deletion to get AgentID for notification
 	monitor, _ := h.monitorSvc.GetMonitor(ctx, id)
+	if monitor == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+	}
+
+	// Verify ownership: monitor's agent must belong to user
+	ownerAgent, err := h.agentRepo.GetByID(ctx, monitor.AgentID)
+	if err != nil || ownerAgent == nil || ownerAgent.UserID != userID {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+	}
 
 	if err := h.monitorSvc.DeleteMonitor(ctx, id); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete monitor"})
@@ -520,11 +553,7 @@ func (h *MonitorHandler) Delete(c echo.Context) error {
 
 	// Audit log
 	if h.auditSvc != nil {
-		userID, _ := middleware.GetUserID(c)
-		meta := map[string]string{"monitor_id": id.String()}
-		if monitor != nil {
-			meta["name"] = monitor.Name
-		}
+		meta := map[string]string{"monitor_id": id.String(), "name": monitor.Name}
 		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorDeleted, c.RealIP(), meta)
 	}
 
