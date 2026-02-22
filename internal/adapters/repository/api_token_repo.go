@@ -24,10 +24,11 @@ func NewAPITokenRepository(db *DB) *APITokenRepository {
 // Create inserts a new API token into the database.
 func (r *APITokenRepository) Create(ctx context.Context, token *domain.APIToken) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO api_tokens (id, user_id, name, token_hash, prefix, expires_at, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		INSERT INTO api_tokens (id, user_id, name, token_hash, prefix, expires_at, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := q.Exec(ctx, query,
 		token.ID,
@@ -37,6 +38,7 @@ func (r *APITokenRepository) Create(ctx context.Context, token *domain.APIToken)
 		token.Prefix,
 		token.ExpiresAt,
 		token.CreatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("apiTokenRepo.Create: %w", err)
@@ -48,14 +50,15 @@ func (r *APITokenRepository) Create(ctx context.Context, token *domain.APIToken)
 // GetByTokenHash retrieves an API token by its SHA-256 hash.
 func (r *APITokenRepository) GetByTokenHash(ctx context.Context, tokenHash string) (*domain.APIToken, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, name, token_hash, prefix, last_used_at, expires_at, created_at
 		FROM api_tokens
-		WHERE token_hash = $1`
+		WHERE token_hash = $1 AND tenant_id = $2`
 
 	token := &domain.APIToken{}
-	err := q.QueryRow(ctx, query, tokenHash).Scan(
+	err := q.QueryRow(ctx, query, tokenHash, tenantID).Scan(
 		&token.ID,
 		&token.UserID,
 		&token.Name,
@@ -78,14 +81,15 @@ func (r *APITokenRepository) GetByTokenHash(ctx context.Context, tokenHash strin
 // GetByUserID retrieves all API tokens for a user.
 func (r *APITokenRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.APIToken, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, user_id, name, token_hash, prefix, last_used_at, expires_at, created_at
 		FROM api_tokens
-		WHERE user_id = $1
+		WHERE user_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC`
 
-	rows, err := q.Query(ctx, query, userID)
+	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("apiTokenRepo.GetByUserID: %w", err)
 	}
@@ -115,8 +119,9 @@ func (r *APITokenRepository) GetByUserID(ctx context.Context, userID uuid.UUID) 
 // Delete removes an API token from the database.
 func (r *APITokenRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	result, err := q.Exec(ctx, `DELETE FROM api_tokens WHERE id = $1`, id)
+	result, err := q.Exec(ctx, `DELETE FROM api_tokens WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("apiTokenRepo.Delete(%s): %w", id, err)
 	}
@@ -131,8 +136,9 @@ func (r *APITokenRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // UpdateLastUsed updates the last_used_at timestamp for a token.
 func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	_, err := q.Exec(ctx, `UPDATE api_tokens SET last_used_at = NOW() WHERE id = $1`, id)
+	_, err := q.Exec(ctx, `UPDATE api_tokens SET last_used_at = NOW() WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("apiTokenRepo.UpdateLastUsed(%s): %w", id, err)
 	}

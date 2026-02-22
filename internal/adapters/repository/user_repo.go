@@ -25,10 +25,11 @@ func NewUserRepository(db *DB) *UserRepository {
 // Create inserts a new user into the database.
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO users (id, email, username, password_hash, plan, is_admin, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO users (id, email, username, password_hash, plan, is_admin, created_at, updated_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		user.ID,
@@ -39,6 +40,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 		user.IsAdmin,
 		user.CreatedAt,
 		user.UpdatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("userRepo.Create: %w", err)
@@ -50,14 +52,15 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 // GetByID retrieves a user by their ID.
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
 		FROM users
-		WHERE id = $1`
+		WHERE id = $1 AND tenant_id = $2`
 
 	user := &domain.User{}
-	err := q.QueryRow(ctx, query, id).Scan(
+	err := q.QueryRow(ctx, query, id, tenantID).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Username,
@@ -80,14 +83,15 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 // GetByEmail retrieves a user by their email address.
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
 		FROM users
-		WHERE email = $1`
+		WHERE email = $1 AND tenant_id = $2`
 
 	user := &domain.User{}
-	err := q.QueryRow(ctx, query, email).Scan(
+	err := q.QueryRow(ctx, query, email, tenantID).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Username,
@@ -110,14 +114,15 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 // GetByUsername retrieves a user by their username.
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
 		FROM users
-		WHERE username = $1`
+		WHERE username = $1 AND tenant_id = $2`
 
 	user := &domain.User{}
-	err := q.QueryRow(ctx, query, username).Scan(
+	err := q.QueryRow(ctx, query, username, tenantID).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Username,
@@ -140,11 +145,12 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 // Update updates an existing user in the database.
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		UPDATE users
 		SET email = $2, username = $3, password_hash = $4, plan = $5, is_admin = $6, updated_at = $7
-		WHERE id = $1`
+		WHERE id = $1 AND tenant_id = $8`
 
 	result, err := q.Exec(ctx, query,
 		user.ID,
@@ -154,6 +160,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 		string(user.Plan),
 		user.IsAdmin,
 		user.UpdatedAt,
+		tenantID,
 	)
 	if err != nil {
 		return fmt.Errorf("userRepo.Update(%s): %w", user.ID, err)
@@ -169,10 +176,11 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 // Delete removes a user from the database.
 func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `DELETE FROM users WHERE id = $1`
+	query := `DELETE FROM users WHERE id = $1 AND tenant_id = $2`
 
-	result, err := q.Exec(ctx, query, id)
+	result, err := q.Exec(ctx, query, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("userRepo.Delete(%s): %w", id, err)
 	}
@@ -187,9 +195,10 @@ func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 // Count returns the total number of users.
 func (r *UserRepository) Count(ctx context.Context) (int, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	var count int
-	err := q.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	err := q.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE tenant_id = $1`, tenantID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("userRepo.Count: %w", err)
 	}
@@ -200,10 +209,11 @@ func (r *UserRepository) Count(ctx context.Context) (int, error) {
 // CountByPlan returns the number of users per plan type.
 func (r *UserRepository) CountByPlan(ctx context.Context) (map[domain.Plan]int, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT plan, COUNT(*) FROM users GROUP BY plan`
+	query := `SELECT plan, COUNT(*) FROM users WHERE tenant_id = $1 GROUP BY plan`
 
-	rows, err := q.Query(ctx, query)
+	rows, err := q.Query(ctx, query, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("userRepo.CountByPlan: %w", err)
 	}
@@ -225,6 +235,7 @@ func (r *UserRepository) CountByPlan(ctx context.Context) (map[domain.Plan]int, 
 // GetUsersNearLimits returns users who are at or near their plan limits (80%+).
 func (r *UserRepository) GetUsersNearLimits(ctx context.Context) ([]ports.UserUsageSummary, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT u.email, u.plan,
@@ -232,17 +243,18 @@ func (r *UserRepository) GetUsersNearLimits(ctx context.Context) ([]ports.UserUs
 			COALESCE(mc.cnt, 0) AS monitor_count
 		FROM users u
 		LEFT JOIN (
-			SELECT user_id, COUNT(*) AS cnt FROM agents GROUP BY user_id
+			SELECT user_id, COUNT(*) AS cnt FROM agents WHERE tenant_id = $1 GROUP BY user_id
 		) ac ON ac.user_id = u.id
 		LEFT JOIN (
 			SELECT a.user_id, COUNT(*) AS cnt
 			FROM monitors m JOIN agents a ON m.agent_id = a.id
+			WHERE m.tenant_id = $1
 			GROUP BY a.user_id
 		) mc ON mc.user_id = u.id
-		WHERE 1=1
+		WHERE u.tenant_id = $1
 		ORDER BY u.email`
 
-	rows, err := q.Query(ctx, query)
+	rows, err := q.Query(ctx, query, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("userRepo.GetUsersNearLimits: %w", err)
 	}
@@ -272,6 +284,7 @@ func (r *UserRepository) GetUsersNearLimits(ctx context.Context) ([]ports.UserUs
 // GetAllWithUsage returns all users with their agent and monitor counts.
 func (r *UserRepository) GetAllWithUsage(ctx context.Context) ([]ports.AdminUserView, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT u.id, u.email, u.plan, u.is_admin,
@@ -280,16 +293,18 @@ func (r *UserRepository) GetAllWithUsage(ctx context.Context) ([]ports.AdminUser
 			u.created_at
 		FROM users u
 		LEFT JOIN (
-			SELECT user_id, COUNT(*) AS cnt FROM agents GROUP BY user_id
+			SELECT user_id, COUNT(*) AS cnt FROM agents WHERE tenant_id = $1 GROUP BY user_id
 		) ac ON ac.user_id = u.id
 		LEFT JOIN (
 			SELECT a.user_id, COUNT(*) AS cnt
 			FROM monitors m JOIN agents a ON m.agent_id = a.id
+			WHERE m.tenant_id = $1
 			GROUP BY a.user_id
 		) mc ON mc.user_id = u.id
+		WHERE u.tenant_id = $1
 		ORDER BY u.created_at DESC`
 
-	rows, err := q.Query(ctx, query)
+	rows, err := q.Query(ctx, query, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("userRepo.GetAllWithUsage: %w", err)
 	}
@@ -313,11 +328,12 @@ func (r *UserRepository) GetAllWithUsage(ctx context.Context) ([]ports.AdminUser
 // ExistsByEmail checks if a user with the given email exists.
 func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`
+	query := `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND tenant_id = $2)`
 
 	var exists bool
-	err := q.QueryRow(ctx, query, email).Scan(&exists)
+	err := q.QueryRow(ctx, query, email, tenantID).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("userRepo.ExistsByEmail(%s): %w", email, err)
 	}
@@ -328,9 +344,10 @@ func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 // UsernameExists checks if a username is already taken.
 func (r *UserRepository) UsernameExists(ctx context.Context, username string) (bool, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	var exists bool
-	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`, username).Scan(&exists)
+	err := q.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1 AND tenant_id = $2)`, username, tenantID).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("userRepo.UsernameExists(%s): %w", username, err)
 	}
