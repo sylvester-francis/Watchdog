@@ -1,213 +1,239 @@
 package handlers
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
-	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
-	"github.com/sylvester-francis/watchdog/internal/crypto"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
+	"github.com/sylvester-francis/watchdog/internal/config"
+	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 
-// AdminHandler handles admin dashboard HTTP requests.
+// AdminHandler handles the system dashboard page.
 type AdminHandler struct {
-	userRepo       ports.UserRepository
-	agentRepo      ports.AgentRepository
-	monitorRepo    ports.MonitorRepository
-	usageEventRepo ports.UsageEventRepository
-	hasher         *crypto.PasswordHasher
-	templates      *view.Templates
+	auditLogRepo ports.AuditLogRepository
+	userRepo     ports.UserRepository
+	hub          *realtime.Hub
+	db           *repository.DB
+	cfg          *config.Config
+	startTime    time.Time
+	templates    *view.Templates
 }
 
 // NewAdminHandler creates a new AdminHandler.
 func NewAdminHandler(
+	auditLogRepo ports.AuditLogRepository,
 	userRepo ports.UserRepository,
-	agentRepo ports.AgentRepository,
-	monitorRepo ports.MonitorRepository,
-	usageEventRepo ports.UsageEventRepository,
-	hasher *crypto.PasswordHasher,
+	hub *realtime.Hub,
+	db *repository.DB,
+	cfg *config.Config,
+	startTime time.Time,
 	templates *view.Templates,
 ) *AdminHandler {
 	return &AdminHandler{
-		userRepo:       userRepo,
-		agentRepo:      agentRepo,
-		monitorRepo:    monitorRepo,
-		usageEventRepo: usageEventRepo,
-		hasher:         hasher,
-		templates:      templates,
+		auditLogRepo: auditLogRepo,
+		userRepo:     userRepo,
+		hub:          hub,
+		db:           db,
+		cfg:          cfg,
+		startTime:    startTime,
+		templates:    templates,
 	}
 }
 
-// Dashboard renders the admin dashboard page.
+// migrationInfo holds schema migration status.
+type migrationInfo struct {
+	Version int
+	Dirty   bool
+}
+
+// configEntry holds a redacted config key-value for display.
+type configEntry struct {
+	Key   string
+	Value string
+}
+
+// configSection groups config entries under a heading.
+type configSection struct {
+	Name    string
+	Entries []configEntry
+}
+
+// auditLogView holds an audit log entry enriched with user email.
+type auditLogView struct {
+	*domain.AuditLog
+	Email string
+}
+
+// Dashboard renders the system dashboard page.
 func (h *AdminHandler) Dashboard(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// Platform stats
-	totalUsers, _ := h.userRepo.Count(ctx)
-
-	// All users with usage
-	allUsers, err := h.userRepo.GetAllWithUsage(ctx)
+	// Audit log: recent 50 entries
+	logs, err := h.auditLogRepo.GetRecent(ctx, 50)
 	if err != nil {
-		allUsers = nil
+		slog.Error("admin: failed to fetch audit logs", "error", err)
+		logs = nil
 	}
 
-	// Near-limit users
-	nearLimitUsers, err := h.userRepo.GetUsersNearLimits(ctx)
-	if err != nil {
-		nearLimitUsers = nil
+	// Resolve user IDs to emails
+	emailMap := make(map[uuid.UUID]string)
+	if logs != nil {
+		userIDs := make(map[uuid.UUID]bool)
+		for _, l := range logs {
+			if l.UserID != nil {
+				userIDs[*l.UserID] = true
+			}
+		}
+		for uid := range userIDs {
+			user, err := h.userRepo.GetByID(ctx, uid)
+			if err == nil && user != nil {
+				emailMap[uid] = user.Email
+			}
+		}
 	}
 
-	// Recent usage events
-	recentEvents, err := h.usageEventRepo.GetRecent(ctx, 50)
-	if err != nil {
-		recentEvents = nil
+	auditViews := make([]auditLogView, 0, len(logs))
+	for _, l := range logs {
+		v := auditLogView{AuditLog: l}
+		if l.UserID != nil {
+			v.Email = emailMap[*l.UserID]
+		}
+		auditViews = append(auditViews, v)
 	}
 
-	// Limit hits in last 24h
-	limitHitCount, _ := h.usageEventRepo.CountByEventType(ctx, domain.EventLimitHit, time.Now().Add(-24*time.Hour))
+	// DB health + latency
+	dbHealthy := true
+	pingStart := time.Now()
+	if err := h.db.Health(ctx); err != nil {
+		dbHealthy = false
+	}
+	pingLatency := time.Since(pingStart)
+
+	// Pool stats
+	poolStats := h.db.Stats()
+
+	// Connected agents
+	agentCount := h.hub.ClientCount()
+
+	// Uptime
+	uptime := time.Since(h.startTime)
+
+	// Migration status
+	migration := migrationInfo{}
+	row := h.db.Pool.QueryRow(ctx, "SELECT version, dirty FROM schema_migrations LIMIT 1")
+	if err := row.Scan(&migration.Version, &migration.Dirty); err != nil {
+		slog.Error("admin: failed to fetch migration status", "error", err)
+	}
+
+	// Count total available migrations
+	totalMigrations := 0
+	migRows, err := h.db.Pool.Query(ctx, "SELECT version FROM schema_migrations")
+	if err == nil {
+		defer migRows.Close()
+		for migRows.Next() {
+			totalMigrations++
+		}
+	}
+
+	// Config overview (redacted)
+	configSections := h.buildConfigOverview()
 
 	return c.Render(http.StatusOK, "admin.html", map[string]interface{}{
-		"Title":          "Admin",
-		"IsAdmin":        true,
-		"TotalUsers":     totalUsers,
-		"AllUsers":       allUsers,
-		"NearLimitUsers": nearLimitUsers,
-		"RecentEvents":   recentEvents,
-		"LimitHitCount":  limitHitCount,
+		"Title":           "System",
+		"DBHealthy":       dbHealthy,
+		"PingLatency":     fmt.Sprintf("%.0fms", float64(pingLatency.Microseconds())/1000.0),
+		"PoolAcquired":    poolStats.AcquiredConns(),
+		"PoolIdle":        poolStats.IdleConns(),
+		"PoolTotal":       poolStats.TotalConns(),
+		"AgentCount":      agentCount,
+		"Uptime":          formatUptime(uptime),
+		"Migration":       migration,
+		"TotalMigrations": totalMigrations,
+		"ConfigSections":  configSections,
+		"AuditLogs":       auditViews,
 	})
 }
 
-// CreateUser handles POST /admin/users to create a new user.
-func (h *AdminHandler) CreateUser(c echo.Context) error {
-	ctx := c.Request().Context()
+// buildConfigOverview returns config sections with secrets redacted.
+func (h *AdminHandler) buildConfigOverview() []configSection {
+	cfg := h.cfg
 
-	email := c.FormValue("email")
-	password := c.FormValue("password")
-	plan := domain.Plan(c.FormValue("plan"))
-	isAdmin := c.FormValue("is_admin") == "on"
-
-	// Validate
-	if email == "" || password == "" {
-		return c.String(http.StatusBadRequest, "Email and password are required")
-	}
-	if len(password) < 8 {
-		return c.String(http.StatusBadRequest, "Password must be at least 8 characters")
-	}
-	if !plan.IsValid() {
-		plan = domain.PlanBeta
-	}
-
-	// Check email uniqueness
-	exists, err := h.userRepo.ExistsByEmail(ctx, email)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to check email")
-	}
-	if exists {
-		return c.String(http.StatusConflict, "Email already exists")
-	}
-
-	// Hash password
-	hash, err := h.hasher.Hash(password)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to hash password")
-	}
-
-	// Create user
-	user := domain.NewUser(email, hash)
-	user.Plan = plan
-	user.IsAdmin = isAdmin
-
-	if err := h.userRepo.Create(ctx, user); err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to create user")
-	}
-
-	// Return the new user row for HTMX swap
-	limits := plan.Limits()
-	return c.Render(http.StatusOK, "admin_user_row", map[string]interface{}{
-		"User": ports.AdminUserView{
-			ID:           user.ID,
-			Email:        user.Email,
-			Plan:         user.Plan,
-			IsAdmin:      user.IsAdmin,
-			AgentCount:   0,
-			MonitorCount: 0,
-			AgentMax:     limits.MaxAgents,
-			MonitorMax:   limits.MaxMonitors,
-			CreatedAt:    user.CreatedAt,
+	server := configSection{
+		Name: "Server",
+		Entries: []configEntry{
+			{Key: "Host", Value: cfg.Server.Host},
+			{Key: "Port", Value: fmt.Sprintf("%d", cfg.Server.Port)},
+			{Key: "Secure Cookies", Value: fmt.Sprintf("%v", cfg.Server.SecureCookies)},
+			{Key: "Allowed Origins", Value: strings.Join(cfg.Server.AllowedOrigins, ", ")},
 		},
-	})
+	}
+	if server.Entries[3].Value == "" {
+		server.Entries[3].Value = "(default)"
+	}
+
+	database := configSection{
+		Name: "Database",
+		Entries: []configEntry{
+			{Key: "URL", Value: "********"},
+			{Key: "Max Connections", Value: fmt.Sprintf("%d", cfg.Database.MaxConns)},
+			{Key: "Min Connections", Value: fmt.Sprintf("%d", cfg.Database.MinConns)},
+			{Key: "Max Conn Lifetime", Value: cfg.Database.MaxConnLifetime.String()},
+			{Key: "Max Conn Idle Time", Value: cfg.Database.MaxConnIdleTime.String()},
+		},
+	}
+
+	notifiers := configSection{
+		Name: "Notifiers",
+		Entries: []configEntry{
+			{Key: "Slack", Value: boolIndicator(cfg.Notify.SlackWebhookURL != "")},
+			{Key: "Discord", Value: boolIndicator(cfg.Notify.DiscordWebhookURL != "")},
+			{Key: "Webhook", Value: boolIndicator(cfg.Notify.WebhookURL != "")},
+			{Key: "Email (SMTP)", Value: boolIndicator(cfg.Notify.SMTPHost != "")},
+			{Key: "Telegram", Value: boolIndicator(cfg.Notify.TelegramBotToken != "")},
+			{Key: "PagerDuty", Value: boolIndicator(cfg.Notify.PagerDutyRoutingKey != "")},
+		},
+	}
+
+	security := configSection{
+		Name: "Security",
+		Entries: []configEntry{
+			{Key: "Encryption Key", Value: "********"},
+			{Key: "Session Secret", Value: "********"},
+		},
+	}
+
+	return []configSection{server, database, notifiers, security}
 }
 
-// UpdateUser handles POST /admin/users/:id to update a user's plan or admin status.
-func (h *AdminHandler) UpdateUser(c echo.Context) error {
-	ctx := c.Request().Context()
-
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return c.String(http.StatusBadRequest, "Invalid user ID")
+// boolIndicator returns a check or x string.
+func boolIndicator(enabled bool) string {
+	if enabled {
+		return "enabled"
 	}
-
-	user, err := h.userRepo.GetByID(ctx, id)
-	if err != nil || user == nil {
-		return c.String(http.StatusNotFound, "User not found")
-	}
-
-	// Update plan if provided
-	if planStr := c.FormValue("plan"); planStr != "" {
-		plan := domain.Plan(planStr)
-		if plan.IsValid() {
-			user.Plan = plan
-		}
-	}
-
-	// Update admin status if provided
-	if c.FormValue("toggle_admin") == "1" {
-		user.IsAdmin = !user.IsAdmin
-	}
-
-	user.UpdatedAt = time.Now()
-
-	if err := h.userRepo.Update(ctx, user); err != nil {
-		slog.Error("admin: failed to update user", "user_id", id, "error", err)
-		return c.String(http.StatusInternalServerError, "Failed to update user")
-	}
-
-	// Fetch fresh usage data for the row render
-	allUsers, err := h.userRepo.GetAllWithUsage(ctx)
-	if err != nil {
-		return c.String(http.StatusInternalServerError, "Failed to fetch user data")
-	}
-
-	for _, u := range allUsers {
-		if u.ID == id {
-			return c.Render(http.StatusOK, "admin_user_row", map[string]interface{}{
-				"User": u,
-			})
-		}
-	}
-
-	return c.String(http.StatusNotFound, "User not found after update")
+	return "disabled"
 }
 
-// DeleteUser handles DELETE /admin/users/:id.
-func (h *AdminHandler) DeleteUser(c echo.Context) error {
-	ctx := c.Request().Context()
+// formatUptime formats a duration as a human-readable uptime string.
+func formatUptime(d time.Duration) string {
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	mins := int(d.Minutes()) % 60
 
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return c.String(http.StatusBadRequest, "Invalid user ID")
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm", days, hours, mins)
 	}
-
-	if err := h.userRepo.Delete(ctx, id); err != nil {
-		slog.Error("admin: failed to delete user", "user_id", id, "error", err)
-		return c.String(http.StatusInternalServerError, "Failed to delete user")
+	if hours > 0 {
+		return fmt.Sprintf("%dh %dm", hours, mins)
 	}
-
-	// Return empty string so HTMX removes the row
-	return c.String(http.StatusOK, "")
+	return fmt.Sprintf("%dm", mins)
 }

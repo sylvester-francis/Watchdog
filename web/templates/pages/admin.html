@@ -3,149 +3,137 @@
 {{end}}
 
 {{define "content"}}
-<!-- Stats -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <!-- Total Users -->
+<!-- System Health -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Database -->
     <div class="bg-card rounded-lg border border-border px-4 py-3">
-        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total Users</p>
-        <p class="text-xl font-semibold text-foreground mt-1">{{.TotalUsers}}</p>
-    </div>
-
-    <!-- Plan -->
-    <div class="bg-card rounded-lg border border-border px-4 py-3">
-        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</p>
-        <p class="text-xl font-semibold text-foreground mt-1">Beta</p>
-    </div>
-
-    <!-- Limit Hits (24h) -->
-    <div class="bg-card rounded-lg border border-border px-4 py-3">
-        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Limit Hits (24h)</p>
-        <p class="text-xl font-semibold {{if gt .LimitHitCount 0}}text-red-400{{else}}text-foreground{{end}} mt-1">{{.LimitHitCount}}</p>
-    </div>
-</div>
-
-<!-- Users Management -->
-<div class="bg-card rounded-lg border border-border mb-6">
-    <div class="px-4 py-3 border-b border-border flex items-center justify-between">
-        <div>
-            <h2 class="text-sm font-medium text-foreground">Users</h2>
-            <p class="text-xs text-muted-foreground">Manage platform users</p>
+        <div class="flex items-center justify-between mb-1">
+            <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Database</p>
+            {{if .DBHealthy}}
+            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+            {{else}}
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            {{end}}
         </div>
-        <button onclick="document.getElementById('new-user-modal').classList.remove('hidden')"
-            class="px-3 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-medium rounded-md transition-smooth flex items-center space-x-1.5">
-            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-            <span>New User</span>
-        </button>
+        <p class="text-xl font-semibold text-foreground">{{.PingLatency}}</p>
+        <p class="text-[10px] text-muted-foreground mt-0.5">ping latency</p>
     </div>
-    {{if .AllUsers}}
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead>
-                <tr class="border-b border-border">
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Admin</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Agents</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitors</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Created</th>
-                    <th class="px-4 py-3 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border/50" id="users-table">
-                {{range .AllUsers}}
-                {{template "admin_user_row" dict "User" .}}
-                {{end}}
-            </tbody>
-        </table>
+
+    <!-- Connection Pool -->
+    <div class="bg-card rounded-lg border border-border px-4 py-3">
+        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Connection Pool</p>
+        <p class="text-xl font-semibold text-foreground">{{.PoolAcquired}} <span class="text-sm font-normal text-muted-foreground">/ {{.PoolTotal}}</span></p>
+        <p class="text-[10px] text-muted-foreground mt-0.5">acquired &middot; {{.PoolIdle}} idle</p>
     </div>
-    {{else}}
-    <div class="px-4 py-8 text-center text-sm text-muted-foreground">No users found.</div>
-    {{end}}
+
+    <!-- Connected Agents -->
+    <div class="bg-card rounded-lg border border-border px-4 py-3">
+        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Connected Agents</p>
+        <p class="text-xl font-semibold text-foreground">{{.AgentCount}}</p>
+        <p class="text-[10px] text-muted-foreground mt-0.5">active websocket connections</p>
+    </div>
+
+    <!-- Uptime -->
+    <div class="bg-card rounded-lg border border-border px-4 py-3">
+        <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Uptime</p>
+        <p class="text-xl font-semibold text-foreground">{{.Uptime}}</p>
+        <p class="text-[10px] text-muted-foreground mt-0.5">since last restart</p>
+    </div>
 </div>
 
-<!-- Users Near Limits -->
-<div class="bg-card rounded-lg border border-border mb-6">
-    <div class="px-4 py-3 border-b border-border">
-        <h2 class="text-sm font-medium text-foreground">Users Near Limits</h2>
-        <p class="text-xs text-muted-foreground">Users at 80%+ of their resource limits</p>
-    </div>
-    {{if .NearLimitUsers}}
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead>
-                <tr class="border-b border-border">
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Agents</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitors</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border/50">
-                {{range .NearLimitUsers}}
-                <tr class="hover:bg-card-elevated transition-smooth">
-                    <td class="px-4 py-3 text-sm text-foreground">{{.Email}}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">
-                            {{.Plan.String}}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-muted-foreground">{{.AgentCount}} / {{.AgentMax}}</td>
-                    <td class="px-4 py-3 text-sm text-muted-foreground">
-                        {{.MonitorCount}} / {{if eq .MonitorMax -1}}Unlimited{{else}}{{.MonitorMax}}{{end}}
-                    </td>
-                    <td class="px-4 py-3">
-                        {{if or (ge .AgentCount .AgentMax) (and (ne .MonitorMax -1) (ge .MonitorCount .MonitorMax))}}
-                        <span class="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400">At Limit</span>
-                        {{else}}
-                        <span class="px-2 py-0.5 text-xs rounded bg-yellow-500/20 text-yellow-400">Near Limit</span>
-                        {{end}}
-                    </td>
-                </tr>
+<!-- Migration Status + Config Overview -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <!-- Migration Status -->
+    <div class="bg-card rounded-lg border border-border">
+        <div class="px-4 py-3 border-b border-border">
+            <h2 class="text-sm font-medium text-foreground">Migration Status</h2>
+        </div>
+        <div class="px-4 py-3 space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-muted-foreground">Current Version</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.Migration.Version}}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-muted-foreground">Dirty</span>
+                {{if .Migration.Dirty}}
+                <span class="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400">Yes</span>
+                {{else}}
+                <span class="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-400">No</span>
                 {{end}}
-            </tbody>
-        </table>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-muted-foreground">Total Applied</span>
+                <span class="text-sm font-medium text-foreground font-mono">{{.TotalMigrations}}</span>
+            </div>
+        </div>
     </div>
-    {{else}}
-    <div class="px-4 py-8 text-center text-sm text-muted-foreground">No users near their limits.</div>
-    {{end}}
+
+    <!-- Config Overview -->
+    <div class="bg-card rounded-lg border border-border">
+        <div class="px-4 py-3 border-b border-border">
+            <h2 class="text-sm font-medium text-foreground">Config Overview</h2>
+        </div>
+        <div class="px-4 py-3 space-y-3 max-h-64 overflow-y-auto">
+            {{range .ConfigSections}}
+            <div>
+                <p class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">{{.Name}}</p>
+                {{range .Entries}}
+                <div class="flex items-center justify-between py-0.5">
+                    <span class="text-xs text-muted-foreground">{{.Key}}</span>
+                    <span class="text-xs font-mono {{if eq .Value "enabled"}}text-green-400{{else if eq .Value "disabled"}}text-muted-foreground{{else if eq .Value "********"}}text-muted-foreground/50{{else}}text-foreground{{end}}">{{.Value}}</span>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
 </div>
 
-<!-- Recent Events -->
+<!-- Audit Log -->
 <div class="bg-card rounded-lg border border-border">
     <div class="px-4 py-3 border-b border-border">
-        <h2 class="text-sm font-medium text-foreground">Recent Usage Events</h2>
-        <p class="text-xs text-muted-foreground">Last 50 limit-related events</p>
+        <h2 class="text-sm font-medium text-foreground">Audit Log</h2>
+        <p class="text-xs text-muted-foreground">Last 50 events</p>
     </div>
-    {{if .RecentEvents}}
-    <div class="overflow-x-auto max-h-96 overflow-y-auto">
+    {{if .AuditLogs}}
+    <div class="overflow-x-auto max-h-[32rem] overflow-y-auto">
         <table class="w-full">
             <thead class="sticky top-0 bg-card">
                 <tr class="border-b border-border">
                     <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Resource</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Count / Max</th>
-                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Plan</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Action</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">User</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">IP Address</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Details</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-border/50">
-                {{range .RecentEvents}}
+                {{range .AuditLogs}}
                 <tr class="hover:bg-card-elevated transition-smooth">
-                    <td class="px-4 py-3 text-sm text-muted-foreground">{{formatTimeAgo .CreatedAt}}</td>
-                    <td class="px-4 py-3">
-                        {{if eq (print .EventType) "limit_hit"}}
-                        <span class="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400">Limit Hit</span>
-                        {{else}}
-                        <span class="px-2 py-0.5 text-xs rounded bg-yellow-500/20 text-yellow-400">Approaching</span>
-                        {{end}}
+                    <td class="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{{timeago .CreatedAt}}</td>
+                    <td class="px-4 py-2.5">
+                        {{$action := print .Action}}
+                        <span class="px-2 py-0.5 text-[10px] font-medium rounded
+                            {{if eq $action "login_success"}}bg-green-500/20 text-green-400
+                            {{else if eq $action "login_failed"}}bg-red-500/20 text-red-400
+                            {{else if hasSuffix $action "_created"}}bg-blue-500/20 text-blue-400
+                            {{else if hasSuffix $action "_updated"}}bg-yellow-500/20 text-yellow-400
+                            {{else if hasSuffix $action "_deleted"}}bg-red-500/20 text-red-400
+                            {{else if hasSuffix $action "_revoked"}}bg-red-500/20 text-red-400
+                            {{else if hasPrefix $action "incident_"}}bg-orange-500/20 text-orange-400
+                            {{else}}bg-muted text-muted-foreground
+                            {{end}}">{{$action}}</span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-muted-foreground capitalize">{{.ResourceType}}</td>
-                    <td class="px-4 py-3 text-sm text-muted-foreground">{{.CurrentCount}} / {{.MaxAllowed}}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">
-                            {{.Plan.String}}
-                        </span>
+                    <td class="px-4 py-2.5 text-xs text-foreground">{{if .Email}}{{.Email}}{{else}}&mdash;{{end}}</td>
+                    <td class="px-4 py-2.5 text-xs text-muted-foreground font-mono hidden sm:table-cell">{{if .IPAddress}}{{.IPAddress}}{{else}}&mdash;{{end}}</td>
+                    <td class="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">
+                        {{if .Metadata}}
+                        {{range $k, $v := .Metadata}}
+                        <span class="inline-block mr-2"><span class="text-muted-foreground/70">{{$k}}:</span> {{$v}}</span>
+                        {{end}}
+                        {{else}}
+                        &mdash;
+                        {{end}}
                     </td>
                 </tr>
                 {{end}}
@@ -153,117 +141,7 @@
         </table>
     </div>
     {{else}}
-    <div class="px-4 py-8 text-center text-sm text-muted-foreground">No usage events yet.</div>
+    <div class="px-4 py-8 text-center text-sm text-muted-foreground">No audit log entries yet.</div>
     {{end}}
 </div>
-
-<!-- New User Modal -->
-<div id="new-user-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-    <div class="bg-card border border-border rounded-lg w-full max-w-md mx-4 shadow-xl">
-        <div class="px-5 py-4 border-b border-border flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <i data-lucide="user-plus" class="w-4 h-4 text-accent"></i>
-                <h3 class="text-sm font-medium text-foreground">New User</h3>
-            </div>
-            <button onclick="document.getElementById('new-user-modal').classList.add('hidden')"
-                class="text-muted-foreground hover:text-foreground transition-smooth">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-        <form id="admin-user-form" class="p-5 space-y-4"
-            hx-post="/admin/users" hx-target="#users-table" hx-swap="beforeend">
-            {{if .CSRFToken}}<input type="hidden" name="_csrf" value="{{.CSRFToken}}">{{end}}
-
-            <div>
-                <label class="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
-                <input type="email" name="email" required
-                    class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
-                    placeholder="user@example.com">
-            </div>
-
-            <div>
-                <label class="block text-xs font-medium text-muted-foreground mb-1.5">Password</label>
-                <input type="password" name="password" required minlength="8"
-                    class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
-                    placeholder="Min 8 characters">
-            </div>
-
-            <div class="flex items-center gap-4">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-muted-foreground mb-1.5">Plan</label>
-                    <select name="plan"
-                        class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
-                        <option value="beta" selected>Beta</option>
-                    </select>
-                </div>
-                <div class="pt-5">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" name="is_admin"
-                            class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-accent/20 focus:ring-offset-0">
-                        <span class="text-xs font-medium text-muted-foreground">Administrator</span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="flex justify-end space-x-2 pt-2">
-                <button type="button" onclick="document.getElementById('new-user-modal').classList.add('hidden')"
-                    class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-smooth">
-                    Cancel
-                </button>
-                <button type="submit"
-                    class="px-3 py-2 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-smooth">
-                    Create User
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-{{end}}
-
-{{define "admin_user_row"}}
-<tr id="user-{{.User.ID}}" class="hover:bg-card-elevated transition-smooth">
-    <td class="px-4 py-3">
-        <span class="text-sm text-foreground">{{.User.Email}}</span>
-    </td>
-    <td class="px-4 py-3">
-        <span class="px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground">
-            {{.User.Plan.String}}
-        </span>
-    </td>
-    <td class="px-4 py-3">
-        {{if .User.IsAdmin}}
-        <span class="px-2 py-0.5 text-xs rounded bg-accent/15 text-accent">Yes</span>
-        {{else}}
-        <span class="text-xs text-muted-foreground">No</span>
-        {{end}}
-    </td>
-    <td class="px-4 py-3 text-sm text-muted-foreground">
-        {{.User.AgentCount}} / {{.User.AgentMax}}
-    </td>
-    <td class="px-4 py-3 text-sm text-muted-foreground">
-        {{.User.MonitorCount}} / {{if eq .User.MonitorMax -1}}&infin;{{else}}{{.User.MonitorMax}}{{end}}
-    </td>
-    <td class="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">
-        {{formatTimeAgo .User.CreatedAt}}
-    </td>
-    <td class="px-4 py-3 text-right">
-        <div class="flex items-center justify-end space-x-1.5">
-            <form hx-post="/admin/users/{{.User.ID}}" hx-target="#user-{{.User.ID}}" hx-swap="outerHTML" class="inline">
-                {{if $.CSRFToken}}<input type="hidden" name="_csrf" value="{{$.CSRFToken}}">{{end}}
-                <input type="hidden" name="toggle_admin" value="1">
-                <button type="submit"
-                    class="text-muted-foreground hover:text-foreground transition-smooth p-1 rounded hover:bg-muted/50"
-                    title="{{if .User.IsAdmin}}Remove admin{{else}}Make admin{{end}}">
-                    <i data-lucide="shield" class="w-3.5 h-3.5"></i>
-                </button>
-            </form>
-            <button hx-delete="/admin/users/{{.User.ID}}" hx-target="#user-{{.User.ID}}" hx-swap="outerHTML"
-                hx-confirm="Delete user '{{.User.Email}}'? This will also delete their agents and monitors."
-                class="text-muted-foreground hover:text-destructive transition-smooth p-1 rounded hover:bg-muted/50"
-                title="Delete user">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
-        </div>
-    </td>
-</tr>
 {{end}}
