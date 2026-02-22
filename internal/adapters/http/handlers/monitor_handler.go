@@ -286,8 +286,21 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 		}
 	}
 
-	// Update if interval or timeout were set
-	if intervalStr != "" || timeoutStr != "" {
+	// Parse failure threshold
+	failureThresholdStr := c.FormValue("failure_threshold")
+	if failureThresholdStr != "" {
+		ft, err := strconv.Atoi(failureThresholdStr)
+		if err != nil {
+			return h.renderError(c, "Invalid failure threshold value", userID)
+		}
+		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
+			return h.renderError(c, fmt.Sprintf("Failure threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold), userID)
+		}
+		monitor.FailureThreshold = ft
+	}
+
+	// Update if interval, timeout, or failure threshold were set
+	if intervalStr != "" || timeoutStr != "" || failureThresholdStr != "" {
 		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
 			return h.renderError(c, "Monitor created but failed to apply interval/timeout settings", userID)
 		}
@@ -483,6 +496,13 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 		monitor.Enable()
 	} else if enabled == "false" {
 		monitor.Disable()
+	}
+	if ftStr := c.FormValue("failure_threshold"); ftStr != "" {
+		if ft, err := strconv.Atoi(ftStr); err == nil {
+			if ft >= domain.MinFailureThreshold && ft <= domain.MaxFailureThreshold {
+				monitor.FailureThreshold = ft
+			}
+		}
 	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
