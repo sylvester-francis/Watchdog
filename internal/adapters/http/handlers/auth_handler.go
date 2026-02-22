@@ -40,7 +40,7 @@ func (h *AuthHandler) LoginPage(c echo.Context) error {
 	if h.NeedsSetup(c.Request().Context()) {
 		return c.Redirect(http.StatusFound, "/setup")
 	}
-	return c.Render(http.StatusOK, "auth.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "auth.html", map[string]any{
 		"Title":    "Login",
 		"IsLogin":  true,
 		"Error":    c.QueryParam("error"),
@@ -54,7 +54,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	password := c.FormValue("password")
 
 	if email == "" || password == "" {
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":   "Login",
 			"IsLogin": true,
 			"Error":   "Email and password are required",
@@ -72,7 +72,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			errMsg = "Invalid email or password"
 		}
-		return c.Render(http.StatusUnauthorized, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusUnauthorized, "auth.html", map[string]any{
 			"Title":   "Login",
 			"IsLogin": true,
 			"Error":   errMsg,
@@ -86,7 +86,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 	// Set user ID in session
 	if err := middleware.SetUserID(c, user.ID); err != nil {
-		return c.Render(http.StatusInternalServerError, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "auth.html", map[string]any{
 			"Title":   "Login",
 			"IsLogin": true,
 			"Error":   "Failed to create session",
@@ -102,7 +102,7 @@ func (h *AuthHandler) RegisterPage(c echo.Context) error {
 	if h.NeedsSetup(c.Request().Context()) {
 		return c.Redirect(http.StatusFound, "/setup")
 	}
-	return c.Render(http.StatusOK, "auth.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "auth.html", map[string]any{
 		"Title":      "Register",
 		"IsRegister": true,
 		"Error":      c.QueryParam("error"),
@@ -117,7 +117,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 
 	// Validation
 	if email == "" || password == "" {
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":      "Register",
 			"IsRegister": true,
 			"Error":      "Email and password are required",
@@ -126,7 +126,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	if len(password) < 8 {
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":      "Register",
 			"IsRegister": true,
 			"Error":      "Password must be at least 8 characters",
@@ -135,7 +135,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	if password != confirmPassword {
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":      "Register",
 			"IsRegister": true,
 			"Error":      "Passwords do not match",
@@ -151,7 +151,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		} else {
 			slog.Error("registration failed", "email", email, "error", err)
 		}
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":      "Register",
 			"IsRegister": true,
 			"Error":      errMsg,
@@ -168,7 +168,7 @@ func (h *AuthHandler) SetupPage(c echo.Context) error {
 	if !h.NeedsSetup(c.Request().Context()) {
 		return c.Redirect(http.StatusFound, "/login")
 	}
-	return c.Render(http.StatusOK, "auth.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "auth.html", map[string]any{
 		"Title":   "Setup",
 		"IsSetup": true,
 		"Error":   c.QueryParam("error"),
@@ -194,7 +194,7 @@ func (h *AuthHandler) Setup(c echo.Context) error {
 	confirmPassword := c.FormValue("confirm_password")
 
 	if email == "" || password == "" {
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":   "Setup",
 			"IsSetup": true,
 			"Error":   "Email and password are required",
@@ -203,7 +203,7 @@ func (h *AuthHandler) Setup(c echo.Context) error {
 	}
 
 	if len(password) < 8 {
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":   "Setup",
 			"IsSetup": true,
 			"Error":   "Password must be at least 8 characters",
@@ -212,7 +212,7 @@ func (h *AuthHandler) Setup(c echo.Context) error {
 	}
 
 	if password != confirmPassword {
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":   "Setup",
 			"IsSetup": true,
 			"Error":   "Passwords do not match",
@@ -224,7 +224,7 @@ func (h *AuthHandler) Setup(c echo.Context) error {
 	user, err := h.authSvc.Register(ctx, email, password)
 	if err != nil {
 		slog.Error("setup: registration failed", "email", email, "error", err)
-		return c.Render(http.StatusBadRequest, "auth.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "auth.html", map[string]any{
 			"Title":   "Setup",
 			"IsSetup": true,
 			"Error":   "Failed to create account",

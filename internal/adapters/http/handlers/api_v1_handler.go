@@ -117,7 +117,7 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 		monitors = []monitorResponse{}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitors,
 	})
 }
@@ -163,7 +163,7 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
 			AgentID:          monitor.AgentID.String(),
@@ -176,7 +176,7 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 			Timeout:          monitor.TimeoutSeconds,
 			FailureThreshold: monitor.FailureThreshold,
 		},
-		"heartbeats": map[string]interface{}{
+		"heartbeats": map[string]any{
 			"latencies":  latencies,
 			"uptime_up":  up,
 			"uptime_down": down,
@@ -217,7 +217,7 @@ func (h *APIV1Handler) ListAgents(c echo.Context) error {
 		result = []agentResponse{}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": result,
 	})
 }
@@ -287,7 +287,7 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 		result = []incidentResponse{}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": result,
 	})
 }
@@ -369,7 +369,7 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 	)
 	h.hub.SendToAgent(monitor.AgentID, taskMsg)
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
+	return c.JSON(http.StatusCreated, map[string]any{
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
 			AgentID:          monitor.AgentID.String(),
@@ -466,7 +466,7 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(monitor.ID.String()))
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
 			AgentID:          monitor.AgentID.String(),
@@ -547,7 +547,7 @@ func (h *APIV1Handler) CreateAgent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create agent"})
 	}
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
+	return c.JSON(http.StatusCreated, map[string]any{
 		"data": map[string]string{
 			"id":      agent.ID.String(),
 			"name":    agent.Name,
@@ -681,7 +681,7 @@ func (h *APIV1Handler) DashboardStats(c echo.Context) error {
 
 	activeIncidents, _ := h.incidentSvc.GetActiveIncidents(ctx)
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"total_monitors":   totalMonitors,
 		"monitors_up":      monitorsUp,
 		"monitors_down":    monitorsDown,

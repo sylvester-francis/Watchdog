@@ -71,7 +71,7 @@ func (h *MonitorHandler) List(c echo.Context) error {
 	// Get user's agents
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]any{
 			"Title": "Monitors",
 			"Error": "Failed to load agents",
 		})
@@ -150,7 +150,7 @@ func (h *MonitorHandler) List(c echo.Context) error {
 		}
 	}
 
-	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "monitors.html", map[string]any{
 		"Title":                  "Monitors",
 		"Agents":                 agents,
 		"AgentsWithMonitors":     agentsWithMonitors,
@@ -173,13 +173,13 @@ func (h *MonitorHandler) NewForm(c echo.Context) error {
 
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]any{
 			"Title": "New Monitor",
 			"Error": "Failed to load agents",
 		})
 	}
 
-	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "monitors.html", map[string]any{
 		"Title":        "New Monitor",
 		"ShowForm":     true,
 		"Agents":       agents,
@@ -326,7 +326,7 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 	// If HTMX request, return the new row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		c.Response().Header().Set("HX-Trigger", "monitorCreated")
-		return c.Render(http.StatusOK, "monitor_row", map[string]interface{}{
+		return c.Render(http.StatusOK, "monitor_row", map[string]any{
 			"Monitor": monitor,
 			"Agent":   agent,
 		})
@@ -413,7 +413,7 @@ func (h *MonitorHandler) Detail(c echo.Context) error {
 		}
 	}
 
-	return c.Render(http.StatusOK, "monitor_detail.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "monitor_detail.html", map[string]any{
 		"Title":           monitor.Name,
 		"Monitor":         monitor,
 		"Agent":           agent,
@@ -531,7 +531,7 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 	// If HTMX request, return updated row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		agent, _ := h.agentRepo.GetByID(ctx, monitor.AgentID)
-		return c.Render(http.StatusOK, "monitor_row", map[string]interface{}{
+		return c.Render(http.StatusOK, "monitor_row", map[string]any{
 			"Monitor": monitor,
 			"Agent":   agent,
 		})
@@ -635,7 +635,7 @@ func (h *MonitorHandler) renderError(c echo.Context, msg string, userID uuid.UUI
 		return c.HTML(http.StatusBadRequest, `<div class="text-red-400">`+html.EscapeString(msg)+`</div>`)
 	}
 
-	return c.Render(http.StatusBadRequest, "monitors.html", map[string]interface{}{
+	return c.Render(http.StatusBadRequest, "monitors.html", map[string]any{
 		"Title":        "Monitors",
 		"Error":        msg,
 		"Agents":       agents,
