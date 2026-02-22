@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Monitor, HeartbeatPoint, LatencyPoint, DashboardStats } from '$lib/types';
+import type { Monitor, MonitorSummary, HeartbeatPoint, LatencyPoint, DashboardStats } from '$lib/types';
 
 interface MonitorListResponse {
 	data: Monitor[];
@@ -67,6 +67,6 @@ export function getDashboardStats(): Promise<DashboardStats> {
 	return api.get<DashboardStats>('/api/v1/dashboard/stats');
 }
 
-export function getMonitorsSummary(): Promise<{ data: Monitor[] }> {
-	return api.get<{ data: Monitor[] }>('/api/v1/monitors/summary');
+export function getMonitorsSummary(): Promise<MonitorSummary[]> {
+	return api.get<MonitorSummary[]>('/api/v1/monitors/summary');
 }
