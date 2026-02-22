@@ -55,7 +55,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
 		FROM users
 		WHERE id = $1 AND tenant_id = $2`
 
@@ -67,6 +67,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		&user.PasswordHash,
 		&user.Plan,
 		&user.IsAdmin,
+		&user.TenantID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -86,7 +87,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
 		FROM users
 		WHERE email = $1 AND tenant_id = $2`
 
@@ -98,6 +99,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		&user.PasswordHash,
 		&user.Plan,
 		&user.IsAdmin,
+		&user.TenantID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -117,7 +119,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
 		FROM users
 		WHERE username = $1 AND tenant_id = $2`
 
@@ -129,6 +131,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 		&user.PasswordHash,
 		&user.Plan,
 		&user.IsAdmin,
+		&user.TenantID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
