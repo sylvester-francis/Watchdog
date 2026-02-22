@@ -124,9 +124,9 @@
         <div class="w-5 shrink-0"></div>
         <div class="flex-1 min-w-0 ml-2">Service</div>
         <div class="w-36 shrink-0 text-center hidden md:block">Uptime (24h)</div>
-        <div class="w-14 shrink-0 text-right hidden md:block">Uptime</div>
-        <div class="w-16 shrink-0 text-right hidden md:block">Latency</div>
-        <div class="w-14 shrink-0 text-right hidden md:block">Response</div>
+        <div class="w-14 shrink-0 text-right hidden md:block ml-2">Uptime</div>
+        <div class="w-16 shrink-0 text-right hidden md:block ml-3">Latency</div>
+        <div class="w-14 shrink-0 text-right hidden md:block ml-2">Response</div>
         <div class="w-5 shrink-0"></div>
     </div>
 
@@ -154,20 +154,20 @@
                 <span class="text-[9px] text-muted-foreground">No data</span>
                 {{end}}
             </div>
-            <div class="w-14 shrink-0 hidden md:flex items-center justify-end">
+            <div class="w-14 shrink-0 hidden md:flex items-center justify-end ml-2">
                 <span class="text-xs font-mono font-medium
                     {{if ge .UptimePercent 99.0}}text-emerald-400
                     {{else if ge .UptimePercent 95.0}}text-amber-400
                     {{else}}text-red-400{{end}}">{{formatPercent .UptimePercent}}%</span>
             </div>
-            <div class="w-16 shrink-0 hidden md:flex items-center justify-end">
+            <div class="w-16 shrink-0 hidden md:flex items-center justify-end ml-3">
                 {{if .Latencies}}
                 <canvas id="spark-{{.MonitorID}}" class="w-14 h-5"></canvas>
                 {{else}}
-                <span class="text-[9px] text-muted-foreground">--</span>
+                <span class="text-[9px] text-muted-foreground">No data</span>
                 {{end}}
             </div>
-            <div class="w-14 shrink-0 hidden md:flex items-center justify-end">
+            <div class="w-14 shrink-0 hidden md:flex items-center justify-end ml-2">
                 <span class="text-xs font-mono text-muted-foreground" id="resp-{{.MonitorID}}">--</span>
             </div>
             <div class="w-5 shrink-0 flex justify-end">
@@ -199,8 +199,8 @@
         <div class="w-5 shrink-0"></div>
         <div class="flex-1 min-w-0 ml-2">Service</div>
         <div class="w-36 shrink-0 text-center hidden md:block">Health (24h)</div>
-        <div class="w-14 shrink-0 text-right hidden md:block">Uptime</div>
-        <div class="w-20 shrink-0 text-right hidden md:block">Value</div>
+        <div class="w-14 shrink-0 text-right hidden md:block ml-2">Uptime</div>
+        <div class="w-20 shrink-0 text-right hidden md:block ml-3">Value</div>
         <div class="w-5 shrink-0"></div>
     </div>
 
@@ -228,21 +228,21 @@
                 <span class="text-[9px] text-muted-foreground">No data</span>
                 {{end}}
             </div>
-            <div class="w-14 shrink-0 hidden md:flex items-center justify-end">
+            <div class="w-14 shrink-0 hidden md:flex items-center justify-end ml-2">
                 <span class="text-xs font-mono font-medium
                     {{if ge .UptimePercent 99.0}}text-emerald-400
                     {{else if ge .UptimePercent 95.0}}text-amber-400
                     {{else}}text-red-400{{end}}">{{formatPercent .UptimePercent}}%</span>
             </div>
-            <div class="w-20 shrink-0 hidden md:flex items-center justify-end">
+            <div class="w-20 shrink-0 hidden md:flex items-center justify-end ml-3">
                 {{if eq .Type "system"}}
-                <span class="text-xs font-mono text-foreground">{{if .MetricValue}}{{.MetricValue}}{{else}}--{{end}}</span>
+                <span class="text-xs font-mono text-foreground">{{if .MetricValue}}{{.MetricValue}}{{else}}No data{{end}}</span>
                 {{else if eq .Type "docker"}}
                 <span class="text-xs font-mono {{if eq .Status "up"}}text-emerald-400{{else}}text-red-400{{end}}">{{if eq .Status "up"}}Running{{else}}Stopped{{end}}</span>
                 {{else if eq .Type "database"}}
-                <span class="text-xs font-mono text-muted-foreground" id="resp-{{.MonitorID}}">--</span>
+                <span class="text-xs font-mono text-muted-foreground" id="resp-{{.MonitorID}}">No data</span>
                 {{else}}
-                <span class="text-xs font-mono text-muted-foreground">--</span>
+                <span class="text-xs font-mono text-muted-foreground">No data</span>
                 {{end}}
             </div>
             <div class="w-5 shrink-0 flex justify-end">
@@ -298,7 +298,7 @@
                     <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.OnlineAgents}}/{{.Stats.TotalAgents}} online</span>
                 </div>
             </div>
-            <button onclick="window.dispatchEvent(new CustomEvent('open-agent-modal'))"
+            <button @click="openAgentModal"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors"
                     aria-label="Create new agent">
                 New Agent

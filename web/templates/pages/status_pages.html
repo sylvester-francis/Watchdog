@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div></div>
-        <button onclick="window.dispatchEvent(new CustomEvent('open-page-modal'))"
+        <button @click="openPageModal"
                 class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">
             New Status Page
         </button>
@@ -48,8 +48,8 @@
                        class="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                         Edit
                     </a>
-                    <button onclick="deleteStatusPage('{{.ID}}', '{{.Name}}')"
-                            class="px-2 py-1 text-xs text-destructive hover:text-destructive/80 transition-colors"
+                    <button class="px-2 py-1 text-xs text-destructive hover:text-destructive/80 transition-colors js-delete-page"
+                            data-page-id="{{.ID}}" data-page-name="{{.Name}}"
                             aria-label="Delete status page {{.Name}}">
                         Delete
                     </button>
@@ -112,13 +112,17 @@
 </div>
 
 <script nonce="{{.Nonce}}">
-function deleteStatusPage(id, name) {
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.js-delete-page');
+    if (!btn) return;
+    var id = btn.getAttribute('data-page-id');
+    var name = btn.getAttribute('data-page-name');
     if (!confirm("Are you sure you want to delete '" + name + "'? This action cannot be undone.")) return;
     var token = document.querySelector('meta[name="csrf-token"]');
     fetch('/status-pages/' + id, {
         method: 'DELETE',
         headers: token ? {'X-CSRF-Token': token.content} : {}
     }).then(function() { window.location.reload(); });
-}
+});
 </script>
 {{end}}

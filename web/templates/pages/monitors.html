@@ -61,7 +61,7 @@
             <input type="text" x-model="search" placeholder="Filter monitors..."
                 class="pl-9 pr-3 py-1.5 bg-card border border-border rounded-md text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background w-48">
         </div>
-        <button onclick="window.dispatchEvent(new CustomEvent('open-monitor-modal'))"
+        <button @click="openMonitorModal"
             class="px-3 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-xs font-medium rounded-md transition-smooth flex items-center space-x-1.5">
             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
             <span>New Monitor</span>
@@ -97,7 +97,7 @@
                     {{range .ServiceMonitors}}
                     <tr id="monitor-{{.Monitor.ID}}" class="hover:bg-card-elevated transition-smooth cursor-pointer"
                         data-type="{{.Monitor.Type}}" data-name="{{lower .Monitor.Name}}" data-target="{{lower .Monitor.Target}}"
-                        onclick="if(!event.target.closest('button,a,[x-data]'))window.location.href='/monitors/{{.Monitor.ID}}'">
+                        data-href="/monitors/{{.Monitor.ID}}">
                         <td class="px-5 py-3">
                             <div class="flex items-center space-x-2">
                                 <div class="w-2 h-2 rounded-full {{statusBgColor (print .Monitor.Status)}} {{if eq (print .Monitor.Status) "up"}}animate-pulse-dot{{end}}"></div>
@@ -192,7 +192,7 @@
                     {{range .InfraMonitors}}
                     <tr id="monitor-{{.Monitor.ID}}" class="hover:bg-card-elevated transition-smooth cursor-pointer"
                         data-type="{{.Monitor.Type}}" data-name="{{lower .Monitor.Name}}" data-target="{{lower .Monitor.Target}}"
-                        onclick="if(!event.target.closest('button,a,[x-data]'))window.location.href='/monitors/{{.Monitor.ID}}'">
+                        data-href="/monitors/{{.Monitor.ID}}">
                         <td class="px-5 py-3">
                             <div class="flex items-center space-x-2">
                                 <div class="w-2 h-2 rounded-full {{statusBgColor (print .Monitor.Status)}} {{if eq (print .Monitor.Status) "up"}}animate-pulse-dot{{end}}"></div>
@@ -294,7 +294,7 @@
         <i data-lucide="activity" class="w-12 h-12 text-muted-foreground/30 mx-auto mb-3"></i>
         <h3 class="text-sm font-medium text-foreground mb-1">No monitors yet</h3>
         <p class="text-sm text-muted-foreground mb-4">Create your first monitor to start tracking your services.</p>
-        <button onclick="window.dispatchEvent(new CustomEvent('open-monitor-modal'))"
+        <button @click="openMonitorModal"
             class="px-3 py-2 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-smooth">
             Create Monitor
         </button>
@@ -307,7 +307,7 @@
 <div x-show="showNoResults" x-cloak class="text-center py-10">
     <i data-lucide="search-x" class="w-8 h-8 text-muted-foreground/30 mx-auto mb-2"></i>
     <p class="text-sm text-muted-foreground">No monitors match your filter.</p>
-    <button onclick="window.dispatchEvent(new CustomEvent('open-monitor-modal'))"
+    <button @click="openMonitorModal"
         class="mt-3 px-3 py-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors">
         Create one
     </button>
@@ -462,6 +462,19 @@
 </div>
 
 <!-- Sparkline data for monitor table -->
+<!-- Delegated click handler for monitor table rows -->
+<script nonce="{{.Nonce}}">
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('tr[data-href]').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            if (!e.target.closest('button,a,[x-data]')) {
+                window.location.href = row.getAttribute('data-href');
+            }
+        });
+    });
+});
+</script>
+
 {{if .MonitorsWithHeartbeats}}
 <script type="application/json" id="monitor-sparkline-data">{{toJSON .MonitorsWithHeartbeats}}</script>
 <script nonce="{{.Nonce}}">
@@ -486,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
 {{define "monitor_row"}}
 <tr id="monitor-{{.Monitor.ID}}" class="hover:bg-card-elevated transition-smooth cursor-pointer"
     data-type="{{.Monitor.Type}}" data-name="{{lower .Monitor.Name}}" data-target="{{lower .Monitor.Target}}"
-    onclick="if(!event.target.closest('button,a,[x-data]'))window.location.href='/monitors/{{.Monitor.ID}}'">
+    data-href="/monitors/{{.Monitor.ID}}">
     <td class="px-5 py-3">
         <div class="flex items-center space-x-2">
             <div class="w-2 h-2 rounded-full {{statusBgColor (print .Monitor.Status)}} {{if eq (print .Monitor.Status) "up"}}animate-pulse-dot{{end}}"></div>

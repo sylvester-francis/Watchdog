@@ -62,7 +62,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Get notified when incidents open or resolve.</p>
                 </div>
             </div>
-            <button onclick="window.dispatchEvent(new CustomEvent('open-channel-modal'))"
+            <button @click="openChannelModal"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Add Channel</span>
@@ -129,7 +129,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Programmatic access to the WatchDog API.</p>
                 </div>
             </div>
-            <button onclick="window.dispatchEvent(new CustomEvent('open-token-modal'))"
+            <button @click="openTokenModal"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Token</span>
@@ -154,6 +154,21 @@
         </div>
     </div>
 </div>
+
+<!-- Copy token to clipboard (delegated for HTMX-swapped content) -->
+<script nonce="{{.Nonce}}">
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.js-copy-btn');
+    if (!btn) return;
+    var targetId = btn.getAttribute('data-copy-target');
+    var el = document.getElementById(targetId);
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent).then(function() {
+        btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i>';
+        if (window.lucide) lucide.createIcons({nodes: [btn]});
+    });
+});
+</script>
 
 <!-- Add Channel Modal -->
 <div id="new-channel-modal"
@@ -427,8 +442,8 @@
     </div>
     <div class="flex items-center space-x-2">
         <code id="token-plaintext" class="flex-1 text-xs font-mono bg-background px-3 py-2 rounded border border-border text-foreground select-all break-all">{{.Plaintext}}</code>
-        <button onclick="navigator.clipboard.writeText(document.getElementById('token-plaintext').textContent); this.innerHTML='<i data-lucide=&quot;check&quot; class=&quot;w-3.5 h-3.5&quot;></i>'; lucide.createIcons({nodes: [this]})"
-                class="shrink-0 px-2 py-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors">
+        <button data-copy-target="token-plaintext"
+                class="shrink-0 px-2 py-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors js-copy-btn">
             <i data-lucide="copy" class="w-3.5 h-3.5"></i>
         </button>
     </div>
@@ -452,8 +467,8 @@
         </div>
         <div class="flex items-center space-x-2">
             <code id="token-plaintext-{{.Token.ID}}" class="flex-1 text-xs font-mono bg-background px-3 py-2 rounded border border-border text-foreground select-all break-all">{{.Plaintext}}</code>
-            <button onclick="navigator.clipboard.writeText(document.getElementById('token-plaintext-{{.Token.ID}}').textContent); this.innerHTML='<i data-lucide=&quot;check&quot; class=&quot;w-3.5 h-3.5&quot;></i>'; lucide.createIcons({nodes: [this]})"
-                    class="shrink-0 px-2 py-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors">
+            <button data-copy-target="token-plaintext-{{.Token.ID}}"
+                    class="shrink-0 px-2 py-2 bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors js-copy-btn">
                 <i data-lucide="copy" class="w-3.5 h-3.5"></i>
             </button>
         </div>
