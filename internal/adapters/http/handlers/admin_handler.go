@@ -7,11 +7,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
@@ -72,36 +72,23 @@ type auditLogView struct {
 func (h *AdminHandler) Dashboard(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// Audit log: recent 50 entries
-	logs, err := h.auditLogRepo.GetRecent(ctx, 50)
+	// Audit log: recent 50 entries for the current user only
+	userID, _ := middleware.GetUserID(c)
+	logs, err := h.auditLogRepo.GetByUserID(ctx, userID, 50)
 	if err != nil {
 		slog.Error("admin: failed to fetch audit logs", "error", err)
 		logs = nil
 	}
 
-	// Resolve user IDs to emails
-	emailMap := make(map[uuid.UUID]string)
-	if logs != nil {
-		userIDs := make(map[uuid.UUID]bool)
-		for _, l := range logs {
-			if l.UserID != nil {
-				userIDs[*l.UserID] = true
-			}
-		}
-		for uid := range userIDs {
-			user, err := h.userRepo.GetByID(ctx, uid)
-			if err == nil && user != nil {
-				emailMap[uid] = user.Email
-			}
-		}
+	// Resolve current user's email for display
+	var currentEmail string
+	if user, err := h.userRepo.GetByID(ctx, userID); err == nil && user != nil {
+		currentEmail = user.Email
 	}
 
 	auditViews := make([]auditLogView, 0, len(logs))
 	for _, l := range logs {
-		v := auditLogView{AuditLog: l}
-		if l.UserID != nil {
-			v.Email = emailMap[*l.UserID]
-		}
+		v := auditLogView{AuditLog: l, Email: currentEmail}
 		auditViews = append(auditViews, v)
 	}
 
