@@ -217,6 +217,7 @@ Alpine.data('monitorFilter', () => ({
     httpCount: 0,
     tcpCount: 0,
     pingCount: 0,
+    dnsCount: 0,
     tlsCount: 0,
     visibleCount: 0,
     init() {
@@ -226,7 +227,7 @@ Alpine.data('monitorFilter', () => ({
     },
     countTypes() {
         var rows = document.querySelectorAll('#monitors-table tr[data-type]');
-        var counts = { http: 0, tcp: 0, ping: 0, tls: 0 };
+        var counts = { http: 0, tcp: 0, ping: 0, dns: 0, tls: 0 };
         rows.forEach(function(row) {
             var type = row.dataset.type;
             if (counts[type] !== undefined) counts[type]++;
@@ -236,18 +237,21 @@ Alpine.data('monitorFilter', () => ({
         this.httpCount = counts.http;
         this.tcpCount = counts.tcp;
         this.pingCount = counts.ping;
+        this.dnsCount = counts.dns;
         this.tlsCount = counts.tls;
     },
     setFilterAll() { this.filterType = 'all'; },
     setFilterHttp() { this.filterType = 'http'; },
     setFilterTcp() { this.filterType = 'tcp'; },
     setFilterPing() { this.filterType = 'ping'; },
+    setFilterDns() { this.filterType = 'dns'; },
     setFilterTls() { this.filterType = 'tls'; },
     // CSP-safe count labels (replaces inline x-text expressions)
     get totalCountLabel() { return '(' + this.totalCount + ')'; },
     get httpCountLabel() { return this.httpCount > 0 ? '(' + this.httpCount + ')' : ''; },
     get tcpCountLabel() { return this.tcpCount > 0 ? '(' + this.tcpCount + ')' : ''; },
     get pingCountLabel() { return this.pingCount > 0 ? '(' + this.pingCount + ')' : ''; },
+    get dnsCountLabel() { return this.dnsCount > 0 ? '(' + this.dnsCount + ')' : ''; },
     get tlsCountLabel() { return this.tlsCount > 0 ? '(' + this.tlsCount + ')' : ''; },
     get filterAllClass() {
         return this.filterType === 'all'
@@ -266,6 +270,11 @@ Alpine.data('monitorFilter', () => ({
     },
     get filterPingClass() {
         return this.filterType === 'ping'
+            ? 'bg-muted text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
+    },
+    get filterDnsClass() {
+        return this.filterType === 'dns'
             ? 'bg-muted text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50';
     },
