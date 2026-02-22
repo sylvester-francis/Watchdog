@@ -180,6 +180,57 @@ func (r *HeartbeatRepository) GetRecentFailures(ctx context.Context, monitorID u
 	return scanHeartbeats(rows, monitorID)
 }
 
+// GetUptimePercent calculates the uptime percentage for a monitor since the given time.
+func (r *HeartbeatRepository) GetUptimePercent(ctx context.Context, monitorID uuid.UUID, since time.Time) (float64, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `
+		SELECT COALESCE(
+			COUNT(*) FILTER (WHERE status IN ('up')) * 100.0 / NULLIF(COUNT(*), 0),
+			100.0
+		)
+		FROM heartbeats
+		WHERE monitor_id = $1 AND tenant_id = $2 AND time >= $3`
+
+	var pct float64
+	err := q.QueryRow(ctx, query, monitorID, tenantID, since).Scan(&pct)
+	if err != nil {
+		return 0, fmt.Errorf("heartbeatRepo.GetUptimePercent(%s): %w", monitorID, err)
+	}
+
+	return pct, nil
+}
+
+// GetLatencyHistory returns aggregated latency data points using TimescaleDB time_bucket.
+func (r *HeartbeatRepository) GetLatencyHistory(ctx context.Context, monitorID uuid.UUID, since time.Time, bucketInterval string) ([]domain.LatencyPoint, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `
+		SELECT time_bucket($3::interval, time) AS bucket,
+			AVG(latency_ms)::INT, MIN(latency_ms), MAX(latency_ms)
+		FROM heartbeats
+		WHERE monitor_id = $1 AND tenant_id = $2 AND time >= $4 AND latency_ms IS NOT NULL
+		GROUP BY bucket ORDER BY bucket`
+
+	rows, err := q.Query(ctx, query, monitorID, tenantID, bucketInterval, since)
+	if err != nil {
+		return nil, fmt.Errorf("heartbeatRepo.GetLatencyHistory(%s): %w", monitorID, err)
+	}
+	defer rows.Close()
+
+	var points []domain.LatencyPoint
+	for rows.Next() {
+		var p domain.LatencyPoint
+		if err := rows.Scan(&p.Time, &p.AvgMs, &p.MinMs, &p.MaxMs); err != nil {
+			return nil, fmt.Errorf("heartbeatRepo.GetLatencyHistory scan: %w", err)
+		}
+		points = append(points, p)
+	}
+	return points, rows.Err()
+}
+
 // DeleteOlderThan removes heartbeats older than the specified time.
 // Returns the number of rows deleted.
 func (r *HeartbeatRepository) DeleteOlderThan(ctx context.Context, before time.Time) (int64, error) {

@@ -521,18 +521,25 @@ Alpine.data('statusPageModal', () => ({
 
 // 14. confirmModal — global destructive-action confirmation dialog
 // Intercepts htmx:confirm events to replace native confirm() with a styled modal.
+// Uses direct DOM manipulation because Alpine CSP build x-text/x-show reactivity
+// is broken for property updates from methods.
 Alpine.data('confirmModal', () => ({
-    show: false,
-    message: '',
-    actionLabel: 'Confirm',
-    destructive: false,
     _pendingEvent: null,
     open(message, actionLabel, destructive, evt) {
-        this.message = message;
-        this.actionLabel = actionLabel || 'Confirm';
-        this.destructive = !!destructive;
         this._pendingEvent = evt;
-        this.show = true;
+        var root = this.$el;
+        var overlay = root.querySelector('[data-confirm-overlay]');
+        var msgEl = root.querySelector('[data-confirm-message]');
+        var btnEl = root.querySelector('[data-confirm-action-btn]');
+        if (msgEl) msgEl.textContent = message || '';
+        if (btnEl) {
+            btnEl.textContent = actionLabel || 'Confirm';
+            btnEl.className = 'px-3 py-1.5 text-xs font-medium rounded-md transition-smooth ' +
+                (destructive
+                    ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                    : 'bg-accent text-accent-foreground hover:bg-accent/90');
+        }
+        if (overlay) overlay.style.display = '';
     },
     confirm() {
         if (this._pendingEvent) {
@@ -540,16 +547,14 @@ Alpine.data('confirmModal', () => ({
         }
         this._close();
     },
-    cancel() { this._close(); },
-    _close() {
-        this.show = false;
-        this.message = '';
-        this._pendingEvent = null;
+    cancel() {
+        var overlay = this.$el.querySelector('[data-confirm-overlay]');
+        if (overlay && overlay.style.display !== 'none') this._close();
     },
-    get actionBtnClass() {
-        return this.destructive
-            ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-            : 'bg-accent text-accent-foreground hover:bg-accent/90';
+    _close() {
+        var overlay = this.$el.querySelector('[data-confirm-overlay]');
+        if (overlay) overlay.style.display = 'none';
+        this._pendingEvent = null;
     },
 }));
 

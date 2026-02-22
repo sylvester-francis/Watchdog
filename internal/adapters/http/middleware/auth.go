@@ -137,7 +137,7 @@ func ClearSession(c echo.Context) error {
 		return err
 	}
 
-	sess.Values = make(map[interface{}]interface{})
+	sess.Values = make(map[any]any)
 	sess.Options.MaxAge = -1
 	return sess.Save(c.Request(), c.Response())
 }

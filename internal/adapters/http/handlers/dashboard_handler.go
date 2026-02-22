@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -33,15 +34,16 @@ type DashboardStats struct {
 
 // MonitorSparkline holds sparkline data for a single monitor.
 type MonitorSparkline struct {
-	MonitorID   string
-	Name        string
-	Status      string
-	Type        string
-	Target      string
-	Latencies   []int
-	UptimeUp    int
-	UptimeDown  int
-	UptimeTotal int
+	MonitorID     string
+	Name          string
+	Status        string
+	Type          string
+	Target        string
+	Latencies     []int
+	UptimeUp      int
+	UptimeDown    int
+	UptimeTotal   int
+	UptimePercent float64
 	// CheckResults holds per-check results: 1=success, 0=failure, -1=unknown (oldest first)
 	CheckResults []int
 	MetricValue  string // system monitors: e.g. "CPU 23.5%"
@@ -88,7 +90,7 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 	// Get user's agents
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "dashboard.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "dashboard.html", map[string]any{
 			"Title": "Dashboard",
 			"Error": "Failed to load agents",
 		})
@@ -131,8 +133,9 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 
 	// Build sparkline data for each monitor and compute overall uptime
 	sparklines := make([]MonitorSparkline, 0, len(allMonitors))
-	totalHeartbeats := 0
-	successHeartbeats := 0
+	since24h := time.Now().Add(-24 * time.Hour)
+	var uptimeSum float64
+	var uptimeCount int
 	for _, m := range allMonitors {
 		heartbeats, err := h.heartbeatRepo.GetByMonitorID(ctx, m.ID, 20)
 		if err != nil {
@@ -147,9 +150,7 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 			if heartbeats[i].LatencyMs != nil {
 				latencies = append(latencies, *heartbeats[i].LatencyMs)
 			}
-			totalHeartbeats++
 			if heartbeats[i].Status.IsSuccess() {
-				successHeartbeats++
 				monUp++
 				checkResults = append(checkResults, 1)
 			} else {
@@ -157,6 +158,14 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 				checkResults = append(checkResults, 0)
 			}
 		}
+
+		// Get DB-level uptime percentage (24h window)
+		monUptimePct, err := h.heartbeatRepo.GetUptimePercent(ctx, m.ID, since24h)
+		if err != nil {
+			monUptimePct = 100.0
+		}
+		uptimeSum += monUptimePct
+		uptimeCount++
 
 		// Extract metric value for system monitors
 		var metricValue string
@@ -170,23 +179,24 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		}
 
 		sparklines = append(sparklines, MonitorSparkline{
-			MonitorID:    m.ID.String(),
-			Name:         m.Name,
-			Status:       string(m.Status),
-			Type:         string(m.Type),
-			Target:       m.Target,
-			Latencies:    latencies,
-			UptimeUp:     monUp,
-			UptimeDown:   monDown,
-			UptimeTotal:  len(heartbeats),
-			CheckResults: checkResults,
-			MetricValue:  metricValue,
+			MonitorID:     m.ID.String(),
+			Name:          m.Name,
+			Status:        string(m.Status),
+			Type:          string(m.Type),
+			Target:        m.Target,
+			Latencies:     latencies,
+			UptimeUp:      monUp,
+			UptimeDown:    monDown,
+			UptimeTotal:   len(heartbeats),
+			UptimePercent: monUptimePct,
+			CheckResults:  checkResults,
+			MetricValue:   metricValue,
 		})
 	}
 
-	// Compute uptime percentage
-	if totalHeartbeats > 0 {
-		stats.UptimePercent = float64(successHeartbeats) / float64(totalHeartbeats) * 100
+	// Compute overall uptime percentage from DB-level per-monitor values
+	if uptimeCount > 0 {
+		stats.UptimePercent = uptimeSum / float64(uptimeCount)
 	}
 
 	// Split sparklines into service (network) and infrastructure (local) groups
@@ -220,7 +230,7 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		user = &domain.User{Plan: domain.PlanBeta}
 	}
 
-	return c.Render(http.StatusOK, "dashboard.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "dashboard.html", map[string]any{
 		"Title":                 "Dashboard",
 		"Agents":                agents,
 		"ActiveIncidents":       incidents,

@@ -98,7 +98,7 @@ func (h *AgentHandler) Create(c echo.Context) error {
 			</div>`)
 	}
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
+	return c.JSON(http.StatusCreated, map[string]any{
 		"agent": map[string]string{
 			"id":   agent.ID.String(),
 			"name": agent.Name,

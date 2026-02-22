@@ -219,6 +219,17 @@ func TestProcessHeartbeat_Success_ResolvesIncident(t *testing.T) {
 	assert.True(t, resolved)
 }
 
+func mockMonitorRepoWithThreshold(monitorID uuid.UUID, threshold int) *mocks.MockMonitorRepository {
+	return &mocks.MockMonitorRepository{
+		GetByIDFn: func(_ context.Context, id uuid.UUID) (*domain.Monitor, error) {
+			m := domain.NewMonitor(uuid.New(), "test", domain.MonitorTypeHTTP, "example.com")
+			m.ID = id
+			m.FailureThreshold = threshold
+			return m, nil
+		},
+	}
+}
+
 func TestProcessHeartbeat_SingleFailure_NoIncident(t *testing.T) {
 	monitorID := uuid.New()
 
@@ -243,7 +254,7 @@ func TestProcessHeartbeat_SingleFailure_NoIncident(t *testing.T) {
 		},
 	}
 
-	svc := newTestMonitorService(&mocks.MockMonitorRepository{}, heartbeatRepo, incidentRepo, incidentSvc)
+	svc := newTestMonitorService(mockMonitorRepoWithThreshold(monitorID, domain.DefaultFailureThreshold), heartbeatRepo, incidentRepo, incidentSvc)
 
 	hb := domain.NewFailureHeartbeat(monitorID, uuid.New(), domain.HeartbeatStatusDown, "timeout")
 	err := svc.ProcessHeartbeat(context.Background(), hb)
@@ -275,7 +286,7 @@ func TestProcessHeartbeat_TwoFailures_NoIncident(t *testing.T) {
 		},
 	}
 
-	svc := newTestMonitorService(&mocks.MockMonitorRepository{}, heartbeatRepo, incidentRepo, incidentSvc)
+	svc := newTestMonitorService(mockMonitorRepoWithThreshold(monitorID, domain.DefaultFailureThreshold), heartbeatRepo, incidentRepo, incidentSvc)
 
 	hb := domain.NewFailureHeartbeat(monitorID, uuid.New(), domain.HeartbeatStatusDown, "err")
 	err := svc.ProcessHeartbeat(context.Background(), hb)
@@ -310,7 +321,7 @@ func TestProcessHeartbeat_ThreeConsecutiveFailures_CreatesIncident(t *testing.T)
 		},
 	}
 
-	svc := newTestMonitorService(&mocks.MockMonitorRepository{}, heartbeatRepo, incidentRepo, incidentSvc)
+	svc := newTestMonitorService(mockMonitorRepoWithThreshold(monitorID, domain.DefaultFailureThreshold), heartbeatRepo, incidentRepo, incidentSvc)
 
 	hb := domain.NewFailureHeartbeat(monitorID, uuid.New(), domain.HeartbeatStatusDown, "err")
 	err := svc.ProcessHeartbeat(context.Background(), hb)
@@ -345,7 +356,7 @@ func TestProcessHeartbeat_FailuresNotConsecutive_NoIncident(t *testing.T) {
 		},
 	}
 
-	svc := newTestMonitorService(&mocks.MockMonitorRepository{}, heartbeatRepo, incidentRepo, incidentSvc)
+	svc := newTestMonitorService(mockMonitorRepoWithThreshold(monitorID, domain.DefaultFailureThreshold), heartbeatRepo, incidentRepo, incidentSvc)
 
 	hb := domain.NewFailureHeartbeat(monitorID, uuid.New(), domain.HeartbeatStatusDown, "err")
 	err := svc.ProcessHeartbeat(context.Background(), hb)
@@ -371,7 +382,7 @@ func TestProcessHeartbeat_AlreadyOpenIncident_NoNew(t *testing.T) {
 		},
 	}
 
-	svc := newTestMonitorService(&mocks.MockMonitorRepository{}, heartbeatRepo, incidentRepo, incidentSvc)
+	svc := newTestMonitorService(mockMonitorRepoWithThreshold(monitorID, domain.DefaultFailureThreshold), heartbeatRepo, incidentRepo, incidentSvc)
 
 	hb := domain.NewFailureHeartbeat(monitorID, uuid.New(), domain.HeartbeatStatusDown, "err")
 	err := svc.ProcessHeartbeat(context.Background(), hb)

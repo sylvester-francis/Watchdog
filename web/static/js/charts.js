@@ -119,6 +119,91 @@ function createLatencyChart(canvasId, labels, data) {
     });
 }
 
+// Time-series latency chart with avg/min/max bands
+function createTimeLatencyChart(canvasId, points) {
+    var ctx = document.getElementById(canvasId);
+    if (!ctx || !points || points.length === 0) return null;
+
+    var labels = points.map(function(p) {
+        var d = new Date(p.time);
+        var h = d.getHours().toString().padStart(2, '0');
+        var m = d.getMinutes().toString().padStart(2, '0');
+        var mon = (d.getMonth() + 1).toString().padStart(2, '0');
+        var day = d.getDate().toString().padStart(2, '0');
+        return mon + '/' + day + ' ' + h + ':' + m;
+    });
+    var avgData = points.map(function(p) { return p.avgMs; });
+    var minData = points.map(function(p) { return p.minMs; });
+    var maxData = points.map(function(p) { return p.maxMs; });
+
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Avg',
+                    data: avgData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointRadius: 1,
+                    pointBackgroundColor: '#3b82f6'
+                },
+                {
+                    label: 'Max',
+                    data: maxData,
+                    borderColor: '#ef444480',
+                    borderWidth: 1,
+                    borderDash: [3, 3],
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'Min',
+                    data: minData,
+                    borderColor: '#22c55e80',
+                    borderWidth: 1,
+                    borderDash: [3, 3],
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: { boxWidth: 12, padding: 12, font: { size: 10 } }
+                },
+                tooltip: {
+                    backgroundColor: '#111113',
+                    borderColor: '#27272a',
+                    borderWidth: 1,
+                    titleFont: { family: "'Inter'" },
+                    bodyFont: { family: "'JetBrains Mono'", size: 12 },
+                    callbacks: {
+                        label: function(ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y + 'ms'; }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: '#27272a' },
+                    ticks: { maxTicksLimit: 8, maxRotation: 0 }
+                },
+                y: {
+                    grid: { color: '#27272a' },
+                    ticks: { callback: function(v) { return v + 'ms'; } },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
 // System metric usage chart (CPU/memory/disk %) with threshold line
 function createMetricChart(canvasId, labels, data, threshold, metricName) {
     var ctx = document.getElementById(canvasId);
