@@ -411,7 +411,7 @@
 <!-- Chart + Sparkline Data -->
 {{if .Sparklines}}
 <script type="application/json" id="sparkline-data">{{toJSON .Sparklines}}</script>
-<script>
+<script nonce="{{.Nonce}}">
 document.addEventListener('DOMContentLoaded', function() {
     var sparklineEl = document.getElementById('sparkline-data');
     if (!sparklineEl) return;

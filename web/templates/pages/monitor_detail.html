@@ -348,7 +348,7 @@
 </div>
 
 {{if and (ne (print .Monitor.Type) "system") (ne (print .Monitor.Type) "docker")}}
-<script>
+<script nonce="{{.Nonce}}">
 (function() {
     var monitorID = '{{.Monitor.ID}}';
     var currentChart = null;
@@ -408,7 +408,7 @@
 
 {{if and (eq (print .Monitor.Type) "system") .MetricValues}}
 <script type="application/json" id="detail-metric-data">{"values":{{toJSON .MetricValues}},"threshold":{{.MetricThreshold}},"metric":"{{.MetricName}}"}</script>
-<script>
+<script nonce="{{.Nonce}}">
 document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById('detail-metric-data');
     if (!el) return;
