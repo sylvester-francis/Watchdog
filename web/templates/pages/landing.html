@@ -238,7 +238,7 @@
                         <i data-lucide="radar" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">2. Agent runs checks</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed">HTTP, TCP, Ping, and TLS. The hub pushes monitor configs to the agent over WebSocket. The agent reports back.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed">HTTP, TCP, DNS, TLS, Docker, database, and system metrics. The hub pushes monitor configs to the agent over WebSocket. The agent reports back.</p>
                 </div>
                 <div class="text-center relative">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
@@ -264,7 +264,7 @@
                         <i data-lucide="server" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
                     <h3 class="text-sm font-semibold text-foreground mb-1.5">Agent-based monitoring</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed break-words">The agent runs inside your network, so it can reach things that external monitoring tools can't &mdash; internal databases, private APIs, services behind a firewall or NAT.</p>
+                    <p class="text-sm text-muted-foreground leading-relaxed break-words">The agent runs inside your network, so it can reach things that external monitoring tools can't &mdash; internal databases, Docker containers, private APIs, services behind a firewall or NAT.</p>
                 </div>
 
                 <!-- Live Dashboard -->
@@ -285,17 +285,18 @@
                     <p class="text-sm text-muted-foreground leading-relaxed break-words">3-strike rule before firing. Supports Discord, Slack, Email, Telegram, PagerDuty, and webhooks.</p>
                 </div>
 
-                <!-- Four Check Types -->
+                <!-- Comprehensive Checks -->
                 <div class="bg-card border border-border rounded-xl p-4 sm:p-6 card-hover min-w-0 overflow-hidden">
                     <div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mb-3">
                         <i data-lucide="terminal" class="w-5 h-5 text-muted-foreground"></i>
                     </div>
-                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Four check types</h3>
-                    <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">HTTP, TCP, Ping, and TLS certificate monitoring. Covers everything you'd want to monitor in a typical infrastructure setup.</p>
+                    <h3 class="text-sm font-semibold text-foreground mb-1.5">Eight check types</h3>
+                    <p class="text-sm text-muted-foreground leading-relaxed mb-3 break-words">HTTP with content validation, TCP, Ping, DNS, TLS certificates, Docker containers, database connectivity (PostgreSQL, MySQL, Redis), and system metrics.</p>
                     <div class="bg-card-elevated rounded-md p-3 border border-border/50 font-mono text-[11px] text-muted-foreground overflow-x-auto">
-                        <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> db.internal:5432 <span class="text-border">....</span> <span class="text-foreground">2ms</span></div>
-                        <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> redis.internal:6379 <span class="text-border">..</span> <span class="text-foreground">1ms</span></div>
-                        <div class="whitespace-nowrap"><span class="text-red-400">[FAIL]</span> vault.internal:8200 <span class="text-border">..</span> <span class="text-red-400">timeout</span></div>
+                        <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> api.internal/health <span class="text-border">....</span> <span class="text-foreground">12ms</span></div>
+                        <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> postgres:5432 <span class="text-border">.........</span> <span class="text-foreground">2ms</span></div>
+                        <div class="whitespace-nowrap"><span class="text-emerald-400">[OK]</span> redis:6379 <span class="text-border">............</span> <span class="text-foreground">1ms</span></div>
+                        <div class="whitespace-nowrap"><span class="text-red-400">[FAIL]</span> vault:8200 <span class="text-border">...........</span> <span class="text-red-400">timeout</span></div>
                     </div>
                 </div>
 

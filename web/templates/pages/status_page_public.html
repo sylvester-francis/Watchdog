@@ -90,6 +90,9 @@
                             {{else if eq .Type "ping"}}bg-amber-500/10 text-amber-400
                             {{else if eq .Type "dns"}}bg-cyan-500/10 text-cyan-400
                             {{else if eq .Type "tls"}}bg-emerald-500/10 text-emerald-400
+                            {{else if eq .Type "docker"}}bg-indigo-500/10 text-indigo-400
+                            {{else if eq .Type "database"}}bg-sky-500/10 text-sky-400
+                            {{else if eq .Type "system"}}bg-orange-500/10 text-orange-400
                             {{else}}bg-muted text-muted-foreground{{end}}">{{.Type}}</span>
                     </div>
                     <div class="flex items-center space-x-3 sm:space-x-4 shrink-0 ml-2 sm:ml-4">
