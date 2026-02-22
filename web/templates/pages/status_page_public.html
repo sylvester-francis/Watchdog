@@ -96,7 +96,9 @@
                             {{else}}bg-muted text-muted-foreground{{end}}">{{.Type}}</span>
                     </div>
                     <div class="flex items-center space-x-3 sm:space-x-4 shrink-0 ml-2 sm:ml-4">
-                        {{if .HasLatency}}
+                        {{if .MetricValue}}
+                        <span class="text-xs text-muted-foreground tabular-nums">{{.MetricValue}}</span>
+                        {{else if .HasLatency}}
                         <span class="text-xs text-muted-foreground tabular-nums">{{.LatencyMs}}ms</span>
                         {{end}}
                         {{if ge .UptimePercent 0.0}}
@@ -109,8 +111,14 @@
                             {{if eq .Status "up"}}text-emerald-400
                             {{else if eq .Status "down"}}text-red-400
                             {{else}}text-muted-foreground{{end}}">
-                            {{if eq .Status "up"}}Operational
-                            {{else if eq .Status "down"}}Down
+                            {{if eq .Status "up"}}
+                                {{if eq .Type "docker"}}Running
+                                {{else if eq .Type "system"}}Healthy
+                                {{else}}Operational{{end}}
+                            {{else if eq .Status "down"}}
+                                {{if eq .Type "docker"}}Stopped
+                                {{else if eq .Type "system"}}Threshold Exceeded
+                                {{else}}Down{{end}}
                             {{else}}Unknown{{end}}
                         </span>
                     </div>
