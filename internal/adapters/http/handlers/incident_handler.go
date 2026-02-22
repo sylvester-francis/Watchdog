@@ -30,6 +30,7 @@ type IncidentStats struct {
 type IncidentHandler struct {
 	incidentSvc ports.IncidentService
 	monitorRepo ports.MonitorRepository
+	agentRepo   ports.AgentRepository
 	templates   *view.Templates
 	auditSvc    ports.AuditService
 }
@@ -38,12 +39,14 @@ type IncidentHandler struct {
 func NewIncidentHandler(
 	incidentSvc ports.IncidentService,
 	monitorRepo ports.MonitorRepository,
+	agentRepo ports.AgentRepository,
 	templates *view.Templates,
 	auditSvc ports.AuditService,
 ) *IncidentHandler {
 	return &IncidentHandler{
 		incidentSvc: incidentSvc,
 		monitorRepo: monitorRepo,
+		agentRepo:   agentRepo,
 		templates:   templates,
 		auditSvc:    auditSvc,
 	}
@@ -53,7 +56,7 @@ func NewIncidentHandler(
 func (h *IncidentHandler) List(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	_, ok := middleware.GetUserID(c)
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusFound, "/login")
 	}
@@ -79,6 +82,32 @@ func (h *IncidentHandler) List(c echo.Context) error {
 			"Error": "Failed to load incidents",
 		})
 	}
+
+	// Filter incidents to only those belonging to the user's monitors
+	agents, err := h.agentRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return c.Render(http.StatusInternalServerError, "incidents.html", map[string]interface{}{
+			"Title": "Incidents",
+			"Error": "Failed to load incidents",
+		})
+	}
+	userMonitorIDs := make(map[uuid.UUID]struct{})
+	for _, agent := range agents {
+		monitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
+		if err != nil {
+			continue
+		}
+		for _, m := range monitors {
+			userMonitorIDs[m.ID] = struct{}{}
+		}
+	}
+	filtered := make([]*domain.Incident, 0, len(incidents))
+	for _, inc := range incidents {
+		if _, ok := userMonitorIDs[inc.MonitorID]; ok {
+			filtered = append(filtered, inc)
+		}
+	}
+	incidents = filtered
 
 	// Compute stats from the current result set
 	stats := IncidentStats{Total: len(incidents)}
@@ -116,14 +145,22 @@ func (h *IncidentHandler) List(c echo.Context) error {
 func (h *IncidentHandler) Detail(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return c.Redirect(http.StatusFound, "/incidents")
 	}
 
-	incident, err := h.incidentSvc.GetIncident(ctx, id)
-	if err != nil || incident == nil {
+	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, id, userID)
+	if err != nil {
+		return c.Redirect(http.StatusFound, "/incidents")
+	}
+	if incident == nil {
 		return c.Redirect(http.StatusFound, "/incidents")
 	}
 
@@ -150,6 +187,14 @@ func (h *IncidentHandler) Acknowledge(c echo.Context) error {
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
+	}
+
+	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, id, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to acknowledge incident"})
+	}
+	if incident == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
 	}
 
 	if err := h.incidentSvc.AcknowledgeIncident(ctx, id, userID); err != nil {
@@ -183,7 +228,7 @@ func (h *IncidentHandler) Acknowledge(c echo.Context) error {
 func (h *IncidentHandler) Resolve(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	_, ok := middleware.GetUserID(c)
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 	}
@@ -194,13 +239,20 @@ func (h *IncidentHandler) Resolve(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
 	}
 
+	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, id, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resolve incident"})
+	}
+	if incident == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+	}
+
 	if err := h.incidentSvc.ResolveIncident(ctx, id); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resolve incident"})
 	}
 
 	// Audit log
 	if h.auditSvc != nil {
-		userID, _ := middleware.GetUserID(c)
 		h.auditSvc.LogEvent(ctx, &userID, domain.AuditIncidentResolved, c.RealIP(), map[string]string{
 			"incident_id": id.String(),
 		})

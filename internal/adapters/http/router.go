@@ -110,7 +110,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.authHandler = handlers.NewAuthHandler(deps.UserAuthService, deps.UserRepo, templates, loginLimiter, deps.AuditService)
 	r.dashboardHandler = handlers.NewDashboardHandler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.UserRepo, templates)
 	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates, deps.Hub, deps.AuditService)
-	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, templates, deps.AuditService)
+	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, deps.AgentRepo, templates, deps.AuditService)
 	r.agentHandler = handlers.NewAgentHandler(deps.AgentAuthService, deps.AgentRepo, templates, deps.AuditService)
 	r.adminHandler = handlers.NewAdminHandler(deps.AuditLogRepo, deps.UserRepo, deps.Hub, deps.DB, deps.Config, deps.StartTime, templates)
 	r.landingHandler = handlers.NewLandingHandler(deps.WaitlistRepo, templates)

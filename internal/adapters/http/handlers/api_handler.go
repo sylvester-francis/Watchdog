@@ -46,10 +46,24 @@ func NewAPIHandler(
 func (h *APIHandler) MonitorHeartbeats(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
 	idStr := c.Param("id")
 	monitorID, err := uuid.Parse(idStr)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+	}
+
+	// Verify ownership: monitor's agent must belong to user
+	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch heartbeats"})
+	}
+	if monitor == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
 	}
 
 	period := c.QueryParam("period")
