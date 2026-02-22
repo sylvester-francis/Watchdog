@@ -12,7 +12,7 @@ Tracking sheet for all items from `watchdog-security-spec.md`.
 | QW-3 | Agent fingerprinting (hostname, OS, arch, Go version) | Done | Migration 021, stored on first connect, warns on change |
 | QW-3b | HMAC message signing | Deferred | Requires shared secret negotiation design |
 | QW-3c | TLS enforcement for agent connections | Deferred | Config-driven, needs reverse proxy testing |
-| QW-4 | Security headers (CSP, X-Frame-Options, HSTS, Permissions-Policy) | Done | `secure_headers.go` |
+| QW-4 | Security headers (CSP, X-Frame-Options, HSTS, Permissions-Policy) | Done | `secure_headers.go` — nonce-based CSP, `'unsafe-inline'` removed from `script-src` |
 | QW-5 | Rate limiting (login, general) | Done | `ratelimit.go` |
 | QW-6a | Webhook encryption (AES-256-GCM) | Done | `aes_gcm.go` |
 | QW-6b | Session cookies (HttpOnly, Secure, SameSiteLax) | Done | Router session config |
