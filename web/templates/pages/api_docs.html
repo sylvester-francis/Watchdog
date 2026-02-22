@@ -11,7 +11,7 @@
     <div id="swagger-ui"></div>
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.18.2/swagger-ui-bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.18.2/swagger-ui-standalone-preset.js"></script>
-    <script>
+    <script nonce="{{.Nonce}}">
         SwaggerUIBundle({
             url: "/static/openapi.json",
             dom_id: "#swagger-ui",

@@ -1,8 +1,14 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+
 	"github.com/labstack/echo/v4"
 )
+
+// NonceContextKey is the Echo context key for the per-request CSP nonce.
+const NonceContextKey = "csp_nonce"
 
 // SecureHeaders adds security-related HTTP headers to responses.
 // When secureCookies is true, HSTS is also enabled (production with HTTPS).
@@ -11,6 +17,14 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			// Generate per-request nonce (16 bytes = 128 bits)
+			nonceBytes := make([]byte, 16)
+			if _, err := rand.Read(nonceBytes); err != nil {
+				return err
+			}
+			nonce := base64.StdEncoding.EncodeToString(nonceBytes)
+			c.Set(NonceContextKey, nonce)
+
 			h := c.Response().Header()
 
 			// Prevent XSS attacks
@@ -25,9 +39,15 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 			// Control referrer information
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-			// Content Security Policy — allow CDN scripts, fonts, and SSE connections
-			// Uses Alpine.js CSP build (no unsafe-eval needed)
-			h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://validator.swagger.io; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+			// Content Security Policy — nonce-based script-src (no unsafe-inline/unsafe-eval)
+			// Uses Alpine.js CSP build (@alpinejs/csp) which eliminates eval need
+			h.Set("Content-Security-Policy",
+				"default-src 'self'; "+
+					"script-src 'self' 'nonce-"+nonce+"' https://unpkg.com https://cdn.jsdelivr.net; "+
+					"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "+
+					"img-src 'self' data: https://validator.swagger.io; "+
+					"font-src 'self' https://fonts.gstatic.com; "+
+					"connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
 
 			// Permissions Policy
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")

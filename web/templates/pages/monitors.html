@@ -466,7 +466,7 @@
 <!-- Sparkline data for monitor table -->
 {{if .MonitorsWithHeartbeats}}
 <script type="application/json" id="monitor-sparkline-data">{{toJSON .MonitorsWithHeartbeats}}</script>
-<script>
+<script nonce="{{.Nonce}}">
 document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById('monitor-sparkline-data');
     if (!el) return;
