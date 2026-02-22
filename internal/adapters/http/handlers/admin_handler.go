@@ -155,7 +155,7 @@ func (h *AdminHandler) Dashboard(c echo.Context) error {
 	runtime.ReadMemStats(&memStats)
 	goroutines := runtime.NumGoroutine()
 
-	return c.Render(http.StatusOK, "system.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "system.html", map[string]any{
 		"Title":          "System",
 		"DBHealthy":      dbHealthy,
 		"PingLatency":    fmt.Sprintf("%.0fms", float64(pingLatency.Microseconds())/1000.0),

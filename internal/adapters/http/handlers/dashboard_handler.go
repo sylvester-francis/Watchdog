@@ -90,7 +90,7 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 	// Get user's agents
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "dashboard.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "dashboard.html", map[string]any{
 			"Title": "Dashboard",
 			"Error": "Failed to load agents",
 		})
@@ -230,7 +230,7 @@ func (h *DashboardHandler) Dashboard(c echo.Context) error {
 		user = &domain.User{Plan: domain.PlanBeta}
 	}
 
-	return c.Render(http.StatusOK, "dashboard.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "dashboard.html", map[string]any{
 		"Title":                 "Dashboard",
 		"Agents":                agents,
 		"ActiveIncidents":       incidents,

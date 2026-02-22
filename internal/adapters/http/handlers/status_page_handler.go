@@ -77,7 +77,7 @@ func (h *StatusPageHandler) List(c echo.Context) error {
 		pages = nil
 	}
 
-	return c.Render(http.StatusOK, "status_pages.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "status_pages.html", map[string]any{
 		"Title":       "Status Pages",
 		"StatusPages": pages,
 	})
@@ -93,7 +93,7 @@ func (h *StatusPageHandler) Create(c echo.Context) error {
 
 	name := strings.TrimSpace(c.FormValue("name"))
 	if name == "" {
-		return c.Render(http.StatusOK, "status_pages.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "status_pages.html", map[string]any{
 			"Title": "Status Pages",
 			"Error": "Name is required",
 		})
@@ -111,7 +111,7 @@ func (h *StatusPageHandler) Create(c echo.Context) error {
 	page.Description = strings.TrimSpace(c.FormValue("description"))
 
 	if err := h.statusPageRepo.Create(ctx, page); err != nil {
-		return c.Render(http.StatusOK, "status_pages.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "status_pages.html", map[string]any{
 			"Title": "Status Pages",
 			"Error": "Failed to create status page",
 		})
@@ -153,7 +153,7 @@ func (h *StatusPageHandler) Edit(c echo.Context) error {
 		selectedMap[mid.String()] = true
 	}
 
-	return c.Render(http.StatusOK, "status_page_edit.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "status_page_edit.html", map[string]any{
 		"Title":       "Edit Status Page",
 		"Page":        page,
 		"Monitors":    allMonitors,
@@ -402,7 +402,7 @@ func (h *StatusPageHandler) PublicView(c echo.Context) error {
 		overallStatus = "No Monitors Configured"
 	}
 
-	return c.Render(http.StatusOK, "status_page_public.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "status_page_public.html", map[string]any{
 		"Page":            page,
 		"Monitors":        monitors,
 		"Incidents":       incidents,
