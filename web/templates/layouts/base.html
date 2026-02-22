@@ -116,20 +116,20 @@
     {{template "command_palette" .}}
 
     <!-- Confirmation modal (replaces native confirm()) -->
+    <!-- Uses data-* attributes + direct DOM manipulation (Alpine CSP build workaround) -->
     <div id="confirm-modal" x-data="confirmModal">
-        <div x-show="show" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
+        <div data-confirm-overlay class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
             <!-- Backdrop -->
             <div class="absolute inset-0 bg-black/60" @click="cancel"></div>
             <!-- Card -->
             <div class="relative bg-card border border-border rounded-lg shadow-xl w-full max-w-sm p-6" @keydown.escape.window="cancel">
-                <p class="text-sm text-foreground" x-text="message"></p>
+                <p data-confirm-message class="text-sm text-foreground"></p>
                 <div class="flex justify-end space-x-3 mt-6">
                     <button @click="cancel"
                         class="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted/50 transition-smooth">
                         Cancel
                     </button>
-                    <button @click="confirm" x-text="actionLabel"
-                        :class="actionBtnClass"
+                    <button data-confirm-action-btn @click="confirm"
                         class="px-3 py-1.5 text-xs font-medium rounded-md transition-smooth">
                     </button>
                 </div>
