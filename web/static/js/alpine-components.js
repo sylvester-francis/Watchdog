@@ -19,6 +19,12 @@ Alpine.data('baseLayout', () => ({
     toggleCommandPalette() { this.commandPaletteOpen = !this.commandPaletteOpen; },
     openCommandPalette() { this.commandPaletteOpen = true; },
     closeCommandPalette() { this.commandPaletteOpen = false; },
+    // Modal dispatch helpers (CSP build can't evaluate $dispatch inline)
+    openMonitorModal() { window.dispatchEvent(new CustomEvent('open-monitor-modal')); },
+    openAgentModal() { window.dispatchEvent(new CustomEvent('open-agent-modal')); },
+    openChannelModal() { window.dispatchEvent(new CustomEvent('open-channel-modal')); },
+    openTokenModal() { window.dispatchEvent(new CustomEvent('open-token-modal')); },
+    openPageModal() { window.dispatchEvent(new CustomEvent('open-page-modal')); },
     get sidebarClass() {
         return this.sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0';
     },
