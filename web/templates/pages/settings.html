@@ -62,7 +62,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Get notified when incidents open or resolve.</p>
                 </div>
             </div>
-            <button @click="$dispatch('open-channel-modal')"
+            <button @click="openChannelModal"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Add Channel</span>
@@ -129,7 +129,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Programmatic access to the WatchDog API.</p>
                 </div>
             </div>
-            <button @click="$dispatch('open-token-modal')"
+            <button @click="openTokenModal"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors flex items-center space-x-1.5 w-fit">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>New Token</span>

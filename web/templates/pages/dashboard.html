@@ -298,7 +298,7 @@
                     <span class="text-[10px] text-muted-foreground font-mono">{{.Stats.OnlineAgents}}/{{.Stats.TotalAgents}} online</span>
                 </div>
             </div>
-            <button @click="$dispatch('open-agent-modal')"
+            <button @click="openAgentModal"
                     class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors"
                     aria-label="Create new agent">
                 New Agent
