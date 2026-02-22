@@ -97,6 +97,18 @@ export interface LatencyPoint {
 	max_ms: number;
 }
 
+export interface MonitorSummary {
+	id: string;
+	name: string;
+	status: string;
+	type: string;
+	target: string;
+	latencies: number[];
+	uptimeUp: number;
+	uptimeDown: number;
+	total: number;
+}
+
 export interface APIError {
 	error: string;
 }

@@ -309,6 +309,7 @@ func (r *Router) RegisterRoutes() {
 
 	// Dashboard
 	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
+	v1.GET("/monitors/summary", r.apiHandler.MonitorsSummary)
 
 	// SvelteKit SPA — serve build output if available
 	r.registerSvelteRoutes()
