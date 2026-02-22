@@ -242,6 +242,7 @@ func (r *Router) RegisterRoutes() {
 	protected.GET("/settings", r.apiTokenHandler.List)
 	protected.POST("/settings/tokens", r.apiTokenHandler.Create)
 	protected.DELETE("/settings/tokens/:id", r.apiTokenHandler.Delete)
+	protected.POST("/settings/tokens/:id/regenerate", r.apiTokenHandler.Regenerate)
 	protected.POST("/settings/alerts", r.alertChannelHandler.Create)
 	protected.DELETE("/settings/alerts/:id", r.alertChannelHandler.Delete)
 	protected.POST("/settings/alerts/:id/toggle", r.alertChannelHandler.Toggle)
