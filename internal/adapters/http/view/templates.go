@@ -15,6 +15,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 )
 
 // Templates implements echo.Renderer for Go templates.
@@ -38,8 +39,8 @@ func NewTemplates(dir string) (*Templates, error) {
 		"statusBgColor":    statusBgColor,
 		"statusIcon":       statusIcon,
 		"monitorTypeIcon":  monitorTypeIcon,
-		"lower":            func(v interface{}) string { return strings.ToLower(fmt.Sprint(v)) },
-		"upper":            func(v interface{}) string { return strings.ToUpper(fmt.Sprint(v)) },
+		"lower":            func(v any) string { return strings.ToLower(fmt.Sprint(v)) },
+		"upper":            func(v any) string { return strings.ToUpper(fmt.Sprint(v)) },
 		"title":            cases.Title(language.English).String,
 
 		"add":              add,
@@ -103,14 +104,14 @@ func NewTemplates(dir string) (*Templates, error) {
 }
 
 // Render implements echo.Renderer.
-func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+func (t *Templates) Render(w io.Writer, name string, data any, c echo.Context) error {
 	// Add common data to all templates
-	viewData := map[string]interface{}{
+	viewData := map[string]any{
 		"Data": data,
 	}
 
 	// If data is already a map, merge it
-	if m, ok := data.(map[string]interface{}); ok {
+	if m, ok := data.(map[string]any); ok {
 		for k, v := range m {
 			viewData[k] = v
 		}
@@ -119,6 +120,11 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}, c echo.Co
 	// Inject CSRF token if available (set by CSRF middleware)
 	if csrf := c.Get("csrf"); csrf != nil {
 		viewData["CSRFToken"] = csrf
+	}
+
+	// Inject CSP nonce for inline script tags
+	if nonce := c.Get(middleware.NonceContextKey); nonce != nil {
+		viewData["Nonce"] = nonce
 	}
 
 	// Inject authenticated user context for sidebar (IsAdmin, Plan, Username)
@@ -300,11 +306,11 @@ func sub(a, b int) int {
 }
 
 // dict creates a map from key-value pairs.
-func dict(values ...interface{}) map[string]interface{} {
+func dict(values ...any) map[string]any {
 	if len(values)%2 != 0 {
 		return nil
 	}
-	result := make(map[string]interface{}, len(values)/2)
+	result := make(map[string]any, len(values)/2)
 	for i := 0; i < len(values); i += 2 {
 		key, ok := values[i].(string)
 		if !ok {
@@ -317,7 +323,7 @@ func dict(values ...interface{}) map[string]interface{} {
 
 // deref dereferences a pointer value for use in templates.
 // Supports *int, *string, and *time.Time.
-func deref(v interface{}) interface{} {
+func deref(v any) any {
 	switch p := v.(type) {
 	case *int:
 		if p != nil {
@@ -353,7 +359,7 @@ func timeago(t time.Time) string {
 
 // toJSON serializes a value to JSON for embedding in templates.
 // Used to pass Go data to Alpine.js/Chart.js on the client side.
-func toJSON(v interface{}) template.JS {
+func toJSON(v any) template.JS {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return template.JS("null")

@@ -71,7 +71,7 @@ func (h *MonitorHandler) List(c echo.Context) error {
 	// Get user's agents
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]any{
 			"Title": "Monitors",
 			"Error": "Failed to load agents",
 		})
@@ -150,7 +150,7 @@ func (h *MonitorHandler) List(c echo.Context) error {
 		}
 	}
 
-	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "monitors.html", map[string]any{
 		"Title":                  "Monitors",
 		"Agents":                 agents,
 		"AgentsWithMonitors":     agentsWithMonitors,
@@ -173,13 +173,13 @@ func (h *MonitorHandler) NewForm(c echo.Context) error {
 
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "monitors.html", map[string]any{
 			"Title": "New Monitor",
 			"Error": "Failed to load agents",
 		})
 	}
 
-	return c.Render(http.StatusOK, "monitors.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "monitors.html", map[string]any{
 		"Title":        "New Monitor",
 		"ShowForm":     true,
 		"Agents":       agents,
@@ -286,8 +286,21 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 		}
 	}
 
-	// Update if interval or timeout were set
-	if intervalStr != "" || timeoutStr != "" {
+	// Parse failure threshold
+	failureThresholdStr := c.FormValue("failure_threshold")
+	if failureThresholdStr != "" {
+		ft, err := strconv.Atoi(failureThresholdStr)
+		if err != nil {
+			return h.renderError(c, "Invalid failure threshold value", userID)
+		}
+		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
+			return h.renderError(c, fmt.Sprintf("Failure threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold), userID)
+		}
+		monitor.FailureThreshold = ft
+	}
+
+	// Update if interval, timeout, or failure threshold were set
+	if intervalStr != "" || timeoutStr != "" || failureThresholdStr != "" {
 		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
 			return h.renderError(c, "Monitor created but failed to apply interval/timeout settings", userID)
 		}
@@ -313,7 +326,7 @@ func (h *MonitorHandler) Create(c echo.Context) error {
 	// If HTMX request, return the new row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		c.Response().Header().Set("HX-Trigger", "monitorCreated")
-		return c.Render(http.StatusOK, "monitor_row", map[string]interface{}{
+		return c.Render(http.StatusOK, "monitor_row", map[string]any{
 			"Monitor": monitor,
 			"Agent":   agent,
 		})
@@ -400,7 +413,7 @@ func (h *MonitorHandler) Detail(c echo.Context) error {
 		}
 	}
 
-	return c.Render(http.StatusOK, "monitor_detail.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "monitor_detail.html", map[string]any{
 		"Title":           monitor.Name,
 		"Monitor":         monitor,
 		"Agent":           agent,
@@ -484,6 +497,13 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 	} else if enabled == "false" {
 		monitor.Disable()
 	}
+	if ftStr := c.FormValue("failure_threshold"); ftStr != "" {
+		if ft, err := strconv.Atoi(ftStr); err == nil {
+			if ft >= domain.MinFailureThreshold && ft <= domain.MaxFailureThreshold {
+				monitor.FailureThreshold = ft
+			}
+		}
+	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
@@ -511,7 +531,7 @@ func (h *MonitorHandler) Update(c echo.Context) error {
 	// If HTMX request, return updated row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		agent, _ := h.agentRepo.GetByID(ctx, monitor.AgentID)
-		return c.Render(http.StatusOK, "monitor_row", map[string]interface{}{
+		return c.Render(http.StatusOK, "monitor_row", map[string]any{
 			"Monitor": monitor,
 			"Agent":   agent,
 		})
@@ -615,7 +635,7 @@ func (h *MonitorHandler) renderError(c echo.Context, msg string, userID uuid.UUI
 		return c.HTML(http.StatusBadRequest, `<div class="text-red-400">`+html.EscapeString(msg)+`</div>`)
 	}
 
-	return c.Render(http.StatusBadRequest, "monitors.html", map[string]interface{}{
+	return c.Render(http.StatusBadRequest, "monitors.html", map[string]any{
 		"Title":        "Monitors",
 		"Error":        msg,
 		"Agents":       agents,

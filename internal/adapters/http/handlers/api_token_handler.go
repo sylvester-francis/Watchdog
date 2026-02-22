@@ -51,7 +51,7 @@ func (h *APITokenHandler) List(c echo.Context) error {
 		channels = nil
 	}
 
-	return c.Render(http.StatusOK, "settings.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "settings.html", map[string]any{
 		"Title":    "Settings",
 		"Tokens":   tokens,
 		"Channels": channels,
@@ -103,7 +103,7 @@ func (h *APITokenHandler) Create(c echo.Context) error {
 		})
 	}
 
-	return c.Render(http.StatusOK, "token_created", map[string]interface{}{
+	return c.Render(http.StatusOK, "token_created", map[string]any{
 		"Token":     token,
 		"Plaintext": plaintext,
 	})
@@ -209,7 +209,7 @@ func (h *APITokenHandler) Regenerate(c echo.Context) error {
 		})
 	}
 
-	return c.Render(http.StatusOK, "token_regenerated", map[string]interface{}{
+	return c.Render(http.StatusOK, "token_regenerated", map[string]any{
 		"Token":     newToken,
 		"Plaintext": plaintext,
 	})

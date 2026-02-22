@@ -189,24 +189,34 @@
     <!-- Latency Chart (hidden for system/docker — no meaningful latency) -->
     {{if and (ne (print .Monitor.Type) "system") (ne (print .Monitor.Type) "docker")}}
     <div class="bg-card border border-border rounded-lg mb-6">
-        <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
-            <i data-lucide="timer" class="w-4 h-4 text-accent"></i>
-            <h3 class="text-sm font-medium text-foreground">Response Time (Last 20 checks)</h3>
+        <div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="timer" class="w-4 h-4 text-accent"></i>
+                <h3 class="text-sm font-medium text-foreground">Response Time</h3>
+            </div>
+            <div class="flex items-center space-x-1" id="period-selector">
+                <button data-period="1h" class="px-2 py-1 text-[10px] font-medium rounded transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50">1H</button>
+                <button data-period="24h" class="px-2 py-1 text-[10px] font-medium rounded transition-colors bg-accent/15 text-accent">24H</button>
+                <button data-period="7d" class="px-2 py-1 text-[10px] font-medium rounded transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50">7D</button>
+                <button data-period="30d" class="px-2 py-1 text-[10px] font-medium rounded transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50">30D</button>
+            </div>
         </div>
         <div class="p-5">
-            {{if .Latencies}}
             <div class="h-56" id="detail-chart-container">
                 <canvas id="detail-latency-chart"></canvas>
             </div>
-            {{else}}
-            <div class="h-56 flex items-center justify-center">
+            <div class="h-56 flex items-center justify-center" id="detail-chart-empty" style="display:none">
                 <div class="text-center">
                     <i data-lucide="bar-chart-3" class="w-8 h-8 text-muted-foreground/20 mx-auto mb-2"></i>
-                    <p class="text-xs text-muted-foreground">No latency data yet</p>
-                    <p class="text-[10px] text-muted-foreground/50 mt-1">TCP/Ping checks report connect time only</p>
+                    <p class="text-xs text-muted-foreground">No latency data for this period</p>
                 </div>
             </div>
-            {{end}}
+            <div class="h-56 flex items-center justify-center" id="detail-chart-loading" style="display:none">
+                <div class="text-center">
+                    <div class="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p class="text-xs text-muted-foreground">Loading chart data...</p>
+                </div>
+            </div>
         </div>
     </div>
     {{end}}
@@ -337,39 +347,68 @@
     </div>
 </div>
 
-{{if .Latencies}}
-<script type="application/json" id="detail-chart-data">{{toJSON .Latencies}}</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var el = document.getElementById('detail-chart-data');
-    if (!el) return;
-    try {
-        var latencies = JSON.parse(el.textContent);
-        if (latencies && latencies.length > 0) {
-            var labels = latencies.map(function(_, idx) { return idx + 1; });
-            var hasData = latencies.some(function(v) { return v > 0; });
-            if (hasData) {
-                createLatencyChart('detail-latency-chart', labels, latencies);
-            } else {
-                // All zeros — render flat line at 0ms with explanatory text
-                createLatencyChart('detail-latency-chart', labels, latencies);
-                var container = document.getElementById('detail-chart-container');
-                if (container) {
-                    var note = document.createElement('p');
-                    note.className = 'text-[10px] text-muted-foreground/50 text-center mt-2';
-                    note.textContent = 'TCP/Ping checks report connect time only — 0ms indicates sub-millisecond response';
-                    container.parentNode.insertBefore(note, container.nextSibling);
-                }
-            }
+{{if and (ne (print .Monitor.Type) "system") (ne (print .Monitor.Type) "docker")}}
+<script nonce="{{.Nonce}}">
+(function() {
+    var monitorID = '{{.Monitor.ID}}';
+    var currentChart = null;
+    var chartContainer = document.getElementById('detail-chart-container');
+    var emptyState = document.getElementById('detail-chart-empty');
+    var loadingState = document.getElementById('detail-chart-loading');
+
+    function showState(state) {
+        chartContainer.style.display = state === 'chart' ? '' : 'none';
+        emptyState.style.display = state === 'empty' ? '' : 'none';
+        loadingState.style.display = state === 'loading' ? '' : 'none';
+    }
+
+    function loadPeriod(period) {
+        showState('loading');
+        if (currentChart) {
+            currentChart.destroy();
+            currentChart = null;
         }
-    } catch(e) {}
-});
+
+        fetch('/api/monitors/' + monitorID + '/latency?period=' + period)
+            .then(function(resp) { return resp.json(); })
+            .then(function(points) {
+                if (!points || points.length === 0) {
+                    showState('empty');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    return;
+                }
+                showState('chart');
+                currentChart = createTimeLatencyChart('detail-latency-chart', points);
+            })
+            .catch(function() { showState('empty'); });
+    }
+
+    // Period selector click handler
+    var selector = document.getElementById('period-selector');
+    if (selector) {
+        var buttons = selector.querySelectorAll('button');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', function() {
+                for (var j = 0; j < buttons.length; j++) {
+                    buttons[j].className = 'px-2 py-1 text-[10px] font-medium rounded transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50';
+                }
+                this.className = 'px-2 py-1 text-[10px] font-medium rounded transition-colors bg-accent/15 text-accent';
+                loadPeriod(this.dataset.period);
+            });
+        }
+    }
+
+    // Load default period (24h) on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadPeriod('24h');
+    });
+})();
 </script>
 {{end}}
 
 {{if and (eq (print .Monitor.Type) "system") .MetricValues}}
 <script type="application/json" id="detail-metric-data">{"values":{{toJSON .MetricValues}},"threshold":{{.MetricThreshold}},"metric":"{{.MetricName}}"}</script>
-<script>
+<script nonce="{{.Nonce}}">
 document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById('detail-metric-data');
     if (!el) return;
