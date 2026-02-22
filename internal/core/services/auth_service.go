@@ -80,8 +80,9 @@ func (s *AuthService) Register(ctx context.Context, email, password string) (*do
 }
 
 // Login authenticates a user by email and password.
+// Uses GetByEmailGlobal so login works before tenant context is established.
 func (s *AuthService) Login(ctx context.Context, email, password string) (*domain.User, error) {
-	user, err := s.userRepo.GetByEmail(ctx, email)
+	user, err := s.userRepo.GetByEmailGlobal(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("authService.Login: get user: %w", err)
 	}

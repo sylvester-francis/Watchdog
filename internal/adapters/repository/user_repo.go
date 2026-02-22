@@ -113,6 +113,38 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return user, nil
 }
 
+// GetByEmailGlobal retrieves a user by email without tenant scoping.
+// This is used during login where the tenant is not yet known.
+func (r *UserRepository) GetByEmailGlobal(ctx context.Context, email string) (*domain.User, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
+		FROM users
+		WHERE email = $1`
+
+	user := &domain.User{}
+	err := q.QueryRow(ctx, query, email).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Plan,
+		&user.IsAdmin,
+		&user.TenantID,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("userRepo.GetByEmailGlobal(%s): %w", email, err)
+	}
+
+	return user, nil
+}
+
 // GetByUsername retrieves a user by their username.
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
 	q := r.db.Querier(ctx)
