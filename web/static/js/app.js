@@ -140,10 +140,14 @@ function showToast(message, type) {
     toast.innerHTML =
         '<i data-lucide="' + iconName + '" class="w-4 h-4 shrink-0"></i>' +
         '<span class="text-sm flex-1">' + message + '</span>' +
-        '<button onclick="this.parentElement.remove()" class="shrink-0 p-0.5 rounded hover:bg-white/10 transition-smooth">' +
+        '<button class="shrink-0 p-0.5 rounded hover:bg-white/10 transition-smooth js-toast-close">' +
         '<i data-lucide="x" class="w-3 h-3"></i>' +
         '</button>' +
         '<div class="absolute bottom-0 left-0 h-0.5 toast-progress ' + progressColor + '"></div>';
+
+    toast.querySelector('.js-toast-close').addEventListener('click', function() {
+        toast.remove();
+    });
 
     container.appendChild(toast);
 
