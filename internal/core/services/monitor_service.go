@@ -11,10 +11,6 @@ import (
 	"github.com/sylvester-francis/watchdog/core/ports"
 )
 
-// FailureThreshold is the number of consecutive failures required to trigger an incident.
-// This implements the "3-strike rule" from the WatchDog requirements.
-const FailureThreshold = 3
-
 // MonitorService implements ports.MonitorService for monitor orchestration.
 type MonitorService struct {
 	monitorRepo    ports.MonitorRepository
@@ -179,8 +175,21 @@ func (s *MonitorService) handleRecovery(ctx context.Context, monitorID uuid.UUID
 }
 
 // handleFailure handles a failed heartbeat, potentially creating an incident.
-// Implements the 3-strike rule: only create an incident after FailureThreshold consecutive failures.
+// Uses the monitor's configurable failure threshold (defaults to 3-strike rule).
 func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID) error {
+	// Fetch the monitor to get its configurable failure threshold
+	monitor, err := s.monitorRepo.GetByID(ctx, monitorID)
+	if err != nil {
+		return fmt.Errorf("get monitor: %w", err)
+	}
+	if monitor == nil {
+		return fmt.Errorf("monitor not found: %s", monitorID)
+	}
+	threshold := monitor.FailureThreshold
+	if threshold < 1 {
+		threshold = domain.DefaultFailureThreshold
+	}
+
 	// Check if there's already an open incident
 	existing, err := s.incidentRepo.GetOpenByMonitorID(ctx, monitorID)
 	if err != nil {
@@ -194,18 +203,18 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 	}
 
 	// Check recent heartbeats to see if we've hit the threshold
-	// We need to verify we have FailureThreshold consecutive failures
-	recentHeartbeats, err := s.heartbeatRepo.GetByMonitorID(ctx, monitorID, FailureThreshold)
+	// We need to verify we have threshold consecutive failures
+	recentHeartbeats, err := s.heartbeatRepo.GetByMonitorID(ctx, monitorID, threshold)
 	if err != nil {
 		return fmt.Errorf("get recent heartbeats: %w", err)
 	}
 
 	// Not enough heartbeats yet
-	if len(recentHeartbeats) < FailureThreshold {
+	if len(recentHeartbeats) < threshold {
 		s.logger.Debug("not enough heartbeats for threshold",
 			"monitor_id", monitorID,
 			"count", len(recentHeartbeats),
-			"threshold", FailureThreshold,
+			"threshold", threshold,
 		)
 		return nil
 	}
@@ -223,7 +232,7 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 		// Not enough consecutive failures yet
 		s.logger.Debug("not enough consecutive failures",
 			"monitor_id", monitorID,
-			"threshold", FailureThreshold,
+			"threshold", threshold,
 		)
 		return nil
 	}
@@ -237,7 +246,7 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 	s.logger.Info("incident created due to consecutive failures",
 		"incident_id", incident.ID,
 		"monitor_id", monitorID,
-		"threshold", FailureThreshold,
+		"threshold", threshold,
 	)
 
 	return nil

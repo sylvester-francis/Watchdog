@@ -73,43 +73,48 @@ func (s MonitorStatus) IsHealthy() bool {
 
 // Monitor represents a monitoring target configuration.
 type Monitor struct {
-	ID              uuid.UUID
-	AgentID         uuid.UUID
-	Name            string
-	Type            MonitorType
-	Target          string
-	IntervalSeconds int
-	TimeoutSeconds  int
-	Status          MonitorStatus
-	Enabled         bool
-	Metadata        map[string]string
-	CreatedAt       time.Time
+	ID               uuid.UUID
+	AgentID          uuid.UUID
+	Name             string
+	Type             MonitorType
+	Target           string
+	IntervalSeconds  int
+	TimeoutSeconds   int
+	Status           MonitorStatus
+	Enabled          bool
+	FailureThreshold int
+	Metadata         map[string]string
+	CreatedAt        time.Time
 }
 
 // Default values for monitor configuration.
 const (
-	DefaultIntervalSeconds = 30
-	DefaultTimeoutSeconds  = 10
-	MinIntervalSeconds     = 5
-	MaxIntervalSeconds     = 3600
-	MinTimeoutSeconds      = 1
-	MaxTimeoutSeconds      = 60
+	DefaultIntervalSeconds  = 30
+	DefaultTimeoutSeconds   = 10
+	MinIntervalSeconds      = 5
+	MaxIntervalSeconds      = 3600
+	MinTimeoutSeconds       = 1
+	MaxTimeoutSeconds       = 60
+	DefaultFailureThreshold = 3
+	MinFailureThreshold     = 1
+	MaxFailureThreshold     = 20
 )
 
 // NewMonitor creates a new Monitor with default settings.
 func NewMonitor(agentID uuid.UUID, name string, monitorType MonitorType, target string) *Monitor {
 	return &Monitor{
-		ID:              uuid.New(),
-		AgentID:         agentID,
-		Name:            name,
-		Type:            monitorType,
-		Target:          target,
-		IntervalSeconds: DefaultIntervalSeconds,
-		TimeoutSeconds:  DefaultTimeoutSeconds,
-		Status:          MonitorStatusPending,
-		Enabled:         true,
-		Metadata:        make(map[string]string),
-		CreatedAt:       time.Now(),
+		ID:               uuid.New(),
+		AgentID:          agentID,
+		Name:             name,
+		Type:             monitorType,
+		Target:           target,
+		IntervalSeconds:  DefaultIntervalSeconds,
+		TimeoutSeconds:   DefaultTimeoutSeconds,
+		Status:           MonitorStatusPending,
+		Enabled:          true,
+		FailureThreshold: DefaultFailureThreshold,
+		Metadata:         make(map[string]string),
+		CreatedAt:        time.Now(),
 	}
 }
 
