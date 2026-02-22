@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -48,15 +49,16 @@ func NewAPIV1Handler(
 }
 
 type monitorResponse struct {
-	ID       string `json:"id"`
-	AgentID  string `json:"agent_id"`
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Target   string `json:"target"`
-	Status   string `json:"status"`
-	Enabled  bool   `json:"enabled"`
-	Interval int    `json:"interval_seconds"`
-	Timeout  int    `json:"timeout_seconds"`
+	ID               string `json:"id"`
+	AgentID          string `json:"agent_id"`
+	Name             string `json:"name"`
+	Type             string `json:"type"`
+	Target           string `json:"target"`
+	Status           string `json:"status"`
+	Enabled          bool   `json:"enabled"`
+	Interval         int    `json:"interval_seconds"`
+	Timeout          int    `json:"timeout_seconds"`
+	FailureThreshold int    `json:"failure_threshold"`
 }
 
 type agentResponse struct {
@@ -97,15 +99,16 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 		}
 		for _, m := range agentMonitors {
 			monitors = append(monitors, monitorResponse{
-				ID:       m.ID.String(),
-				AgentID:  m.AgentID.String(),
-				Name:     m.Name,
-				Type:     string(m.Type),
-				Target:   m.Target,
-				Status:   string(m.Status),
-				Enabled:  m.Enabled,
-				Interval: m.IntervalSeconds,
-				Timeout:  m.TimeoutSeconds,
+				ID:               m.ID.String(),
+				AgentID:          m.AgentID.String(),
+				Name:             m.Name,
+				Type:             string(m.Type),
+				Target:           m.Target,
+				Status:           string(m.Status),
+				Enabled:          m.Enabled,
+				Interval:         m.IntervalSeconds,
+				Timeout:          m.TimeoutSeconds,
+				FailureThreshold: m.FailureThreshold,
 			})
 		}
 	}
@@ -114,7 +117,7 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 		monitors = []monitorResponse{}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitors,
 	})
 }
@@ -160,19 +163,20 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitorResponse{
-			ID:       monitor.ID.String(),
-			AgentID:  monitor.AgentID.String(),
-			Name:     monitor.Name,
-			Type:     string(monitor.Type),
-			Target:   monitor.Target,
-			Status:   string(monitor.Status),
-			Enabled:  monitor.Enabled,
-			Interval: monitor.IntervalSeconds,
-			Timeout:  monitor.TimeoutSeconds,
+			ID:               monitor.ID.String(),
+			AgentID:          monitor.AgentID.String(),
+			Name:             monitor.Name,
+			Type:             string(monitor.Type),
+			Target:           monitor.Target,
+			Status:           string(monitor.Status),
+			Enabled:          monitor.Enabled,
+			Interval:         monitor.IntervalSeconds,
+			Timeout:          monitor.TimeoutSeconds,
+			FailureThreshold: monitor.FailureThreshold,
 		},
-		"heartbeats": map[string]interface{}{
+		"heartbeats": map[string]any{
 			"latencies":  latencies,
 			"uptime_up":  up,
 			"uptime_down": down,
@@ -213,7 +217,7 @@ func (h *APIV1Handler) ListAgents(c echo.Context) error {
 		result = []agentResponse{}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": result,
 	})
 }
@@ -283,7 +287,7 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 		result = []incidentResponse{}
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": result,
 	})
 }
@@ -291,13 +295,14 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 // --- CRUD endpoints ---
 
 type createMonitorRequest struct {
-	AgentID  string            `json:"agent_id"`
-	Name     string            `json:"name"`
-	Type     string            `json:"type"`
-	Target   string            `json:"target"`
-	Interval int               `json:"interval_seconds"`
-	Timeout  int               `json:"timeout_seconds"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	AgentID          string            `json:"agent_id"`
+	Name             string            `json:"name"`
+	Type             string            `json:"type"`
+	Target           string            `json:"target"`
+	Interval         int               `json:"interval_seconds"`
+	Timeout          int               `json:"timeout_seconds"`
+	FailureThreshold *int              `json:"failure_threshold,omitempty"`
+	Metadata         map[string]string `json:"metadata,omitempty"`
 }
 
 // CreateMonitor creates a new monitor.
@@ -337,14 +342,21 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create monitor"})
 	}
 
-	// Apply optional interval/timeout
+	// Apply optional interval/timeout/failure_threshold
 	if req.Interval > 0 {
 		monitor.SetInterval(req.Interval)
 	}
 	if req.Timeout > 0 {
 		monitor.SetTimeout(req.Timeout)
 	}
-	if req.Interval > 0 || req.Timeout > 0 {
+	if req.FailureThreshold != nil {
+		ft := *req.FailureThreshold
+		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold)})
+		}
+		monitor.FailureThreshold = ft
+	}
+	if req.Interval > 0 || req.Timeout > 0 || req.FailureThreshold != nil {
 		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "monitor created but failed to apply settings"})
 		}
@@ -357,27 +369,29 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 	)
 	h.hub.SendToAgent(monitor.AgentID, taskMsg)
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
+	return c.JSON(http.StatusCreated, map[string]any{
 		"data": monitorResponse{
-			ID:       monitor.ID.String(),
-			AgentID:  monitor.AgentID.String(),
-			Name:     monitor.Name,
-			Type:     string(monitor.Type),
-			Target:   monitor.Target,
-			Status:   string(monitor.Status),
-			Enabled:  monitor.Enabled,
-			Interval: monitor.IntervalSeconds,
-			Timeout:  monitor.TimeoutSeconds,
+			ID:               monitor.ID.String(),
+			AgentID:          monitor.AgentID.String(),
+			Name:             monitor.Name,
+			Type:             string(monitor.Type),
+			Target:           monitor.Target,
+			Status:           string(monitor.Status),
+			Enabled:          monitor.Enabled,
+			Interval:         monitor.IntervalSeconds,
+			Timeout:          monitor.TimeoutSeconds,
+			FailureThreshold: monitor.FailureThreshold,
 		},
 	})
 }
 
 type updateMonitorRequest struct {
-	Name     *string `json:"name"`
-	Target   *string `json:"target"`
-	Interval *int    `json:"interval_seconds"`
-	Timeout  *int    `json:"timeout_seconds"`
-	Enabled  *bool   `json:"enabled"`
+	Name             *string `json:"name"`
+	Target           *string `json:"target"`
+	Interval         *int    `json:"interval_seconds"`
+	Timeout          *int    `json:"timeout_seconds"`
+	FailureThreshold *int    `json:"failure_threshold"`
+	Enabled          *bool   `json:"enabled"`
 }
 
 // UpdateMonitor updates an existing monitor.
@@ -429,6 +443,13 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 			monitor.Disable()
 		}
 	}
+	if req.FailureThreshold != nil {
+		ft := *req.FailureThreshold
+		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold)})
+		}
+		monitor.FailureThreshold = ft
+	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
@@ -445,17 +466,18 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(monitor.ID.String()))
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitorResponse{
-			ID:       monitor.ID.String(),
-			AgentID:  monitor.AgentID.String(),
-			Name:     monitor.Name,
-			Type:     string(monitor.Type),
-			Target:   monitor.Target,
-			Status:   string(monitor.Status),
-			Enabled:  monitor.Enabled,
-			Interval: monitor.IntervalSeconds,
-			Timeout:  monitor.TimeoutSeconds,
+			ID:               monitor.ID.String(),
+			AgentID:          monitor.AgentID.String(),
+			Name:             monitor.Name,
+			Type:             string(monitor.Type),
+			Target:           monitor.Target,
+			Status:           string(monitor.Status),
+			Enabled:          monitor.Enabled,
+			Interval:         monitor.IntervalSeconds,
+			Timeout:          monitor.TimeoutSeconds,
+			FailureThreshold: monitor.FailureThreshold,
 		},
 	})
 }
@@ -525,7 +547,7 @@ func (h *APIV1Handler) CreateAgent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create agent"})
 	}
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
+	return c.JSON(http.StatusCreated, map[string]any{
 		"data": map[string]string{
 			"id":      agent.ID.String(),
 			"name":    agent.Name,
@@ -659,7 +681,7 @@ func (h *APIV1Handler) DashboardStats(c echo.Context) error {
 
 	activeIncidents, _ := h.incidentSvc.GetActiveIncidents(ctx)
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"total_monitors":   totalMonitors,
 		"monitors_up":      monitorsUp,
 		"monitors_down":    monitorsDown,

@@ -36,6 +36,14 @@ func (s HeartbeatStatus) IsFailure() bool {
 	return s == HeartbeatStatusDown || s == HeartbeatStatusTimeout || s == HeartbeatStatusError
 }
 
+// LatencyPoint represents an aggregated latency data point for charts.
+type LatencyPoint struct {
+	Time  time.Time
+	AvgMs int
+	MinMs int
+	MaxMs int
+}
+
 // Heartbeat represents a single monitoring check result.
 type Heartbeat struct {
 	Time           time.Time

@@ -17,7 +17,7 @@ import (
 )
 
 func TestWebhookNotifier_IncidentOpened_Success(t *testing.T) {
-	var receivedPayload map[string]interface{}
+	var receivedPayload map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
@@ -41,12 +41,12 @@ func TestWebhookNotifier_IncidentOpened_Success(t *testing.T) {
 	assert.Equal(t, "incident.opened", receivedPayload["event"])
 
 	// Verify incident data
-	incidentData := receivedPayload["incident"].(map[string]interface{})
+	incidentData := receivedPayload["incident"].(map[string]any)
 	assert.Equal(t, incident.ID.String(), incidentData["id"])
 	assert.Equal(t, incident.MonitorID.String(), incidentData["monitor_id"])
 
 	// Verify monitor data
-	monitorData := receivedPayload["monitor"].(map[string]interface{})
+	monitorData := receivedPayload["monitor"].(map[string]any)
 	assert.Equal(t, monitor.ID.String(), monitorData["id"])
 	assert.Equal(t, "Test HTTP Monitor", monitorData["name"])
 	assert.Equal(t, "http", monitorData["type"])
@@ -68,7 +68,7 @@ func TestWebhookNotifier_ServerError(t *testing.T) {
 }
 
 func TestWebhookNotifier_IncidentResolved_Success(t *testing.T) {
-	var receivedPayload map[string]interface{}
+	var receivedPayload map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewDecoder(r.Body).Decode(&receivedPayload)
@@ -92,7 +92,7 @@ func TestWebhookNotifier_IncidentResolved_Success(t *testing.T) {
 	assert.Equal(t, "incident.resolved", receivedPayload["event"])
 
 	// Verify resolved_at is included
-	incidentData := receivedPayload["incident"].(map[string]interface{})
+	incidentData := receivedPayload["incident"].(map[string]any)
 	assert.NotNil(t, incidentData["resolved_at"])
 }
 

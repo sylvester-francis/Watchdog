@@ -96,6 +96,8 @@ type HeartbeatRepository interface {
 	GetByMonitorIDInRange(ctx context.Context, monitorID uuid.UUID, from, to time.Time) ([]*domain.Heartbeat, error)
 	GetLatestByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Heartbeat, error)
 	GetRecentFailures(ctx context.Context, monitorID uuid.UUID, count int) ([]*domain.Heartbeat, error)
+	GetUptimePercent(ctx context.Context, monitorID uuid.UUID, since time.Time) (float64, error)
+	GetLatencyHistory(ctx context.Context, monitorID uuid.UUID, since time.Time, bucketInterval string) ([]domain.LatencyPoint, error)
 	DeleteOlderThan(ctx context.Context, before time.Time) (int64, error)
 }
 

@@ -89,7 +89,7 @@ func (r *AuditLogRepository) GetRecent(ctx context.Context, limit int) ([]*domai
 
 func scanAuditLogs(rows interface {
 	Next() bool
-	Scan(dest ...interface{}) error
+	Scan(dest ...any) error
 }) ([]*domain.AuditLog, error) {
 	var logs []*domain.AuditLog
 	for rows.Next() {
@@ -113,7 +113,7 @@ func scanAuditLogs(rows interface {
 }
 
 // nullableIP returns nil for empty IP strings to avoid postgres INET parse errors.
-func nullableIP(ip string) interface{} {
+func nullableIP(ip string) any {
 	if ip == "" {
 		return nil
 	}

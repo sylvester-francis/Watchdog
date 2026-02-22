@@ -99,6 +99,74 @@ func (h *APIHandler) MonitorHeartbeats(c echo.Context) error {
 	return c.JSON(http.StatusOK, points)
 }
 
+// LatencyHistoryPoint is the JSON representation of an aggregated latency bucket.
+type LatencyHistoryPoint struct {
+	Time  string `json:"time"`
+	AvgMs int    `json:"avgMs"`
+	MinMs int    `json:"minMs"`
+	MaxMs int    `json:"maxMs"`
+}
+
+// MonitorLatencyHistory returns aggregated latency data for charts.
+// GET /api/monitors/:id/latency?period=1h|24h|7d|30d
+func (h *APIHandler) MonitorLatencyHistory(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	monitorID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+	}
+
+	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to verify ownership"})
+	}
+	if monitor == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+	}
+
+	// Map period to duration and bucket interval
+	var duration time.Duration
+	var bucket string
+	switch c.QueryParam("period") {
+	case "1h":
+		duration = time.Hour
+		bucket = "1 minute"
+	case "7d":
+		duration = 7 * 24 * time.Hour
+		bucket = "1 hour"
+	case "30d":
+		duration = 30 * 24 * time.Hour
+		bucket = "6 hours"
+	default: // 24h
+		duration = 24 * time.Hour
+		bucket = "15 minutes"
+	}
+
+	since := time.Now().Add(-duration)
+	points, err := h.heartbeatRepo.GetLatencyHistory(ctx, monitorID, since, bucket)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch latency history"})
+	}
+
+	result := make([]LatencyHistoryPoint, 0, len(points))
+	for _, p := range points {
+		result = append(result, LatencyHistoryPoint{
+			Time:  p.Time.Format(time.RFC3339),
+			AvgMs: p.AvgMs,
+			MinMs: p.MinMs,
+			MaxMs: p.MaxMs,
+		})
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
 // DashboardStats returns summary stats as JSON.
 // GET /api/dashboard/stats
 func (h *APIHandler) DashboardStats(c echo.Context) error {

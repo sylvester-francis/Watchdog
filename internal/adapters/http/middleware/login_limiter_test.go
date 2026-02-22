@@ -18,7 +18,7 @@ import (
 // stubRenderer satisfies echo.Renderer so c.Render works in tests.
 type stubRenderer struct{}
 
-func (s *stubRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+func (s *stubRenderer) Render(w io.Writer, name string, data any, c echo.Context) error {
 	_, _ = w.Write([]byte(name))
 	return nil
 }

@@ -25,7 +25,7 @@ import (
 // noOpRenderer is a Renderer that writes the template name and data keys for test assertions.
 type noOpRenderer struct{}
 
-func (n *noOpRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+func (n *noOpRenderer) Render(w io.Writer, name string, data any, c echo.Context) error {
 	_, _ = w.Write([]byte(name))
 	return nil
 }

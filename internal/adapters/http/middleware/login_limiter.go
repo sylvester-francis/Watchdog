@@ -100,7 +100,7 @@ func (ll *LoginLimiter) Middleware() echo.MiddlewareFunc {
 			if ll.IsBlocked(ip, email) {
 				retry := ll.RetryAfter(ip, email)
 				c.Response().Header().Set("Retry-After", fmt.Sprintf("%d", int(retry.Seconds())))
-				return c.Render(http.StatusTooManyRequests, "auth.html", map[string]interface{}{
+				return c.Render(http.StatusTooManyRequests, "auth.html", map[string]any{
 					"Title":   "Login",
 					"IsLogin": true,
 					"Error":   fmt.Sprintf("Too many failed attempts. Try again in %d minutes.", int(retry.Minutes())+1),

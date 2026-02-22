@@ -258,7 +258,7 @@ Creates a monitor interactively. You'll be prompted for:
 		fatal("all fields are required")
 	}
 
-	reqBody := map[string]interface{}{
+	reqBody := map[string]any{
 		"agent_id": agentID,
 		"name":     name,
 		"type":     monType,
