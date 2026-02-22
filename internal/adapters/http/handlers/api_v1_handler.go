@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -350,9 +351,10 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 	}
 	if req.FailureThreshold != nil {
 		ft := *req.FailureThreshold
-		if ft >= domain.MinFailureThreshold && ft <= domain.MaxFailureThreshold {
-			monitor.FailureThreshold = ft
+		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold)})
 		}
+		monitor.FailureThreshold = ft
 	}
 	if req.Interval > 0 || req.Timeout > 0 || req.FailureThreshold != nil {
 		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
@@ -443,9 +445,10 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 	}
 	if req.FailureThreshold != nil {
 		ft := *req.FailureThreshold
-		if ft >= domain.MinFailureThreshold && ft <= domain.MaxFailureThreshold {
-			monitor.FailureThreshold = ft
+		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold)})
 		}
+		monitor.FailureThreshold = ft
 	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
