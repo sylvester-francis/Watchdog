@@ -141,8 +141,9 @@ type MockAgentRepository struct {
 	UpdateFn          func(ctx context.Context, agent *domain.Agent) error
 	DeleteFn          func(ctx context.Context, id uuid.UUID) error
 	UpdateStatusFn    func(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
-	UpdateLastSeenFn  func(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
-	CountByUserIDFn   func(ctx context.Context, userID uuid.UUID) (int, error)
+	UpdateLastSeenFn    func(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
+	UpdateFingerprintFn func(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error
+	CountByUserIDFn     func(ctx context.Context, userID uuid.UUID) (int, error)
 }
 
 func (m *MockAgentRepository) Create(ctx context.Context, agent *domain.Agent) error {
@@ -190,6 +191,13 @@ func (m *MockAgentRepository) UpdateStatus(ctx context.Context, id uuid.UUID, st
 func (m *MockAgentRepository) UpdateLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error {
 	if m.UpdateLastSeenFn != nil {
 		return m.UpdateLastSeenFn(ctx, id, lastSeen)
+	}
+	return nil
+}
+
+func (m *MockAgentRepository) UpdateFingerprint(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error {
+	if m.UpdateFingerprintFn != nil {
+		return m.UpdateFingerprintFn(ctx, id, fingerprint)
 	}
 	return nil
 }
@@ -483,7 +491,7 @@ type MockAPITokenRepository struct {
 	GetByTokenHashFn func(ctx context.Context, tokenHash string) (*domain.APIToken, error)
 	GetByUserIDFn    func(ctx context.Context, userID uuid.UUID) ([]*domain.APIToken, error)
 	DeleteFn         func(ctx context.Context, id uuid.UUID) error
-	UpdateLastUsedFn func(ctx context.Context, id uuid.UUID) error
+	UpdateLastUsedFn func(ctx context.Context, id uuid.UUID, ip string) error
 }
 
 func (m *MockAPITokenRepository) Create(ctx context.Context, token *domain.APIToken) error {
@@ -514,9 +522,9 @@ func (m *MockAPITokenRepository) Delete(ctx context.Context, id uuid.UUID) error
 	return nil
 }
 
-func (m *MockAPITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) error {
+func (m *MockAPITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID, ip string) error {
 	if m.UpdateLastUsedFn != nil {
-		return m.UpdateLastUsedFn(ctx, id)
+		return m.UpdateLastUsedFn(ctx, id, ip)
 	}
 	return nil
 }

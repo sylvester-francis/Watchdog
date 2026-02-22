@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -54,11 +55,12 @@ func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ag
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, created_at
+		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, fingerprint, fingerprint_verified_at, created_at
 		FROM agents
 		WHERE id = $1 AND tenant_id = $2`
 
 	agent := &domain.Agent{}
+	var fingerprintJSON []byte
 	err := q.QueryRow(ctx, query, id, tenantID).Scan(
 		&agent.ID,
 		&agent.UserID,
@@ -66,6 +68,8 @@ func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ag
 		&agent.APIKeyEncrypted,
 		&agent.LastSeenAt,
 		&agent.Status,
+		&fingerprintJSON,
+		&agent.FingerprintVerifiedAt,
 		&agent.CreatedAt,
 	)
 	if err != nil {
@@ -73,6 +77,9 @@ func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ag
 			return nil, nil
 		}
 		return nil, fmt.Errorf("agentRepo.GetByID(%s): %w", id, err)
+	}
+	if fingerprintJSON != nil {
+		_ = json.Unmarshal(fingerprintJSON, &agent.Fingerprint)
 	}
 
 	return agent, nil
@@ -84,7 +91,7 @@ func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, created_at
+		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, fingerprint, fingerprint_verified_at, created_at
 		FROM agents
 		WHERE user_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC`
@@ -98,6 +105,7 @@ func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]
 	var agents []*domain.Agent
 	for rows.Next() {
 		agent := &domain.Agent{}
+		var fingerprintJSON []byte
 		err := rows.Scan(
 			&agent.ID,
 			&agent.UserID,
@@ -105,10 +113,15 @@ func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]
 			&agent.APIKeyEncrypted,
 			&agent.LastSeenAt,
 			&agent.Status,
+			&fingerprintJSON,
+			&agent.FingerprintVerifiedAt,
 			&agent.CreatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("agentRepo.GetByUserID(%s): scan: %w", userID, err)
+		}
+		if fingerprintJSON != nil {
+			_ = json.Unmarshal(fingerprintJSON, &agent.Fingerprint)
 		}
 		agents = append(agents, agent)
 	}
@@ -201,6 +214,30 @@ func (r *AgentRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (
 	}
 
 	return count, nil
+}
+
+// UpdateFingerprint updates the fingerprint and sets the verified-at timestamp.
+func (r *AgentRepository) UpdateFingerprint(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	fpJSON, err := json.Marshal(fingerprint)
+	if err != nil {
+		return fmt.Errorf("agentRepo.UpdateFingerprint(%s): marshal: %w", id, err)
+	}
+
+	query := `UPDATE agents SET fingerprint = $2, fingerprint_verified_at = NOW() WHERE id = $1 AND tenant_id = $3`
+
+	result, err := q.Exec(ctx, query, id, fpJSON, tenantID)
+	if err != nil {
+		return fmt.Errorf("agentRepo.UpdateFingerprint(%s): %w", id, err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("agentRepo.UpdateFingerprint(%s): agent not found", id)
+	}
+
+	return nil
 }
 
 // UpdateLastSeen updates only the last_seen_at timestamp of an agent.

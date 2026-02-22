@@ -31,6 +31,7 @@ type IncidentHandler struct {
 	incidentSvc ports.IncidentService
 	monitorRepo ports.MonitorRepository
 	templates   *view.Templates
+	auditSvc    ports.AuditService
 }
 
 // NewIncidentHandler creates a new IncidentHandler.
@@ -38,11 +39,13 @@ func NewIncidentHandler(
 	incidentSvc ports.IncidentService,
 	monitorRepo ports.MonitorRepository,
 	templates *view.Templates,
+	auditSvc ports.AuditService,
 ) *IncidentHandler {
 	return &IncidentHandler{
 		incidentSvc: incidentSvc,
 		monitorRepo: monitorRepo,
 		templates:   templates,
+		auditSvc:    auditSvc,
 	}
 }
 
@@ -153,6 +156,13 @@ func (h *IncidentHandler) Acknowledge(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to acknowledge incident"})
 	}
 
+	// Audit log
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditIncidentAcked, c.RealIP(), map[string]string{
+			"incident_id": id.String(),
+		})
+	}
+
 	// If HTMX request, return updated row
 	if c.Request().Header.Get("HX-Request") == "true" {
 		incident, _ := h.incidentSvc.GetIncident(ctx, id)
@@ -186,6 +196,14 @@ func (h *IncidentHandler) Resolve(c echo.Context) error {
 
 	if err := h.incidentSvc.ResolveIncident(ctx, id); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resolve incident"})
+	}
+
+	// Audit log
+	if h.auditSvc != nil {
+		userID, _ := middleware.GetUserID(c)
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditIncidentResolved, c.RealIP(), map[string]string{
+			"incident_id": id.String(),
+		})
 	}
 
 	// If HTMX request, return updated row or remove it

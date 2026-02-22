@@ -20,15 +20,17 @@ type APITokenHandler struct {
 	alertChannelRepo ports.AlertChannelRepository
 	userRepo         ports.UserRepository
 	templates        *view.Templates
+	auditSvc         ports.AuditService
 }
 
 // NewAPITokenHandler creates a new APITokenHandler.
-func NewAPITokenHandler(tokenRepo ports.APITokenRepository, alertChannelRepo ports.AlertChannelRepository, userRepo ports.UserRepository, templates *view.Templates) *APITokenHandler {
+func NewAPITokenHandler(tokenRepo ports.APITokenRepository, alertChannelRepo ports.AlertChannelRepository, userRepo ports.UserRepository, templates *view.Templates, auditSvc ports.AuditService) *APITokenHandler {
 	return &APITokenHandler{
 		tokenRepo:        tokenRepo,
 		alertChannelRepo: alertChannelRepo,
 		userRepo:         userRepo,
 		templates:        templates,
+		auditSvc:         auditSvc,
 	}
 }
 
@@ -78,13 +80,27 @@ func (h *APITokenHandler) Create(c echo.Context) error {
 		expiresAt = &t
 	}
 
-	token, plaintext, err := domain.GenerateAPIToken(userID, name, expiresAt)
+	scope := domain.TokenScope(c.FormValue("scope"))
+	if !scope.IsValid() {
+		scope = domain.TokenScopeAdmin
+	}
+
+	token, plaintext, err := domain.GenerateAPIToken(userID, name, expiresAt, scope)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to generate token")
 	}
 
 	if err := h.tokenRepo.Create(c.Request().Context(), token); err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to save token")
+	}
+
+	// Audit log
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditAPITokenCreated, c.RealIP(), map[string]string{
+			"token_id": token.ID.String(),
+			"name":     token.Name,
+			"scope":    string(token.Scope),
+		})
 	}
 
 	return c.Render(http.StatusOK, "token_created", map[string]interface{}{
@@ -124,6 +140,13 @@ func (h *APITokenHandler) Delete(c echo.Context) error {
 
 	if err := h.tokenRepo.Delete(c.Request().Context(), id); err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to delete token")
+	}
+
+	// Audit log
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditAPITokenRevoked, c.RealIP(), map[string]string{
+			"token_id": id.String(),
+		})
 	}
 
 	return c.String(http.StatusOK, "")

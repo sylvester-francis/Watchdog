@@ -38,12 +38,14 @@ func (s HeartbeatStatus) IsFailure() bool {
 
 // Heartbeat represents a single monitoring check result.
 type Heartbeat struct {
-	Time         time.Time
-	MonitorID    uuid.UUID
-	AgentID      uuid.UUID
-	Status       HeartbeatStatus
-	LatencyMs    *int
-	ErrorMessage *string
+	Time           time.Time
+	MonitorID      uuid.UUID
+	AgentID        uuid.UUID
+	Status         HeartbeatStatus
+	LatencyMs      *int
+	ErrorMessage   *string
+	CertExpiryDays *int
+	CertIssuer     *string
 }
 
 // NewHeartbeat creates a new heartbeat with the current time.

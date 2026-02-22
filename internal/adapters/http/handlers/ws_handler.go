@@ -151,6 +151,39 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		h.logger.Error("failed to update last seen", slog.String("error", err.Error()))
 	}
 
+	// Handle agent fingerprinting
+	if len(authPayload.Fingerprint) > 0 {
+		if agent.Fingerprint == nil {
+			// First connection: store the fingerprint
+			if err := h.agentRepo.UpdateFingerprint(ctx, agent.ID, authPayload.Fingerprint); err != nil {
+				h.logger.Error("failed to store agent fingerprint", slog.String("error", err.Error()))
+			} else {
+				h.logger.Info("agent fingerprint stored",
+					slog.String("agent_id", agent.ID.String()),
+				)
+			}
+		} else {
+			// Subsequent connection: check for changes
+			changed := false
+			for k, v := range authPayload.Fingerprint {
+				if agent.Fingerprint[k] != v {
+					changed = true
+					break
+				}
+			}
+			if changed {
+				h.logger.Warn("agent fingerprint changed",
+					slog.String("agent_id", agent.ID.String()),
+					slog.String("agent_name", agent.Name),
+				)
+				// Update to the new fingerprint
+				if err := h.agentRepo.UpdateFingerprint(ctx, agent.ID, authPayload.Fingerprint); err != nil {
+					h.logger.Error("failed to update agent fingerprint", slog.String("error", err.Error()))
+				}
+			}
+		}
+	}
+
 	h.logger.Info("agent authenticated",
 		slog.String("agent_id", agent.ID.String()),
 		slog.String("agent_name", agent.Name),
@@ -173,6 +206,12 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 			heartbeat = domain.NewSuccessHeartbeat(monitorID, agentID, payload.LatencyMs)
 		} else {
 			heartbeat = domain.NewFailureHeartbeat(monitorID, agentID, status, payload.ErrorMessage)
+		}
+
+		// Thread TLS certificate data from agent payload
+		heartbeat.CertExpiryDays = payload.CertExpiryDays
+		if payload.CertIssuer != "" {
+			heartbeat.CertIssuer = &payload.CertIssuer
 		}
 
 		if err := h.monitorSvc.ProcessHeartbeat(ctx, heartbeat); err != nil {

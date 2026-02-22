@@ -27,8 +27,8 @@ func (r *APITokenRepository) Create(ctx context.Context, token *domain.APIToken)
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO api_tokens (id, user_id, name, token_hash, prefix, expires_at, created_at, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO api_tokens (id, user_id, name, token_hash, prefix, scope, expires_at, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		token.ID,
@@ -36,6 +36,7 @@ func (r *APITokenRepository) Create(ctx context.Context, token *domain.APIToken)
 		token.Name,
 		token.TokenHash,
 		token.Prefix,
+		token.Scope,
 		token.ExpiresAt,
 		token.CreatedAt,
 		tenantID,
@@ -55,7 +56,7 @@ func (r *APITokenRepository) GetByTokenHash(ctx context.Context, tokenHash strin
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, user_id, name, token_hash, prefix, last_used_at, expires_at, created_at
+		SELECT id, user_id, name, token_hash, prefix, scope, last_used_at, last_used_ip, expires_at, created_at
 		FROM api_tokens
 		WHERE token_hash = $1`
 
@@ -66,7 +67,9 @@ func (r *APITokenRepository) GetByTokenHash(ctx context.Context, tokenHash strin
 		&token.Name,
 		&token.TokenHash,
 		&token.Prefix,
+		&token.Scope,
 		&token.LastUsedAt,
+		&token.LastUsedIP,
 		&token.ExpiresAt,
 		&token.CreatedAt,
 	)
@@ -86,7 +89,7 @@ func (r *APITokenRepository) GetByUserID(ctx context.Context, userID uuid.UUID) 
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, user_id, name, token_hash, prefix, last_used_at, expires_at, created_at
+		SELECT id, user_id, name, token_hash, prefix, scope, last_used_at, last_used_ip, expires_at, created_at
 		FROM api_tokens
 		WHERE user_id = $1 AND tenant_id = $2
 		ORDER BY created_at DESC`
@@ -106,7 +109,9 @@ func (r *APITokenRepository) GetByUserID(ctx context.Context, userID uuid.UUID) 
 			&token.Name,
 			&token.TokenHash,
 			&token.Prefix,
+			&token.Scope,
 			&token.LastUsedAt,
+			&token.LastUsedIP,
 			&token.ExpiresAt,
 			&token.CreatedAt,
 		); err != nil {
@@ -135,12 +140,13 @@ func (r *APITokenRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// UpdateLastUsed updates the last_used_at timestamp for a token.
-func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID) error {
+// UpdateLastUsed updates the last_used_at timestamp and IP for a token.
+func (r *APITokenRepository) UpdateLastUsed(ctx context.Context, id uuid.UUID, ip string) error {
 	q := r.db.Querier(ctx)
-	tenantID := TenantIDFromContext(ctx)
 
-	_, err := q.Exec(ctx, `UPDATE api_tokens SET last_used_at = NOW() WHERE id = $1 AND tenant_id = $2`, id, tenantID)
+	// Intentionally unscoped by tenant — token ID is globally unique (UUID)
+	// and this runs in the auth middleware before tenant context is available.
+	_, err := q.Exec(ctx, `UPDATE api_tokens SET last_used_at = NOW(), last_used_ip = $2 WHERE id = $1`, id, ip)
 	if err != nil {
 		return fmt.Errorf("apiTokenRepo.UpdateLastUsed(%s): %w", id, err)
 	}

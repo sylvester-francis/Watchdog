@@ -58,6 +58,7 @@ type AgentRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
 	UpdateLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
+	UpdateFingerprint(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error
 	CountByUserID(ctx context.Context, userID uuid.UUID) (int, error)
 }
 
@@ -112,7 +113,7 @@ type APITokenRepository interface {
 	GetByTokenHash(ctx context.Context, tokenHash string) (*domain.APIToken, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.APIToken, error)
 	Delete(ctx context.Context, id uuid.UUID) error
-	UpdateLastUsed(ctx context.Context, id uuid.UUID) error
+	UpdateLastUsed(ctx context.Context, id uuid.UUID, ip string) error
 }
 
 // AuditLogRepository defines the interface for audit log persistence.

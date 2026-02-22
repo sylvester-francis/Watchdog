@@ -50,7 +50,7 @@ func newAgentTestContext(method, path string, form url.Values, userID uuid.UUID)
 func TestAgentCreate_EmptyName_Returns400(t *testing.T) {
 	userID := uuid.New()
 	agentAuthSvc := &mocks.MockAgentAuthService{}
-	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil)
+	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil, nil)
 
 	c, rec := newAgentTestContext(http.MethodPost, "/agents", url.Values{
 		"name": {""},
@@ -64,7 +64,7 @@ func TestAgentCreate_EmptyName_Returns400(t *testing.T) {
 func TestAgentCreate_NameTooLong_Returns400(t *testing.T) {
 	userID := uuid.New()
 	agentAuthSvc := &mocks.MockAgentAuthService{}
-	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil)
+	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil, nil)
 
 	longName := strings.Repeat("a", 256)
 	c, rec := newAgentTestContext(http.MethodPost, "/agents", url.Values{
@@ -88,7 +88,7 @@ func TestAgentCreate_NameExactly255_Succeeds(t *testing.T) {
 			}, uuid.New().String() + ":secret", nil
 		},
 	}
-	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil)
+	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil, nil)
 
 	name255 := strings.Repeat("a", 255)
 	c, rec := newAgentTestContext(http.MethodPost, "/agents", url.Values{
@@ -111,7 +111,7 @@ func TestAgentCreate_Success_JSON(t *testing.T) {
 			}, uuid.New().String() + ":secret", nil
 		},
 	}
-	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil)
+	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil, nil)
 
 	c, rec := newAgentTestContext(http.MethodPost, "/agents", url.Values{
 		"name": {"my-agent"},
@@ -135,7 +135,7 @@ func TestAgentCreate_XSS_NameEscaped(t *testing.T) {
 			}, uuid.New().String() + ":secret", nil
 		},
 	}
-	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil)
+	h := handlers.NewAgentHandler(agentAuthSvc, &mocks.MockAgentRepository{}, nil, nil)
 
 	c, rec := newAgentTestContext(http.MethodPost, "/agents", url.Values{
 		"name": {`<script>alert("xss")</script>`},
@@ -153,7 +153,7 @@ func TestAgentCreate_XSS_NameEscaped(t *testing.T) {
 
 func TestAgentDelete_InvalidID_Returns400(t *testing.T) {
 	userID := uuid.New()
-	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, &mocks.MockAgentRepository{}, nil)
+	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, &mocks.MockAgentRepository{}, nil, nil)
 
 	c, rec := newAgentTestContext(http.MethodDelete, "/agents/not-a-uuid", nil, userID)
 	c.SetParamNames("id")
@@ -177,7 +177,7 @@ func TestAgentDelete_NotOwned_Returns404(t *testing.T) {
 			}, nil
 		},
 	}
-	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, agentRepo, nil)
+	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, agentRepo, nil, nil)
 
 	c, rec := newAgentTestContext(http.MethodDelete, "/agents/"+agentID.String(), nil, userID)
 	c.SetParamNames("id")
@@ -206,7 +206,7 @@ func TestAgentDelete_Success(t *testing.T) {
 			return nil
 		},
 	}
-	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, agentRepo, nil)
+	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, agentRepo, nil, nil)
 
 	c, rec := newAgentTestContext(http.MethodDelete, "/agents/"+agentID.String(), nil, userID)
 	c.SetParamNames("id")
@@ -220,7 +220,7 @@ func TestAgentDelete_Success(t *testing.T) {
 }
 
 func TestAgentCreate_Unauthorized(t *testing.T) {
-	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, &mocks.MockAgentRepository{}, nil)
+	h := handlers.NewAgentHandler(&mocks.MockAgentAuthService{}, &mocks.MockAgentRepository{}, nil, nil)
 
 	c, rec := newAgentTestContext(http.MethodPost, "/agents", url.Values{
 		"name": {"my-agent"},
