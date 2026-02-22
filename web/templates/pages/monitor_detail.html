@@ -148,7 +148,8 @@
     </div>
     {{end}}
 
-    <!-- Latency Chart -->
+    <!-- Latency Chart (hidden for system/docker — no meaningful latency) -->
+    {{if and (ne (print .Monitor.Type) "system") (ne (print .Monitor.Type) "docker")}}
     <div class="bg-card border border-border rounded-lg mb-6">
         <div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
             <i data-lucide="timer" class="w-4 h-4 text-accent"></i>
@@ -170,6 +171,7 @@
             {{end}}
         </div>
     </div>
+    {{end}}
 
     <!-- Uptime Bar -->
     {{if gt .UptimeTotal 0}}

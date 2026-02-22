@@ -204,6 +204,10 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		status := domain.HeartbeatStatus(payload.Status)
 		if status.IsSuccess() {
 			heartbeat = domain.NewSuccessHeartbeat(monitorID, agentID, payload.LatencyMs)
+			// Don't record latency for non-network checks (system metrics, docker)
+			if payload.LatencyMs == 0 {
+				heartbeat.LatencyMs = nil
+			}
 		} else {
 			heartbeat = domain.NewFailureHeartbeat(monitorID, agentID, status, payload.ErrorMessage)
 		}
