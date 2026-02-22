@@ -77,7 +77,7 @@ func (h *IncidentHandler) List(c echo.Context) error {
 	}
 
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "incidents.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "incidents.html", map[string]any{
 			"Title": "Incidents",
 			"Error": "Failed to load incidents",
 		})
@@ -86,7 +86,7 @@ func (h *IncidentHandler) List(c echo.Context) error {
 	// Filter incidents to only those belonging to the user's monitors
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.Render(http.StatusInternalServerError, "incidents.html", map[string]interface{}{
+		return c.Render(http.StatusInternalServerError, "incidents.html", map[string]any{
 			"Title": "Incidents",
 			"Error": "Failed to load incidents",
 		})
@@ -132,7 +132,7 @@ func (h *IncidentHandler) List(c echo.Context) error {
 		})
 	}
 
-	return c.Render(http.StatusOK, "incidents.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "incidents.html", map[string]any{
 		"Title":                 "Incidents",
 		"Incidents":             incidents,
 		"IncidentsWithMonitors": incidentsWithMonitors,
@@ -166,7 +166,7 @@ func (h *IncidentHandler) Detail(c echo.Context) error {
 
 	monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
 
-	return c.Render(http.StatusOK, "incidents.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "incidents.html", map[string]any{
 		"Title":      "Incident Detail",
 		"Incident":   incident,
 		"Monitor":    monitor,
@@ -215,7 +215,7 @@ func (h *IncidentHandler) Acknowledge(c echo.Context) error {
 			return c.Redirect(http.StatusFound, "/incidents")
 		}
 		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
-		return c.Render(http.StatusOK, "incident_row", map[string]interface{}{
+		return c.Render(http.StatusOK, "incident_row", map[string]any{
 			"Incident": incident,
 			"Monitor":  monitor,
 		})
@@ -269,7 +269,7 @@ func (h *IncidentHandler) Resolve(c echo.Context) error {
 			return c.Redirect(http.StatusFound, "/incidents")
 		}
 		monitor, _ := h.monitorRepo.GetByID(ctx, incident.MonitorID)
-		return c.Render(http.StatusOK, "incident_row", map[string]interface{}{
+		return c.Render(http.StatusOK, "incident_row", map[string]any{
 			"Incident": incident,
 			"Monitor":  monitor,
 		})

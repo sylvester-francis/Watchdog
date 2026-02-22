@@ -30,11 +30,11 @@ func (c *APIClient) get(path string) ([]byte, int, error) {
 	return c.do(http.MethodGet, path, nil)
 }
 
-func (c *APIClient) post(path string, body interface{}) ([]byte, int, error) {
+func (c *APIClient) post(path string, body any) ([]byte, int, error) {
 	return c.do(http.MethodPost, path, body)
 }
 
-func (c *APIClient) put(path string, body interface{}) ([]byte, int, error) {
+func (c *APIClient) put(path string, body any) ([]byte, int, error) {
 	return c.do(http.MethodPut, path, body)
 }
 
@@ -42,7 +42,7 @@ func (c *APIClient) delete(path string) ([]byte, int, error) {
 	return c.do(http.MethodDelete, path, nil)
 }
 
-func (c *APIClient) do(method, path string, body interface{}) ([]byte, int, error) {
+func (c *APIClient) do(method, path string, body any) ([]byte, int, error) {
 	var reqBody io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)

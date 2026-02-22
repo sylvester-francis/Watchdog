@@ -30,7 +30,7 @@ func filterArgs(args []string) []string {
 }
 
 // printJSON outputs data as formatted JSON.
-func printJSON(v interface{}) {
+func printJSON(v any) {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -63,7 +63,7 @@ func printTable(headers []string, rows [][]string) {
 }
 
 // fatal prints an error and exits.
-func fatal(format string, args ...interface{}) {
+func fatal(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 	os.Exit(1)
 }

@@ -333,14 +333,14 @@ func (r *Router) installScript(c echo.Context) error {
 
 // termsPage renders the Terms of Service page.
 func (r *Router) termsPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "terms.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "terms.html", map[string]any{
 		"Title": "Terms of Service",
 	})
 }
 
 // privacyPage renders the Privacy Policy page.
 func (r *Router) privacyPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "privacy.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "privacy.html", map[string]any{
 		"Title": "Privacy Policy",
 	})
 }
