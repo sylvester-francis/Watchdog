@@ -225,6 +225,7 @@ func (r *Router) RegisterRoutes() {
 
 	// API endpoints for chart data
 	protected.GET("/api/monitors/:id/heartbeats", r.apiHandler.MonitorHeartbeats)
+	protected.GET("/api/monitors/:id/latency", r.apiHandler.MonitorLatencyHistory)
 	protected.GET("/api/dashboard/stats", r.apiHandler.DashboardStats)
 	protected.GET("/api/monitors/summary", r.apiHandler.MonitorsSummary)
 
