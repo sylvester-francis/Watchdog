@@ -28,6 +28,10 @@
 			goto(`/login`);
 			return;
 		}
+		if (auth.mustChangePassword && !window.location.pathname.startsWith('/settings')) {
+			goto(`/settings?change_password=1`);
+			return;
+		}
 		ready = true;
 		sse.connect();
 	});

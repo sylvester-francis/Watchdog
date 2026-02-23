@@ -207,7 +207,7 @@
 						WatchDog deploys lightweight agents inside your network to monitor internal services, databases, and APIs that external tools can't reach. Real-time dashboard. Instant alerts. Zero configuration.
 					</p>
 
-					<div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8">
+					<div class="flex flex-col sm:flex-row gap-3 mb-4 md:mb-5">
 						<a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
 							Deploy Free
 						</a>
@@ -377,7 +377,7 @@
 						<h3 class="text-sm font-semibold text-foreground mb-1.5">{f.title}</h3>
 						<p class="text-sm text-muted-foreground leading-relaxed break-words">{f.desc}</p>
 						{#if f.pre}
-							<pre class="mt-3 bg-background/50 border border-border/50 rounded-lg p-3 font-mono text-[11px] leading-relaxed overflow-x-auto">{@html f.pre}</pre>
+							<pre class="mt-3 bg-card-elevated border border-border/50 rounded-md p-3 font-mono text-[11px] leading-relaxed overflow-x-auto">{@html f.pre}</pre>
 						{/if}
 					</div>
 				{/each}

@@ -72,3 +72,13 @@ export function updateProfile(data: ProfileUpdateRequest): Promise<{ data: { use
 		body: JSON.stringify(data)
 	});
 }
+
+interface ChangePasswordRequest {
+	current_password: string;
+	new_password: string;
+	confirm_password: string;
+}
+
+export function changePassword(data: ChangePasswordRequest): Promise<{ status: string }> {
+	return api.post<{ status: string }>('/api/v1/users/me/password', data);
+}

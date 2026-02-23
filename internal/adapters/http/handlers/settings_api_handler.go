@@ -13,6 +13,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
+	"github.com/sylvester-francis/watchdog/internal/crypto"
 )
 
 // SettingsAPIHandler serves the JSON API for settings (tokens, channels, profile).
@@ -21,6 +22,7 @@ type SettingsAPIHandler struct {
 	channelRepo ports.AlertChannelRepository
 	userRepo    ports.UserRepository
 	auditSvc    ports.AuditService
+	hasher      *crypto.PasswordHasher
 }
 
 // NewSettingsAPIHandler creates a new SettingsAPIHandler.
@@ -29,12 +31,14 @@ func NewSettingsAPIHandler(
 	channelRepo ports.AlertChannelRepository,
 	userRepo ports.UserRepository,
 	auditSvc ports.AuditService,
+	hasher *crypto.PasswordHasher,
 ) *SettingsAPIHandler {
 	return &SettingsAPIHandler{
 		tokenRepo:   tokenRepo,
 		channelRepo: channelRepo,
 		userRepo:    userRepo,
 		auditSvc:    auditSvc,
+		hasher:      hasher,
 	}
 }
 
@@ -515,4 +519,67 @@ func (h *SettingsAPIHandler) UpdateProfile(c echo.Context) error {
 			"username": user.Username,
 		},
 	})
+}
+
+// ChangePassword allows a user to change their own password.
+// POST /api/v1/users/me/password
+func (h *SettingsAPIHandler) ChangePassword(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+		ConfirmPassword string `json:"confirm_password"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+	}
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "current password and new password are required"})
+	}
+	if len(req.NewPassword) < 8 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "new password must be at least 8 characters"})
+	}
+	if req.NewPassword != req.ConfirmPassword {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "new passwords do not match"})
+	}
+	if req.NewPassword == req.CurrentPassword {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "new password must be different from current password"})
+	}
+
+	ctx := c.Request().Context()
+
+	user, err := h.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load user"})
+	}
+
+	match, err := h.hasher.Verify(req.CurrentPassword, user.PasswordHash)
+	if err != nil || !match {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "current password is incorrect"})
+	}
+
+	hash, err := h.hasher.Hash(req.NewPassword)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+	}
+
+	now := time.Now()
+	user.PasswordHash = hash
+	user.PasswordChangedAt = &now
+	user.UpdatedAt = now
+
+	if err := h.userRepo.Update(ctx, user); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update password"})
+	}
+
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditPasswordChanged, c.RealIP(), nil)
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 }

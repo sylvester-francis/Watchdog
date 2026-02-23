@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { ShieldCheck, AlertCircle } from 'lucide-svelte';
+	import { ShieldCheck, AlertCircle, Server, Activity, BellRing } from 'lucide-svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
 
 	const auth = getAuth();
@@ -48,6 +48,7 @@
 		<div class="absolute inset-0 bg-background">
 			<div class="absolute top-0 left-0 w-[500px] h-[500px] rounded-full bg-accent/[0.12] blur-[120px] animate-pulse-slow"></div>
 			<div class="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-blue-500/[0.08] blur-[100px] animate-pulse-slow" style="animation-delay: 2s;"></div>
+			<div class="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full bg-blue-500/[0.06] blur-[80px] animate-pulse-slow" style="animation-delay: 1s;"></div>
 		</div>
 		<div class="relative z-10 flex flex-col justify-between p-12 w-full">
 			<a href="/" class="flex items-center space-x-2.5">
@@ -60,9 +61,39 @@
 				<h2 class="text-2xl font-bold text-foreground leading-tight mb-4">
 					Infrastructure monitoring that reaches where others can't.
 				</h2>
-				<p class="text-sm text-muted-foreground leading-relaxed">
+				<p class="text-sm text-muted-foreground leading-relaxed mb-8">
 					Deploy agents inside your network to monitor internal services, databases, and APIs behind firewalls and NATs.
 				</p>
+
+				<div class="space-y-5">
+					<div class="flex items-start space-x-3.5">
+						<div class="w-9 h-9 bg-accent/10 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+							<Server class="w-5 h-5 text-accent" />
+						</div>
+						<div>
+							<p class="text-sm font-medium text-foreground">Agent-based architecture</p>
+							<p class="text-xs text-muted-foreground mt-0.5">Single Go binary. Deploys in seconds.</p>
+						</div>
+					</div>
+					<div class="flex items-start space-x-3.5">
+						<div class="w-9 h-9 bg-emerald-500/10 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+							<Activity class="w-5 h-5 text-emerald-400" />
+						</div>
+						<div>
+							<p class="text-sm font-medium text-foreground">Real-time dashboard</p>
+							<p class="text-xs text-muted-foreground mt-0.5">Live status updates via SSE. Sparkline charts.</p>
+						</div>
+					</div>
+					<div class="flex items-start space-x-3.5">
+						<div class="w-9 h-9 bg-yellow-500/10 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+							<BellRing class="w-5 h-5 text-yellow-400" />
+						</div>
+						<div>
+							<p class="text-sm font-medium text-foreground">Smart alerting</p>
+							<p class="text-xs text-muted-foreground mt-0.5">3-strike rule. Discord, Slack, webhooks.</p>
+						</div>
+					</div>
+				</div>
 			</div>
 			<p class="text-[11px] text-muted-foreground/50">Open-source infrastructure monitoring</p>
 		</div>

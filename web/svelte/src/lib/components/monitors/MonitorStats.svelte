@@ -15,47 +15,39 @@
 	let uptimeColorClass = $derived(uptimeColor(uptimePercent));
 </script>
 
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 	<!-- Check Interval -->
 	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-2 mb-2">
-			<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-				<Clock class="w-3.5 h-3.5 text-muted-foreground" />
-			</div>
-			<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Interval</span>
+		<div class="flex items-center space-x-1.5 mb-1">
+			<Clock class="w-3 h-3 text-muted-foreground" />
+			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Interval</p>
 		</div>
 		<p class="text-lg font-semibold text-foreground font-mono">{monitor.interval_seconds}s</p>
 	</div>
 
 	<!-- Timeout -->
 	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-2 mb-2">
-			<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-				<Timer class="w-3.5 h-3.5 text-muted-foreground" />
-			</div>
-			<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Timeout</span>
+		<div class="flex items-center space-x-1.5 mb-1">
+			<Timer class="w-3 h-3 text-muted-foreground" />
+			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Timeout</p>
 		</div>
 		<p class="text-lg font-semibold text-foreground font-mono">{monitor.timeout_seconds}s</p>
 	</div>
 
 	<!-- Uptime -->
 	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-2 mb-2">
-			<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-				<Activity class="w-3.5 h-3.5 text-muted-foreground" />
-			</div>
-			<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Uptime</span>
+		<div class="flex items-center space-x-1.5 mb-1">
+			<Activity class="w-3 h-3 text-muted-foreground" />
+			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Uptime</p>
 		</div>
 		<p class="text-lg font-semibold font-mono {uptimeColorClass}">{uptimeDisplay}%</p>
 	</div>
 
 	<!-- Agent -->
 	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-2 mb-2">
-			<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-				<Server class="w-3.5 h-3.5 text-muted-foreground" />
-			</div>
-			<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Agent</span>
+		<div class="flex items-center space-x-1.5 mb-1">
+			<Server class="w-3 h-3 text-muted-foreground" />
+			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Agent</p>
 		</div>
 		<p class="text-sm font-medium text-foreground truncate">{agentName}</p>
 	</div>
@@ -63,11 +55,9 @@
 	<!-- Type-specific extra cards -->
 	{#if monitor.type === 'tls' && monitor.metadata?.cert_expiry_days}
 		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-2 mb-2">
-				<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-					<Shield class="w-3.5 h-3.5 text-muted-foreground" />
-				</div>
-				<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Cert Expiry</span>
+			<div class="flex items-center space-x-1.5 mb-1">
+				<Shield class="w-3 h-3 text-muted-foreground" />
+				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Cert Expiry</p>
 			</div>
 			<p class="text-lg font-semibold text-foreground font-mono">
 				{monitor.metadata.cert_expiry_days}d
@@ -77,11 +67,9 @@
 
 	{#if monitor.type === 'docker' && monitor.metadata?.container_name}
 		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-2 mb-2">
-				<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-					<Container class="w-3.5 h-3.5 text-muted-foreground" />
-				</div>
-				<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Container</span>
+			<div class="flex items-center space-x-1.5 mb-1">
+				<Container class="w-3 h-3 text-muted-foreground" />
+				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Container</p>
 			</div>
 			<p class="text-sm font-medium text-foreground truncate">{monitor.metadata.container_name}</p>
 		</div>
@@ -89,11 +77,9 @@
 
 	{#if monitor.type === 'database' && monitor.metadata?.db_type}
 		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-2 mb-2">
-				<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-					<Database class="w-3.5 h-3.5 text-muted-foreground" />
-				</div>
-				<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">DB Type</span>
+			<div class="flex items-center space-x-1.5 mb-1">
+				<Database class="w-3 h-3 text-muted-foreground" />
+				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">DB Type</p>
 			</div>
 			<p class="text-sm font-medium text-foreground capitalize">{monitor.metadata.db_type}</p>
 		</div>
@@ -101,11 +87,9 @@
 
 	{#if monitor.type === 'system' && monitor.metadata?.metric_name}
 		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-2 mb-2">
-				<div class="w-7 h-7 bg-muted/50 rounded-md flex items-center justify-center">
-					<Cpu class="w-3.5 h-3.5 text-muted-foreground" />
-				</div>
-				<span class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Metric</span>
+			<div class="flex items-center space-x-1.5 mb-1">
+				<Cpu class="w-3 h-3 text-muted-foreground" />
+				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Metric</p>
 			</div>
 			<p class="text-sm font-medium text-foreground capitalize">{monitor.metadata.metric_name}</p>
 		</div>

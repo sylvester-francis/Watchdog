@@ -4,6 +4,7 @@ import type { User } from '$lib/types';
 let user = $state<User | null>(null);
 let loading = $state(true);
 let checked = $state(false);
+let mustChangePassword = $state(false);
 let lastCheckAt = 0;
 
 // Cross-tab logout coordination
@@ -29,6 +30,7 @@ async function revalidate(): Promise<void> {
 	try {
 		const res = await authApi.me();
 		user = res.user;
+		mustChangePassword = res.must_change_password === true;
 		lastCheckAt = Date.now();
 	} catch {
 		user = null;
@@ -51,6 +53,7 @@ export function getAuth() {
 		try {
 			const res = await authApi.me();
 			user = res.user;
+			mustChangePassword = res.must_change_password === true;
 			lastCheckAt = Date.now();
 		} catch {
 			user = null;
@@ -61,12 +64,13 @@ export function getAuth() {
 		return user;
 	}
 
-	async function login(email: string, password: string): Promise<User> {
+	async function login(email: string, password: string): Promise<{ user: User; must_change_password?: boolean }> {
 		const res = await authApi.login(email, password);
 		user = res.user;
+		mustChangePassword = res.must_change_password === true;
 		checked = true;
 		lastCheckAt = Date.now();
-		return res.user;
+		return res;
 	}
 
 	async function register(email: string, password: string, confirmPassword: string): Promise<User> {
@@ -91,8 +95,13 @@ export function getAuth() {
 		} finally {
 			user = null;
 			checked = false;
+			mustChangePassword = false;
 			channel?.postMessage('logout');
 		}
+	}
+
+	function clearMustChangePassword(): void {
+		mustChangePassword = false;
 	}
 
 	return {
@@ -100,10 +109,12 @@ export function getAuth() {
 		get loading() { return loading; },
 		get isAuthenticated() { return isAuthenticated(); },
 		get isAdmin() { return isAdmin(); },
+		get mustChangePassword() { return mustChangePassword; },
 		check,
 		login,
 		register,
 		setupAdmin,
-		logout
+		logout,
+		clearMustChangePassword
 	};
 }

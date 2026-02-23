@@ -1,16 +1,79 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText } from 'lucide-svelte';
+	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
-	import type { SystemInfo } from '$lib/types';
+	import { getToasts } from '$lib/stores/toast.svelte';
+	import type { SystemInfo, AdminUser } from '$lib/types';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
 	const auth = getAuth();
+	const toast = getToasts();
 
 	let data = $state<SystemInfo | null>(null);
+	let users = $state<AdminUser[]>([]);
 	let loading = $state(true);
 	let error = $state('');
+
+	// Password reset state
+	let resetPassword = $state('');
+	let resetUserEmail = $state('');
+	let copiedPassword = $state(false);
+	let confirmModal = $state<{
+		open: boolean;
+		title: string;
+		message: string;
+		confirmLabel: string;
+		variant: 'danger' | 'warning';
+		loading: boolean;
+		action: (() => Promise<void>) | null;
+	}>({
+		open: false, title: '', message: '', confirmLabel: 'Confirm', variant: 'warning', loading: false, action: null
+	});
+
+	function closeConfirmModal() {
+		confirmModal = { open: false, title: '', message: '', confirmLabel: 'Confirm', variant: 'warning', loading: false, action: null };
+	}
+
+	async function executeConfirm() {
+		if (confirmModal.action) await confirmModal.action();
+	}
+
+	function handleResetPassword(user: AdminUser) {
+		confirmModal = {
+			open: true,
+			title: 'Reset Password',
+			message: `Reset the password for ${user.email}? They will be required to change it on next login.`,
+			confirmLabel: 'Reset Password',
+			variant: 'warning',
+			loading: false,
+			action: async () => {
+				confirmModal.loading = true;
+				try {
+					const res = await systemApi.resetUserPassword(user.id);
+					resetPassword = res.password;
+					resetUserEmail = user.email;
+					closeConfirmModal();
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : 'Failed to reset password.');
+					confirmModal.loading = false;
+				}
+			}
+		};
+	}
+
+	async function copyPasswordToClipboard() {
+		await navigator.clipboard.writeText(resetPassword);
+		copiedPassword = true;
+		setTimeout(() => { copiedPassword = false; }, 2000);
+	}
+
+	function dismissResetPassword() {
+		resetPassword = '';
+		resetUserEmail = '';
+		copiedPassword = false;
+	}
 
 	function timeAgo(dateStr: string): string {
 		const diff = Date.now() - new Date(dateStr).getTime();
@@ -41,7 +104,12 @@
 		}
 
 		try {
-			data = await systemApi.getSystemInfo();
+			const [sysInfo, usersRes] = await Promise.all([
+				systemApi.getSystemInfo(),
+				systemApi.listUsers()
+			]);
+			data = sysInfo;
+			users = usersRes.data ?? [];
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load system info';
 		} finally {
@@ -249,6 +317,111 @@
 			</div>
 		</div>
 
+		<!-- Reset Password Banner (shown after admin reset) -->
+		{#if resetPassword}
+			<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
+				<div class="flex items-start justify-between mb-2">
+					<div class="flex items-center space-x-2">
+						<KeyRound class="w-4 h-4 text-yellow-400" />
+						<span class="text-sm font-medium text-foreground">Password Reset</span>
+					</div>
+					<button
+						onclick={dismissResetPassword}
+						class="text-muted-foreground hover:text-foreground transition-colors text-xs"
+					>
+						Dismiss
+					</button>
+				</div>
+				<p class="text-xs text-muted-foreground mb-1">Temporary password for <span class="text-foreground font-medium">{resetUserEmail}</span>:</p>
+				<p class="text-xs text-muted-foreground mb-2">Copy this password now. You won't be able to see it again. The user will be required to change it on next login.</p>
+				<div class="flex items-center space-x-2">
+					<code class="flex-1 text-xs font-mono bg-card border border-border rounded px-3 py-2 text-foreground break-all select-all">{resetPassword}</code>
+					<button
+						onclick={copyPasswordToClipboard}
+						class="p-2 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+						aria-label="Copy password"
+					>
+						{#if copiedPassword}
+							<Check class="w-4 h-4 text-emerald-400" />
+						{:else}
+							<Copy class="w-4 h-4" />
+						{/if}
+					</button>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Users -->
+		<div class="bg-card rounded-lg border border-border mb-6">
+			<div class="px-4 py-3 border-b border-border flex items-center justify-between">
+				<div class="flex items-center space-x-2">
+					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
+						<Users class="w-3 h-3 text-muted-foreground" />
+					</div>
+					<h2 class="text-sm font-medium text-foreground">Users</h2>
+					{#if users.length > 0}
+						<span class="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">{users.length}</span>
+					{/if}
+				</div>
+			</div>
+
+			{#if users.length > 0}
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead>
+							<tr class="border-b border-border">
+								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Username</th>
+								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Plan</th>
+								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Agents</th>
+								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Monitors</th>
+								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Joined</th>
+								<th class="px-4 py-2.5 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-border/30">
+							{#each users as u (u.id)}
+								<tr class="hover:bg-muted/20 transition-colors">
+									<td class="px-4 py-2.5 text-xs text-foreground">
+										<div class="flex items-center space-x-2">
+											<span>{u.email}</span>
+											{#if u.is_admin}
+												<span class="px-1.5 py-0.5 text-[9px] font-medium rounded bg-yellow-500/15 text-yellow-400 uppercase">Admin</span>
+											{/if}
+										</div>
+									</td>
+									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden sm:table-cell font-mono">{u.username}</td>
+									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell capitalize">{u.plan}</td>
+									<td class="px-4 py-2.5 text-xs text-muted-foreground font-mono hidden lg:table-cell">{u.agent_count}</td>
+									<td class="px-4 py-2.5 text-xs text-muted-foreground font-mono hidden lg:table-cell">{u.monitor_count}</td>
+									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{timeAgo(u.created_at)}</td>
+									<td class="px-4 py-2.5 text-right">
+										{#if u.id !== auth.user?.id}
+											<button
+												onclick={() => handleResetPassword(u)}
+												class="px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
+											>
+												Reset Password
+											</button>
+										{:else}
+											<span class="text-[10px] text-muted-foreground/40">You</span>
+										{/if}
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{:else}
+				<div class="text-center py-12">
+					<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+						<Users class="w-6 h-6 text-muted-foreground/40" />
+					</div>
+					<p class="text-sm text-muted-foreground font-medium">No users found</p>
+				</div>
+			{/if}
+		</div>
+
 		<!-- Audit Log -->
 		<div class="bg-card rounded-lg border border-border">
 			<div class="px-4 py-3 border-b border-border flex items-center justify-between">
@@ -321,4 +494,15 @@
 			{/if}
 		</div>
 	</div>
+
+	<ConfirmModal
+		open={confirmModal.open}
+		title={confirmModal.title}
+		message={confirmModal.message}
+		confirmLabel={confirmModal.confirmLabel}
+		variant={confirmModal.variant}
+		loading={confirmModal.loading}
+		onConfirm={executeConfirm}
+		onCancel={closeConfirmModal}
+	/>
 {/if}

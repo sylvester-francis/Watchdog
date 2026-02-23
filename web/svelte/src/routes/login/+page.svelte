@@ -28,8 +28,12 @@
 		error = '';
 		submitting = true;
 		try {
-			await auth.login(email, password);
-			goto(`/dashboard`);
+			const res = await auth.login(email, password);
+			if (res.must_change_password) {
+				goto(`/settings?change_password=1`);
+			} else {
+				goto(`/dashboard`);
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Login failed';
 		} finally {

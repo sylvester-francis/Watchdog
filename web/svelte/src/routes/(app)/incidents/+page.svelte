@@ -239,18 +239,18 @@
 			<div class="bg-card border border-border rounded-lg overflow-x-auto">
 				<table class="w-full">
 					<thead>
-						<tr class="border-b border-border/30">
-							<th class="px-4 py-2 text-left text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-							<th class="px-4 py-2 text-left text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Monitor</th>
-							<th class="px-4 py-2 text-left text-[9px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Target</th>
-							<th class="px-4 py-2 text-left text-[9px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Started</th>
-							<th class="px-4 py-2 text-left text-[9px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
+						<tr class="border-b border-border">
+							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitor</th>
+							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Target</th>
+							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Started</th>
+							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
 								{activeTab === 'resolved' ? 'TTR' : 'Duration'}
 							</th>
-							<th class="px-4 py-2 text-left text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+							<th class="px-4 py-3 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
 						</tr>
 					</thead>
-					<tbody>
+					<tbody class="divide-y divide-border/50">
 						{#each filteredIncidents as incident (incident.id)}
 							<IncidentRow
 								{incident}

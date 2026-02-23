@@ -1,8 +1,9 @@
 import { api } from './client';
 import type { User } from '$lib/types';
 
-interface AuthResponse {
+export interface AuthResponse {
 	user: User;
+	must_change_password?: boolean;
 }
 
 interface NeedsSetupResponse {

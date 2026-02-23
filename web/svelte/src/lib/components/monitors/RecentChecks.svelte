@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Loader2 } from 'lucide-svelte';
+	import { Loader2, List } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { formatTimeAgo } from '$lib/utils';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -68,8 +68,9 @@
 </script>
 
 <div class="bg-card border border-border rounded-lg">
-	<div class="px-4 py-3 border-b border-border">
-		<h2 class="text-sm font-medium text-foreground">Recent Checks</h2>
+	<div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
+		<List class="w-4 h-4 text-accent" />
+		<h3 class="text-sm font-medium text-foreground">Recent Checks</h3>
 	</div>
 
 	{#if loading}
@@ -81,36 +82,48 @@
 			<p class="text-xs text-muted-foreground">No heartbeat data yet</p>
 		</div>
 	{:else}
-		<!-- Column headers -->
-		<div class="hidden sm:grid grid-cols-[1fr_80px_90px] items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
-			<div>Time</div>
-			<div class="text-center">Status</div>
-			<div class="text-right">Latency</div>
-		</div>
-
-		<div class="divide-y divide-border/20 max-h-[480px] overflow-y-auto">
-			{#each heartbeats as hb, i}
-				<div class="grid grid-cols-[1fr_80px_90px] items-center px-4 py-2.5 hover:bg-card-elevated transition-colors">
-					<!-- Time -->
-					<div class="text-xs text-muted-foreground font-mono">
-						{formatTimeAgo(hb.time)}
-					</div>
-
-					<!-- Status badge -->
-					<div class="flex justify-center">
-						<span class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded border {statusBadgeClass(hb.status)}">
-							{statusLabel(hb.status)}
-						</span>
-					</div>
-
-					<!-- Latency -->
-					<div class="text-right">
-						<span class="text-xs font-mono {hb.status === 'up' ? 'text-foreground' : 'text-muted-foreground'}">
-							{formatLatency(hb.latency_ms)}
-						</span>
-					</div>
-				</div>
-			{/each}
+		<div class="overflow-x-auto">
+			<table class="w-full">
+				<thead>
+					<tr class="border-b border-border">
+						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
+						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Latency</th>
+						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Error</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-border/30 max-h-[480px]">
+					{#each heartbeats as hb}
+						<tr class="hover:bg-card-elevated transition-colors">
+							<td class="px-5 py-2.5">
+								<span class="text-xs text-muted-foreground font-mono">{formatTimeAgo(hb.time)}</span>
+							</td>
+							<td class="px-5 py-2.5">
+								<div class="flex items-center space-x-2">
+									<div class="w-1.5 h-1.5 rounded-full {hb.status === 'up' ? 'bg-emerald-400' : 'bg-red-400'}"></div>
+									<span class="text-xs font-mono {hb.status === 'up' ? 'text-emerald-400' : 'text-red-400'}">{statusLabel(hb.status)}</span>
+								</div>
+							</td>
+							<td class="px-5 py-2.5">
+								{#if hb.latency_ms}
+									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
+								{:else}
+									<span class="text-xs text-muted-foreground">N/A</span>
+								{/if}
+							</td>
+							<td class="px-5 py-2.5">
+								{#if hb.status === 'down' || hb.status === 'error'}
+									<span class="text-xs text-red-400 font-mono">Check failed</span>
+								{:else if hb.status === 'timeout'}
+									<span class="text-xs text-amber-400 font-mono">Timeout</span>
+								{:else}
+									<span class="text-xs text-muted-foreground">—</span>
+								{/if}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
 		</div>
 	{/if}
 </div>
