@@ -74,8 +74,11 @@ type Router struct {
 	apiTokenHandler   *handlers.APITokenHandler
 	apiV1Handler      *handlers.APIV1Handler
 	statusPageHandler    *handlers.StatusPageHandler
-	alertChannelHandler *handlers.AlertChannelHandler
-	authAPIHandler      *handlers.AuthAPIHandler
+	alertChannelHandler  *handlers.AlertChannelHandler
+	authAPIHandler       *handlers.AuthAPIHandler
+	settingsAPIHandler   *handlers.SettingsAPIHandler
+	statusPageAPIHandler *handlers.StatusPageAPIHandler
+	systemAPIHandler     *handlers.SystemAPIHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -126,6 +129,9 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.UserRepo, deps.IncidentService, templates)
 	r.alertChannelHandler = handlers.NewAlertChannelHandler(deps.AlertChannelRepo, templates)
 	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, deps.AuditService)
+	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService)
+	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo)
+	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.StartTime)
 
 	return r, nil
 }
@@ -277,7 +283,7 @@ func (r *Router) RegisterRoutes() {
 	v1 := e.Group("/api/v1")
 	v1.Use(echomw.CORSWithConfig(echomw.CORSConfig{
 		AllowOrigins:   r.deps.AllowedOrigins,
-		AllowMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:   []string{echo.HeaderAuthorization, echo.HeaderContentType},
 		AllowCredentials: true,
 		MaxAge:         86400,
@@ -312,6 +318,32 @@ func (r *Router) RegisterRoutes() {
 	// Dashboard
 	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
 	v1.GET("/monitors/summary", r.apiHandler.MonitorsSummary)
+
+	// Settings: tokens
+	v1.GET("/tokens", r.settingsAPIHandler.ListTokens)
+	v1.POST("/tokens", r.settingsAPIHandler.CreateToken)
+	v1.DELETE("/tokens/:id", r.settingsAPIHandler.DeleteToken)
+	v1.POST("/tokens/:id/regenerate", r.settingsAPIHandler.RegenerateToken)
+
+	// Settings: alert channels
+	v1.GET("/alert-channels", r.settingsAPIHandler.ListChannels)
+	v1.POST("/alert-channels", r.settingsAPIHandler.CreateChannel)
+	v1.DELETE("/alert-channels/:id", r.settingsAPIHandler.DeleteChannel)
+	v1.POST("/alert-channels/:id/toggle", r.settingsAPIHandler.ToggleChannel)
+	v1.POST("/alert-channels/:id/test", r.settingsAPIHandler.TestChannel)
+
+	// Settings: profile
+	v1.PATCH("/users/me", r.settingsAPIHandler.UpdateProfile)
+
+	// Status pages
+	v1.GET("/status-pages", r.statusPageAPIHandler.List)
+	v1.POST("/status-pages", r.statusPageAPIHandler.Create)
+	v1.GET("/status-pages/:id", r.statusPageAPIHandler.Get)
+	v1.PUT("/status-pages/:id", r.statusPageAPIHandler.Update)
+	v1.DELETE("/status-pages/:id", r.statusPageAPIHandler.Delete)
+
+	// System dashboard (admin-only)
+	v1.GET("/system", r.systemAPIHandler.GetSystemInfo)
 
 	// SvelteKit SPA — serve build output if available
 	r.registerSvelteRoutes()
