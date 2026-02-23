@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { getAuth } from '$lib/stores/auth';
+	import { setOnUnauthorized } from '$lib/api/client';
+	import { createSSE } from '$lib/stores/sse';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Header from '$lib/components/Header.svelte';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
@@ -11,6 +13,16 @@
 	let ready = $state(false);
 	let { children } = $props();
 
+	// SSE connection at layout level — shared across all (app) pages
+	const sse = createSSE(() => {});
+	export { sse };
+
+	// Register 401 redirect callback (safe outside component init via module)
+	setOnUnauthorized(() => {
+		sse.disconnect();
+		goto(`${base}/login`);
+	});
+
 	onMount(async () => {
 		const user = await auth.check();
 		if (!user) {
@@ -18,6 +30,11 @@
 			return;
 		}
 		ready = true;
+		sse.connect();
+	});
+
+	onDestroy(() => {
+		sse.disconnect();
 	});
 </script>
 

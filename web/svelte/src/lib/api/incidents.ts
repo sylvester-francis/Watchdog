@@ -2,7 +2,7 @@ import { api } from './client';
 import type { Incident } from '$lib/types';
 
 export function listIncidents(status?: string): Promise<{ data: Incident[] }> {
-	const params = status ? `?status=${status}` : '';
+	const params = status ? `?status=${encodeURIComponent(status)}` : '';
 	return api.get<{ data: Incident[] }>(`/api/v1/incidents${params}`);
 }
 

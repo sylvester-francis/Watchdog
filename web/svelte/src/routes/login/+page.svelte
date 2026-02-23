@@ -12,7 +12,13 @@
 	let error = $state('');
 	let submitting = $state(false);
 
-	const success = $derived(page.url.searchParams.get('success') ?? '');
+	const successMessages: Record<string, string> = {
+		registered: 'Account created! Please sign in.',
+		setup_complete: 'Admin account created. Sign in to continue.',
+		password_reset: 'Password reset. Sign in with your new password.'
+	};
+	const successKey = $derived(page.url.searchParams.get('success') ?? '');
+	const success = $derived(successMessages[successKey] ?? '');
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
