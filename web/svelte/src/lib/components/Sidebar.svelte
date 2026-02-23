@@ -82,15 +82,19 @@
 		<p class="text-[9px] uppercase tracking-wider text-muted-foreground/40 px-3 mb-1 mt-2">System</p>
 
 		{#each systemItems as item}
-			<a
-				href={item.href}
-				onclick={closeMobile}
-				class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm sidebar-link
-					{isActive(item.href) ? 'bg-foreground/[0.08] text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
-			>
-				<item.icon class="w-4 h-4" />
-				<span>{item.label}</span>
-			</a>
+			{#if item.label === 'System' && !auth.isAdmin}
+				<!-- System link hidden for non-admin users -->
+			{:else}
+				<a
+					href={item.href}
+					onclick={closeMobile}
+					class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm sidebar-link
+						{isActive(item.href) ? 'bg-foreground/[0.08] text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
+				>
+					<item.icon class="w-4 h-4" />
+					<span>{item.label}</span>
+				</a>
+			{/if}
 		{/each}
 	</nav>
 

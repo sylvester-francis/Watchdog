@@ -11,6 +11,7 @@
 	import LatencyChart from '$lib/components/monitors/LatencyChart.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
+	import EditMonitorModal from '$lib/components/monitors/EditMonitorModal.svelte';
 
 	const toast = getToasts();
 
@@ -21,6 +22,7 @@
 	let uptimeDown = $state(0);
 	let loading = $state(true);
 	let error = $state('');
+	let editOpen = $state(false);
 
 	let monitorId = $derived(page.params.id ?? '');
 
@@ -124,7 +126,7 @@
 		</nav>
 
 		<!-- Header -->
-		<MonitorHeader {monitor} />
+		<MonitorHeader {monitor} onEdit={() => editOpen = true} />
 
 		<!-- Stats Cards -->
 		<MonitorStats {monitor} {uptimePercent} {agentName} />
@@ -162,4 +164,12 @@
 		<!-- Danger Zone -->
 		<DangerZone {monitorId} />
 	</div>
+
+	<!-- Edit Modal -->
+	<EditMonitorModal
+		bind:open={editOpen}
+		{monitor}
+		onClose={() => editOpen = false}
+		onUpdated={() => { editOpen = false; loadData(); toast.success('Monitor updated'); }}
+	/>
 {/if}
