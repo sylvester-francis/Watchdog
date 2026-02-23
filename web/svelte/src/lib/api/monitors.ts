@@ -55,12 +55,14 @@ export function deleteMonitor(id: string): Promise<void> {
 	return api.delete<void>(`/api/v1/monitors/${id}`);
 }
 
-export function getHeartbeats(monitorId: string): Promise<{ data: HeartbeatPoint[] }> {
-	return api.get<{ data: HeartbeatPoint[] }>(`/api/v1/monitors/${monitorId}/heartbeats`);
+export function getHeartbeats(monitorId: string, period?: string): Promise<{ data: HeartbeatPoint[] }> {
+	const query = period ? `?period=${period}` : '';
+	return api.get<{ data: HeartbeatPoint[] }>(`/api/v1/monitors/${monitorId}/heartbeats${query}`);
 }
 
-export function getLatencyHistory(monitorId: string): Promise<{ data: LatencyPoint[] }> {
-	return api.get<{ data: LatencyPoint[] }>(`/api/v1/monitors/${monitorId}/latency`);
+export function getLatencyHistory(monitorId: string, period?: string): Promise<{ data: LatencyPoint[] }> {
+	const query = period ? `?period=${period}` : '';
+	return api.get<{ data: LatencyPoint[] }>(`/api/v1/monitors/${monitorId}/latency${query}`);
 }
 
 export function getDashboardStats(): Promise<DashboardStats> {
