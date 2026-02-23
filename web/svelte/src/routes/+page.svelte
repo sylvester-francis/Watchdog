@@ -111,26 +111,13 @@
 		{ icon: Activity, title: 'Live dashboard', desc: 'Real-time status via SSE. Latency sparklines, uptime bars, system metric charts, and incident timeline. No page refresh.' },
 		{ icon: BellRing, title: 'Smart alerts', desc: 'Configurable failure threshold before firing. Supports Discord, Slack, Email, Telegram, PagerDuty, and webhooks.' },
 		{ icon: Terminal, title: 'Eight check types', desc: 'HTTP with content validation, TCP, Ping, DNS, TLS certificate expiry tracking, Docker containers, database connectivity (PostgreSQL, MySQL, Redis), and system metrics with threshold alerts.',
-			mockup: [
-				{ text: '[OK]   api.internal/health', dots: '12ms', ok: true },
-				{ text: '[OK]   postgres:5432', dots: '2ms', ok: true },
-				{ text: '[OK]   redis:6379', dots: '1ms', ok: true },
-				{ text: '[FAIL] vault:8200', dots: 'timeout', ok: false },
-			]
+			pre: '<span class="text-emerald-400">[OK]</span>   api.internal/health <span class="text-muted-foreground/40">···</span> <span class="text-muted-foreground/60">12ms</span>\n<span class="text-emerald-400">[OK]</span>   postgres:5432 <span class="text-muted-foreground/40">·······</span> <span class="text-muted-foreground/60">2ms</span>\n<span class="text-emerald-400">[OK]</span>   redis:6379 <span class="text-muted-foreground/40">··········</span> <span class="text-muted-foreground/60">1ms</span>\n<span class="text-red-400">[FAIL]</span> vault:8200 <span class="text-muted-foreground/40">·········</span> <span class="text-red-400">timeout</span>'
 		},
 		{ icon: Zap, title: 'Zero config agent', desc: "The agent takes a hub URL and an API key. That's it. Monitor configs are pushed from the hub over WebSocket \u2014 no config files, no restarts.",
-			code: '$ ./watchdog-agent \\\n  --hub https://hub.example.com \\\n  --key wdg_a8f29c...\n[connected] receiving 6 monitors...'
+			pre: '<span class="text-muted-foreground/60">$</span> ./watchdog-agent \\\n  --hub https://hub.example.com \\\n  --key wdg_a8f29c...\n<span class="text-emerald-400">[connected]</span> receiving 6 monitors...'
 		},
 		{ icon: Flame, title: 'Incident tracking', desc: 'Incidents are created automatically on failure. Acknowledge, resolve, and track time-to-resolution. Full history per monitor.',
-			incident: {
-				id: '#1042', target: 'postgres:5432', status: 'open',
-				lines: [
-					'Failure detected  09:41:03',
-					'Acknowledged      09:42:18',
-					'Resolved          09:44:51',
-				],
-				ttr: '3m 48s'
-			}
+			pre: '<span class="text-muted-foreground/60">#1042</span> <span class="text-foreground">postgres:5432</span>    <span class="text-red-400">\u25cf open</span>\n<span class="text-muted-foreground/30">\u251c\u2500</span> <span class="text-muted-foreground/70">Failure detected  09:41:03</span>\n<span class="text-muted-foreground/30">\u251c\u2500</span> <span class="text-muted-foreground/70">Acknowledged      09:42:18</span>\n<span class="text-muted-foreground/30">\u2514\u2500</span> <span class="text-muted-foreground/70">Resolved          09:44:51</span>\n   <span class="text-emerald-400/70">TTR: 3m 48s</span>'
 		},
 		{ icon: Globe, title: 'Public status pages', desc: 'Share real-time service health with your team or customers. 90-day uptime history, incident timeline, and custom URLs. No authentication required to view.' },
 		{ icon: Code, title: 'REST API', desc: 'Token-authenticated API for programmatic access. Manage monitors, agents, and incidents from your own scripts or CI/CD pipelines.' },
@@ -389,32 +376,8 @@
 						</div>
 						<h3 class="text-sm font-semibold text-foreground mb-1.5">{f.title}</h3>
 						<p class="text-sm text-muted-foreground leading-relaxed break-words">{f.desc}</p>
-						{#if f.mockup}
-							<div class="mt-3 bg-background/50 border border-border/50 rounded-lg p-3 font-mono text-[11px] space-y-1">
-								{#each f.mockup as line}
-									<div class="flex items-center justify-between">
-										<span class="{line.ok ? 'text-emerald-400' : 'text-red-400'}">{line.text}</span>
-										<span class="text-muted-foreground/60 tabular-nums">{line.dots}</span>
-									</div>
-								{/each}
-							</div>
-						{/if}
-						{#if f.code}
-							<div class="mt-3 bg-background/50 border border-border/50 rounded-lg p-3 font-mono text-[11px] text-muted-foreground whitespace-pre-wrap">{f.code}</div>
-						{/if}
-						{#if f.incident}
-							<div class="mt-3 bg-background/50 border border-border/50 rounded-lg p-3 font-mono text-[11px]">
-								<div class="flex items-center justify-between mb-2">
-									<span class="text-muted-foreground">{f.incident.id} <span class="text-foreground">{f.incident.target}</span></span>
-									<span class="text-red-400">{f.incident.status}</span>
-								</div>
-								{#each f.incident.lines as line, i}
-									<div class="text-muted-foreground/70 pl-1">
-										<span class="text-muted-foreground/30">{i < f.incident.lines.length - 1 ? '\u251c\u2500' : '\u2514\u2500'}</span> {line}
-									</div>
-								{/each}
-								<div class="text-emerald-400/70 text-right mt-1.5 text-[10px]">TTR: {f.incident.ttr}</div>
-							</div>
+						{#if f.pre}
+							<pre class="mt-3 bg-background/50 border border-border/50 rounded-lg p-3 font-mono text-[11px] leading-relaxed overflow-x-auto">{@html f.pre}</pre>
 						{/if}
 					</div>
 				{/each}

@@ -6,6 +6,7 @@
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { StatusPage } from '$lib/types';
 	import CreateStatusPageModal from '$lib/components/status-pages/CreateStatusPageModal.svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
 	const auth = getAuth();
 	const toast = getToasts();
@@ -14,9 +15,13 @@
 	let loading = $state(true);
 	let showCreateModal = $state(false);
 
-	// Delete confirmation state
-	let confirmDeleteId = $state<string | null>(null);
+	// Delete confirmation modal
 	let deleting = $state(false);
+	let confirmModal = $state<{
+		open: boolean;
+		pageId: string;
+		pageName: string;
+	}>({ open: false, pageId: '', pageName: '' });
 
 	let username = $derived(auth.user?.username ?? '');
 
@@ -30,17 +35,17 @@
 		return text.slice(0, maxLen) + '...';
 	}
 
-	async function handleDelete(id: string) {
-		if (confirmDeleteId !== id) {
-			confirmDeleteId = id;
-			return;
-		}
+	function handleDelete(id: string) {
+		const sp = statusPages.find(s => s.id === id);
+		confirmModal = { open: true, pageId: id, pageName: sp?.name ?? 'this status page' };
+	}
 
+	async function executeDelete() {
 		deleting = true;
 		try {
-			await statusPagesApi.deleteStatusPage(id);
-			statusPages = statusPages.filter((sp) => sp.id !== id);
-			confirmDeleteId = null;
+			await statusPagesApi.deleteStatusPage(confirmModal.pageId);
+			statusPages = statusPages.filter((sp) => sp.id !== confirmModal.pageId);
+			confirmModal = { open: false, pageId: '', pageName: '' };
 			toast.success('Status page deleted');
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to delete status page');
@@ -49,8 +54,8 @@
 		}
 	}
 
-	function cancelDelete() {
-		confirmDeleteId = null;
+	function closeConfirmModal() {
+		if (!deleting) confirmModal = { open: false, pageId: '', pageName: '' };
 	}
 
 	async function loadData() {
@@ -213,32 +218,14 @@
 									<Pencil class="w-3.5 h-3.5" />
 								</a>
 
-								<!-- Delete (two-click confirm) -->
-								{#if confirmDeleteId === sp.id}
-									<div class="flex items-center space-x-1">
-										<button
-											onclick={() => handleDelete(sp.id)}
-											disabled={deleting}
-											class="px-2 py-1 text-[10px] bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded transition-colors disabled:opacity-50"
-										>
-											{deleting ? 'Deleting...' : 'Confirm'}
-										</button>
-										<button
-											onclick={cancelDelete}
-											class="px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-										>
-											Cancel
-										</button>
-									</div>
-								{:else}
-									<button
-										onclick={() => handleDelete(sp.id)}
-										class="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground/40 hover:text-red-400 transition-colors"
-										title="Delete status page"
-									>
-										<Trash2 class="w-3.5 h-3.5" />
-									</button>
-								{/if}
+								<!-- Delete -->
+								<button
+									onclick={() => handleDelete(sp.id)}
+									class="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground/40 hover:text-red-400 transition-colors"
+									title="Delete status page"
+								>
+									<Trash2 class="w-3.5 h-3.5" />
+								</button>
 							</div>
 						</div>
 					{/each}
@@ -251,5 +238,16 @@
 		open={showCreateModal}
 		onClose={() => { showCreateModal = false; }}
 		onCreated={handleCreated}
+	/>
+
+	<ConfirmModal
+		open={confirmModal.open}
+		title="Delete Status Page"
+		message="Are you sure you want to delete &quot;{confirmModal.pageName}&quot;? This cannot be undone."
+		confirmLabel="Delete"
+		variant="danger"
+		loading={deleting}
+		onConfirm={executeDelete}
+		onCancel={closeConfirmModal}
 	/>
 {/if}
