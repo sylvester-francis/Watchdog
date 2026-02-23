@@ -8,7 +8,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/labstack/echo/v4 v4.15.0
+	github.com/labstack/echo/v4 v4.15.1
 	github.com/stretchr/testify v1.11.1
 	github.com/sylvester-francis/watchdog-proto v0.5.0
 	golang.org/x/crypto v0.47.0
