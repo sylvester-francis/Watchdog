@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { ChevronRight } from 'lucide-svelte';
+	import { ChevronRight, HeartPulse } from 'lucide-svelte';
 	import { monitors as monitorsApi, agents as agentsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Monitor, Agent } from '$lib/types';
@@ -135,25 +135,37 @@
 
 		<!-- Uptime Bar -->
 		{#if uptimeUp > 0 || uptimeDown > 0}
-			<div class="bg-card border border-border rounded-lg p-4">
-				<h2 class="text-sm font-medium text-foreground mb-3">Uptime Summary</h2>
-				<div class="w-full h-3 rounded-full overflow-hidden bg-muted/30 flex">
-					{#if uptimeUp > 0}
-						<div
-							class="h-full bg-emerald-400 transition-all"
-							style="width: {(uptimeUp / (uptimeUp + uptimeDown)) * 100}%"
-						></div>
-					{/if}
-					{#if uptimeDown > 0}
-						<div
-							class="h-full bg-red-400 transition-all"
-							style="width: {(uptimeDown / (uptimeUp + uptimeDown)) * 100}%"
-						></div>
-					{/if}
+			<div class="bg-card border border-border rounded-lg">
+				<div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
+					<HeartPulse class="w-4 h-4 text-accent" />
+					<h3 class="text-sm font-medium text-foreground">Uptime (Last 20 checks)</h3>
 				</div>
-				<p class="text-[10px] text-muted-foreground mt-2 font-mono">
-					{uptimeUp} successful / {uptimeDown} failed
-				</p>
+				<div class="px-5 py-4">
+					<div class="flex items-center space-x-4 mb-3">
+						<div class="flex items-center space-x-1.5">
+							<div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+							<span class="text-[10px] text-muted-foreground font-mono">{uptimeUp} success</span>
+						</div>
+						<div class="flex items-center space-x-1.5">
+							<div class="w-2 h-2 rounded-full bg-red-400"></div>
+							<span class="text-[10px] text-muted-foreground font-mono">{uptimeDown} failed</span>
+						</div>
+					</div>
+					<div class="w-full h-3 bg-muted rounded-full overflow-hidden flex gap-px">
+						{#if uptimeUp > 0}
+							<div
+								class="bg-emerald-500 h-full rounded-sm"
+								style="width: {(uptimeUp / (uptimeUp + uptimeDown)) * 100}%"
+							></div>
+						{/if}
+						{#if uptimeDown > 0}
+							<div
+								class="bg-red-500 h-full rounded-sm"
+								style="width: {(uptimeDown / (uptimeUp + uptimeDown)) * 100}%"
+							></div>
+						{/if}
+					</div>
+				</div>
 			</div>
 		{/if}
 

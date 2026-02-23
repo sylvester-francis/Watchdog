@@ -32,12 +32,12 @@
 </script>
 
 <div class="bg-card border border-red-500/20 rounded-lg">
-	<div class="px-4 py-3 border-b border-red-500/20 flex items-center space-x-2">
-		<AlertTriangle class="w-4 h-4 text-red-400" />
-		<h2 class="text-sm font-medium text-red-400">Danger Zone</h2>
+	<div class="px-5 py-3.5 border-b border-red-500/20 flex items-center space-x-2">
+		<AlertTriangle class="w-4 h-4 text-destructive" />
+		<h3 class="text-sm font-medium text-destructive">Danger Zone</h3>
 	</div>
 
-	<div class="p-4">
+	<div class="px-5 py-4">
 		<div class="flex items-start justify-between">
 			<div>
 				<p class="text-sm text-foreground font-medium">Delete this monitor</p>
@@ -51,7 +51,7 @@
 				class="shrink-0 ml-4 flex items-center space-x-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 text-xs font-medium rounded-md transition-colors"
 			>
 				<Trash2 class="w-3.5 h-3.5" />
-				<span>Delete</span>
+				<span>Delete Monitor</span>
 			</button>
 		</div>
 	</div>

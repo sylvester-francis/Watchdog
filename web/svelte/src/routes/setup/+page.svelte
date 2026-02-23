@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { ShieldCheck, AlertCircle } from 'lucide-svelte';
+	import { ShieldCheck, AlertCircle, Server, Activity, BellRing } from 'lucide-svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { needsSetup } from '$lib/api/auth';
 	import { onMount } from 'svelte';
@@ -78,11 +78,41 @@
 				</a>
 				<div class="max-w-sm">
 					<h2 class="text-2xl font-bold text-foreground leading-tight mb-4">
-						Welcome to WatchDog
+						Infrastructure monitoring that reaches where others can't.
 					</h2>
-					<p class="text-sm text-muted-foreground leading-relaxed">
-						Set up your admin account to get started with infrastructure monitoring.
+					<p class="text-sm text-muted-foreground leading-relaxed mb-8">
+						Deploy agents inside your network to monitor internal services, databases, and APIs behind firewalls and NATs.
 					</p>
+
+					<div class="space-y-5">
+						<div class="flex items-start space-x-3.5">
+							<div class="w-9 h-9 bg-accent/10 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+								<Server class="w-5 h-5 text-accent" />
+							</div>
+							<div>
+								<p class="text-sm font-medium text-foreground">Agent-based architecture</p>
+								<p class="text-xs text-muted-foreground mt-0.5">Single Go binary. Deploys in seconds.</p>
+							</div>
+						</div>
+						<div class="flex items-start space-x-3.5">
+							<div class="w-9 h-9 bg-emerald-500/10 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+								<Activity class="w-5 h-5 text-emerald-400" />
+							</div>
+							<div>
+								<p class="text-sm font-medium text-foreground">Real-time dashboard</p>
+								<p class="text-xs text-muted-foreground mt-0.5">Live status updates via SSE. Sparkline charts.</p>
+							</div>
+						</div>
+						<div class="flex items-start space-x-3.5">
+							<div class="w-9 h-9 bg-yellow-500/10 rounded-md flex items-center justify-center shrink-0 mt-0.5">
+								<BellRing class="w-5 h-5 text-yellow-400" />
+							</div>
+							<div>
+								<p class="text-sm font-medium text-foreground">Smart alerting</p>
+								<p class="text-xs text-muted-foreground mt-0.5">3-strike rule. Discord, Slack, webhooks.</p>
+							</div>
+						</div>
+					</div>
 				</div>
 				<p class="text-[11px] text-muted-foreground/50">Open-source infrastructure monitoring</p>
 			</div>

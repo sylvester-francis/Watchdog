@@ -156,7 +156,7 @@
 		{:else}
 			<!-- Status pages list -->
 			<div class="bg-card border border-border rounded-lg">
-				<div class="divide-y divide-border/20">
+				<div class="divide-y divide-border">
 					{#each statusPages as sp (sp.id)}
 						<div class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group">
 							<!-- Info -->

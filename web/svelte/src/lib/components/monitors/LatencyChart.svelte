@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Loader2 } from 'lucide-svelte';
+	import { Loader2, Timer } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { LatencyPoint } from '$lib/types';
@@ -133,15 +133,18 @@
 
 <div class="bg-card border border-border rounded-lg">
 	<!-- Header -->
-	<div class="px-4 py-3 border-b border-border flex items-center justify-between">
-		<h2 class="text-sm font-medium text-foreground">Response Time</h2>
+	<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
+		<div class="flex items-center space-x-2">
+			<Timer class="w-4 h-4 text-accent" />
+			<h3 class="text-sm font-medium text-foreground">Response Time</h3>
+		</div>
 		<div class="flex items-center space-x-1">
 			{#each periods as p}
 				<button
 					onclick={() => selectPeriod(p.value)}
-					class="px-2.5 py-1 text-xs rounded-md transition-colors {activePeriod === p.value
-						? 'bg-foreground/[0.08] text-foreground font-medium'
-						: 'text-muted-foreground hover:text-foreground'}"
+					class="px-2 py-1 text-[10px] font-medium rounded transition-colors {activePeriod === p.value
+						? 'bg-accent/15 text-accent'
+						: 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
 				>
 					{p.label}
 				</button>
@@ -150,7 +153,7 @@
 	</div>
 
 	<!-- Chart area -->
-	<div class="p-4">
+	<div class="p-5">
 		{#if loading}
 			<div class="flex items-center justify-center h-[200px]">
 				<Loader2 class="w-5 h-5 text-muted-foreground animate-spin" />
