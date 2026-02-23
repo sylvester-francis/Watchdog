@@ -3,6 +3,7 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -17,14 +18,6 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Generate per-request nonce (16 bytes = 128 bits)
-			nonceBytes := make([]byte, 16)
-			if _, err := rand.Read(nonceBytes); err != nil {
-				return err
-			}
-			nonce := base64.StdEncoding.EncodeToString(nonceBytes)
-			c.Set(NonceContextKey, nonce)
-
 			h := c.Response().Header()
 
 			// Prevent XSS attacks
@@ -39,15 +32,34 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 			// Control referrer information
 			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-			// Content Security Policy — nonce-based script-src (no unsafe-inline/unsafe-eval)
-			// Uses Alpine.js CSP build (@alpinejs/csp) which eliminates eval need
-			h.Set("Content-Security-Policy",
-				"default-src 'self'; "+
-					"script-src 'self' 'nonce-"+nonce+"' https://unpkg.com https://cdn.jsdelivr.net; "+
-					"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "+
-					"img-src 'self' data: https://validator.swagger.io; "+
-					"font-src 'self' https://fonts.gstatic.com; "+
-					"connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+			// SvelteKit SPA routes use file-based JS (no inline scripts),
+			// so use a relaxed CSP that allows 'self' instead of nonces.
+			if strings.HasPrefix(c.Request().RequestURI, "/app") {
+				h.Set("Content-Security-Policy",
+					"default-src 'self'; "+
+						"script-src 'self'; "+
+						"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "+
+						"img-src 'self' data:; "+
+						"font-src 'self' https://fonts.gstatic.com; "+
+						"connect-src 'self'")
+			} else {
+				// Generate per-request nonce (16 bytes = 128 bits)
+				nonceBytes := make([]byte, 16)
+				if _, err := rand.Read(nonceBytes); err != nil {
+					return err
+				}
+				nonce := base64.StdEncoding.EncodeToString(nonceBytes)
+				c.Set(NonceContextKey, nonce)
+
+				// Nonce-based CSP for Go template pages (Alpine.js CSP build)
+				h.Set("Content-Security-Policy",
+					"default-src 'self'; "+
+						"script-src 'self' 'nonce-"+nonce+"' https://unpkg.com https://cdn.jsdelivr.net; "+
+						"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "+
+						"img-src 'self' data: https://validator.swagger.io; "+
+						"font-src 'self' https://fonts.gstatic.com; "+
+						"connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+			}
 
 			// Permissions Policy
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
