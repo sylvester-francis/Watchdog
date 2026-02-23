@@ -25,6 +25,7 @@
 	import type { APIToken, AlertChannel, AlertChannelType } from '$lib/types';
 	import CreateChannelModal from '$lib/components/settings/CreateChannelModal.svelte';
 	import CreateTokenModal from '$lib/components/settings/CreateTokenModal.svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
 	const toast = getToasts();
 	const auth = getAuth();
@@ -53,14 +54,30 @@
 	let testingChannelId = $state<string | null>(null);
 	let channelTestResult = $state<Record<string, { ok: boolean; message: string }>>({});
 	let togglingChannelId = $state<string | null>(null);
-	let confirmDeleteChannelId = $state<string | null>(null);
 	let deletingChannelId = $state<string | null>(null);
 
 	// Per-token action states
-	let confirmDeleteTokenId = $state<string | null>(null);
 	let deletingTokenId = $state<string | null>(null);
-	let confirmRegenTokenId = $state<string | null>(null);
 	let regenTokenId = $state<string | null>(null);
+
+	// Confirm modal state
+	let confirmModal = $state<{
+		open: boolean;
+		title: string;
+		message: string;
+		confirmLabel: string;
+		variant: 'danger' | 'warning';
+		loading: boolean;
+		action: (() => Promise<void>) | null;
+	}>({
+		open: false,
+		title: '',
+		message: '',
+		confirmLabel: 'Confirm',
+		variant: 'danger',
+		loading: false,
+		action: null
+	});
 
 	const inputClass = 'w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background';
 	const labelClass = 'block text-xs font-medium text-muted-foreground mb-1.5';
@@ -160,61 +177,87 @@
 		}
 	}
 
-	async function handleDeleteChannel(id: string) {
-		if (confirmDeleteChannelId !== id) {
-			confirmDeleteChannelId = id;
-			return;
-		}
-		deletingChannelId = id;
-		try {
-			await settingsApi.deleteChannel(id);
-			channels = channels.filter((c) => c.id !== id);
-			confirmDeleteChannelId = null;
-			toast.success('Channel deleted.');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to delete channel.');
-		} finally {
-			deletingChannelId = null;
-		}
+	function handleDeleteChannel(id: string) {
+		const channel = channels.find(c => c.id === id);
+		confirmModal = {
+			open: true,
+			title: 'Delete Channel',
+			message: `Are you sure you want to delete "${channel?.name ?? 'this channel'}"? This cannot be undone.`,
+			confirmLabel: 'Delete',
+			variant: 'danger',
+			loading: false,
+			action: async () => {
+				confirmModal.loading = true;
+				try {
+					await settingsApi.deleteChannel(id);
+					channels = channels.filter((c) => c.id !== id);
+					closeConfirmModal();
+					toast.success('Channel deleted.');
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : 'Failed to delete channel.');
+					confirmModal.loading = false;
+				}
+			}
+		};
 	}
 
 	// Token actions
-	async function handleDeleteToken(id: string) {
-		if (confirmDeleteTokenId !== id) {
-			confirmDeleteTokenId = id;
-			return;
-		}
-		deletingTokenId = id;
-		try {
-			await settingsApi.deleteToken(id);
-			tokens = tokens.filter((t) => t.id !== id);
-			confirmDeleteTokenId = null;
-			toast.success('Token deleted.');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to delete token.');
-		} finally {
-			deletingTokenId = null;
-		}
+	function handleDeleteToken(id: string) {
+		const token = tokens.find(t => t.id === id);
+		confirmModal = {
+			open: true,
+			title: 'Delete Token',
+			message: `Are you sure you want to delete "${token?.name ?? 'this token'}"? Any integrations using this token will stop working.`,
+			confirmLabel: 'Delete',
+			variant: 'danger',
+			loading: false,
+			action: async () => {
+				confirmModal.loading = true;
+				try {
+					await settingsApi.deleteToken(id);
+					tokens = tokens.filter((t) => t.id !== id);
+					closeConfirmModal();
+					toast.success('Token deleted.');
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : 'Failed to delete token.');
+					confirmModal.loading = false;
+				}
+			}
+		};
 	}
 
-	async function handleRegenerateToken(id: string) {
-		if (confirmRegenTokenId !== id) {
-			confirmRegenTokenId = id;
-			return;
-		}
-		regenTokenId = id;
-		try {
-			const res = await settingsApi.regenerateToken(id);
-			tokens = tokens.map((t) => t.id === id ? res.data : t);
-			plaintextToken = res.plaintext;
-			plaintextTokenName = res.data.name;
-			confirmRegenTokenId = null;
-			toast.success('Token regenerated.');
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to regenerate token.');
-		} finally {
-			regenTokenId = null;
-		}
+	function handleRegenerateToken(id: string) {
+		const token = tokens.find(t => t.id === id);
+		confirmModal = {
+			open: true,
+			title: 'Regenerate Token',
+			message: `Are you sure you want to regenerate "${token?.name ?? 'this token'}"? The current token will be invalidated immediately.`,
+			confirmLabel: 'Regenerate',
+			variant: 'warning',
+			loading: false,
+			action: async () => {
+				confirmModal.loading = true;
+				try {
+					const res = await settingsApi.regenerateToken(id);
+					tokens = tokens.map((t) => t.id === id ? res.data : t);
+					plaintextToken = res.plaintext;
+					plaintextTokenName = res.data.name;
+					closeConfirmModal();
+					toast.success('Token regenerated.');
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : 'Failed to regenerate token.');
+					confirmModal.loading = false;
+				}
+			}
+		};
+	}
+
+	function closeConfirmModal() {
+		confirmModal = { open: false, title: '', message: '', confirmLabel: 'Confirm', variant: 'danger', loading: false, action: null };
+	}
+
+	async function executeConfirm() {
+		if (confirmModal.action) await confirmModal.action();
 	}
 
 	async function copyTokenToClipboard() {
@@ -366,15 +409,22 @@
 				<form onsubmit={handleUsernameSubmit} class="space-y-3">
 					<div>
 						<label for="settings-username" class={labelClass}>Username</label>
-						<div class="flex items-center">
+						<div class="flex items-center gap-2">
 							<span class="px-3 py-2 bg-muted/50 border border-border border-r-0 rounded-l-md text-xs text-muted-foreground font-mono whitespace-nowrap">usewatchdog.dev/status/@</span>
 							<input
 								id="settings-username"
 								type="text"
 								bind:value={username}
 								placeholder="your-name"
-								class="flex-1 px-3 py-2 bg-card-elevated border border-border rounded-r-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+								class="flex-1 px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background -ml-2 rounded-l-none"
 							/>
+							<button
+								type="submit"
+								disabled={usernameLoading}
+								class="shrink-0 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+							>
+								{usernameLoading ? 'Saving...' : 'Save'}
+							</button>
 						</div>
 						<p class="text-[10px] text-muted-foreground/70 mt-1.5">3-50 characters. Lowercase letters, numbers, and hyphens only.</p>
 					</div>
@@ -392,16 +442,6 @@
 							<span class="text-xs text-emerald-400">{usernameSuccess}</span>
 						</div>
 					{/if}
-
-					<div class="flex justify-end">
-						<button
-							type="submit"
-							disabled={usernameLoading}
-							class="px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-						>
-							{usernameLoading ? 'Saving...' : 'Save'}
-						</button>
-					</div>
 				</form>
 			</div>
 		</div>
@@ -514,29 +554,13 @@
 								</button>
 
 								<!-- Delete button -->
-								{#if confirmDeleteChannelId === channel.id}
-									<button
-										onclick={() => handleDeleteChannel(channel.id)}
-										disabled={deletingChannelId === channel.id}
-										class="px-2.5 py-1.5 text-[10px] font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-md transition-colors disabled:opacity-50"
-									>
-										{deletingChannelId === channel.id ? 'Deleting...' : 'Confirm'}
-									</button>
-									<button
-										onclick={() => { confirmDeleteChannelId = null; }}
-										class="px-2 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-									>
-										Cancel
-									</button>
-								{:else}
-									<button
-										onclick={() => handleDeleteChannel(channel.id)}
-										class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors"
-										aria-label="Delete channel"
-									>
-										<Trash2 class="w-3.5 h-3.5" />
-									</button>
-								{/if}
+								<button
+									onclick={() => handleDeleteChannel(channel.id)}
+									class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors"
+									aria-label="Delete channel"
+								>
+									<Trash2 class="w-3.5 h-3.5" />
+								</button>
 							</div>
 						</div>
 					{/each}
@@ -635,54 +659,22 @@
 
 							<div class="flex items-center space-x-1.5 flex-shrink-0">
 								<!-- Regenerate button -->
-								{#if confirmRegenTokenId === token.id}
-									<button
-										onclick={() => handleRegenerateToken(token.id)}
-										disabled={regenTokenId === token.id}
-										class="px-2.5 py-1.5 text-[10px] font-medium bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 rounded-md transition-colors disabled:opacity-50"
-									>
-										{regenTokenId === token.id ? 'Regenerating...' : 'Confirm Regen'}
-									</button>
-									<button
-										onclick={() => { confirmRegenTokenId = null; }}
-										class="px-2 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-									>
-										Cancel
-									</button>
-								{:else}
-									<button
-										onclick={() => handleRegenerateToken(token.id)}
-										class="p-1.5 text-muted-foreground/40 hover:text-yellow-400 rounded-md hover:bg-yellow-500/10 transition-colors"
-										aria-label="Regenerate token"
-									>
-										<RefreshCw class="w-3.5 h-3.5" />
-									</button>
-								{/if}
+								<button
+									onclick={() => handleRegenerateToken(token.id)}
+									class="p-1.5 text-muted-foreground/40 hover:text-yellow-400 rounded-md hover:bg-yellow-500/10 transition-colors"
+									aria-label="Regenerate token"
+								>
+									<RefreshCw class="w-3.5 h-3.5" />
+								</button>
 
 								<!-- Delete button -->
-								{#if confirmDeleteTokenId === token.id}
-									<button
-										onclick={() => handleDeleteToken(token.id)}
-										disabled={deletingTokenId === token.id}
-										class="px-2.5 py-1.5 text-[10px] font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-md transition-colors disabled:opacity-50"
-									>
-										{deletingTokenId === token.id ? 'Deleting...' : 'Confirm'}
-									</button>
-									<button
-										onclick={() => { confirmDeleteTokenId = null; }}
-										class="px-2 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-									>
-										Cancel
-									</button>
-								{:else}
-									<button
-										onclick={() => handleDeleteToken(token.id)}
-										class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors"
-										aria-label="Delete token"
-									>
-										<Trash2 class="w-3.5 h-3.5" />
-									</button>
-								{/if}
+								<button
+									onclick={() => handleDeleteToken(token.id)}
+									class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors"
+									aria-label="Delete token"
+								>
+									<Trash2 class="w-3.5 h-3.5" />
+								</button>
 							</div>
 						</div>
 					{/each}
@@ -701,5 +693,16 @@
 		bind:open={showTokenModal}
 		onClose={() => { showTokenModal = false; plaintextToken = ''; }}
 		onCreated={handleTokenCreated}
+	/>
+
+	<ConfirmModal
+		open={confirmModal.open}
+		title={confirmModal.title}
+		message={confirmModal.message}
+		confirmLabel={confirmModal.confirmLabel}
+		variant={confirmModal.variant}
+		loading={confirmModal.loading}
+		onConfirm={executeConfirm}
+		onCancel={closeConfirmModal}
 	/>
 {/if}
