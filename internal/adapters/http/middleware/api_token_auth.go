@@ -74,7 +74,7 @@ func RequireWriteScope() echo.MiddlewareFunc {
 
 			method := c.Request().Method
 			if scope == string(domain.TokenScopeReadOnly) &&
-				(method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete) {
+				(method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch || method == http.MethodDelete) {
 				return c.JSON(http.StatusForbidden, map[string]string{
 					"error": "read_only token cannot perform write operations",
 				})
