@@ -1,10 +1,9 @@
 package middleware_test
 
 import (
-	"io"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -15,35 +14,18 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 )
 
-// stubRenderer satisfies echo.Renderer so c.Render works in tests.
-type stubRenderer struct{}
+// newJSONLoginContext builds an Echo context with the given IP and a JSON body
+// containing the email field.
+func newJSONLoginContext(ip, email string) (echo.Context, *httptest.ResponseRecorder) {
+	payload := map[string]string{"email": email}
+	body, _ := json.Marshal(payload)
 
-func (s *stubRenderer) Render(w io.Writer, name string, data any, c echo.Context) error {
-	_, _ = w.Write([]byte(name))
-	return nil
-}
-
-// newLoginLimiterContext builds an Echo context with the given IP and email
-// form value, using an Echo instance that has a stub renderer attached.
-func newLoginLimiterContext(ip, email string) (echo.Context, *httptest.ResponseRecorder) {
-	var body io.Reader
-	form := url.Values{}
-	if email != "" {
-		form.Set("email", email)
-	}
-	if len(form) > 0 {
-		body = strings.NewReader(form.Encode())
-	}
-
-	req := httptest.NewRequest(http.MethodPost, "/login", body)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
 	req.RemoteAddr = ip + ":1234"
 	rec := httptest.NewRecorder()
 
 	e := echo.New()
-	e.Renderer = &stubRenderer{}
 	c := e.NewContext(req, rec)
 	return c, rec
 }
@@ -52,7 +34,7 @@ func TestLoginLimiter_AllowsUnderLimit(t *testing.T) {
 	ll := middleware.NewLoginLimiter()
 	defer ll.Stop()
 
-	handler := ll.Middleware()(func(c echo.Context) error {
+	handler := ll.MiddlewareJSON()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -65,7 +47,7 @@ func TestLoginLimiter_AllowsUnderLimit(t *testing.T) {
 	}
 
 	// The next request through the middleware should still be allowed.
-	c, rec := newLoginLimiterContext(ip, email)
+	c, rec := newJSONLoginContext(ip, email)
 	err := handler(c)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -75,7 +57,7 @@ func TestLoginLimiter_BlocksAfterMaxAttempts(t *testing.T) {
 	ll := middleware.NewLoginLimiter()
 	defer ll.Stop()
 
-	handler := ll.Middleware()(func(c echo.Context) error {
+	handler := ll.MiddlewareJSON()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -88,7 +70,7 @@ func TestLoginLimiter_BlocksAfterMaxAttempts(t *testing.T) {
 	}
 
 	// The middleware should now block the request with 429.
-	c, rec := newLoginLimiterContext(ip, email)
+	c, rec := newJSONLoginContext(ip, email)
 	err := handler(c)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
@@ -98,7 +80,7 @@ func TestLoginLimiter_BlocksByIP(t *testing.T) {
 	ll := middleware.NewLoginLimiter()
 	defer ll.Stop()
 
-	handler := ll.Middleware()(func(c echo.Context) error {
+	handler := ll.MiddlewareJSON()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -112,7 +94,7 @@ func TestLoginLimiter_BlocksByIP(t *testing.T) {
 
 	// A request from the blocked IP with a brand-new email should still be
 	// blocked because IP-based tracking is independent.
-	c, rec := newLoginLimiterContext(ip, "innocent@example.com")
+	c, rec := newJSONLoginContext(ip, "innocent@example.com")
 	err := handler(c)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
@@ -122,7 +104,7 @@ func TestLoginLimiter_BlocksByEmail(t *testing.T) {
 	ll := middleware.NewLoginLimiter()
 	defer ll.Stop()
 
-	handler := ll.Middleware()(func(c echo.Context) error {
+	handler := ll.MiddlewareJSON()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -135,7 +117,7 @@ func TestLoginLimiter_BlocksByEmail(t *testing.T) {
 	}
 
 	// A request from a fresh IP with the blocked email should be rejected.
-	c, rec := newLoginLimiterContext("172.16.0.1", email)
+	c, rec := newJSONLoginContext("172.16.0.1", email)
 	err := handler(c)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
@@ -145,7 +127,7 @@ func TestLoginLimiter_RetryAfterHeader(t *testing.T) {
 	ll := middleware.NewLoginLimiter()
 	defer ll.Stop()
 
-	handler := ll.Middleware()(func(c echo.Context) error {
+	handler := ll.MiddlewareJSON()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -157,7 +139,7 @@ func TestLoginLimiter_RetryAfterHeader(t *testing.T) {
 		ll.RecordFailure(ip, email)
 	}
 
-	c, rec := newLoginLimiterContext(ip, email)
+	c, rec := newJSONLoginContext(ip, email)
 	err := handler(c)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusTooManyRequests, rec.Code)

@@ -92,30 +92,6 @@ func (ll *LoginLimiter) RetryAfter(ip, email string) time.Duration {
 	return d2
 }
 
-// Middleware returns an Echo middleware that rejects requests when the
-// client IP or submitted email is locked out.
-func (ll *LoginLimiter) Middleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			ip := c.RealIP()
-			email := c.FormValue("email")
-
-			if ll.IsBlocked(ip, email) {
-				retry := ll.RetryAfter(ip, email)
-				c.Response().Header().Set("Retry-After", fmt.Sprintf("%d", int(retry.Seconds())))
-				return c.Render(http.StatusTooManyRequests, "auth.html", map[string]any{
-					"Title":   "Login",
-					"IsLogin": true,
-					"Error":   fmt.Sprintf("Too many failed attempts. Try again in %d minutes.", int(retry.Minutes())+1),
-					"Email":   email,
-				})
-			}
-
-			return next(c)
-		}
-	}
-}
-
 // MiddlewareJSON returns an Echo middleware for JSON login endpoints.
 // It extracts the email from the JSON request body for rate limiting,
 // then restores the body so downstream handlers can read it.
