@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -62,6 +63,13 @@ func (rl *RateLimiter) Stop() {
 func (rl *RateLimiter) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			// Skip rate limiting for static assets — a single SvelteKit
+			// page load can trigger 20+ chunk requests.
+			path := c.Request().URL.Path
+			if strings.HasPrefix(path, "/_app/") || strings.HasPrefix(path, "/static/") {
+				return next(c)
+			}
+
 			ip := c.RealIP()
 
 			if !rl.allow(ip) {
