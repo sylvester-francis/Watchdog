@@ -29,10 +29,11 @@ export function createSSE(onEvent: SSECallback) {
 
 		eventSource.onerror = () => {
 			cleanup();
+			const jitter = Math.random() * retryDelay * 0.5;
 			reconnectTimer = setTimeout(() => {
 				retryDelay = Math.min(retryDelay * 2, maxDelay);
 				connect();
-			}, retryDelay);
+			}, retryDelay + jitter);
 		};
 	}
 

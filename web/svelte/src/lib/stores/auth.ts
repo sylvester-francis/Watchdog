@@ -4,6 +4,37 @@ import type { User } from '$lib/types';
 let user = $state<User | null>(null);
 let loading = $state(true);
 let checked = $state(false);
+let lastCheckAt = 0;
+
+// Cross-tab logout coordination
+const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('watchdog-auth') : null;
+channel?.addEventListener('message', (e) => {
+	if (e.data === 'logout') {
+		user = null;
+		checked = false;
+	}
+});
+
+// Revalidate session when tab regains focus (stale auth cache fix)
+const REVALIDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+if (typeof document !== 'undefined') {
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState === 'visible' && checked && Date.now() - lastCheckAt > REVALIDATE_INTERVAL_MS) {
+			revalidate();
+		}
+	});
+}
+
+async function revalidate(): Promise<void> {
+	try {
+		const res = await authApi.me();
+		user = res.user;
+		lastCheckAt = Date.now();
+	} catch {
+		user = null;
+		checked = false;
+	}
+}
 
 export function getAuth() {
 	function isAuthenticated(): boolean {
@@ -20,6 +51,7 @@ export function getAuth() {
 		try {
 			const res = await authApi.me();
 			user = res.user;
+			lastCheckAt = Date.now();
 		} catch {
 			user = null;
 		} finally {
@@ -33,6 +65,7 @@ export function getAuth() {
 		const res = await authApi.login(email, password);
 		user = res.user;
 		checked = true;
+		lastCheckAt = Date.now();
 		return res.user;
 	}
 
@@ -40,6 +73,7 @@ export function getAuth() {
 		const res = await authApi.register(email, password, confirmPassword);
 		user = res.user;
 		checked = true;
+		lastCheckAt = Date.now();
 		return res.user;
 	}
 
@@ -47,6 +81,7 @@ export function getAuth() {
 		const res = await authApi.setup(email, password, confirmPassword);
 		user = res.user;
 		checked = true;
+		lastCheckAt = Date.now();
 		return res.user;
 	}
 
@@ -56,6 +91,7 @@ export function getAuth() {
 		} finally {
 			user = null;
 			checked = false;
+			channel?.postMessage('logout');
 		}
 	}
 
