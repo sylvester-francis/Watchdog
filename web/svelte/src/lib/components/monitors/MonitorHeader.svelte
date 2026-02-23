@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { Pencil } from 'lucide-svelte';
 	import type { Monitor } from '$lib/types';
 
 	interface Props {
 		monitor: Monitor;
+		onEdit?: () => void;
 	}
 
-	let { monitor }: Props = $props();
+	let { monitor, onEdit }: Props = $props();
 
 	function statusDotClass(status: string): string {
 		if (status === 'up') return 'bg-emerald-400 shadow-[0_0_8px_rgba(34,197,94,0.5)]';
@@ -47,4 +49,14 @@
 			<p class="text-xs text-muted-foreground font-mono mt-1">{monitor.target}</p>
 		</div>
 	</div>
+	{#if onEdit}
+		<button
+			onclick={onEdit}
+			class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
+			aria-label="Edit monitor"
+		>
+			<Pencil class="w-3.5 h-3.5" />
+			<span>Edit</span>
+		</button>
+	{/if}
 </div>
