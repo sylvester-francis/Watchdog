@@ -49,8 +49,10 @@ export interface AlertChannel {
 	id: string;
 	type: AlertChannelType;
 	name: string;
+	config: Record<string, string>;
 	enabled: boolean;
 	created_at: string;
+	updated_at: string;
 }
 
 export type AlertChannelType = 'discord' | 'slack' | 'email' | 'telegram' | 'pagerduty' | 'webhook';
@@ -61,6 +63,7 @@ export interface APIToken {
 	prefix: string;
 	scope: 'admin' | 'read_only';
 	last_used_at: string | null;
+	last_used_ip: string | null;
 	expires_at: string | null;
 	created_at: string;
 }
@@ -72,6 +75,42 @@ export interface StatusPage {
 	description: string;
 	is_public: boolean;
 	monitor_ids: string[];
+	created_at: string;
+	updated_at: string;
+}
+
+export interface SystemInfo {
+	db: {
+		healthy: boolean;
+		ping_ms: number;
+		pool: { acquired: number; idle: number; total: number; max: number };
+		size: string;
+		table_sizes: { name: string; size: string }[];
+		migration: { version: number; dirty: boolean };
+	};
+	runtime: {
+		uptime_seconds: number;
+		uptime_formatted: string;
+		goroutines: number;
+		heap_mb: number;
+		stack_mb: number;
+		gc_pause_ms: number;
+	};
+	agents_connected: number;
+	heartbeats: {
+		total_last_hour: number;
+		per_minute: number;
+		errors_last_hour: number;
+	};
+	audit_logs: AuditLogEntry[];
+}
+
+export interface AuditLogEntry {
+	id: string;
+	action: string;
+	user_email: string;
+	ip_address: string;
+	metadata: Record<string, string>;
 	created_at: string;
 }
 
