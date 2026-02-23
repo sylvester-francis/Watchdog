@@ -293,7 +293,23 @@ func (r *Router) registerSvelteRoutes() {
 	slog.Info("serving SvelteKit SPA from " + buildDir)
 
 	absBuildDir, _ := filepath.Abs(buildDir)
-	indexHTML := filepath.Join(absBuildDir, "index.html")
+	indexHTMLPath := filepath.Join(absBuildDir, "index.html")
+
+	// Read index.html template once at startup.
+	indexHTMLBytes, err := os.ReadFile(indexHTMLPath)
+	if err != nil {
+		slog.Error("failed to read SvelteKit index.html", "error", err)
+		return
+	}
+	indexHTMLTemplate := string(indexHTMLBytes)
+
+	// serveSPA injects the per-request CSP nonce into the SvelteKit bootstrap
+	// script and serves the modified index.html.
+	serveSPA := func(c echo.Context) error {
+		nonce, _ := c.Get(middleware.NonceContextKey).(string)
+		html := strings.Replace(indexHTMLTemplate, "<script>", `<script nonce="`+nonce+`">`, 1)
+		return c.HTML(http.StatusOK, html)
+	}
 
 	// Serve SvelteKit static assets (_app/*, favicon, etc.) from the build directory.
 	// Echo's file server at "/" would conflict with the wildcard, so we use a
@@ -301,30 +317,28 @@ func (r *Router) registerSvelteRoutes() {
 	r.echo.GET("/*", func(c echo.Context) error {
 		reqPath := c.Param("*")
 		if reqPath == "" {
-			return c.File(indexHTML)
+			return serveSPA(c)
 		}
 
 		// Sanitize path to prevent directory traversal
 		cleanPath := filepath.Clean(reqPath)
 		if strings.Contains(cleanPath, "..") {
-			return c.File(indexHTML)
+			return serveSPA(c)
 		}
 		requestedFile := filepath.Join(absBuildDir, cleanPath)
 		// Verify resolved path stays within build directory
 		if !strings.HasPrefix(requestedFile, absBuildDir) {
-			return c.File(indexHTML)
+			return serveSPA(c)
 		}
 		if info, err := os.Stat(requestedFile); err == nil && !info.IsDir() {
 			return c.File(requestedFile)
 		}
 		// Fall back to index.html for client-side routing
-		return c.File(indexHTML)
+		return serveSPA(c)
 	})
 
 	// Root route — serve SPA
-	r.echo.GET("/", func(c echo.Context) error {
-		return c.File(indexHTML)
-	})
+	r.echo.GET("/", serveSPA)
 }
 
 // healthCheck returns health status including module health when registry is present.
