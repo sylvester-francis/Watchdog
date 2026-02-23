@@ -293,6 +293,8 @@ func (r *Router) RegisterRoutes() {
 	// Monitors
 	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
 	v1.GET("/monitors/:id", r.apiV1Handler.GetMonitor)
+	v1.GET("/monitors/:id/heartbeats", r.apiHandler.MonitorHeartbeats)
+	v1.GET("/monitors/:id/latency", r.apiHandler.MonitorLatencyHistory)
 	v1.POST("/monitors", r.apiV1Handler.CreateMonitor)
 	v1.PUT("/monitors/:id", r.apiV1Handler.UpdateMonitor)
 	v1.DELETE("/monitors/:id", r.apiV1Handler.DeleteMonitor)
