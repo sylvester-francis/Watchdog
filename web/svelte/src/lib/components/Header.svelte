@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { Menu } from 'lucide-svelte';
-	import { getAuth } from '$lib/stores/auth';
+	import { getAuth } from '$lib/stores/auth.svelte';
 
 	const auth = getAuth();
 

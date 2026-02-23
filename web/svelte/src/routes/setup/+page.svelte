@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { ShieldCheck, AlertCircle } from 'lucide-svelte';
-	import { getAuth } from '$lib/stores/auth';
+	import { getAuth } from '$lib/stores/auth.svelte';
 	import { needsSetup } from '$lib/api/auth';
 	import { onMount } from 'svelte';
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { getAuth } from '$lib/stores/auth';
+	import { getAuth } from '$lib/stores/auth.svelte';
 	import {
 		ShieldCheck, Menu, X, EyeOff, Eye, Download, Radar, Bell, Server,
 		Activity, BellRing, Terminal, Zap, Flame, Globe, Code, ScrollText,

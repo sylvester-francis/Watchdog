@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getAuth } from '$lib/stores/auth';
+	import { getAuth } from '$lib/stores/auth.svelte';
 	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, MessageCircle, X } from 'lucide-svelte';
 
 	const auth = getAuth();

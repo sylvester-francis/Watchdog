@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
-	import { getAuth } from '$lib/stores/auth';
+	import { getAuth } from '$lib/stores/auth.svelte';
 	import { setOnUnauthorized } from '$lib/api/client';
 	import { createSSE } from '$lib/stores/sse';
 	import Sidebar from '$lib/components/Sidebar.svelte';
