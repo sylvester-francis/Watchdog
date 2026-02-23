@@ -1,0 +1,102 @@
+export interface User {
+	id: string;
+	email: string;
+	username: string;
+	plan: string;
+	is_admin: boolean;
+	created_at: string;
+}
+
+export interface Agent {
+	id: string;
+	name: string;
+	status: 'online' | 'offline';
+	last_seen_at: string | null;
+	created_at: string;
+}
+
+export interface Monitor {
+	id: string;
+	agent_id: string;
+	name: string;
+	type: MonitorType;
+	target: string;
+	status: MonitorStatus;
+	enabled: boolean;
+	interval_seconds: number;
+	timeout_seconds: number;
+	failure_threshold: number;
+	metadata?: Record<string, string>;
+	created_at: string;
+}
+
+export type MonitorType = 'ping' | 'http' | 'tcp' | 'dns' | 'tls' | 'docker' | 'database' | 'system';
+export type MonitorStatus = 'pending' | 'up' | 'down' | 'degraded';
+
+export interface Incident {
+	id: string;
+	monitor_id: string;
+	status: IncidentStatus;
+	started_at: string;
+	resolved_at: string | null;
+	acknowledged_at: string | null;
+	ttr_seconds: number | null;
+}
+
+export type IncidentStatus = 'open' | 'acknowledged' | 'resolved';
+
+export interface AlertChannel {
+	id: string;
+	type: AlertChannelType;
+	name: string;
+	enabled: boolean;
+	created_at: string;
+}
+
+export type AlertChannelType = 'discord' | 'slack' | 'email' | 'telegram' | 'pagerduty' | 'webhook';
+
+export interface APIToken {
+	id: string;
+	name: string;
+	prefix: string;
+	scope: 'admin' | 'read_only';
+	last_used_at: string | null;
+	expires_at: string | null;
+	created_at: string;
+}
+
+export interface StatusPage {
+	id: string;
+	name: string;
+	slug: string;
+	description: string;
+	is_public: boolean;
+	monitor_ids: string[];
+	created_at: string;
+}
+
+export interface DashboardStats {
+	total_monitors: number;
+	monitors_up: number;
+	monitors_down: number;
+	active_incidents: number;
+	total_agents: number;
+	online_agents: number;
+}
+
+export interface HeartbeatPoint {
+	time: string;
+	status: 'up' | 'down' | 'timeout' | 'error';
+	latency_ms: number | null;
+}
+
+export interface LatencyPoint {
+	time: string;
+	avg_ms: number;
+	min_ms: number;
+	max_ms: number;
+}
+
+export interface APIError {
+	error: string;
+}
