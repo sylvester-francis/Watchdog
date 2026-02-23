@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { base } from '$app/paths';
 	import { Plus, Globe, ExternalLink, Pencil, Trash2 } from 'lucide-svelte';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth';
@@ -207,7 +206,7 @@
 
 								<!-- Edit -->
 								<a
-									href="{base}/status-pages/{sp.id}/edit"
+									href="/status-pages/{sp.id}/edit"
 									class="p-1.5 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
 									title="Edit status page"
 								>

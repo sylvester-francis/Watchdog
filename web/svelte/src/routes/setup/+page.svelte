@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { ShieldCheck, AlertCircle } from 'lucide-svelte';
 	import { getAuth } from '$lib/stores/auth';
 	import { needsSetup } from '$lib/api/auth';
@@ -19,11 +18,11 @@
 		try {
 			const res = await needsSetup();
 			if (!res.needs_setup) {
-				goto(`${base}/login`);
+				goto(`/login`);
 				return;
 			}
 		} catch {
-			goto(`${base}/login`);
+			goto(`/login`);
 			return;
 		}
 		checking = false;
@@ -47,7 +46,7 @@
 		submitting = true;
 		try {
 			await auth.setupAdmin(email, password, confirmPassword);
-			goto(`${base}/login?success=${encodeURIComponent('Admin account created. Please sign in.')}`);
+			goto(`/login?success=${encodeURIComponent('Admin account created. Please sign in.')}`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Setup failed';
 		} finally {

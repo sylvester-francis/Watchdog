@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { base } from '$app/paths';
 	import { getAuth } from '$lib/stores/auth';
 	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, MessageCircle, X } from 'lucide-svelte';
 
@@ -16,15 +15,15 @@
 	}
 
 	const navItems = [
-		{ href: `${base}/dashboard`, label: 'Dashboard', icon: LayoutDashboard, group: 'Monitoring' },
-		{ href: `${base}/monitors`, label: 'Monitors', icon: Activity, group: 'Monitoring' },
-		{ href: `${base}/incidents`, label: 'Incidents', icon: AlertTriangle, group: 'Monitoring' },
-		{ href: `${base}/status-pages`, label: 'Status Pages', icon: Globe, group: 'Monitoring' },
+		{ href: `/dashboard`, label: 'Dashboard', icon: LayoutDashboard, group: 'Monitoring' },
+		{ href: `/monitors`, label: 'Monitors', icon: Activity, group: 'Monitoring' },
+		{ href: `/incidents`, label: 'Incidents', icon: AlertTriangle, group: 'Monitoring' },
+		{ href: `/status-pages`, label: 'Status Pages', icon: Globe, group: 'Monitoring' },
 	];
 
 	const systemItems = [
-		{ href: `${base}/settings`, label: 'Settings', icon: Settings },
-		{ href: `${base}/system`, label: 'System', icon: Monitor },
+		{ href: `/settings`, label: 'Settings', icon: Settings },
+		{ href: `/system`, label: 'System', icon: Monitor },
 	];
 
 	function isActive(href: string): boolean {
@@ -51,7 +50,7 @@
 
 	<!-- Logo -->
 	<div class="px-5 h-14 flex items-center border-b border-border">
-		<a href="{base}/dashboard" class="flex items-center space-x-3" title="WatchDog v0.1.0-beta">
+		<a href="/dashboard" class="flex items-center space-x-3" title="WatchDog v0.1.0-beta">
 			<div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
 				<ShieldCheck class="w-4 h-4 text-white" />
 			</div>

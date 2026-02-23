@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { base } from '$app/paths';
 	import {
 		Plus,
 		Search,
@@ -333,7 +332,7 @@
 								</div>
 
 								<!-- Name + type + target (clickable link) -->
-								<a href="{base}/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
+								<a href="/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
 									<div class="flex items-center space-x-2">
 										<span class="text-sm text-foreground truncate group-hover:text-accent transition-colors">{m.name}</span>
 										<span class="text-[9px] text-muted-foreground font-mono uppercase shrink-0 px-1.5 py-0.5 rounded bg-muted/50">{m.type}</span>
@@ -391,7 +390,7 @@
 											onclick={(e) => e.stopPropagation()}
 										>
 											<a
-												href="{base}/monitors/{m.id}"
+												href="/monitors/{m.id}"
 												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-foreground hover:bg-muted/50 transition-colors"
 											>
 												<Eye class="w-3.5 h-3.5 text-muted-foreground" />
@@ -467,7 +466,7 @@
 								</div>
 
 								<!-- Name + type + target -->
-								<a href="{base}/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
+								<a href="/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
 									<div class="flex items-center space-x-2">
 										<span class="text-sm text-foreground truncate group-hover:text-accent transition-colors">{m.name}</span>
 										<span class="text-[9px] text-muted-foreground font-mono uppercase shrink-0 px-1.5 py-0.5 rounded bg-muted/50">{m.type}</span>
@@ -516,7 +515,7 @@
 											onclick={(e) => e.stopPropagation()}
 										>
 											<a
-												href="{base}/monitors/{m.id}"
+												href="/monitors/{m.id}"
 												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-foreground hover:bg-muted/50 transition-colors"
 											>
 												<Eye class="w-3.5 h-3.5 text-muted-foreground" />

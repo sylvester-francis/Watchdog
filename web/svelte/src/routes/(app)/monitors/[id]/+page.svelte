@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { base } from '$app/paths';
 	import { ChevronRight } from 'lucide-svelte';
 	import { monitors as monitorsApi, agents as agentsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast';
@@ -107,7 +106,7 @@
 			<p class="text-sm text-foreground font-medium mb-1">Failed to load monitor</p>
 			<p class="text-xs text-muted-foreground mb-4">{error}</p>
 			<a
-				href="{base}/monitors"
+				href="/monitors"
 				class="inline-flex items-center px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
 			>
 				Back to Monitors
@@ -118,7 +117,7 @@
 	<div class="animate-fade-in-up space-y-5">
 		<!-- Breadcrumb -->
 		<nav class="flex items-center space-x-1.5 text-xs">
-			<a href="{base}/monitors" class="text-muted-foreground hover:text-foreground transition-colors">
+			<a href="/monitors" class="text-muted-foreground hover:text-foreground transition-colors">
 				Monitors
 			</a>
 			<ChevronRight class="w-3 h-3 text-muted-foreground/50" />

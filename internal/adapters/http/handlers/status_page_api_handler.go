@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"math"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -40,6 +42,8 @@ type StatusPageAPIHandler struct {
 	statusPageRepo ports.StatusPageRepository
 	monitorRepo    ports.MonitorRepository
 	agentRepo      ports.AgentRepository
+	heartbeatRepo  ports.HeartbeatRepository
+	incidentSvc    ports.IncidentService
 }
 
 // NewStatusPageAPIHandler creates a new StatusPageAPIHandler.
@@ -47,11 +51,15 @@ func NewStatusPageAPIHandler(
 	statusPageRepo ports.StatusPageRepository,
 	monitorRepo ports.MonitorRepository,
 	agentRepo ports.AgentRepository,
+	heartbeatRepo ports.HeartbeatRepository,
+	incidentSvc ports.IncidentService,
 ) *StatusPageAPIHandler {
 	return &StatusPageAPIHandler{
 		statusPageRepo: statusPageRepo,
 		monitorRepo:    monitorRepo,
 		agentRepo:      agentRepo,
+		heartbeatRepo:  heartbeatRepo,
+		incidentSvc:    incidentSvc,
 	}
 }
 
@@ -280,4 +288,202 @@ func (h *StatusPageAPIHandler) getUserMonitors(ctx context.Context, userID uuid.
 		monitors = append(monitors, agentMonitors...)
 	}
 	return monitors, nil
+}
+
+// --- Public status page JSON API ---
+
+type publicMonitorResponse struct {
+	Name            string             `json:"name"`
+	Type            string             `json:"type"`
+	Status          string             `json:"status"`
+	UptimePercent   float64            `json:"uptime_percent"`
+	LatencyMs       int                `json:"latency_ms"`
+	HasLatency      bool               `json:"has_latency"`
+	MetricValue     string             `json:"metric_value,omitempty"`
+	MonitoringSince string             `json:"monitoring_since"`
+	DataDays        int                `json:"data_days"`
+	UptimeHistory   []dayUptimeResponse `json:"uptime_history"`
+}
+
+type dayUptimeResponse struct {
+	Date    string  `json:"date"`
+	Percent float64 `json:"percent"`
+}
+
+type publicIncidentResponse struct {
+	MonitorName     string  `json:"monitor_name"`
+	StartedAt       string  `json:"started_at"`
+	ResolvedAt      *string `json:"resolved_at"`
+	DurationSeconds int     `json:"duration_seconds"`
+	Status          string  `json:"status"`
+	IsActive        bool    `json:"is_active"`
+}
+
+// PublicView handles GET /api/v1/public/status/:username/:slug (no auth required).
+func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
+	ctx := c.Request().Context()
+	username := c.Param("username")
+	slug := c.Param("slug")
+
+	page, err := h.statusPageRepo.GetByUserAndSlug(ctx, username, slug)
+	if err != nil || !page.IsPublic {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
+	}
+
+	monitorIDs, _ := h.statusPageRepo.GetMonitorIDs(ctx, page.ID)
+
+	var monitors []publicMonitorResponse
+	var incidents []publicIncidentResponse
+	allUp := true
+	now := time.Now().UTC()
+	ninetyDaysAgo := now.AddDate(0, 0, -90)
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+
+	var totalUp, totalChecks int
+
+	for _, mid := range monitorIDs {
+		m, err := h.monitorRepo.GetByID(ctx, mid)
+		if err != nil || m == nil {
+			continue
+		}
+		status := string(m.Status)
+		if m.Status != domain.MonitorStatusUp {
+			allUp = false
+		}
+
+		var uptimeHistory []dayUptimeResponse
+		var uptimePercent float64 = -1
+		var latencyMs int
+		var hasLatency bool
+		var metricValue string
+
+		isSystemOrDocker := m.Type == domain.MonitorTypeSystem || m.Type == domain.MonitorTypeDocker
+
+		heartbeats, err := h.heartbeatRepo.GetByMonitorIDInRange(ctx, mid, ninetyDaysAgo, now)
+		if err == nil && len(heartbeats) > 0 {
+			if isSystemOrDocker {
+				if m.Type == domain.MonitorTypeSystem {
+					for _, hb := range heartbeats {
+						if hb.ErrorMessage != nil {
+							metricValue = formatMetricReading(m.Target, *hb.ErrorMessage)
+							break
+						}
+					}
+				}
+			} else {
+				for _, hb := range heartbeats {
+					if hb.LatencyMs != nil {
+						latencyMs = *hb.LatencyMs
+						hasLatency = true
+						break
+					}
+				}
+			}
+
+			dayMap := make(map[string]struct{ up, total int })
+			monitorUp := 0
+			monitorTotal := 0
+			for _, hb := range heartbeats {
+				day := hb.Time.Format("2006-01-02")
+				entry := dayMap[day]
+				entry.total++
+				if hb.Status.IsSuccess() {
+					entry.up++
+					monitorUp++
+				}
+				monitorTotal++
+				dayMap[day] = entry
+			}
+
+			if monitorTotal > 0 {
+				uptimePercent = float64(monitorUp) / float64(monitorTotal) * 100
+				totalUp += monitorUp
+				totalChecks += monitorTotal
+			}
+
+			for i := 89; i >= 0; i-- {
+				day := now.AddDate(0, 0, -i).Format("2006-01-02")
+				if entry, ok := dayMap[day]; ok && entry.total > 0 {
+					pct := float64(entry.up) / float64(entry.total) * 100
+					uptimeHistory = append(uptimeHistory, dayUptimeResponse{Date: day, Percent: pct})
+				} else {
+					uptimeHistory = append(uptimeHistory, dayUptimeResponse{Date: day, Percent: -1})
+				}
+			}
+		}
+
+		dataDays := int(math.Min(90, math.Ceil(now.Sub(m.CreatedAt).Hours()/24)))
+		if dataDays < 0 {
+			dataDays = 0
+		}
+
+		monitors = append(monitors, publicMonitorResponse{
+			Name:            m.Name,
+			Type:            string(m.Type),
+			Status:          status,
+			UptimePercent:   uptimePercent,
+			LatencyMs:       latencyMs,
+			HasLatency:      hasLatency,
+			MetricValue:     metricValue,
+			MonitoringSince: m.CreatedAt.Format(time.RFC3339),
+			DataDays:        dataDays,
+			UptimeHistory:   uptimeHistory,
+		})
+
+		// Fetch incidents for this monitor (last 30 days)
+		monitorIncidents, err := h.incidentSvc.GetIncidentsByMonitor(ctx, mid)
+		if err == nil {
+			for _, inc := range monitorIncidents {
+				if inc.StartedAt.Before(thirtyDaysAgo) {
+					continue
+				}
+				var resolvedAt *string
+				if inc.ResolvedAt != nil {
+					s := inc.ResolvedAt.Format(time.RFC3339)
+					resolvedAt = &s
+				}
+				incidents = append(incidents, publicIncidentResponse{
+					MonitorName:     m.Name,
+					StartedAt:       inc.StartedAt.Format(time.RFC3339),
+					ResolvedAt:      resolvedAt,
+					DurationSeconds: int(inc.Duration().Seconds()),
+					Status:          string(inc.Status),
+					IsActive:        inc.IsActive(),
+				})
+			}
+		}
+	}
+
+	// Sort incidents: active first, then by StartedAt DESC
+	sort.Slice(incidents, func(i, j int) bool {
+		if incidents[i].IsActive != incidents[j].IsActive {
+			return incidents[i].IsActive
+		}
+		return incidents[i].StartedAt > incidents[j].StartedAt
+	})
+
+	var aggregateUptime float64
+	if totalChecks > 0 {
+		aggregateUptime = float64(totalUp) / float64(totalChecks) * 100
+	}
+
+	overallStatus := "operational"
+	if !allUp && len(monitors) > 0 {
+		overallStatus = "degraded"
+	}
+	if len(monitors) == 0 {
+		overallStatus = "no_monitors"
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"page": map[string]string{
+			"name":        page.Name,
+			"description": page.Description,
+		},
+		"monitors":         monitors,
+		"incidents":        incidents,
+		"overall_status":   overallStatus,
+		"all_up":           allUp,
+		"aggregate_uptime": aggregateUptime,
+	})
 }

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth';
@@ -37,7 +36,7 @@
 
 	onMount(async () => {
 		if (!auth.isAdmin) {
-			goto(`${base}/dashboard`);
+			goto(`/dashboard`);
 			return;
 		}
 

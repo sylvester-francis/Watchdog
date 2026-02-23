@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { ChevronRight, ArrowRight } from 'lucide-svelte';
-	import { base } from '$app/paths';
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary } from '$lib/types';
 	import UptimeChecks from './UptimeChecks.svelte';
@@ -66,7 +65,7 @@
 			<h2 class="text-sm font-medium text-foreground">{title}</h2>
 			<span class="text-[10px] text-muted-foreground font-mono">{monitors.length}</span>
 		</div>
-		<a href="{base}/monitors" class="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center space-x-1">
+		<a href="/monitors" class="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center space-x-1">
 			<span>View all</span>
 			<ArrowRight class="w-3 h-3" />
 		</a>
@@ -97,7 +96,7 @@
 	<!-- Rows -->
 	<div class="divide-y divide-border/20">
 		{#each monitors as m (m.id)}
-			<a href="{base}/monitors/{m.id}" class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group">
+			<a href="/monitors/{m.id}" class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group">
 				<div class="w-5 shrink-0 flex justify-center">
 					<div class="w-2 h-2 rounded-full
 						{m.status === 'up' ? 'bg-emerald-400 animate-pulse' : m.status === 'down' ? 'bg-red-400' : 'bg-muted-foreground'}"

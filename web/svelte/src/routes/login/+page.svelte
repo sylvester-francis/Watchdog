@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { ShieldCheck, Server, Activity, BellRing, AlertCircle, CheckCircle2 } from 'lucide-svelte';
 	import { getAuth } from '$lib/stores/auth';
 	import { page } from '$app/state';
@@ -30,7 +29,7 @@
 		submitting = true;
 		try {
 			await auth.login(email, password);
-			goto(`${base}/dashboard`);
+			goto(`/dashboard`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Login failed';
 		} finally {
@@ -175,7 +174,7 @@
 
 				<p class="text-center text-muted-foreground mt-5 text-xs">
 					Don't have an account?
-					<a href="{base}/register" class="text-foreground hover:text-accent transition-colors">Create one</a>
+					<a href="/register" class="text-foreground hover:text-accent transition-colors">Create one</a>
 				</p>
 			</div>
 

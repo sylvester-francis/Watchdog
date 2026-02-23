@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { onMount, onDestroy } from 'svelte';
 	import { getAuth } from '$lib/stores/auth';
 	import { setOnUnauthorized } from '$lib/api/client';
@@ -20,13 +19,13 @@
 	// Register 401 redirect callback (safe outside component init via module)
 	setOnUnauthorized(() => {
 		sse.disconnect();
-		goto(`${base}/login`);
+		goto(`/login`);
 	});
 
 	onMount(async () => {
 		const user = await auth.check();
 		if (!user) {
-			goto(`${base}/login`);
+			goto(`/login`);
 			return;
 		}
 		ready = true;

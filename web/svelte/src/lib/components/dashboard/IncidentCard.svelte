@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { AlertCircle, Clock, CheckCircle2, ArrowRight } from 'lucide-svelte';
-	import { base } from '$app/paths';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
 	import type { Incident, MonitorSummary } from '$lib/types';
 
@@ -20,7 +19,7 @@
 			<h2 class="text-sm font-medium text-foreground">Active Incidents</h2>
 		</div>
 		{#if incidents.length > 0}
-			<a href="{base}/incidents" class="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center space-x-1">
+			<a href="/incidents" class="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center space-x-1">
 				<span>View all</span>
 				<ArrowRight class="w-3 h-3" />
 			</a>
@@ -58,7 +57,7 @@
 				<CheckCircle2 class="w-6 h-6 text-emerald-400/40" />
 			</div>
 			<p class="text-sm text-muted-foreground">No active incidents</p>
-			<a href="{base}/incidents?status=all" class="text-xs text-muted-foreground/60 hover:text-muted-foreground mt-1 inline-block transition-colors">View incident history</a>
+			<a href="/incidents?status=all" class="text-xs text-muted-foreground/60 hover:text-muted-foreground mt-1 inline-block transition-colors">View incident history</a>
 		</div>
 	{/if}
 </div>
