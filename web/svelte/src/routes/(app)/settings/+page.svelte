@@ -20,8 +20,8 @@
 		Webhook
 	} from 'lucide-svelte';
 	import { settings as settingsApi } from '$lib/api';
-	import { getToasts } from '$lib/stores/toast';
-	import { getAuth } from '$lib/stores/auth';
+	import { getToasts } from '$lib/stores/toast.svelte';
+	import { getAuth } from '$lib/stores/auth.svelte';
 	import type { APIToken, AlertChannel, AlertChannelType } from '$lib/types';
 	import CreateChannelModal from '$lib/components/settings/CreateChannelModal.svelte';
 	import CreateTokenModal from '$lib/components/settings/CreateTokenModal.svelte';

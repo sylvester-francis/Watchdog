@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import { Plus, Globe, ExternalLink, Pencil, Trash2 } from 'lucide-svelte';
 	import { statusPages as statusPagesApi } from '$lib/api';
-	import { getAuth } from '$lib/stores/auth';
-	import { getToasts } from '$lib/stores/toast';
+	import { getAuth } from '$lib/stores/auth.svelte';
+	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { StatusPage } from '$lib/types';
 	import CreateStatusPageModal from '$lib/components/status-pages/CreateStatusPageModal.svelte';
 

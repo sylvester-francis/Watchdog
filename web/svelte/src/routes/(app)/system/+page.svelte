@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
-	import { getAuth } from '$lib/stores/auth';
+	import { getAuth } from '$lib/stores/auth.svelte';
 	import type { SystemInfo } from '$lib/types';
 
 	const auth = getAuth();

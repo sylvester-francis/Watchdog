@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-svelte';
 	import { incidents as incidentsApi, monitors as monitorsApi } from '$lib/api';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Incident, MonitorSummary, IncidentStatus } from '$lib/types';
 	import IncidentStats from '$lib/components/incidents/IncidentStats.svelte';
 	import IncidentRow from '$lib/components/incidents/IncidentRow.svelte';

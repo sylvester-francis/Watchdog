@@ -16,7 +16,7 @@
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
 	import Sparkline from '$lib/components/dashboard/Sparkline.svelte';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal.svelte';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 
 	const toast = getToasts();
 

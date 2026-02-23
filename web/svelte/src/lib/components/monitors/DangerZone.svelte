@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { Trash2, AlertTriangle } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 
 	interface Props {
 		monitorId: string;

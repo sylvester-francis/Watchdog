@@ -3,7 +3,7 @@
 	import { Loader2 } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { formatTimeAgo } from '$lib/utils';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { HeartbeatPoint } from '$lib/types';
 
 	interface Props {

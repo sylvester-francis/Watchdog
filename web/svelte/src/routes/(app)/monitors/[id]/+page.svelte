@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { ChevronRight } from 'lucide-svelte';
 	import { monitors as monitorsApi, agents as agentsApi } from '$lib/api';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Monitor, Agent } from '$lib/types';
 	import MonitorHeader from '$lib/components/monitors/MonitorHeader.svelte';
 	import MonitorStats from '$lib/components/monitors/MonitorStats.svelte';
