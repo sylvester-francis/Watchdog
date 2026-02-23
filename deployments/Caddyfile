@@ -1,3 +1,29 @@
+{
+	servers {
+		timeouts {
+			read_body   10s
+			read_header 5s
+			write       30s
+			idle        120s
+		}
+	}
+}
+
 usewatchdog.dev {
+	# Limit request body to 1MB (prevents large payload abuse)
+	request_body {
+		max_size 1MB
+	}
+
+	# Security headers (defense-in-depth, app also sends these)
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+
 	reverse_proxy hub:8080
 }
