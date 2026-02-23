@@ -1,4 +1,4 @@
-.PHONY: help dev dev-hub build build-hub build-cli build-all test test-short test-e2e test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build css css-build clean deps install-tools pre-commit-install pre-commit-run
+.PHONY: help dev dev-hub build build-hub build-cli build-all test test-short test-e2e test-coverage test-mutation test-mutation-report lint lint-fix fmt sec vuln migrate-up migrate-down migrate-create docker-up docker-down docker-build css css-build svelte-dev svelte-build svelte-check svelte-install clean deps install-tools pre-commit-install pre-commit-run
 
 # Default target
 help:
@@ -38,6 +38,12 @@ help:
 	@echo "CSS:"
 	@echo "  make css           - Watch and rebuild Tailwind CSS"
 	@echo "  make css-build     - Build minified Tailwind CSS"
+	@echo ""
+	@echo "SvelteKit:"
+	@echo "  make svelte-install - Install SvelteKit dependencies"
+	@echo "  make svelte-dev     - Start SvelteKit dev server"
+	@echo "  make svelte-build   - Build SvelteKit for production"
+	@echo "  make svelte-check   - Run svelte-check TypeScript checks"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make deps              - Download Go dependencies"
@@ -171,6 +177,19 @@ css:
 
 css-build:
 	npx tailwindcss -i web/static/css/input.css -o web/static/css/output.css --minify
+
+# SvelteKit
+svelte-install:
+	cd web/svelte && npm install
+
+svelte-dev:
+	cd web/svelte && npm run dev
+
+svelte-build:
+	cd web/svelte && npm run build
+
+svelte-check:
+	cd web/svelte && npm run check
 
 # Cleanup
 clean:
