@@ -59,7 +59,7 @@
             {{$last := index .MetricValues (sub (len .MetricValues) 1)}}
             <p class="text-lg font-semibold font-mono {{if eq (print .Monitor.Status) "down"}}text-red-400{{else}}text-emerald-400{{end}}">{{printf "%.1f" $last}}%</p>
             {{else}}
-            <p class="text-lg font-semibold text-muted-foreground font-mono">--</p>
+            <p class="text-sm font-medium text-muted-foreground">Awaiting data</p>
             {{end}}
             {{else}}
             <div class="flex items-center space-x-1.5 mb-1">
@@ -69,7 +69,7 @@
             {{if gt .UptimeTotal 0}}
             <p class="text-lg font-semibold text-foreground font-mono">{{formatPercent .UptimePercent}}%</p>
             {{else}}
-            <p class="text-lg font-semibold text-muted-foreground font-mono">--</p>
+            <p class="text-sm font-medium text-muted-foreground">Awaiting data</p>
             {{end}}
             {{end}}
         </div>
@@ -285,7 +285,7 @@
                             {{if .ErrorMessage}}
                             <span class="text-xs text-foreground font-mono">{{.ErrorMessage}}</span>
                             {{else}}
-                            <span class="text-xs text-muted-foreground">--</span>
+                            <span class="text-xs text-muted-foreground">N/A</span>
                             {{end}}
                             {{else if eq (print $.Monitor.Type) "docker"}}
                             <span class="text-xs font-mono {{if .Status.IsSuccess}}text-emerald-400{{else}}text-red-400{{end}}">{{if .Status.IsSuccess}}Running{{else}}Stopped{{end}}</span>
@@ -293,7 +293,7 @@
                             {{if .LatencyMs}}
                             <span class="text-xs text-foreground font-mono">{{.LatencyMs}}ms</span>
                             {{else}}
-                            <span class="text-xs text-muted-foreground">--</span>
+                            <span class="text-xs text-muted-foreground">N/A</span>
                             {{end}}
                             {{end}}
                         </td>
@@ -314,7 +314,7 @@
                             {{if .ErrorMessage}}
                             <span class="text-xs text-red-400 truncate max-w-[300px] block" title="{{.ErrorMessage}}">{{.ErrorMessage}}</span>
                             {{else}}
-                            <span class="text-xs text-muted-foreground">--</span>
+                            <span class="text-xs text-emerald-400">None</span>
                             {{end}}
                             {{end}}
                         </td>
