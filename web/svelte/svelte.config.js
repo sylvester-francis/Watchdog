@@ -7,10 +7,7 @@ const config = {
 	kit: {
 		adapter: adapter({
 			fallback: 'index.html'
-		}),
-		paths: {
-			base: '/app'
-		}
+		})
 	}
 };
 

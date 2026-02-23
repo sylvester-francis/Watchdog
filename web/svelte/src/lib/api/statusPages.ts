@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { StatusPage, Monitor } from '$lib/types';
+import type { StatusPage, PublicStatusPageData } from '$lib/types';
 
 interface StatusPageListResponse {
 	data: StatusPage[];
@@ -48,4 +48,8 @@ export function updateStatusPage(id: string, data: StatusPageUpdateRequest): Pro
 
 export function deleteStatusPage(id: string): Promise<void> {
 	return api.delete<void>(`/api/v1/status-pages/${id}`);
+}
+
+export function getPublicStatusPage(username: string, slug: string): Promise<PublicStatusPageData> {
+	return api.get<PublicStatusPageData>(`/api/v1/public/status/${username}/${slug}`);
 }

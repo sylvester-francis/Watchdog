@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { Trash2, AlertTriangle } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast';
@@ -21,7 +20,7 @@
 		try {
 			await monitorsApi.deleteMonitor(monitorId);
 			toast.success('Monitor deleted');
-			goto(`${base}/monitors`);
+			goto(`/monitors`);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to delete monitor');
 		} finally {
