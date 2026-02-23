@@ -71,14 +71,30 @@ All database queries use parameterized queries via `pgx`. No string concatenatio
 
 ## Secure Headers
 
-The secure headers middleware applies the following headers to all responses:
+The secure headers middleware (`secure_headers.go`) applies the following headers to all responses:
 
 | Header | Value |
 |--------|-------|
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
-| `Content-Security-Policy` | Restrictive policy |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
+| `Content-Security-Policy` | Nonce-based (see below) |
+
+### Content Security Policy (CSP)
+
+CSP uses a **per-request cryptographic nonce** (128-bit, `crypto/rand`) instead of `'unsafe-inline'`:
+
+- `script-src 'self' 'nonce-<value>' https://unpkg.com https://cdn.jsdelivr.net` — no `'unsafe-inline'`, no `'unsafe-eval'`
+- `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net` — inline styles allowed (Tailwind CDN)
+- `connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net`
+- All inline `<script>` tags include `nonce="{{.Nonce}}"` — without the nonce, browsers block execution
+
+Alpine.js uses the CSP build (`@alpinejs/csp`) which eliminates `eval()` entirely.
+
+## CSRF Protection
+
+Double-submit cookie pattern via Echo CSRF middleware. All forms include a `_csrf` hidden field. API requests use `X-CSRF-Token` header.
 
 ## WebSocket Authentication
 
