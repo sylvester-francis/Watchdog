@@ -1,5 +1,13 @@
 import type { APIError } from '$lib/types';
 
+type UnauthorizedCallback = () => void;
+let onUnauthorized: UnauthorizedCallback | null = null;
+
+/** Register a callback for 401 responses (called from app layout). */
+export function setOnUnauthorized(cb: UnauthorizedCallback): void {
+	onUnauthorized = cb;
+}
+
 class APIClient {
 	private baseURL = '';
 
@@ -15,10 +23,7 @@ class APIClient {
 		});
 
 		if (response.status === 401) {
-			// Redirect to login on auth failure
-			if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-				window.location.href = '/app/login';
-			}
+			onUnauthorized?.();
 			throw new Error('Unauthorized');
 		}
 
