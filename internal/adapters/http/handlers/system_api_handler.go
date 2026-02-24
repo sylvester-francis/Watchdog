@@ -282,6 +282,97 @@ func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// GetSecurityEvents returns recent registration-related security events (admin-only).
+// GET /api/v1/admin/security-events
+func (h *SystemAPIHandler) GetSecurityEvents(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	actions := []domain.AuditAction{
+		domain.AuditRegisterSuccess,
+		domain.AuditRegisterBlocked,
+		domain.AuditLoginFailed,
+	}
+
+	logs, err := h.auditLogRepo.GetRecentByActions(ctx, actions, 100)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch security events"})
+	}
+
+	entries := make([]auditLogEntry, 0, len(logs))
+	for _, log := range logs {
+		email := ""
+		reason := ""
+		if log.Metadata != nil {
+			email = log.Metadata["email"]
+			reason = log.Metadata["reason"]
+		}
+
+		entry := auditLogEntry{
+			ID:        log.ID,
+			Action:    string(log.Action),
+			UserEmail: email,
+			IPAddress: log.IPAddress,
+			Metadata:  log.Metadata,
+			CreatedAt: log.CreatedAt.Format(time.RFC3339),
+		}
+		if entry.Metadata == nil {
+			entry.Metadata = make(map[string]string)
+		}
+		// Enrich with reason for easy frontend display
+		if reason != "" {
+			entry.Metadata["reason"] = reason
+		}
+		entries = append(entries, entry)
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"data": entries})
+}
+
+// DeleteUser deletes a user account (admin-only). Cannot delete yourself.
+// DELETE /api/v1/admin/users/:id
+func (h *SystemAPIHandler) DeleteUser(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	adminID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+	caller, err := h.userRepo.GetByID(ctx, adminID)
+	if err != nil || caller == nil || !caller.IsAdmin {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "admin access required"})
+	}
+
+	targetID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid user ID"})
+	}
+
+	if targetID == adminID {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "cannot delete your own account"})
+	}
+
+	targetUser, err := h.userRepo.GetByID(ctx, targetID)
+	if err != nil || targetUser == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
+	}
+
+	if err := h.userRepo.Delete(ctx, targetID); err != nil {
+		slog.Error("admin: failed to delete user", "target_id", targetID, "error", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete user"})
+	}
+
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &adminID, domain.AuditUserDeleted, c.RealIP(), map[string]string{
+			"target_user_id": targetID.String(),
+			"target_email":   targetUser.Email,
+		})
+	}
+
+	slog.Info("admin: user deleted", "admin_id", adminID, "target_id", targetID, "target_email", targetUser.Email)
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
+
 // roundTo rounds a float to the given number of decimal places.
 func roundTo(val float64, decimals int) float64 {
 	format := fmt.Sprintf("%%.%df", decimals)

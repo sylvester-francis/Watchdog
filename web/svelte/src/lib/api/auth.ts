@@ -14,8 +14,8 @@ export function login(email: string, password: string): Promise<AuthResponse> {
 	return api.post<AuthResponse>('/api/v1/auth/login', { email, password });
 }
 
-export function register(email: string, password: string, confirm_password: string): Promise<AuthResponse> {
-	return api.post<AuthResponse>('/api/v1/auth/register', { email, password, confirm_password });
+export function register(email: string, password: string, confirm_password: string, website?: string): Promise<AuthResponse> {
+	return api.post<AuthResponse>('/api/v1/auth/register', { email, password, confirm_password, website });
 }
 
 export function logout(): Promise<void> {

@@ -73,8 +73,8 @@ export function getAuth() {
 		return res;
 	}
 
-	async function register(email: string, password: string, confirmPassword: string): Promise<User> {
-		const res = await authApi.register(email, password, confirmPassword);
+	async function register(email: string, password: string, confirmPassword: string, website?: string): Promise<User> {
+		const res = await authApi.register(email, password, confirmPassword, website);
 		user = res.user;
 		checked = true;
 		lastCheckAt = Date.now();

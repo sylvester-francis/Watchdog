@@ -12,17 +12,18 @@ import (
 
 // Compile-time interface checks.
 var (
-	_ ports.UserRepository       = (*MockUserRepository)(nil)
-	_ ports.AgentRepository      = (*MockAgentRepository)(nil)
-	_ ports.MonitorRepository    = (*MockMonitorRepository)(nil)
-	_ ports.IncidentRepository   = (*MockIncidentRepository)(nil)
-	_ ports.HeartbeatRepository  = (*MockHeartbeatRepository)(nil)
-	_ ports.UsageEventRepository = (*MockUsageEventRepository)(nil)
-	_ ports.WaitlistRepository   = (*MockWaitlistRepository)(nil)
-	_ ports.APITokenRepository   = (*MockAPITokenRepository)(nil)
-	_ ports.Transactor              = (*MockTransactor)(nil)
-	_ ports.AlertChannelRepository  = (*MockAlertChannelRepository)(nil)
-	_ ports.StatusPageRepository    = (*MockStatusPageRepository)(nil)
+	_ ports.UserRepository         = (*MockUserRepository)(nil)
+	_ ports.AgentRepository        = (*MockAgentRepository)(nil)
+	_ ports.MonitorRepository      = (*MockMonitorRepository)(nil)
+	_ ports.IncidentRepository     = (*MockIncidentRepository)(nil)
+	_ ports.HeartbeatRepository    = (*MockHeartbeatRepository)(nil)
+	_ ports.UsageEventRepository   = (*MockUsageEventRepository)(nil)
+	_ ports.WaitlistRepository     = (*MockWaitlistRepository)(nil)
+	_ ports.APITokenRepository     = (*MockAPITokenRepository)(nil)
+	_ ports.Transactor             = (*MockTransactor)(nil)
+	_ ports.AlertChannelRepository = (*MockAlertChannelRepository)(nil)
+	_ ports.StatusPageRepository   = (*MockStatusPageRepository)(nil)
+	_ ports.AuditLogRepository     = (*MockAuditLogRepository)(nil)
 )
 
 // MockUserRepository is a mock implementation of ports.UserRepository.
@@ -671,6 +672,42 @@ func (m *MockStatusPageRepository) SlugExistsForUser(ctx context.Context, userID
 		return m.SlugExistsForUserFn(ctx, userID, slug)
 	}
 	return false, nil
+}
+
+// MockAuditLogRepository is a mock implementation of ports.AuditLogRepository.
+type MockAuditLogRepository struct {
+	CreateFn             func(ctx context.Context, log *domain.AuditLog) error
+	GetByUserIDFn        func(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.AuditLog, error)
+	GetRecentFn          func(ctx context.Context, limit int) ([]*domain.AuditLog, error)
+	GetRecentByActionsFn func(ctx context.Context, actions []domain.AuditAction, limit int) ([]*domain.AuditLog, error)
+}
+
+func (m *MockAuditLogRepository) Create(ctx context.Context, log *domain.AuditLog) error {
+	if m.CreateFn != nil {
+		return m.CreateFn(ctx, log)
+	}
+	return nil
+}
+
+func (m *MockAuditLogRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.AuditLog, error) {
+	if m.GetByUserIDFn != nil {
+		return m.GetByUserIDFn(ctx, userID, limit)
+	}
+	return nil, nil
+}
+
+func (m *MockAuditLogRepository) GetRecent(ctx context.Context, limit int) ([]*domain.AuditLog, error) {
+	if m.GetRecentFn != nil {
+		return m.GetRecentFn(ctx, limit)
+	}
+	return nil, nil
+}
+
+func (m *MockAuditLogRepository) GetRecentByActions(ctx context.Context, actions []domain.AuditAction, limit int) ([]*domain.AuditLog, error) {
+	if m.GetRecentByActionsFn != nil {
+		return m.GetRecentByActionsFn(ctx, actions, limit)
+	}
+	return nil, nil
 }
 
 // MockTransactor is a mock implementation of ports.Transactor.
