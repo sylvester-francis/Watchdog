@@ -104,7 +104,7 @@
 							<td class="px-5 py-2.5">
 								{#if isSystem}
 									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message)}</span>
-								{:else if hb.latency_ms}
+								{:else if hb.latency_ms != null}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
 								{:else}
 									<span class="text-xs text-muted-foreground">--</span>
