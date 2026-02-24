@@ -1,5 +1,5 @@
 # Tailwind CSS build stage
-FROM node:22-alpine AS tailwind
+FROM node:25-alpine AS tailwind
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -8,7 +8,7 @@ COPY web/ web/
 RUN npx tailwindcss -i web/static/css/input.css -o web/static/css/output.css --minify
 
 # SvelteKit build stage
-FROM node:22-alpine AS svelte
+FROM node:25-alpine AS svelte
 WORKDIR /app
 COPY web/svelte/package.json web/svelte/package-lock.json ./
 RUN npm ci
