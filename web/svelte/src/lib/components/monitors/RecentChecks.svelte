@@ -53,7 +53,8 @@
 		try {
 			const res = await monitorsApi.getHeartbeats(monitorId);
 			// Show most recent first, limit to 20
-			heartbeats = (res.data ?? []).slice(-20).reverse();
+			const arr = Array.isArray(res) ? res : [];
+			heartbeats = arr.slice(-20).reverse();
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to load heartbeats');
 			heartbeats = [];
