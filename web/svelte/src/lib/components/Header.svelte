@@ -10,9 +10,8 @@
 		goto(`/login`);
 	}
 
-	// We dispatch a custom event for the sidebar toggle
 	function toggleSidebar() {
-		document.querySelector('aside')?.classList.toggle('-translate-x-full');
+		window.dispatchEvent(new CustomEvent('toggle-sidebar'));
 	}
 </script>
 
