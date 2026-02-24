@@ -44,7 +44,8 @@
 		{ value: 'tls', label: 'TLS' },
 		{ value: 'docker', label: 'Docker' },
 		{ value: 'database', label: 'Database' },
-		{ value: 'system', label: 'System' }
+		{ value: 'system', label: 'System' },
+		{ value: 'service', label: 'Service' }
 	];
 
 	const targetPlaceholders: Record<MonitorType, string> = {
@@ -55,7 +56,8 @@
 		tls: 'example.com:443',
 		docker: 'container_name',
 		database: 'localhost:5432',
-		system: 'localhost'
+		system: 'localhost',
+		service: 'nginx'
 	};
 
 	function buildMetadata(): Record<string, string> | undefined {
