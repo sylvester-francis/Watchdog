@@ -8,6 +8,7 @@
 	import MonitorHeader from '$lib/components/monitors/MonitorHeader.svelte';
 	import MonitorStats from '$lib/components/monitors/MonitorStats.svelte';
 	import LatencyChart from '$lib/components/monitors/LatencyChart.svelte';
+	import MetricChart from '$lib/components/monitors/MetricChart.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
 	import EditMonitorModal from '$lib/components/monitors/EditMonitorModal.svelte';
@@ -130,14 +131,18 @@
 		<!-- Stats Cards -->
 		<MonitorStats {monitor} {uptimePercent} {agentName} />
 
-		<!-- Latency Chart -->
-		<LatencyChart {monitorId} />
+		<!-- Chart: system monitors get MetricChart, others get LatencyChart -->
+		{#if monitor.type === 'system'}
+			<MetricChart {monitorId} target={monitor.target} />
+		{:else}
+			<LatencyChart {monitorId} />
+		{/if}
 
 		<!-- Uptime Bar -->
 		{#if uptimeUp > 0 || uptimeDown > 0}
 			<div class="bg-card border border-border rounded-lg">
 				<div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
-					<HeartPulse class="w-4 h-4 text-accent" />
+					<HeartPulse class="w-4 h-4 text-muted-foreground" />
 					<h3 class="text-sm font-medium text-foreground">Uptime (Last 20 checks)</h3>
 				</div>
 				<div class="px-5 py-4">
@@ -170,7 +175,7 @@
 		{/if}
 
 		<!-- Recent Checks -->
-		<RecentChecks {monitorId} />
+		<RecentChecks {monitorId} monitorType={monitor.type} />
 
 		<!-- Danger Zone -->
 		<DangerZone {monitorId} />

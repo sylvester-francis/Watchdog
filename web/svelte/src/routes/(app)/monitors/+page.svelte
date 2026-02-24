@@ -389,10 +389,12 @@
 									</button>
 
 									{#if openDropdownId === m.id}
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<div
 											class="absolute right-0 top-8 z-20 w-40 bg-card border border-border rounded-md shadow-lg py-1"
 											onclick={(e) => e.stopPropagation()}
+											onkeydown={(e) => e.stopPropagation()}
+											role="menu"
+											tabindex="-1"
 										>
 											<a
 												href="/monitors/{m.id}"
@@ -493,10 +495,12 @@
 									</button>
 
 									{#if openDropdownId === m.id}
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<div
 											class="absolute right-0 top-8 z-20 w-40 bg-card border border-border rounded-md shadow-lg py-1"
 											onclick={(e) => e.stopPropagation()}
+											onkeydown={(e) => e.stopPropagation()}
+											role="menu"
+											tabindex="-1"
 										>
 											<a
 												href="/monitors/{m.id}"

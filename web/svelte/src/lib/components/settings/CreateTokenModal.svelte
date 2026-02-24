@@ -85,12 +85,13 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
 		onkeydown={handleKeydown}
 	>
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<div
 			class="bg-card border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto animate-fade-in-up"
 			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-label="Create API token"
+			tabindex="-1"
 		>
 			<!-- Header -->
 			<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
@@ -229,7 +230,7 @@
 					</div>
 
 					<div>
-						<label class={labelClass}>API Token</label>
+						<span class={labelClass}>API Token</span>
 						<div class="flex items-center space-x-2">
 							<code class="flex-1 text-xs font-mono bg-yellow-500/10 border border-yellow-500/20 rounded px-3 py-2.5 text-foreground break-all select-all">{plaintext}</code>
 							<button

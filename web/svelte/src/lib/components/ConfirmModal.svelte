@@ -59,12 +59,13 @@
 		onkeydown={handleKeydown}
 		onclick={handleBackdrop}
 	>
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<div
 			class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm mx-4 animate-fade-in-up"
 			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-label={title}
+			tabindex="-1"
 		>
 			<!-- Header -->
 			<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
