@@ -10,6 +10,7 @@
 
 	const auth = getAuth();
 	const toast = getToasts();
+	const isAdmin = $derived(auth.user?.is_admin === true);
 
 	let data = $state<SystemInfo | null>(null);
 	let users = $state<AdminUser[]>([]);
@@ -99,12 +100,15 @@
 
 	onMount(async () => {
 		try {
-			const [sysInfo, usersRes] = await Promise.all([
-				systemApi.getSystemInfo(),
-				systemApi.listUsers()
-			]);
-			data = sysInfo;
-			users = usersRes.data ?? [];
+			data = await systemApi.getSystemInfo();
+			if (isAdmin) {
+				try {
+					const usersRes = await systemApi.listUsers();
+					users = usersRes.data ?? [];
+				} catch {
+					// Non-admin users won't have access — silently skip
+				}
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load system info';
 		} finally {
@@ -312,6 +316,7 @@
 			</div>
 		</div>
 
+		{#if isAdmin}
 		<!-- Reset Password Banner (shown after admin reset) -->
 		{#if resetPassword}
 			<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
@@ -416,6 +421,7 @@
 				</div>
 			{/if}
 		</div>
+		{/if}
 
 		<!-- Audit Log -->
 		<div class="bg-card rounded-lg border border-border">
