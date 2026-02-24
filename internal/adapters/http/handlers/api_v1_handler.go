@@ -75,6 +75,7 @@ type incidentResponse struct {
 	StartedAt      string  `json:"started_at"`
 	ResolvedAt     *string `json:"resolved_at"`
 	AcknowledgedAt *string `json:"acknowledged_at"`
+	TTRSeconds     *int    `json:"ttr_seconds"`
 }
 
 // ListMonitors returns all monitors for the authenticated user.
@@ -271,6 +272,7 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 			MonitorID: i.MonitorID.String(),
 			Status:    string(i.Status),
 			StartedAt: i.StartedAt.Format(time.RFC3339),
+			TTRSeconds: i.TTRSeconds,
 		}
 		if i.ResolvedAt != nil {
 			t := i.ResolvedAt.Format(time.RFC3339)
