@@ -246,16 +246,17 @@ func (h *APIHandler) MonitorsSummary(c echo.Context) error {
 	}
 
 	type MonitorSummary struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Status      string `json:"status"`
-		Type        string `json:"type"`
-		Target      string `json:"target"`
-		Latencies   []int  `json:"latencies"`
-		UptimeUp    int    `json:"uptimeUp"`
-		UptimeDown  int    `json:"uptimeDown"`
-		Total       int    `json:"total"`
-		LatestValue string `json:"latest_value,omitempty"`
+		ID              string `json:"id"`
+		Name            string `json:"name"`
+		Status          string `json:"status"`
+		Type            string `json:"type"`
+		Target          string `json:"target"`
+		IntervalSeconds int    `json:"interval_seconds"`
+		Latencies       []int  `json:"latencies"`
+		UptimeUp        int    `json:"uptimeUp"`
+		UptimeDown      int    `json:"uptimeDown"`
+		Total           int    `json:"total"`
+		LatestValue     string `json:"latest_value,omitempty"`
 	}
 
 	var summaries []MonitorSummary
@@ -294,16 +295,17 @@ func (h *APIHandler) MonitorsSummary(c echo.Context) error {
 			}
 
 			summaries = append(summaries, MonitorSummary{
-				ID:          monitor.ID.String(),
-				Name:        monitor.Name,
-				Status:      string(monitor.Status),
-				Type:        string(monitor.Type),
-				Target:      monitor.Target,
-				Latencies:   latencies,
-				UptimeUp:    up,
-				UptimeDown:  down,
-				Total:       len(heartbeats),
-				LatestValue: latestValue,
+				ID:              monitor.ID.String(),
+				Name:            monitor.Name,
+				Status:          string(monitor.Status),
+				Type:            string(monitor.Type),
+				Target:          monitor.Target,
+				IntervalSeconds: monitor.IntervalSeconds,
+				Latencies:       latencies,
+				UptimeUp:        up,
+				UptimeDown:      down,
+				Total:           len(heartbeats),
+				LatestValue:     latestValue,
 			})
 		}
 	}
