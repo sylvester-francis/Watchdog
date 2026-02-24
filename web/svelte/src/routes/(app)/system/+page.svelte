@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle } from 'lucide-svelte';
+	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle, Trash2 } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -58,6 +58,29 @@
 					closeConfirmModal();
 				} catch (err) {
 					toast.error(err instanceof Error ? err.message : 'Failed to reset password.');
+					confirmModal.loading = false;
+				}
+			}
+		};
+	}
+
+	function handleDeleteUser(user: AdminUser) {
+		confirmModal = {
+			open: true,
+			title: 'Delete User',
+			message: `Permanently delete ${user.email}? This will remove their agents, monitors, and all associated data. This cannot be undone.`,
+			confirmLabel: 'Delete User',
+			variant: 'danger',
+			loading: false,
+			action: async () => {
+				confirmModal.loading = true;
+				try {
+					await systemApi.deleteUser(user.id);
+					users = users.filter(u => u.id !== user.id);
+					toast.success(`User ${user.email} deleted.`);
+					closeConfirmModal();
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : 'Failed to delete user.');
 					confirmModal.loading = false;
 				}
 			}
@@ -397,12 +420,21 @@
 									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{timeAgo(u.created_at)}</td>
 									<td class="px-4 py-2.5 text-right">
 										{#if u.id !== auth.user?.id}
-											<button
-												onclick={() => handleResetPassword(u)}
-												class="px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
-											>
-												Reset Password
-											</button>
+											<div class="flex items-center justify-end space-x-1.5">
+												<button
+													onclick={() => handleResetPassword(u)}
+													class="px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
+												>
+													Reset Password
+												</button>
+												<button
+													onclick={() => handleDeleteUser(u)}
+													class="inline-flex items-center space-x-1 px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-destructive bg-muted/50 hover:bg-destructive/10 rounded-md transition-colors"
+												>
+													<Trash2 class="w-3 h-3" />
+													<span>Delete</span>
+												</button>
+											</div>
 										{:else}
 											<span class="text-[10px] text-muted-foreground/40">You</span>
 										{/if}
