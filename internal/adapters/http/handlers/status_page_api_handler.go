@@ -230,11 +230,25 @@ func (h *StatusPageAPIHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update status page"})
 	}
 
+	// Verify all requested monitors belong to the authenticated user.
+	userMonitors, _ := h.getUserMonitors(ctx, userID)
+	allowedIDs := make(map[uuid.UUID]struct{}, len(userMonitors))
+	for _, m := range userMonitors {
+		allowedIDs[m.ID] = struct{}{}
+	}
+
 	var monitorIDs []uuid.UUID
 	for _, idStr := range req.MonitorIDs {
-		if id, err := uuid.Parse(idStr); err == nil {
-			monitorIDs = append(monitorIDs, id)
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			continue
 		}
+		if _, ok := allowedIDs[id]; !ok {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"error": "monitor not owned by user",
+			})
+		}
+		monitorIDs = append(monitorIDs, id)
 	}
 	if err := h.statusPageRepo.SetMonitors(ctx, pageID, monitorIDs); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "status page updated but failed to save monitor assignments"})

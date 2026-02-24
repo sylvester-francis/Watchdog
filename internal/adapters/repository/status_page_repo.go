@@ -130,22 +130,41 @@ func (r *StatusPageRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // SetMonitors replaces all monitors for a status page.
+// Defense-in-depth: scopes DELETE by tenant and verifies monitor ownership via SQL join.
 func (r *StatusPageRepository) SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error {
 	return r.db.WithTransaction(ctx, func(txCtx context.Context) error {
 		q := r.db.Querier(txCtx)
+		tenantID := TenantIDFromContext(txCtx)
 
-		_, err := q.Exec(txCtx, `DELETE FROM status_page_monitors WHERE status_page_id = $1`, pageID)
+		// Scope DELETE by tenant via JOIN
+		_, err := q.Exec(txCtx,
+			`DELETE FROM status_page_monitors spm
+			 USING status_pages sp
+			 WHERE spm.status_page_id = sp.id
+			   AND spm.status_page_id = $1
+			   AND sp.tenant_id = $2`,
+			pageID, tenantID)
 		if err != nil {
 			return fmt.Errorf("clear monitors: %w", err)
 		}
 
+		// INSERT with ownership verification via subquery
 		for i, monitorID := range monitorIDs {
-			_, err = q.Exec(txCtx,
-				`INSERT INTO status_page_monitors (status_page_id, monitor_id, sort_order) VALUES ($1, $2, $3)`,
-				pageID, monitorID, i,
-			)
+			result, err := q.Exec(txCtx,
+				`INSERT INTO status_page_monitors (status_page_id, monitor_id, sort_order)
+				 SELECT $1, m.id, $3
+				 FROM monitors m
+				 JOIN agents a ON m.agent_id = a.id
+				 JOIN status_pages sp ON sp.id = $1
+				 WHERE m.id = $2
+				   AND a.user_id = sp.user_id
+				   AND sp.tenant_id = $4`,
+				pageID, monitorID, i, tenantID)
 			if err != nil {
 				return fmt.Errorf("insert monitor %s: %w", monitorID, err)
+			}
+			if result.RowsAffected() == 0 {
+				return fmt.Errorf("monitor %s not owned by user", monitorID)
 			}
 		}
 
@@ -154,12 +173,18 @@ func (r *StatusPageRepository) SetMonitors(ctx context.Context, pageID uuid.UUID
 }
 
 // GetMonitorIDs returns the monitor IDs for a status page.
+// Defense-in-depth: scopes by tenant via JOIN on status_pages.
 func (r *StatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	rows, err := q.Query(ctx,
-		`SELECT monitor_id FROM status_page_monitors WHERE status_page_id = $1 ORDER BY sort_order`,
-		pageID,
+		`SELECT spm.monitor_id
+		 FROM status_page_monitors spm
+		 JOIN status_pages sp ON spm.status_page_id = sp.id
+		 WHERE spm.status_page_id = $1 AND sp.tenant_id = $2
+		 ORDER BY spm.sort_order`,
+		pageID, tenantID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get monitor ids: %w", err)
