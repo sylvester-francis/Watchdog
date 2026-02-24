@@ -19,13 +19,15 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/crypto"
 )
 
-// SystemAPIHandler serves the system dashboard data as JSON (admin-only).
+// SystemAPIHandler serves the system dashboard data as JSON.
 type SystemAPIHandler struct {
 	db           *repository.DB
 	hub          *realtime.Hub
 	cfg          *config.Config
 	auditLogRepo ports.AuditLogRepository
 	userRepo     ports.UserRepository
+	agentRepo    ports.AgentRepository
+	monitorRepo  ports.MonitorRepository
 	auditSvc     ports.AuditService
 	hasher       *crypto.PasswordHasher
 	startTime    time.Time
@@ -38,6 +40,8 @@ func NewSystemAPIHandler(
 	cfg *config.Config,
 	auditLogRepo ports.AuditLogRepository,
 	userRepo ports.UserRepository,
+	agentRepo ports.AgentRepository,
+	monitorRepo ports.MonitorRepository,
 	auditSvc ports.AuditService,
 	hasher *crypto.PasswordHasher,
 	startTime time.Time,
@@ -48,6 +52,8 @@ func NewSystemAPIHandler(
 		cfg:          cfg,
 		auditLogRepo: auditLogRepo,
 		userRepo:     userRepo,
+		agentRepo:    agentRepo,
+		monitorRepo:  monitorRepo,
 		auditSvc:     auditSvc,
 		hasher:       hasher,
 		startTime:    startTime,
@@ -126,9 +132,21 @@ func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	// Auth check (in CE all authenticated users can view system info)
-	_, ok := middleware.GetUserID(c)
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	// Build user's monitor ID set for scoping heartbeat queries
+	agents, _ := h.agentRepo.GetByUserID(ctx, userID)
+	var userMonitorIDs []uuid.UUID
+	for _, agent := range agents {
+		monitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
+		if err == nil {
+			for _, m := range monitors {
+				userMonitorIDs = append(userMonitorIDs, m.ID)
+			}
+		}
 	}
 
 	// DB health + latency
@@ -150,14 +168,18 @@ func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 		slog.Error("system_api: failed to fetch migration status", "error", err)
 	}
 
-	// Heartbeat throughput: count in last hour + per-minute rate
+	// Heartbeat throughput: count in last hour + per-minute rate (scoped to user's monitors)
 	var hbLastHour int64
-	_ = h.db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM heartbeats WHERE time > NOW() - INTERVAL '1 hour'").Scan(&hbLastHour)
-	hbPerMinute := float64(hbLastHour) / 60.0
-
-	// Errors in last hour
 	var errorsLastHour int64
-	_ = h.db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM heartbeats WHERE time > NOW() - INTERVAL '1 hour' AND status != 'up'").Scan(&errorsLastHour)
+	if len(userMonitorIDs) > 0 {
+		_ = h.db.Pool.QueryRow(ctx,
+			"SELECT COUNT(*) FROM heartbeats WHERE time > NOW() - INTERVAL '1 hour' AND monitor_id = ANY($1)",
+			userMonitorIDs).Scan(&hbLastHour)
+		_ = h.db.Pool.QueryRow(ctx,
+			"SELECT COUNT(*) FROM heartbeats WHERE time > NOW() - INTERVAL '1 hour' AND status != 'up' AND monitor_id = ANY($1)",
+			userMonitorIDs).Scan(&errorsLastHour)
+	}
+	hbPerMinute := float64(hbLastHour) / 60.0
 
 	// Database size
 	var dbSizeBytes int64
@@ -193,23 +215,17 @@ func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 	// Connected agents
 	agentCount := h.hub.ClientCount()
 
-	// Audit logs: recent 50 entries (all users)
-	logs, err := h.auditLogRepo.GetRecent(ctx, 50)
+	// Audit logs: recent 50 entries (scoped to current user)
+	logs, err := h.auditLogRepo.GetByUserID(ctx, userID, 50)
 	if err != nil {
 		slog.Error("system_api: failed to fetch audit logs", "error", err)
 		logs = nil
 	}
 
-	// Resolve user emails with cache to avoid N+1
-	emailCache := make(map[uuid.UUID]string)
-	for _, log := range logs {
-		if log.UserID != nil {
-			if _, ok := emailCache[*log.UserID]; !ok {
-				if u, err := h.userRepo.GetByID(ctx, *log.UserID); err == nil && u != nil {
-					emailCache[*log.UserID] = u.Email
-				}
-			}
-		}
+	// Resolve user email
+	var userEmail string
+	if u, err := h.userRepo.GetByID(ctx, userID); err == nil && u != nil {
+		userEmail = u.Email
 	}
 
 	// Build audit log entries
@@ -218,15 +234,13 @@ func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 		entry := auditLogEntry{
 			ID:        log.ID,
 			Action:    string(log.Action),
+			UserEmail: userEmail,
 			IPAddress: log.IPAddress,
 			Metadata:  log.Metadata,
 			CreatedAt: log.CreatedAt.Format(time.RFC3339),
 		}
 		if entry.Metadata == nil {
 			entry.Metadata = make(map[string]string)
-		}
-		if log.UserID != nil {
-			entry.UserEmail = emailCache[*log.UserID]
 		}
 		auditEntries = append(auditEntries, entry)
 	}
