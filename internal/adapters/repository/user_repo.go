@@ -28,8 +28,8 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO users (id, email, username, password_hash, plan, is_admin, created_at, updated_at, tenant_id, password_changed_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+		INSERT INTO users (id, email, username, password_hash, plan, role, is_admin, created_at, updated_at, tenant_id, password_changed_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := q.Exec(ctx, query,
 		user.ID,
@@ -37,6 +37,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 		user.Username,
 		user.PasswordHash,
 		string(user.Plan),
+		user.Role,
 		user.IsAdmin,
 		user.CreatedAt,
 		user.UpdatedAt,
@@ -56,7 +57,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
+		SELECT id, email, username, password_hash, plan, role, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE id = $1 AND tenant_id = $2`
 
@@ -67,6 +68,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
+		&user.Role,
 		&user.IsAdmin,
 		&user.TenantID,
 		&user.CreatedAt,
@@ -89,7 +91,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
+		SELECT id, email, username, password_hash, plan, role, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE email = $1 AND tenant_id = $2`
 
@@ -100,6 +102,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
+		&user.Role,
 		&user.IsAdmin,
 		&user.TenantID,
 		&user.CreatedAt,
@@ -122,7 +125,7 @@ func (r *UserRepository) GetByEmailGlobal(ctx context.Context, email string) (*d
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
+		SELECT id, email, username, password_hash, plan, role, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE email = $1`
 
@@ -133,6 +136,7 @@ func (r *UserRepository) GetByEmailGlobal(ctx context.Context, email string) (*d
 		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
+		&user.Role,
 		&user.IsAdmin,
 		&user.TenantID,
 		&user.CreatedAt,
@@ -155,7 +159,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
+		SELECT id, email, username, password_hash, plan, role, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE username = $1 AND tenant_id = $2`
 
@@ -166,6 +170,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 		&user.Username,
 		&user.PasswordHash,
 		&user.Plan,
+		&user.Role,
 		&user.IsAdmin,
 		&user.TenantID,
 		&user.CreatedAt,
@@ -189,8 +194,8 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 
 	query := `
 		UPDATE users
-		SET email = $2, username = $3, password_hash = $4, plan = $5, is_admin = $6, updated_at = $7, password_changed_at = $8
-		WHERE id = $1 AND tenant_id = $9`
+		SET email = $2, username = $3, password_hash = $4, plan = $5, role = $6, is_admin = $7, updated_at = $8, password_changed_at = $9
+		WHERE id = $1 AND tenant_id = $10`
 
 	result, err := q.Exec(ctx, query,
 		user.ID,
@@ -198,6 +203,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 		user.Username,
 		user.PasswordHash,
 		string(user.Plan),
+		user.Role,
 		user.IsAdmin,
 		user.UpdatedAt,
 		user.PasswordChangedAt,
