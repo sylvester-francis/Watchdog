@@ -282,6 +282,52 @@ func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// GetSecurityEvents returns recent registration-related security events (admin-only).
+// GET /api/v1/admin/security-events
+func (h *SystemAPIHandler) GetSecurityEvents(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	actions := []domain.AuditAction{
+		domain.AuditRegisterSuccess,
+		domain.AuditRegisterBlocked,
+		domain.AuditLoginFailed,
+	}
+
+	logs, err := h.auditLogRepo.GetRecentByActions(ctx, actions, 100)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch security events"})
+	}
+
+	entries := make([]auditLogEntry, 0, len(logs))
+	for _, log := range logs {
+		email := ""
+		reason := ""
+		if log.Metadata != nil {
+			email = log.Metadata["email"]
+			reason = log.Metadata["reason"]
+		}
+
+		entry := auditLogEntry{
+			ID:        log.ID,
+			Action:    string(log.Action),
+			UserEmail: email,
+			IPAddress: log.IPAddress,
+			Metadata:  log.Metadata,
+			CreatedAt: log.CreatedAt.Format(time.RFC3339),
+		}
+		if entry.Metadata == nil {
+			entry.Metadata = make(map[string]string)
+		}
+		// Enrich with reason for easy frontend display
+		if reason != "" {
+			entry.Metadata["reason"] = reason
+		}
+		entries = append(entries, entry)
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"data": entries})
+}
+
 // roundTo rounds a float to the given number of decimal places.
 func roundTo(val float64, decimals int) float64 {
 	format := fmt.Sprintf("%%.%df", decimals)

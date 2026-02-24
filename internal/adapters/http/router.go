@@ -70,6 +70,7 @@ type Router struct {
 	authRateLimiter    *middleware.RateLimiter
 	generalRateLimiter *middleware.RateLimiter
 	loginLimiter       *middleware.LoginLimiter
+	registerLimiter    *middleware.RegisterLimiter
 }
 
 // NewRouter creates a new Router instance.
@@ -80,11 +81,13 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	}
 
 	loginLimiter := middleware.NewLoginLimiter()
+	registerLimiter := middleware.NewRegisterLimiter()
 
 	r := &Router{
-		echo:         e,
-		deps:         deps,
-		loginLimiter: loginLimiter,
+		echo:            e,
+		deps:            deps,
+		loginLimiter:    loginLimiter,
+		registerLimiter: registerLimiter,
 	}
 
 	// Initialize handlers
@@ -92,7 +95,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub)
-	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, deps.AuditService)
+	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, registerLimiter, deps.AuditService)
 	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
 	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
 	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.AuditService, deps.Hasher, deps.StartTime)
@@ -165,7 +168,8 @@ func (r *Router) RegisterRoutes() {
 	}))
 	loginLLJSON := r.loginLimiter.MiddlewareJSON()
 	v1Public.POST("/auth/login", r.authAPIHandler.Login, authRL, loginLLJSON)
-	v1Public.POST("/auth/register", r.authAPIHandler.Register, authRL)
+	regRL := r.registerLimiter.Middleware()
+	v1Public.POST("/auth/register", r.authAPIHandler.Register, authRL, regRL)
 	v1Public.POST("/auth/setup", r.authAPIHandler.Setup, authRL)
 	v1Public.POST("/auth/logout", r.authAPIHandler.Logout)
 	v1Public.GET("/auth/needs-setup", r.authAPIHandler.NeedsSetup)
@@ -246,6 +250,7 @@ func (r *Router) RegisterRoutes() {
 	admin.Use(middleware.AdminRequiredJSON(r.deps.UserRepo))
 	admin.GET("/users", r.systemAPIHandler.ListUsers)
 	admin.POST("/users/:id/reset-password", r.systemAPIHandler.ResetUserPassword, authRL)
+	admin.GET("/security-events", r.systemAPIHandler.GetSecurityEvents)
 
 	// SvelteKit SPA — serve build output from root (catches all non-API routes)
 	r.registerSvelteRoutes()
@@ -282,6 +287,9 @@ func (r *Router) Stop() {
 	}
 	if r.loginLimiter != nil {
 		r.loginLimiter.Stop()
+	}
+	if r.registerLimiter != nil {
+		r.registerLimiter.Stop()
 	}
 }
 
