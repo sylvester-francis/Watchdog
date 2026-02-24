@@ -65,11 +65,9 @@
 
 	function handleSSEEvent(event: string, data: unknown) {
 		if (event === 'agent-status') {
-			// Refresh agents + stats
 			agentsApi.listAgents().then((res) => { agentList = res.data ?? []; });
 			monitorsApi.getDashboardStats().then((res) => { stats = res; });
 		} else if (event === 'incident-count') {
-			// Refresh incidents + stats
 			incidentsApi.listIncidents().then((res) => { incidentList = res.data ?? []; });
 			monitorsApi.getDashboardStats().then((res) => { stats = res; });
 		}
@@ -78,7 +76,6 @@
 	const sse = createSSE(handleSSEEvent);
 
 	function handleAgentCreated() {
-		// Refresh agents and stats after creation
 		agentsApi.listAgents().then((res) => { agentList = res.data ?? []; });
 		monitorsApi.getDashboardStats().then((res) => { stats = res; });
 	}
@@ -136,6 +133,7 @@
 					{#if stats.total_agents > 0}
 						<p class="text-sm text-foreground font-medium mb-1">You have {stats.total_agents} agent{stats.total_agents > 1 ? 's' : ''} ready</p>
 						<p class="text-xs text-muted-foreground mb-3">Create a monitor to start tracking your services.</p>
+						<a href="/monitors" class="inline-block px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">Create Monitor</a>
 					{:else}
 						<p class="text-sm text-foreground font-medium mb-1">No monitors yet</p>
 						<p class="text-xs text-muted-foreground mb-1">Deploy an agent first, then create monitors to track your services.</p>
