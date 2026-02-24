@@ -46,6 +46,7 @@ type User struct {
 	Username          string
 	PasswordHash      string
 	Plan              Plan
+	Role              string
 	IsAdmin           bool
 	TenantID          string
 	PasswordChangedAt *time.Time
@@ -83,6 +84,7 @@ func NewUser(email, passwordHash string) *User {
 		Username:     UsernameFromEmail(email),
 		PasswordHash: passwordHash,
 		Plan:         PlanBeta,
+		Role:         "viewer",
 		TenantID:     "default",
 		CreatedAt:    now,
 		UpdatedAt:    now,
