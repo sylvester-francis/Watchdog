@@ -28,8 +28,8 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO users (id, email, username, password_hash, plan, is_admin, created_at, updated_at, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		INSERT INTO users (id, email, username, password_hash, plan, is_admin, created_at, updated_at, tenant_id, password_changed_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
 	_, err := q.Exec(ctx, query,
 		user.ID,
@@ -41,6 +41,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 		user.CreatedAt,
 		user.UpdatedAt,
 		tenantID,
+		user.PasswordChangedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("userRepo.Create: %w", err)
@@ -55,7 +56,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE id = $1 AND tenant_id = $2`
 
@@ -70,6 +71,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		&user.TenantID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.PasswordChangedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -87,7 +89,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE email = $1 AND tenant_id = $2`
 
@@ -102,6 +104,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		&user.TenantID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.PasswordChangedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -119,7 +122,7 @@ func (r *UserRepository) GetByEmailGlobal(ctx context.Context, email string) (*d
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE email = $1`
 
@@ -134,6 +137,7 @@ func (r *UserRepository) GetByEmailGlobal(ctx context.Context, email string) (*d
 		&user.TenantID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.PasswordChangedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -151,7 +155,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at
+		SELECT id, email, username, password_hash, plan, is_admin, tenant_id, created_at, updated_at, password_changed_at
 		FROM users
 		WHERE username = $1 AND tenant_id = $2`
 
@@ -166,6 +170,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 		&user.TenantID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&user.PasswordChangedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -184,8 +189,8 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 
 	query := `
 		UPDATE users
-		SET email = $2, username = $3, password_hash = $4, plan = $5, is_admin = $6, updated_at = $7
-		WHERE id = $1 AND tenant_id = $8`
+		SET email = $2, username = $3, password_hash = $4, plan = $5, is_admin = $6, updated_at = $7, password_changed_at = $8
+		WHERE id = $1 AND tenant_id = $9`
 
 	result, err := q.Exec(ctx, query,
 		user.ID,
@@ -195,6 +200,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 		string(user.Plan),
 		user.IsAdmin,
 		user.UpdatedAt,
+		user.PasswordChangedAt,
 		tenantID,
 	)
 	if err != nil {
@@ -322,7 +328,7 @@ func (r *UserRepository) GetAllWithUsage(ctx context.Context) ([]ports.AdminUser
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT u.id, u.email, u.plan, u.is_admin,
+		SELECT u.id, u.email, u.username, u.plan, u.is_admin,
 			COALESCE(ac.cnt, 0) AS agent_count,
 			COALESCE(mc.cnt, 0) AS monitor_count,
 			u.created_at
@@ -348,7 +354,7 @@ func (r *UserRepository) GetAllWithUsage(ctx context.Context) ([]ports.AdminUser
 	var results []ports.AdminUserView
 	for rows.Next() {
 		var u ports.AdminUserView
-		if err := rows.Scan(&u.ID, &u.Email, &u.Plan, &u.IsAdmin, &u.AgentCount, &u.MonitorCount, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.Username, &u.Plan, &u.IsAdmin, &u.AgentCount, &u.MonitorCount, &u.CreatedAt); err != nil {
 			return nil, fmt.Errorf("userRepo.GetAllWithUsage: scan: %w", err)
 		}
 		limits := u.Plan.Limits()

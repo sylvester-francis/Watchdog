@@ -46,6 +46,11 @@ build-errors.log
 node_modules/
 web/static/css/output.css
 
+# SvelteKit
+web/svelte/node_modules/
+web/svelte/.svelte-kit/
+web/svelte/build/
+
 # Backups
 backups/
 *.sql.gz

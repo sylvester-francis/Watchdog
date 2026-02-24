@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pulse dot animation */
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+.animate-pulse-dot {
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Modal transitions */
+@keyframes modal-enter {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+@keyframes modal-leave {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.95); }
+}
+.modal-enter {
+    animation: modal-enter 150ms ease-out;
+}
+.modal-leave {
+    animation: modal-leave 100ms ease-in forwards;
+}
+
+/* Toast animations */
+@keyframes slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slide-out {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+.toast-enter { animation: slide-in 0.3s ease-out; }
+.toast-exit { animation: slide-out 0.3s ease-in forwards; }
+
+/* Fade-in-up for page elements */
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out both;
+}
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.skeleton {
+    background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 0.25rem;
+}
+
+/* Focus visible ring utility */
+.focus-visible-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #09090b, 0 0 0 4px #3b82f6;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+    transition: all 0.15s ease-in-out;
+}
+
+/* Toast progress bar */
+@keyframes toast-progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+.toast-progress {
+    animation: toast-progress 4s linear forwards;
+}
+
+/* Sidebar hover transition */
+.sidebar-link {
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #09090b; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* Auth page pulse animation */
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+}
+.animate-pulse-slow {
+    animation: pulse-slow 4s ease-in-out infinite;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .animate-pulse-dot,
+    .animate-pulse-slow,
+    .animate-fade-in-up,
+    .toast-enter,
+    .toast-exit,
+    .modal-enter,
+    .modal-leave,
+    .skeleton {
+        animation: none !important;
+    }
+    .transition-smooth,
+    .sidebar-link {
+        transition: none !important;
+    }
+}

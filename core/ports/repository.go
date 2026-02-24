@@ -23,6 +23,7 @@ type UserUsageSummary struct {
 type AdminUserView struct {
 	ID           uuid.UUID
 	Email        string
+	Username     string
 	Plan         domain.Plan
 	IsAdmin      bool
 	AgentCount   int
