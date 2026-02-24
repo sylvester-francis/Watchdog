@@ -25,6 +25,7 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/core/services"
 	"github.com/sylvester-francis/watchdog/internal/crypto"
 	"github.com/sylvester-francis/watchdog/internal/defaults"
+	"github.com/sylvester-francis/watchdog/internal/workflows"
 )
 
 // Engine wraps all application components and manages the lifecycle.
@@ -98,8 +99,19 @@ func New(ctx context.Context) (*Engine, error) {
 		AuditService:   auditSvc,
 		StatusPageRepo: statusPageRepo,
 		DB:             db,
+		Pool:           db.Pool,
 		Logger:         logger,
 	})
+
+	// Wire workflow engine for durable alert dispatch
+	if wfEngine := reg.WorkflowEngine(); wfEngine != nil {
+		workflows.RegisterAlertHandlers(
+			wfEngine, notifier, notifierFactory,
+			agentRepo, alertChannelRepo, incidentRepo, monitorRepo, logger,
+		)
+		incidentSvc.SetWorkflowEngine(wfEngine)
+		logger.Info("durable alert dispatch enabled")
+	}
 
 	// WebSocket hub
 	hub := realtime.NewHub(logger)
