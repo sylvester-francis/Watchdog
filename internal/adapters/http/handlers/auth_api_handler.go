@@ -18,19 +18,21 @@ const maxEmailLength = 254
 
 // AuthAPIHandler handles JSON authentication endpoints for the SvelteKit SPA.
 type AuthAPIHandler struct {
-	authSvc      ports.UserAuthService
-	userRepo     ports.UserRepository
-	loginLimiter *middleware.LoginLimiter
-	auditSvc     ports.AuditService
+	authSvc         ports.UserAuthService
+	userRepo        ports.UserRepository
+	loginLimiter    *middleware.LoginLimiter
+	registerLimiter *middleware.RegisterLimiter
+	auditSvc        ports.AuditService
 }
 
 // NewAuthAPIHandler creates a new AuthAPIHandler.
-func NewAuthAPIHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository, loginLimiter *middleware.LoginLimiter, auditSvc ports.AuditService) *AuthAPIHandler {
+func NewAuthAPIHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository, loginLimiter *middleware.LoginLimiter, registerLimiter *middleware.RegisterLimiter, auditSvc ports.AuditService) *AuthAPIHandler {
 	return &AuthAPIHandler{
-		authSvc:      authSvc,
-		userRepo:     userRepo,
-		loginLimiter: loginLimiter,
-		auditSvc:     auditSvc,
+		authSvc:         authSvc,
+		userRepo:        userRepo,
+		loginLimiter:    loginLimiter,
+		registerLimiter: registerLimiter,
+		auditSvc:        auditSvc,
 	}
 }
 
@@ -43,6 +45,7 @@ type registerRequest struct {
 	Email           string `json:"email"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirm_password"`
+	Website         string `json:"website"` // honeypot — invisible field, bots auto-fill it
 }
 
 type userResponse struct {
@@ -121,6 +124,22 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 	}
 
+	ip := c.RealIP()
+
+	// Layer 3: Honeypot — bots auto-fill the invisible "website" field.
+	// Return a fake 201 so the bot thinks it succeeded.
+	if req.Website != "" {
+		if h.auditSvc != nil {
+			h.auditSvc.LogEvent(c.Request().Context(), nil, domain.AuditRegisterBlocked, ip, map[string]string{
+				"email":  req.Email,
+				"reason": "honeypot",
+			})
+		}
+		return c.JSON(http.StatusCreated, map[string]any{
+			"user": map[string]string{"id": "00000000-0000-0000-0000-000000000000", "email": req.Email},
+		})
+	}
+
 	if req.Email == "" || req.Password == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email and password are required"})
 	}
@@ -128,12 +147,31 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email format"})
 	}
 
+	// Layer 2: Blocked disposable email domains.
+	if isBlockedEmailDomain(req.Email) {
+		if h.auditSvc != nil {
+			h.auditSvc.LogEvent(c.Request().Context(), nil, domain.AuditRegisterBlocked, ip, map[string]string{
+				"email":  req.Email,
+				"reason": "blocked_domain",
+			})
+		}
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "please use a non-disposable email address"})
+	}
+
 	if len(req.Password) < 8 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
+	}
+	if len(req.Password) > 128 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at most 128 characters"})
 	}
 
 	if req.Password != req.ConfirmPassword {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "passwords do not match"})
+	}
+
+	// Record attempt regardless of outcome to prevent brute-force enumeration.
+	if h.registerLimiter != nil {
+		h.registerLimiter.Record(ip)
 	}
 
 	user, err := h.authSvc.Register(c.Request().Context(), req.Email, req.Password)
@@ -143,6 +181,14 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		}
 		slog.Error("registration failed", "email", req.Email, "error", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
+	}
+
+	// Layer 4: Audit log the registration.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &user.ID, domain.AuditRegisterSuccess, ip, map[string]string{
+			"email":   req.Email,
+			"user_id": user.ID.String(),
+		})
 	}
 
 	return c.JSON(http.StatusCreated, map[string]any{
@@ -210,6 +256,9 @@ func (h *AuthAPIHandler) Setup(c echo.Context) error {
 
 	if len(req.Password) < 8 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
+	}
+	if len(req.Password) > 128 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at most 128 characters"})
 	}
 
 	if req.Password != req.ConfirmPassword {

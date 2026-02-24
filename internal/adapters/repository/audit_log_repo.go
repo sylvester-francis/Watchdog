@@ -87,6 +87,33 @@ func (r *AuditLogRepository) GetRecent(ctx context.Context, limit int) ([]*domai
 	return scanAuditLogs(rows)
 }
 
+// GetRecentByActions returns the most recent audit logs filtered by action types.
+func (r *AuditLogRepository) GetRecentByActions(ctx context.Context, actions []domain.AuditAction, limit int) ([]*domain.AuditLog, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	// Convert actions to strings for the query
+	actionStrings := make([]string, len(actions))
+	for i, a := range actions {
+		actionStrings[i] = string(a)
+	}
+
+	query := `
+		SELECT id, user_id, action, metadata, ip_address::text, created_at
+		FROM audit_logs
+		WHERE tenant_id = $1 AND action = ANY($2)
+		ORDER BY created_at DESC
+		LIMIT $3`
+
+	rows, err := q.Query(ctx, query, tenantID, actionStrings, limit)
+	if err != nil {
+		return nil, fmt.Errorf("auditLogRepo.GetRecentByActions: %w", err)
+	}
+	defer rows.Close()
+
+	return scanAuditLogs(rows)
+}
+
 func scanAuditLogs(rows interface {
 	Next() bool
 	Scan(dest ...any) error

@@ -8,6 +8,7 @@
 	let email = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
+	let honeypot = $state('');
 	let error = $state('');
 	let submitting = $state(false);
 
@@ -28,7 +29,7 @@
 		error = '';
 		submitting = true;
 		try {
-			await auth.register(email, password, confirmPassword);
+			await auth.register(email, password, confirmPassword, honeypot);
 			goto(`/login?success=${encodeURIComponent('Account created successfully. Please login.')}`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Registration failed';
@@ -123,6 +124,11 @@
 				{/if}
 
 				<form onsubmit={handleSubmit} class="space-y-4">
+					<!-- Honeypot: invisible to humans, bots auto-fill it -->
+					<div class="absolute opacity-0 -z-10" style="position:absolute;left:-9999px;" aria-hidden="true">
+						<label for="website">Website</label>
+						<input type="text" id="website" name="website" bind:value={honeypot} tabindex="-1" autocomplete="off" />
+					</div>
 					<div>
 						<label for="email" class="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
 						<input type="email" id="email" bind:value={email} required autocomplete="email"

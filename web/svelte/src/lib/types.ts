@@ -162,6 +162,15 @@ export interface AdminUser {
 	created_at: string;
 }
 
+export interface SecurityEvent {
+	id: string;
+	action: string;
+	user_email: string;
+	ip_address: string;
+	metadata: Record<string, string>;
+	created_at: string;
+}
+
 export interface APIError {
 	error: string;
 }
