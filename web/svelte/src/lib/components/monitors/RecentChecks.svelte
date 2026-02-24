@@ -8,29 +8,16 @@
 
 	interface Props {
 		monitorId: string;
+		monitorType?: string;
 	}
 
-	let { monitorId }: Props = $props();
+	let { monitorId, monitorType = '' }: Props = $props();
 
 	const toast = getToasts();
+	const isSystem = $derived(monitorType === 'system');
 
 	let heartbeats = $state<HeartbeatPoint[]>([]);
 	let loading = $state(true);
-
-	function statusBadgeClass(status: string): string {
-		switch (status) {
-			case 'up':
-				return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20';
-			case 'down':
-				return 'bg-red-500/15 text-red-400 border-red-500/20';
-			case 'timeout':
-				return 'bg-amber-500/15 text-amber-400 border-amber-500/20';
-			case 'error':
-				return 'bg-red-500/15 text-red-400 border-red-500/20';
-			default:
-				return 'bg-muted/50 text-muted-foreground border-border';
-		}
-	}
 
 	function statusLabel(status: string): string {
 		switch (status) {
@@ -48,11 +35,16 @@
 		return `${ms}ms`;
 	}
 
+	function parseMetricValue(msg: string | undefined): string {
+		if (!msg) return '--';
+		const match = msg.match(/([\d.]+)%/);
+		return match ? `${parseFloat(match[1]).toFixed(1)}%` : msg;
+	}
+
 	async function fetchHeartbeats() {
 		loading = true;
 		try {
 			const res = await monitorsApi.getHeartbeats(monitorId);
-			// Show most recent first, limit to 20
 			const arr = Array.isArray(res) ? res : [];
 			heartbeats = arr.slice(-20).reverse();
 		} catch (err) {
@@ -70,7 +62,7 @@
 
 <div class="bg-card border border-border rounded-lg">
 	<div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
-		<List class="w-4 h-4 text-accent" />
+		<List class="w-4 h-4 text-muted-foreground" />
 		<h3 class="text-sm font-medium text-foreground">Recent Checks</h3>
 	</div>
 
@@ -89,11 +81,15 @@
 					<tr class="border-b border-border">
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Latency</th>
-						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Error</th>
+						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+							{isSystem ? 'Value' : 'Latency'}
+						</th>
+						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+							{isSystem ? 'Detail' : 'Error'}
+						</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-border/30 max-h-[480px]">
+				<tbody class="divide-y divide-border/30">
 					{#each heartbeats as hb}
 						<tr class="hover:bg-card-elevated transition-colors">
 							<td class="px-5 py-2.5">
@@ -106,19 +102,23 @@
 								</div>
 							</td>
 							<td class="px-5 py-2.5">
-								{#if hb.latency_ms}
+								{#if isSystem}
+									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message)}</span>
+								{:else if hb.latency_ms}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
 								{:else}
-									<span class="text-xs text-muted-foreground">N/A</span>
+									<span class="text-xs text-muted-foreground">--</span>
 								{/if}
 							</td>
 							<td class="px-5 py-2.5">
-								{#if hb.status === 'down' || hb.status === 'error'}
+								{#if isSystem && hb.error_message}
+									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
+								{:else if hb.status === 'down' || hb.status === 'error'}
 									<span class="text-xs text-red-400 font-mono">Check failed</span>
 								{:else if hb.status === 'timeout'}
 									<span class="text-xs text-amber-400 font-mono">Timeout</span>
 								{:else}
-									<span class="text-xs text-muted-foreground">—</span>
+									<span class="text-xs text-muted-foreground">{@html '&mdash;'}</span>
 								{/if}
 							</td>
 						</tr>

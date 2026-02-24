@@ -127,6 +127,7 @@ export interface HeartbeatPoint {
 	time: string;
 	status: 'up' | 'down' | 'timeout' | 'error';
 	latency_ms: number | null;
+	error_message?: string;
 }
 
 export interface LatencyPoint {

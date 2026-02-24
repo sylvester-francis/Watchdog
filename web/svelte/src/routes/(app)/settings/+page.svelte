@@ -635,11 +635,12 @@
 					<div class="space-y-2">
 					{#each channels as channel (channel.id)}
 						{@const typeConf = channelTypeConfig[channel.type]}
+						{@const ChannelIcon = typeConf.icon}
 						<div class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
 						<div class="flex items-center justify-between p-3 gap-3">
 							<div class="flex items-center space-x-3 min-w-0">
 								<div class="w-8 h-8 {typeConf.iconBg} rounded-lg flex items-center justify-center flex-shrink-0">
-									<svelte:component this={typeConf.icon} class="w-4 h-4 {typeConf.iconColor}" />
+									<ChannelIcon class="w-4 h-4 {typeConf.iconColor}" />
 								</div>
 								<div class="min-w-0">
 									<div class="flex items-center space-x-2">
@@ -715,8 +716,9 @@
 				<div class="flex flex-wrap items-center gap-2 text-[11px] opacity-60">
 					<span class="text-muted-foreground/50 mr-0.5">Integrations:</span>
 					{#each Object.entries(channelTypeConfig) as [key, conf]}
+						{@const IntegrationIcon = conf.icon}
 						<span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-							<svelte:component this={conf.icon} class="w-3 h-3" />
+							<IntegrationIcon class="w-3 h-3" />
 							<span>{conf.label}</span>
 						</span>
 					{/each}
