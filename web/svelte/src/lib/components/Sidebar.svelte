@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, MessageCircle, X } from 'lucide-svelte';
@@ -13,6 +14,12 @@
 	function closeMobile() {
 		mobileOpen = false;
 	}
+
+	onMount(() => {
+		function handleToggle() { toggleMobile(); }
+		window.addEventListener('toggle-sidebar', handleToggle);
+		return () => window.removeEventListener('toggle-sidebar', handleToggle);
+	});
 
 	const navItems = [
 		{ href: `/dashboard`, label: 'Dashboard', icon: LayoutDashboard, group: 'Monitoring' },
@@ -29,8 +36,6 @@
 	function isActive(href: string): boolean {
 		return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
 	}
-
-	export { toggleMobile };
 </script>
 
 <!-- Mobile overlay -->
