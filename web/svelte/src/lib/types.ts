@@ -147,6 +147,7 @@ export interface MonitorSummary {
 	uptimeUp: number;
 	uptimeDown: number;
 	total: number;
+	latest_value?: string;
 }
 
 export interface AdminUser {

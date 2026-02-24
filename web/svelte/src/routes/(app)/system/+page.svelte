@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+
 	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
@@ -98,11 +98,6 @@
 	}
 
 	onMount(async () => {
-		if (!auth.isAdmin) {
-			goto(`/dashboard`);
-			return;
-		}
-
 		try {
 			const [sysInfo, usersRes] = await Promise.all([
 				systemApi.getSystemInfo(),

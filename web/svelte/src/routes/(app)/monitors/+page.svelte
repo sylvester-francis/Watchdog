@@ -102,16 +102,28 @@
 		return results;
 	}
 
+	function parseMetricValue(msg: string | undefined): string | null {
+		if (!msg) return null;
+		const match = msg.match(/([\d.]+)%/);
+		return match ? `${parseFloat(match[1]).toFixed(1)}%` : null;
+	}
+
 	function infraValue(m: MonitorSummary): string {
 		if (m.type === 'docker') return m.status === 'up' ? 'Running' : 'Stopped';
 		if (m.type === 'database' && m.latencies?.length > 0)
 			return m.latencies[m.latencies.length - 1] + 'ms';
-		if (m.type === 'system') return '--';
-		return 'No data';
+		if (m.type === 'system') {
+			const val = parseMetricValue(m.latest_value);
+			if (val) return val;
+			return m.status === 'up' ? 'OK' : 'Error';
+		}
+		if (m.latencies?.length > 0) return m.latencies[m.latencies.length - 1] + 'ms';
+		return m.status === 'up' ? 'OK' : 'No data';
 	}
 
 	function infraValueClass(m: MonitorSummary): string {
 		if (m.type === 'docker') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
+		if (m.type === 'system') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
 		return 'text-muted-foreground';
 	}
 
