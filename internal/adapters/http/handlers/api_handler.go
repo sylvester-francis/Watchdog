@@ -15,7 +15,7 @@ import (
 type HeartbeatPoint struct {
 	Time      string `json:"time"`
 	Status    string `json:"status"`
-	LatencyMs *int   `json:"latencyMs"`
+	LatencyMs *int   `json:"latency_ms"`
 }
 
 // APIHandler serves JSON endpoints for chart data.
@@ -102,9 +102,9 @@ func (h *APIHandler) MonitorHeartbeats(c echo.Context) error {
 // LatencyHistoryPoint is the JSON representation of an aggregated latency bucket.
 type LatencyHistoryPoint struct {
 	Time  string `json:"time"`
-	AvgMs int    `json:"avgMs"`
-	MinMs int    `json:"minMs"`
-	MaxMs int    `json:"maxMs"`
+	AvgMs int    `json:"avg_ms"`
+	MinMs int    `json:"min_ms"`
+	MaxMs int    `json:"max_ms"`
 }
 
 // MonitorLatencyHistory returns aggregated latency data for charts.
