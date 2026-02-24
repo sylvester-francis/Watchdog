@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -9,6 +10,7 @@ import (
 
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/workflows"
 )
 
 // IncidentService implements ports.IncidentService for incident lifecycle management.
@@ -17,8 +19,9 @@ type IncidentService struct {
 	monitorRepo      ports.MonitorRepository
 	agentRepo        ports.AgentRepository
 	alertChannelRepo ports.AlertChannelRepository
-	notifier         ports.Notifier        // global notifier (env-based, server admin fallback)
-	notifierFactory  ports.NotifierFactory // builds per-user notifiers from alert channels
+	notifier         ports.Notifier         // global notifier (env-based, server admin fallback)
+	notifierFactory  ports.NotifierFactory  // builds per-user notifiers from alert channels
+	workflowEngine   ports.WorkflowEngine   // optional: durable alert dispatch
 	transactor       ports.Transactor
 	logger           *slog.Logger
 }
@@ -47,6 +50,13 @@ func NewIncidentService(
 		transactor:       transactor,
 		logger:           logger,
 	}
+}
+
+// SetWorkflowEngine enables durable alert dispatch via the workflow engine.
+// When set, notifyAll() submits a workflow instead of dispatching directly.
+// If nil, falls back to direct dispatch (backward-compatible).
+func (s *IncidentService) SetWorkflowEngine(engine ports.WorkflowEngine) {
+	s.workflowEngine = engine
 }
 
 // GetIncident retrieves an incident by ID.
@@ -145,7 +155,7 @@ func (s *IncidentService) ResolveIncident(ctx context.Context, id uuid.UUID) err
 
 	// Send notifications (global + per-user, don't fail the operation)
 	if monitor != nil && incident != nil {
-		s.notifyAll(ctx, incident, monitor, false)
+		s.dispatchAlert(ctx, incident, monitor, false)
 	}
 
 	return nil
@@ -194,9 +204,56 @@ func (s *IncidentService) CreateIncidentIfNeeded(ctx context.Context, monitorID 
 	}
 
 	// Send notifications (global + per-user, don't fail the operation)
-	s.notifyAll(ctx, incident, monitor, true)
+	s.dispatchAlert(ctx, incident, monitor, true)
 
 	return incident, nil
+}
+
+// dispatchAlert routes notifications through the workflow engine if available,
+// falling back to direct dispatch for backward compatibility.
+func (s *IncidentService) dispatchAlert(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
+	if s.workflowEngine != nil {
+		s.submitAlertWorkflow(ctx, incident, monitor, opened)
+		return
+	}
+	s.notifyAll(ctx, incident, monitor, opened)
+}
+
+// submitAlertWorkflow creates a durable alert dispatch workflow.
+func (s *IncidentService) submitAlertWorkflow(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
+	input := workflows.AlertDispatchInput{
+		IncidentID: incident.ID,
+		MonitorID:  monitor.ID,
+		AgentID:    monitor.AgentID,
+		Opened:     opened,
+	}
+
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		s.logger.Error("failed to marshal alert dispatch input", slog.String("error", err.Error()))
+		// Fall back to direct dispatch
+		s.notifyAll(ctx, incident, monitor, opened)
+		return
+	}
+
+	channelTypes := []string{"global", "discord", "slack", "email", "telegram", "pagerduty", "webhook"}
+	def := workflows.AlertDispatchDef(channelTypes)
+
+	wfID, err := s.workflowEngine.Submit(ctx, def, inputJSON)
+	if err != nil {
+		s.logger.Error("failed to submit alert workflow, falling back to direct dispatch",
+			slog.String("error", err.Error()),
+		)
+		// Fall back to direct dispatch
+		s.notifyAll(ctx, incident, monitor, opened)
+		return
+	}
+
+	s.logger.Info("alert dispatch workflow submitted",
+		slog.String("workflow_id", wfID.String()),
+		slog.String("incident_id", incident.ID.String()),
+		slog.Bool("opened", opened),
+	)
 }
 
 // notifyAll sends notifications via the global notifier and all per-user alert channels.
