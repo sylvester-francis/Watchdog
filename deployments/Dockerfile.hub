@@ -13,7 +13,7 @@ WORKDIR /app
 COPY web/svelte/package.json web/svelte/package-lock.json ./
 RUN npm ci
 COPY web/svelte/ .
-RUN npm run build
+RUN npx svelte-kit sync && npm run build
 
 # Go build stage
 FROM golang:1.25-alpine AS builder
