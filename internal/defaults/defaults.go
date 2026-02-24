@@ -19,6 +19,7 @@ type Deps struct {
 	StatusPageRepo ports.StatusPageRepository
 	DB             ports.Transactor
 	Pool           *pgxpool.Pool
+	DurableAlerts  bool
 	Logger         *slog.Logger
 }
 
@@ -35,7 +36,7 @@ func RegisterAll(reg *registry.Registry, deps Deps) {
 	reg.Register(newDashboardModule())
 	reg.Register(newReportModule())
 	reg.Register(newStatusModule(deps.StatusPageRepo))
-	if deps.Pool != nil {
+	if deps.Pool != nil && deps.DurableAlerts {
 		reg.Register(newWorkflowModule(deps.Pool, deps.Logger))
 	}
 }
