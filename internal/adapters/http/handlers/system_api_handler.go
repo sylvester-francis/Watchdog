@@ -125,14 +125,10 @@ type systemInfoResponse struct {
 func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	// Admin check
-	userID, ok := middleware.GetUserID(c)
+	// Auth check (in CE all authenticated users can view system info)
+	_, ok := middleware.GetUserID(c)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-	}
-	user, err := h.userRepo.GetByID(ctx, userID)
-	if err != nil || user == nil || !user.IsAdmin {
-		return c.JSON(http.StatusForbidden, map[string]string{"error": "admin access required"})
 	}
 
 	// DB health + latency
