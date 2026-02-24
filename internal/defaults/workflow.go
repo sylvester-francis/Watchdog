@@ -16,6 +16,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/core/registry"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 const (
@@ -148,21 +149,26 @@ func (m *workflowModule) Submit(ctx context.Context, def ports.WorkflowDefinitio
 	return wfID, nil
 }
 
-// Status returns the current state of a workflow.
+// Status returns the current state of a workflow (tenant-scoped).
 func (m *workflowModule) Status(ctx context.Context, id uuid.UUID) (*domain.Workflow, error) {
 	wf, err := m.getWorkflow(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("workflow.Status: %w", err)
 	}
+	// Verify tenant ownership
+	if wf.TenantID != tenantIDFromCtx(ctx) {
+		return nil, fmt.Errorf("workflow %s not found", id)
+	}
 	return wf, nil
 }
 
-// Cancel marks a workflow as cancelled.
+// Cancel marks a workflow as cancelled (tenant-scoped).
 func (m *workflowModule) Cancel(ctx context.Context, id uuid.UUID) error {
+	tenantID := tenantIDFromCtx(ctx)
 	_, err := m.pool.Exec(ctx, `
 		UPDATE workflows SET status = $1, updated_at = NOW()
-		WHERE id = $2 AND status IN ($3, $4)`,
-		domain.WorkflowStatusCancelled, id, domain.WorkflowStatusPending, domain.WorkflowStatusRunning,
+		WHERE id = $2 AND tenant_id = $3 AND status IN ($4, $5)`,
+		domain.WorkflowStatusCancelled, id, tenantID, domain.WorkflowStatusPending, domain.WorkflowStatusRunning,
 	)
 	if err != nil {
 		return fmt.Errorf("workflow.Cancel: %w", err)
@@ -170,28 +176,30 @@ func (m *workflowModule) Cancel(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// Retry resets a failed workflow for re-execution from its current step.
+// Retry resets a failed workflow for re-execution from its current step (tenant-scoped).
 func (m *workflowModule) Retry(ctx context.Context, id uuid.UUID) error {
+	tenantID := tenantIDFromCtx(ctx)
 	result, err := m.pool.Exec(ctx, `
 		UPDATE workflows SET status = $1, error = NULL, retry_count = retry_count + 1, locked_by = NULL, locked_at = NULL, updated_at = NOW()
-		WHERE id = $2 AND status = $3`,
-		domain.WorkflowStatusPending, id, domain.WorkflowStatusFailed,
+		WHERE id = $2 AND tenant_id = $3 AND status = $4`,
+		domain.WorkflowStatusPending, id, tenantID, domain.WorkflowStatusFailed,
 	)
 	if err != nil {
 		return fmt.Errorf("workflow.Retry: %w", err)
 	}
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("workflow.Retry: workflow %s not in failed state", id)
+		return fmt.Errorf("workflow.Retry: workflow %s not in failed state or not found", id)
 	}
 	return nil
 }
 
-// List returns workflows filtered by status.
+// List returns workflows filtered by status (tenant-scoped).
 func (m *workflowModule) List(ctx context.Context, status *domain.WorkflowStatus, limit int) ([]*domain.Workflow, error) {
 	if limit <= 0 {
 		limit = 50
 	}
 
+	tenantID := tenantIDFromCtx(ctx)
 	var rows pgx.Rows
 	var err error
 
@@ -199,15 +207,15 @@ func (m *workflowModule) List(ctx context.Context, status *domain.WorkflowStatus
 		rows, err = m.pool.Query(ctx, `
 			SELECT id, tenant_id, name, status, current_step, input, output, error,
 				max_retries, retry_count, timeout_at, locked_by, locked_at, created_at, updated_at
-			FROM workflows WHERE status = $1 ORDER BY created_at DESC LIMIT $2`,
-			*status, limit,
+			FROM workflows WHERE tenant_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT $3`,
+			tenantID, *status, limit,
 		)
 	} else {
 		rows, err = m.pool.Query(ctx, `
 			SELECT id, tenant_id, name, status, current_step, input, output, error,
 				max_retries, retry_count, timeout_at, locked_by, locked_at, created_at, updated_at
-			FROM workflows ORDER BY created_at DESC LIMIT $1`,
-			limit,
+			FROM workflows WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT $2`,
+			tenantID, limit,
 		)
 	}
 	if err != nil {
@@ -552,11 +560,8 @@ func (m *workflowModule) checkTimeouts(ctx context.Context) {
 	}
 }
 
-// tenantIDFromCtx extracts tenant ID from context (mirrors repository.TenantIDFromContext).
+// tenantIDFromCtx extracts tenant ID from context using the canonical key
+// from the repository package.
 func tenantIDFromCtx(ctx context.Context) string {
-	type tenantKey struct{}
-	if id, ok := ctx.Value(tenantKey{}).(string); ok && id != "" {
-		return id
-	}
-	return "default"
+	return repository.TenantIDFromContext(ctx)
 }
