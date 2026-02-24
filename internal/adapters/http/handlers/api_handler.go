@@ -188,6 +188,7 @@ func (h *APIHandler) DashboardStats(c echo.Context) error {
 	monitorsUp := 0
 	monitorsDown := 0
 
+	userMonitorIDs := make(map[uuid.UUID]struct{})
 	for _, agent := range agents {
 		if agent.IsOnline() {
 			onlineAgents++
@@ -196,6 +197,7 @@ func (h *APIHandler) DashboardStats(c echo.Context) error {
 		if err == nil {
 			totalMonitors += len(monitors)
 			for _, m := range monitors {
+				userMonitorIDs[m.ID] = struct{}{}
 				if m.Status == "up" {
 					monitorsUp++
 				} else if m.Status == "down" {
@@ -205,10 +207,15 @@ func (h *APIHandler) DashboardStats(c echo.Context) error {
 		}
 	}
 
-	incidents, err := h.incidentSvc.GetActiveIncidents(ctx)
+	// Filter active incidents to only those belonging to the user's monitors.
+	allIncidents, err := h.incidentSvc.GetActiveIncidents(ctx)
 	activeIncidents := 0
 	if err == nil {
-		activeIncidents = len(incidents)
+		for _, inc := range allIncidents {
+			if _, ok := userMonitorIDs[inc.MonitorID]; ok {
+				activeIncidents++
+			}
+		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]int{
