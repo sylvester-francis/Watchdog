@@ -246,15 +246,16 @@ func (h *APIHandler) MonitorsSummary(c echo.Context) error {
 	}
 
 	type MonitorSummary struct {
-		ID        string `json:"id"`
-		Name      string `json:"name"`
-		Status    string `json:"status"`
-		Type      string `json:"type"`
-		Target    string `json:"target"`
-		Latencies []int  `json:"latencies"`
-		UptimeUp  int    `json:"uptimeUp"`
-		UptimeDown int   `json:"uptimeDown"`
-		Total     int    `json:"total"`
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Status      string `json:"status"`
+		Type        string `json:"type"`
+		Target      string `json:"target"`
+		Latencies   []int  `json:"latencies"`
+		UptimeUp    int    `json:"uptimeUp"`
+		UptimeDown  int    `json:"uptimeDown"`
+		Total       int    `json:"total"`
+		LatestValue string `json:"latest_value,omitempty"`
 	}
 
 	var summaries []MonitorSummary
@@ -271,6 +272,7 @@ func (h *APIHandler) MonitorsSummary(c echo.Context) error {
 
 			latencies := make([]int, 0, len(heartbeats))
 			up, down := 0, 0
+			var latestValue string
 			// Reverse so oldest first (chronological)
 			for i := len(heartbeats) - 1; i >= 0; i-- {
 				hb := heartbeats[i]
@@ -283,17 +285,25 @@ func (h *APIHandler) MonitorsSummary(c echo.Context) error {
 					down++
 				}
 			}
+			// Extract latest value from most recent heartbeat (index 0 = newest)
+			if len(heartbeats) > 0 {
+				latest := heartbeats[0]
+				if latest.ErrorMessage != nil && *latest.ErrorMessage != "" {
+					latestValue = *latest.ErrorMessage
+				}
+			}
 
 			summaries = append(summaries, MonitorSummary{
-				ID:         monitor.ID.String(),
-				Name:       monitor.Name,
-				Status:     string(monitor.Status),
-				Type:       string(monitor.Type),
-				Target:     monitor.Target,
-				Latencies:  latencies,
-				UptimeUp:   up,
-				UptimeDown: down,
-				Total:      len(heartbeats),
+				ID:          monitor.ID.String(),
+				Name:        monitor.Name,
+				Status:      string(monitor.Status),
+				Type:        string(monitor.Type),
+				Target:      monitor.Target,
+				Latencies:   latencies,
+				UptimeUp:    up,
+				UptimeDown:  down,
+				Total:       len(heartbeats),
+				LatestValue: latestValue,
 			})
 		}
 	}
