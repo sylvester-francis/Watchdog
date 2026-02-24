@@ -112,7 +112,7 @@
 		loading = true;
 		try {
 			const res = await monitorsApi.getLatencyHistory(monitorId, period);
-			data = res.data ?? [];
+			data = Array.isArray(res) ? res : [];
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to load latency data');
 			data = [];
