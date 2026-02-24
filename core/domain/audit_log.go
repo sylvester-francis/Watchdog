@@ -21,7 +21,9 @@ const (
 	AuditMonitorDeleted    AuditAction = "monitor_deleted"
 	AuditIncidentAcked     AuditAction = "incident_acknowledged"
 	AuditIncidentResolved  AuditAction = "incident_resolved"
-	AuditSettingsChanged   AuditAction = "settings_changed"
+	AuditSettingsChanged       AuditAction = "settings_changed"
+	AuditPasswordResetByAdmin  AuditAction = "password_reset_by_admin"
+	AuditPasswordChanged       AuditAction = "password_changed"
 )
 
 // AuditLog represents a security audit event.

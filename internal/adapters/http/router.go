@@ -3,6 +3,9 @@ package http
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -11,7 +14,6 @@ import (
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/core/ports"
@@ -44,34 +46,25 @@ type Dependencies struct {
 	StartTime        time.Time
 	Logger           *slog.Logger
 	SessionSecret    string
-	TemplatesDir     string
 	SecureCookies    bool
 	AllowedOrigins   []string
-	Templates        *view.Templates      // optional: pre-created templates instance
 	Registry         *registry.Registry   // optional: module registry for health checks
 }
 
 // Router handles HTTP routing and handler registration.
 type Router struct {
-	echo      *echo.Echo
-	deps      Dependencies
-	templates *view.Templates
+	echo *echo.Echo
+	deps Dependencies
 
 	// Handlers
-	authHandler      *handlers.AuthHandler
-	dashboardHandler *handlers.DashboardHandler
-	monitorHandler   *handlers.MonitorHandler
-	incidentHandler  *handlers.IncidentHandler
-	agentHandler     *handlers.AgentHandler
-	adminHandler     *handlers.AdminHandler
-	landingHandler   *handlers.LandingHandler
-	sseHandler       *handlers.SSEHandler
-	wsHandler        *handlers.WSHandler
-	apiHandler        *handlers.APIHandler
-	apiTokenHandler   *handlers.APITokenHandler
-	apiV1Handler      *handlers.APIV1Handler
-	statusPageHandler    *handlers.StatusPageHandler
-	alertChannelHandler *handlers.AlertChannelHandler
+	sseHandler           *handlers.SSEHandler
+	wsHandler            *handlers.WSHandler
+	apiHandler           *handlers.APIHandler
+	apiV1Handler         *handlers.APIV1Handler
+	authAPIHandler       *handlers.AuthAPIHandler
+	settingsAPIHandler   *handlers.SettingsAPIHandler
+	statusPageAPIHandler *handlers.StatusPageAPIHandler
+	systemAPIHandler     *handlers.SystemAPIHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -81,17 +74,6 @@ type Router struct {
 
 // NewRouter creates a new Router instance.
 func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
-	templates := deps.Templates
-	if templates == nil {
-		var err error
-		templates, err = view.NewTemplates(deps.TemplatesDir)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	e.Renderer = templates
-
 	logger := deps.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -102,25 +84,18 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r := &Router{
 		echo:         e,
 		deps:         deps,
-		templates:    templates,
 		loginLimiter: loginLimiter,
 	}
 
 	// Initialize handlers
-	r.authHandler = handlers.NewAuthHandler(deps.UserAuthService, deps.UserRepo, templates, loginLimiter, deps.AuditService)
-	r.dashboardHandler = handlers.NewDashboardHandler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.UserRepo, templates)
-	r.monitorHandler = handlers.NewMonitorHandler(deps.MonitorService, deps.AgentRepo, deps.HeartbeatRepo, templates, deps.Hub, deps.AuditService)
-	r.incidentHandler = handlers.NewIncidentHandler(deps.IncidentService, deps.MonitorRepo, deps.AgentRepo, templates, deps.AuditService)
-	r.agentHandler = handlers.NewAgentHandler(deps.AgentAuthService, deps.AgentRepo, templates, deps.AuditService)
-	r.adminHandler = handlers.NewAdminHandler(deps.AuditLogRepo, deps.UserRepo, deps.Hub, deps.DB, deps.Config, deps.StartTime, templates)
-	r.landingHandler = handlers.NewLandingHandler(deps.WaitlistRepo, templates)
-	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.IncidentService)
+	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.MonitorRepo, deps.IncidentService)
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
-	r.apiTokenHandler = handlers.NewAPITokenHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, templates, deps.AuditService)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub)
-	r.statusPageHandler = handlers.NewStatusPageHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.UserRepo, deps.IncidentService, templates)
-	r.alertChannelHandler = handlers.NewAlertChannelHandler(deps.AlertChannelRepo, templates)
+	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, deps.AuditService)
+	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
+	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
+	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.AuditService, deps.Hasher, deps.StartTime)
 
 	return r, nil
 }
@@ -152,139 +127,128 @@ func (r *Router) RegisterRoutes() {
 	r.generalRateLimiter = middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
 	e.Use(r.generalRateLimiter.Middleware())
 
-	// Static files
+	// Static files (legacy — still serves openapi.json, favicon, etc.)
 	e.Static("/static", "web/static")
 
-	// Public routes (no auth required)
+	// --- Go-handled routes (API, SSE, WS, health, install) ---
+
 	authRL := r.authRateLimiter.Middleware()
-	loginLL := r.loginLimiter.Middleware()
-	e.GET("/login", r.authHandler.LoginPage)
-	e.POST("/login", r.authHandler.Login, authRL, loginLL)
-	e.GET("/register", r.authHandler.RegisterPage)
-	e.POST("/register", r.authHandler.Register, authRL)
-	e.POST("/logout", r.authHandler.Logout)
-	e.GET("/setup", r.authHandler.SetupPage)
-	e.POST("/setup", r.authHandler.Setup, authRL)
-	e.POST("/waitlist", r.landingHandler.JoinWaitlist, authRL)
 
 	// Health check (public)
 	e.GET("/health", r.healthCheck)
 
-	// API docs (public)
-	e.GET("/docs", r.apiDocs)
-
-	// Legal pages (public)
-	e.GET("/terms", r.termsPage)
-	e.GET("/privacy", r.privacyPage)
-
 	// Agent install script (public)
 	e.GET("/install", r.installScript)
 
-	// Public status pages (no auth required)
-	e.GET("/status/@:username/:slug", r.statusPageHandler.PublicView)
-
-	// WebSocket endpoint for agents (public - authenticated via API key in handshake)
+	// WebSocket endpoint for agents (public — authenticated via API key in handshake)
 	e.GET("/ws/agent", r.wsHandler.HandleConnection)
 
 	// Tenant scope middleware — resolve tenant ID into request context
 	tenantMW := r.tenantMiddleware()
 
-	// Protected routes (auth required)
-	protected := e.Group("")
-	protected.Use(middleware.NoCacheHeaders)
-	protected.Use(middleware.AuthRequired)
-	protected.Use(tenantMW)
-	protected.Use(middleware.UserContext(r.deps.UserRepo))
+	// SSE for real-time updates (auth required)
+	sseGroup := e.Group("")
+	sseGroup.Use(middleware.NoCacheHeaders)
+	sseGroup.Use(middleware.AuthRequired)
+	sseGroup.Use(tenantMW)
+	sseGroup.Use(middleware.UserContext(r.deps.UserRepo))
+	sseGroup.GET("/sse/events", r.sseHandler.Events)
 
-	// Root redirect
-	e.GET("/", r.rootRedirect)
+	// Public API v1 auth routes (no auth required)
+	v1Public := e.Group("/api/v1")
+	v1Public.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+		AllowOrigins:   r.deps.AllowedOrigins,
+		AllowMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:   []string{echo.HeaderAuthorization, echo.HeaderContentType},
+		AllowCredentials: true,
+		MaxAge:         86400,
+	}))
+	loginLLJSON := r.loginLimiter.MiddlewareJSON()
+	v1Public.POST("/auth/login", r.authAPIHandler.Login, authRL, loginLLJSON)
+	v1Public.POST("/auth/register", r.authAPIHandler.Register, authRL)
+	v1Public.POST("/auth/setup", r.authAPIHandler.Setup, authRL)
+	v1Public.POST("/auth/logout", r.authAPIHandler.Logout)
+	v1Public.GET("/auth/needs-setup", r.authAPIHandler.NeedsSetup)
 
-	// Dashboard
-	protected.GET("/dashboard", r.dashboardHandler.Dashboard)
+	// Public status page API (no auth required)
+	v1Public.GET("/public/status/:username/:slug", r.statusPageAPIHandler.PublicView)
 
-	// Agents
-	protected.GET("/api/agents", r.dashboardHandler.AgentsJSON)
-	protected.GET("/api/agents/:id", r.dashboardHandler.AgentJSON)
-	protected.POST("/agents", r.agentHandler.Create)
-	protected.DELETE("/agents/:id", r.agentHandler.Delete)
-
-	// Monitors
-	protected.GET("/monitors", r.monitorHandler.List)
-	protected.GET("/monitors/new", r.monitorHandler.NewForm)
-	protected.POST("/monitors", r.monitorHandler.Create)
-	protected.GET("/monitors/:id", r.monitorHandler.Detail)
-	protected.GET("/monitors/:id/edit", r.monitorHandler.EditForm)
-	protected.POST("/monitors/:id", r.monitorHandler.Update)
-	protected.DELETE("/monitors/:id", r.monitorHandler.Delete)
-
-	// Incidents
-	protected.GET("/incidents", r.incidentHandler.List)
-	protected.GET("/incidents/:id", r.incidentHandler.Detail)
-	protected.POST("/incidents/:id/ack", r.incidentHandler.Acknowledge)
-	protected.POST("/incidents/:id/resolve", r.incidentHandler.Resolve)
-
-	// API endpoints for chart data
-	protected.GET("/api/monitors/:id/heartbeats", r.apiHandler.MonitorHeartbeats)
-	protected.GET("/api/monitors/:id/latency", r.apiHandler.MonitorLatencyHistory)
-	protected.GET("/api/dashboard/stats", r.apiHandler.DashboardStats)
-	protected.GET("/api/monitors/summary", r.apiHandler.MonitorsSummary)
-
-	// SSE for real-time updates
-	protected.GET("/sse/events", r.sseHandler.Events)
-
-	// Status pages
-	protected.GET("/status-pages", r.statusPageHandler.List)
-	protected.POST("/status-pages", r.statusPageHandler.Create)
-	protected.GET("/status-pages/:id/edit", r.statusPageHandler.Edit)
-	protected.POST("/status-pages/:id", r.statusPageHandler.Update)
-	protected.DELETE("/status-pages/:id", r.statusPageHandler.Delete)
-
-	// Settings (API tokens + alert channels)
-	protected.GET("/settings", r.apiTokenHandler.List)
-	protected.POST("/settings/tokens", r.apiTokenHandler.Create)
-	protected.DELETE("/settings/tokens/:id", r.apiTokenHandler.Delete)
-	protected.POST("/settings/tokens/:id/regenerate", r.apiTokenHandler.Regenerate)
-	protected.POST("/settings/alerts", r.alertChannelHandler.Create)
-	protected.DELETE("/settings/alerts/:id", r.alertChannelHandler.Delete)
-	protected.POST("/settings/alerts/:id/toggle", r.alertChannelHandler.Toggle)
-	protected.POST("/settings/alerts/:id/test", r.alertChannelHandler.TestChannel)
-	protected.POST("/settings/username", r.apiTokenHandler.UpdateUsername)
-
-	// System dashboard (accessible to all authenticated users)
-	protected.GET("/system", r.adminHandler.Dashboard)
-
-	// Public API v1 (token-authenticated)
+	// API v1 (hybrid auth: Bearer token OR session cookie)
 	v1 := e.Group("/api/v1")
 	v1.Use(echomw.CORSWithConfig(echomw.CORSConfig{
-		AllowOrigins: r.deps.AllowedOrigins,
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderAuthorization, echo.HeaderContentType},
-		MaxAge:       86400,
+		AllowOrigins:   r.deps.AllowedOrigins,
+		AllowMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:   []string{echo.HeaderAuthorization, echo.HeaderContentType},
+		AllowCredentials: true,
+		MaxAge:         86400,
 	}))
-	v1.Use(middleware.APITokenAuth(r.deps.APITokenRepo))
+	v1.Use(middleware.HybridAuth(r.deps.APITokenRepo))
+	v1.Use(middleware.RequireWriteScope())
 	v1.Use(tenantMW)
+
+	// Auth API (authenticated)
+	v1.GET("/auth/me", r.authAPIHandler.Me)
+
+	// Monitors
 	v1.GET("/monitors", r.apiV1Handler.ListMonitors)
 	v1.GET("/monitors/:id", r.apiV1Handler.GetMonitor)
+	v1.GET("/monitors/:id/heartbeats", r.apiHandler.MonitorHeartbeats)
+	v1.GET("/monitors/:id/latency", r.apiHandler.MonitorLatencyHistory)
 	v1.POST("/monitors", r.apiV1Handler.CreateMonitor)
 	v1.PUT("/monitors/:id", r.apiV1Handler.UpdateMonitor)
 	v1.DELETE("/monitors/:id", r.apiV1Handler.DeleteMonitor)
+
+	// Agents
 	v1.GET("/agents", r.apiV1Handler.ListAgents)
 	v1.POST("/agents", r.apiV1Handler.CreateAgent)
 	v1.DELETE("/agents/:id", r.apiV1Handler.DeleteAgent)
+
+	// Incidents
 	v1.GET("/incidents", r.apiV1Handler.ListIncidents)
 	v1.POST("/incidents/:id/acknowledge", r.apiV1Handler.AcknowledgeIncident)
 	v1.POST("/incidents/:id/resolve", r.apiV1Handler.ResolveIncident)
-	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
-}
 
-// rootRedirect shows the setup wizard when no users exist,
-// the landing page for unauthenticated users,
-// or redirects to dashboard for authenticated users.
-func (r *Router) rootRedirect(c echo.Context) error {
-	if middleware.IsAuthenticated(c) {
-		return c.Redirect(http.StatusFound, "/dashboard")
-	}
-	return r.landingHandler.Page(c)
+	// Dashboard
+	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
+	v1.GET("/monitors/summary", r.apiHandler.MonitorsSummary)
+
+	// Settings: tokens
+	v1.GET("/tokens", r.settingsAPIHandler.ListTokens)
+	v1.POST("/tokens", r.settingsAPIHandler.CreateToken)
+	v1.DELETE("/tokens/:id", r.settingsAPIHandler.DeleteToken)
+	v1.POST("/tokens/:id/regenerate", r.settingsAPIHandler.RegenerateToken)
+
+	// Settings: alert channels
+	v1.GET("/alert-channels", r.settingsAPIHandler.ListChannels)
+	v1.POST("/alert-channels", r.settingsAPIHandler.CreateChannel)
+	v1.DELETE("/alert-channels/:id", r.settingsAPIHandler.DeleteChannel)
+	v1.POST("/alert-channels/:id/toggle", r.settingsAPIHandler.ToggleChannel)
+	v1.POST("/alert-channels/:id/test", r.settingsAPIHandler.TestChannel)
+
+	// Settings: profile
+	v1.PATCH("/users/me", r.settingsAPIHandler.UpdateProfile)
+
+	// Status pages
+	v1.GET("/status-pages", r.statusPageAPIHandler.List)
+	v1.POST("/status-pages", r.statusPageAPIHandler.Create)
+	v1.GET("/status-pages/:id", r.statusPageAPIHandler.Get)
+	v1.PUT("/status-pages/:id", r.statusPageAPIHandler.Update)
+	v1.DELETE("/status-pages/:id", r.statusPageAPIHandler.Delete)
+
+	// System dashboard (admin-only)
+	v1.GET("/system", r.systemAPIHandler.GetSystemInfo)
+
+	// Self-service password change
+	v1.POST("/users/me/password", r.settingsAPIHandler.ChangePassword)
+
+	// Admin routes (admin-only middleware, returns JSON 403)
+	admin := v1.Group("/admin")
+	admin.Use(middleware.AdminRequiredJSON(r.deps.UserRepo))
+	admin.GET("/users", r.systemAPIHandler.ListUsers)
+	admin.POST("/users/:id/reset-password", r.systemAPIHandler.ResetUserPassword, authRL)
+
+	// SvelteKit SPA — serve build output from root (catches all non-API routes)
+	r.registerSvelteRoutes()
 }
 
 // tenantMiddleware returns the tenant scope middleware.
@@ -321,28 +285,69 @@ func (r *Router) Stop() {
 	}
 }
 
-// apiDocs renders the Swagger UI page.
-func (r *Router) apiDocs(c echo.Context) error {
-	return c.Render(http.StatusOK, "api_docs.html", nil)
-}
-
 // installScript serves the agent install script for curl-pipe-sh installs.
 func (r *Router) installScript(c echo.Context) error {
 	return c.Blob(http.StatusOK, "text/plain; charset=utf-8", installScriptContent)
 }
 
-// termsPage renders the Terms of Service page.
-func (r *Router) termsPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "terms.html", map[string]any{
-		"Title": "Terms of Service",
-	})
-}
+// registerSvelteRoutes serves the SvelteKit build output from web/svelte/build/ at root.
+// All routes that don't match an API, SSE, WS, health, or install path are
+// served by the SPA (index.html fallback for client-side routing).
+func (r *Router) registerSvelteRoutes() {
+	buildDir := "web/svelte/build"
+	if _, err := os.Stat(buildDir); os.IsNotExist(err) {
+		return
+	}
 
-// privacyPage renders the Privacy Policy page.
-func (r *Router) privacyPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "privacy.html", map[string]any{
-		"Title": "Privacy Policy",
+	slog.Info("serving SvelteKit SPA from " + buildDir)
+
+	absBuildDir, _ := filepath.Abs(buildDir)
+	indexHTMLPath := filepath.Join(absBuildDir, "index.html")
+
+	// Read index.html template once at startup.
+	indexHTMLBytes, err := os.ReadFile(indexHTMLPath)
+	if err != nil {
+		slog.Error("failed to read SvelteKit index.html", "error", err)
+		return
+	}
+	indexHTMLTemplate := string(indexHTMLBytes)
+
+	// serveSPA injects the per-request CSP nonce into the SvelteKit bootstrap
+	// script and serves the modified index.html.
+	serveSPA := func(c echo.Context) error {
+		nonce, _ := c.Get(middleware.NonceContextKey).(string)
+		html := strings.Replace(indexHTMLTemplate, "<script>", `<script nonce="`+nonce+`">`, 1)
+		return c.HTML(http.StatusOK, html)
+	}
+
+	// Serve SvelteKit static assets (_app/*, favicon, etc.) from the build directory.
+	// Echo's file server at "/" would conflict with the wildcard, so we use a
+	// catch-all handler that checks for static files first, then falls back to index.html.
+	r.echo.GET("/*", func(c echo.Context) error {
+		reqPath := c.Param("*")
+		if reqPath == "" {
+			return serveSPA(c)
+		}
+
+		// Sanitize path to prevent directory traversal
+		cleanPath := filepath.Clean(reqPath)
+		if strings.Contains(cleanPath, "..") {
+			return serveSPA(c)
+		}
+		requestedFile := filepath.Join(absBuildDir, cleanPath)
+		// Verify resolved path stays within build directory
+		if !strings.HasPrefix(requestedFile, absBuildDir) {
+			return serveSPA(c)
+		}
+		if info, err := os.Stat(requestedFile); err == nil && !info.IsDir() {
+			return c.File(requestedFile)
+		}
+		// Fall back to index.html for client-side routing
+		return serveSPA(c)
 	})
+
+	// Root route — serve SPA
+	r.echo.GET("/", serveSPA)
 }
 
 // healthCheck returns health status including module health when registry is present.

@@ -18,7 +18,6 @@ import (
 	"github.com/sylvester-francis/watchdog/core/registry"
 	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
@@ -89,13 +88,6 @@ func New(ctx context.Context) (*Engine, error) {
 	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 
-	// Templates
-	templates, err := view.NewTemplates("web/templates")
-	if err != nil {
-		db.Close()
-		return nil, fmt.Errorf("load templates: %w", err)
-	}
-
 	// Module registry with defaults
 	reg := registry.New(logger)
 	defaults.RegisterAll(reg, defaults.Deps{
@@ -106,7 +98,6 @@ func New(ctx context.Context) (*Engine, error) {
 		AuditService:   auditSvc,
 		StatusPageRepo: statusPageRepo,
 		DB:             db,
-		Templates:      templates,
 		Logger:         logger,
 	})
 
@@ -174,10 +165,8 @@ func New(ctx context.Context) (*Engine, error) {
 		StartTime:        time.Now(),
 		Logger:           logger,
 		SessionSecret:    cfg.Crypto.SessionSecret,
-		TemplatesDir:     "web/templates",
 		SecureCookies:    cfg.Server.SecureCookies,
 		AllowedOrigins:   cfg.Server.AllowedOrigins,
-		Templates:        templates,
 		Registry:         reg,
 	})
 	if err != nil {

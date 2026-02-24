@@ -19,6 +19,7 @@ import (
 type SSEHandler struct {
 	hub         *realtime.Hub
 	agentRepo   ports.AgentRepository
+	monitorRepo ports.MonitorRepository
 	incidentSvc ports.IncidentService
 }
 
@@ -26,11 +27,13 @@ type SSEHandler struct {
 func NewSSEHandler(
 	hub *realtime.Hub,
 	agentRepo ports.AgentRepository,
+	monitorRepo ports.MonitorRepository,
 	incidentSvc ports.IncidentService,
 ) *SSEHandler {
 	return &SSEHandler{
 		hub:         hub,
 		agentRepo:   agentRepo,
+		monitorRepo: monitorRepo,
 		incidentSvc: incidentSvc,
 	}
 }
@@ -138,14 +141,29 @@ func (h *SSEHandler) pollUpdates(ctx context.Context, userID uuid.UUID, events c
 				}
 			}
 
-			// Check for new incidents
+			// Check for new incidents (filtered by user's monitors)
 			incidents, err := h.incidentSvc.GetActiveIncidents(ctx)
 			if err == nil {
-				if len(incidents) != lastIncidentCount {
-					lastIncidentCount = len(incidents)
-
-					// Send incident update
-					data, _ := json.Marshal(map[string]int{"count": len(incidents)})
+				// Build user's monitor ID set from agents fetched above
+				userMonitorIDs := make(map[uuid.UUID]struct{})
+				for _, agent := range agents {
+					monitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
+					if err == nil {
+						for _, m := range monitors {
+							userMonitorIDs[m.ID] = struct{}{}
+						}
+					}
+				}
+				// Count only the user's incidents
+				userIncidentCount := 0
+				for _, inc := range incidents {
+					if _, ok := userMonitorIDs[inc.MonitorID]; ok {
+						userIncidentCount++
+					}
+				}
+				if userIncidentCount != lastIncidentCount {
+					lastIncidentCount = userIncidentCount
+					data, _ := json.Marshal(map[string]int{"count": userIncidentCount})
 					events <- fmt.Sprintf("event: incident-count\ndata: %s\n\n", data)
 				}
 			}

@@ -7,6 +7,14 @@ COPY tailwind.config.js .
 COPY web/ web/
 RUN npx tailwindcss -i web/static/css/input.css -o web/static/css/output.css --minify
 
+# SvelteKit build stage
+FROM node:22-alpine AS svelte
+WORKDIR /app
+COPY web/svelte/package.json web/svelte/package-lock.json ./
+RUN npm ci
+COPY web/svelte/ .
+RUN npm run build
+
 # Go build stage
 FROM golang:1.25-alpine AS builder
 
@@ -37,6 +45,7 @@ COPY --from=builder /hub /app/hub
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY web/ /app/web/
 COPY --from=tailwind /app/web/static/css/output.css /app/web/static/css/output.css
+COPY --from=svelte /app/build/ /app/web/svelte/build/
 COPY migrations/ /app/migrations/
 COPY scripts/railway-migrate.sh /app/railway-migrate.sh
 
