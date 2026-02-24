@@ -371,11 +371,11 @@ func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
 		var hasLatency bool
 		var metricValue string
 
-		isSystemOrDocker := m.Type == domain.MonitorTypeSystem || m.Type == domain.MonitorTypeDocker
+		isNonLatency := m.Type == domain.MonitorTypeSystem || m.Type == domain.MonitorTypeDocker || m.Type == domain.MonitorTypeService
 
 		heartbeats, err := h.heartbeatRepo.GetByMonitorIDInRange(ctx, mid, ninetyDaysAgo, now)
 		if err == nil && len(heartbeats) > 0 {
-			if isSystemOrDocker {
+			if isNonLatency {
 				if m.Type == domain.MonitorTypeSystem {
 					for _, hb := range heartbeats {
 						if hb.ErrorMessage != nil {

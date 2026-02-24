@@ -30,7 +30,7 @@ export interface Monitor {
 	created_at: string;
 }
 
-export type MonitorType = 'ping' | 'http' | 'tcp' | 'dns' | 'tls' | 'docker' | 'database' | 'system';
+export type MonitorType = 'ping' | 'http' | 'tcp' | 'dns' | 'tls' | 'docker' | 'database' | 'system' | 'service';
 export type MonitorStatus = 'pending' | 'up' | 'down' | 'degraded';
 
 export interface Incident {
