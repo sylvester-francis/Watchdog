@@ -186,7 +186,8 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 	// Layer 4: Audit log the registration.
 	if h.auditSvc != nil {
 		h.auditSvc.LogEvent(c.Request().Context(), &user.ID, domain.AuditRegisterSuccess, ip, map[string]string{
-			"email": req.Email,
+			"email":   req.Email,
+			"user_id": user.ID.String(),
 		})
 	}
 

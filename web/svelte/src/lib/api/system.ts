@@ -13,6 +13,10 @@ export function resetUserPassword(userId: string): Promise<{ password: string }>
 	return api.post<{ password: string }>(`/api/v1/admin/users/${userId}/reset-password`);
 }
 
+export function deleteUser(userId: string): Promise<{ status: string }> {
+	return api.delete<{ status: string }>(`/api/v1/admin/users/${userId}`);
+}
+
 export function getSecurityEvents(): Promise<{ data: SecurityEvent[] }> {
 	return api.get<{ data: SecurityEvent[] }>('/api/v1/admin/security-events');
 }
