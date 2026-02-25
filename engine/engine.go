@@ -218,6 +218,14 @@ func (e *Engine) Logger() *slog.Logger {
 	return e.logger
 }
 
+// AuthMiddleware returns an Echo middleware that authenticates requests via
+// session cookie and sets "user_id" in the Echo context. This is exposed so
+// that EE route groups (which cannot import internal packages) can reuse the
+// same session-based auth that CE uses. Returns JSON 401 on failure.
+func (e *Engine) AuthMiddleware() echo.MiddlewareFunc {
+	return middleware.AuthRequiredAPI
+}
+
 // Init initializes all registered modules and registers HTTP routes.
 // Call this after registering any module overrides.
 func (e *Engine) Init(ctx context.Context) error {
