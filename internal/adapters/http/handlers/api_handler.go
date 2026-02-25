@@ -13,10 +13,12 @@ import (
 
 // HeartbeatPoint is the JSON-serializable heartbeat for chart data.
 type HeartbeatPoint struct {
-	Time         string  `json:"time"`
-	Status       string  `json:"status"`
-	LatencyMs    *int    `json:"latency_ms"`
-	ErrorMessage *string `json:"error_message,omitempty"`
+	Time           string  `json:"time"`
+	Status         string  `json:"status"`
+	LatencyMs      *int    `json:"latency_ms"`
+	ErrorMessage   *string `json:"error_message,omitempty"`
+	CertExpiryDays *int    `json:"cert_expiry_days,omitempty"`
+	CertIssuer     *string `json:"cert_issuer,omitempty"`
 }
 
 // APIHandler serves JSON endpoints for chart data.
@@ -91,10 +93,12 @@ func (h *APIHandler) MonitorHeartbeats(c echo.Context) error {
 	points := make([]HeartbeatPoint, 0, len(heartbeats))
 	for _, hb := range heartbeats {
 		points = append(points, HeartbeatPoint{
-			Time:         hb.Time.Format(time.RFC3339),
-			Status:       string(hb.Status),
-			LatencyMs:    hb.LatencyMs,
-			ErrorMessage: hb.ErrorMessage,
+			Time:           hb.Time.Format(time.RFC3339),
+			Status:         string(hb.Status),
+			LatencyMs:      hb.LatencyMs,
+			ErrorMessage:   hb.ErrorMessage,
+			CertExpiryDays: hb.CertExpiryDays,
+			CertIssuer:     hb.CertIssuer,
 		})
 	}
 
