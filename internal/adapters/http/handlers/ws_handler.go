@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,14 +57,41 @@ func NewWSHandler(
 	}
 }
 
+// isBrowserUserAgent returns true if the User-Agent string looks like a
+// standard web browser. Browsers always send an Origin header on WebSocket
+// upgrades, so a browser UA without Origin indicates a spoofed or
+// misconfigured request that should be rejected (H-016).
+func isBrowserUserAgent(ua string) bool {
+	ua = strings.ToLower(ua)
+	browserTokens := []string{"mozilla/", "chrome/", "safari/", "edge/", "opera/", "firefox/"}
+	for _, token := range browserTokens {
+		if strings.Contains(ua, token) {
+			return true
+		}
+	}
+	return false
+}
+
 // checkOrigin validates the Origin header on WebSocket upgrade requests.
 // Native clients (Go agents) don't send an Origin header, so requests
-// without an Origin are allowed. Browser-originated requests must match
-// the allowed origins list or the request's own Host header.
+// without an Origin are allowed — unless the User-Agent indicates a browser.
+// Browsers always send Origin on WebSocket upgrades; a missing Origin with
+// a browser UA is anomalous and rejected (H-016).
 func (h *WSHandler) checkOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
-		return true // Native clients (agents) don't send Origin
+		// H-016: If the User-Agent looks like a browser, it MUST have an Origin.
+		// Only native/programmatic clients (Go agents, curl, scripts) are allowed
+		// to connect without Origin.
+		ua := r.Header.Get("User-Agent")
+		if isBrowserUserAgent(ua) {
+			h.logger.Warn("websocket origin missing from browser user-agent",
+				slog.String("user_agent", ua),
+				slog.String("remote_addr", r.RemoteAddr),
+			)
+			return false
+		}
+		return true // Native client (agent) — no Origin expected
 	}
 
 	u, err := url.Parse(origin)
@@ -167,6 +195,17 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 	agent, err := h.agentAuthSvc.ValidateAPIKey(c.Request().Context(), authPayload.APIKey)
 	if err != nil {
 		h.sendAuthError(ws, "invalid API key")
+		ws.Close()
+		return nil
+	}
+
+	// H-023: reject expired agent API keys.
+	if agent.IsAPIKeyExpired() {
+		h.logger.Warn("agent API key expired",
+			slog.String("agent_id", agent.ID.String()),
+			slog.String("agent_name", agent.Name),
+		)
+		h.sendAuthError(ws, "API key expired")
 		ws.Close()
 		return nil
 	}
