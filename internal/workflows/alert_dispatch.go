@@ -77,24 +77,26 @@ func RegisterAlertHandlers(
 		logger:   logger,
 	})
 
-	engine.RegisterHandler("alert.send_discord", &sendChannelHandler{factory: notifierFactory, channelType: "discord", logger: logger})
-	engine.RegisterHandler("alert.send_slack", &sendChannelHandler{factory: notifierFactory, channelType: "slack", logger: logger})
-	engine.RegisterHandler("alert.send_email", &sendChannelHandler{factory: notifierFactory, channelType: "email", logger: logger})
-	engine.RegisterHandler("alert.send_telegram", &sendChannelHandler{factory: notifierFactory, channelType: "telegram", logger: logger})
-	engine.RegisterHandler("alert.send_pagerduty", &sendChannelHandler{factory: notifierFactory, channelType: "pagerduty", logger: logger})
-	engine.RegisterHandler("alert.send_webhook", &sendChannelHandler{factory: notifierFactory, channelType: "webhook", logger: logger})
+	engine.RegisterHandler("alert.send_discord", &sendChannelHandler{factory: notifierFactory, alertChannelRepo: alertChannelRepo, channelType: "discord", logger: logger})
+	engine.RegisterHandler("alert.send_slack", &sendChannelHandler{factory: notifierFactory, alertChannelRepo: alertChannelRepo, channelType: "slack", logger: logger})
+	engine.RegisterHandler("alert.send_email", &sendChannelHandler{factory: notifierFactory, alertChannelRepo: alertChannelRepo, channelType: "email", logger: logger})
+	engine.RegisterHandler("alert.send_telegram", &sendChannelHandler{factory: notifierFactory, alertChannelRepo: alertChannelRepo, channelType: "telegram", logger: logger})
+	engine.RegisterHandler("alert.send_pagerduty", &sendChannelHandler{factory: notifierFactory, alertChannelRepo: alertChannelRepo, channelType: "pagerduty", logger: logger})
+	engine.RegisterHandler("alert.send_webhook", &sendChannelHandler{factory: notifierFactory, alertChannelRepo: alertChannelRepo, channelType: "webhook", logger: logger})
 
 	engine.RegisterHandler("alert.record_dispatch", &recordDispatchHandler{logger: logger})
 }
 
 // resolveChannelsPayload is the output of the resolve_channels step.
+// Only channel IDs are stored — never full channel objects (which contain
+// decrypted secrets). Send handlers re-fetch channels by ID at execution time.
 type resolveChannelsPayload struct {
-	IncidentID uuid.UUID              `json:"incident_id"`
-	MonitorID  uuid.UUID              `json:"monitor_id"`
-	Opened     bool                   `json:"opened"`
-	Incident   *domain.Incident       `json:"incident"`
-	Monitor    *domain.Monitor        `json:"monitor"`
-	Channels   []*domain.AlertChannel `json:"channels"`
+	IncidentID uuid.UUID        `json:"incident_id"`
+	MonitorID  uuid.UUID        `json:"monitor_id"`
+	Opened     bool             `json:"opened"`
+	Incident   *domain.Incident `json:"incident"`
+	Monitor    *domain.Monitor  `json:"monitor"`
+	ChannelIDs []uuid.UUID      `json:"channel_ids"`
 }
 
 // resolveChannelsHandler looks up the incident, monitor, and alert channels.
@@ -138,13 +140,18 @@ func (h *resolveChannelsHandler) Execute(ctx context.Context, input json.RawMess
 		return nil, fmt.Errorf("resolve_channels: get channels: %w", err)
 	}
 
+	channelIDs := make([]uuid.UUID, len(channels))
+	for i, ch := range channels {
+		channelIDs[i] = ch.ID
+	}
+
 	payload := resolveChannelsPayload{
 		IncidentID: in.IncidentID,
 		MonitorID:  in.MonitorID,
 		Opened:     in.Opened,
 		Incident:   incident,
 		Monitor:    monitor,
-		Channels:   channels,
+		ChannelIDs: channelIDs,
 	}
 
 	return json.Marshal(payload)
@@ -177,10 +184,12 @@ func (h *sendGlobalHandler) Execute(ctx context.Context, input json.RawMessage) 
 }
 
 // sendChannelHandler sends to a specific channel type using the notifier factory.
+// It re-fetches channels by ID at execution time to avoid serializing secrets.
 type sendChannelHandler struct {
-	factory     ports.NotifierFactory
-	channelType string
-	logger      *slog.Logger
+	factory          ports.NotifierFactory
+	alertChannelRepo ports.AlertChannelRepository
+	channelType      string
+	logger           *slog.Logger
 }
 
 func (h *sendChannelHandler) Execute(ctx context.Context, input json.RawMessage) (json.RawMessage, error) {
@@ -190,7 +199,15 @@ func (h *sendChannelHandler) Execute(ctx context.Context, input json.RawMessage)
 	}
 
 	sent := 0
-	for _, ch := range payload.Channels {
+	for _, chID := range payload.ChannelIDs {
+		ch, err := h.alertChannelRepo.GetByID(ctx, chID)
+		if err != nil || ch == nil {
+			h.logger.Error("failed to fetch channel",
+				slog.String("channel_type", h.channelType),
+				slog.String("channel_id", chID.String()),
+			)
+			continue
+		}
 		if string(ch.Type) != h.channelType {
 			continue
 		}
@@ -199,7 +216,7 @@ func (h *sendChannelHandler) Execute(ctx context.Context, input json.RawMessage)
 		if err != nil {
 			h.logger.Error("failed to build notifier",
 				slog.String("channel_type", h.channelType),
-				slog.String("channel_id", ch.ID.String()),
+				slog.String("channel_id", chID.String()),
 				slog.String("error", err.Error()),
 			)
 			continue
@@ -214,7 +231,7 @@ func (h *sendChannelHandler) Execute(ctx context.Context, input json.RawMessage)
 		if notifyErr != nil {
 			h.logger.Error("channel notification failed",
 				slog.String("channel_type", h.channelType),
-				slog.String("channel_id", ch.ID.String()),
+				slog.String("channel_id", chID.String()),
 				slog.String("error", notifyErr.Error()),
 			)
 			continue
@@ -240,7 +257,7 @@ func (h *recordDispatchHandler) Execute(_ context.Context, input json.RawMessage
 		slog.String("incident_id", payload.IncidentID.String()),
 		slog.String("monitor_id", payload.MonitorID.String()),
 		slog.Bool("opened", payload.Opened),
-		slog.Int("channels", len(payload.Channels)),
+		slog.Int("channels", len(payload.ChannelIDs)),
 	)
 
 	return input, nil
