@@ -27,6 +27,9 @@ const (
 	AuditRegisterSuccess       AuditAction = "register_success"
 	AuditRegisterBlocked       AuditAction = "register_blocked"
 	AuditUserDeleted           AuditAction = "user_deleted"
+	AuditLogout                AuditAction = "logout"
+	AuditChannelCreated        AuditAction = "channel_created"
+	AuditChannelDeleted        AuditAction = "channel_deleted"
 )
 
 // AuditLog represents a security audit event.
