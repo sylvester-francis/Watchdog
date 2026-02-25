@@ -94,6 +94,9 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		return err
 	}
 
+	// H-004: Limit message size during auth handshake.
+	ws.SetReadLimit(64 * 1024) // 64 KB
+
 	// Authenticate: read first message within 10s
 	if err := ws.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
 		ws.Close()
