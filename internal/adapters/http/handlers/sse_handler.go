@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -14,6 +15,12 @@ import (
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
+
+// maxSSEEventSize is the maximum byte size of a single SSE event payload
+// (H-021). Events exceeding this limit are silently dropped to prevent a
+// single oversized message from consuming excessive client memory or network
+// bandwidth.
+const maxSSEEventSize = 64 * 1024 // 64 KB
 
 // SSEHandler handles Server-Sent Events for real-time updates.
 type SSEHandler struct {
@@ -90,6 +97,14 @@ func (h *SSEHandler) Events(c echo.Context) error {
 			return nil
 
 		case event := <-events:
+			// H-021: drop oversized SSE events to prevent memory/bandwidth abuse.
+			if len(event) > maxSSEEventSize {
+				slog.Warn("sse event dropped: exceeds max size",
+					slog.Int("size", len(event)),
+					slog.Int("max", maxSSEEventSize),
+				)
+				continue
+			}
 			fmt.Fprint(c.Response(), event)
 			c.Response().Flush()
 

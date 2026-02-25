@@ -159,22 +159,43 @@ func GetUserID(c echo.Context) (uuid.UUID, bool) {
 }
 
 // SetUserID stores the user ID and issuance timestamp in the session (H-002).
-func SetUserID(c echo.Context, userID uuid.UUID) error {
+// If a SessionTracker is provided, the session is registered and the oldest
+// session is evicted when the per-user limit is exceeded (H-017).
+func SetUserID(c echo.Context, userID uuid.UUID, tracker ...*SessionTracker) error {
 	sess, err := getSession(c)
 	if err != nil {
 		return err
 	}
 
+	var issuedAt int64
+	if len(tracker) > 0 && tracker[0] != nil {
+		issuedAt = tracker[0].Add(userID)
+	} else {
+		issuedAt = time.Now().Unix()
+	}
+
 	sess.Values[UserIDKey] = userID.String()
-	sess.Values[issuedAtKey] = time.Now().Unix()
+	sess.Values[issuedAtKey] = issuedAt
 	return sess.Save(c.Request(), c.Response())
 }
 
-// ClearSession clears the user session (logout).
-func ClearSession(c echo.Context) error {
+// ClearSession clears the user session (logout). If a SessionTracker is
+// provided, the session is also removed from the tracker (H-017).
+func ClearSession(c echo.Context, tracker ...*SessionTracker) error {
 	sess, err := getSession(c)
 	if err != nil {
 		return err
+	}
+
+	// H-017: remove session from the in-memory tracker on logout.
+	if len(tracker) > 0 && tracker[0] != nil {
+		if uidStr, ok := sess.Values[UserIDKey].(string); ok {
+			if uid, parseErr := uuid.Parse(uidStr); parseErr == nil {
+				if issuedAt, ok := sess.Values[issuedAtKey].(int64); ok {
+					tracker[0].Remove(uid, issuedAt)
+				}
+			}
+		}
 	}
 
 	sess.Values = make(map[any]any)

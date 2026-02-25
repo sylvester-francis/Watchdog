@@ -103,7 +103,8 @@ func (r *MonitorRepository) GetByAgentID(ctx context.Context, agentID uuid.UUID)
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`
+	// H-020: hard limit prevents unbounded result sets.
+	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 AND tenant_id = $2 ORDER BY created_at DESC LIMIT 1000`
 
 	rows, err := q.Query(ctx, query, agentID, tenantID)
 	if err != nil {
@@ -123,7 +124,8 @@ func (r *MonitorRepository) GetEnabledByAgentID(ctx context.Context, agentID uui
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
-	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 AND tenant_id = $2 AND enabled = true ORDER BY created_at DESC`
+	// H-020: hard limit prevents unbounded result sets.
+	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE agent_id = $1 AND tenant_id = $2 AND enabled = true ORDER BY created_at DESC LIMIT 1000`
 
 	rows, err := q.Query(ctx, query, agentID, tenantID)
 	if err != nil {

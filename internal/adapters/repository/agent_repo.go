@@ -29,14 +29,15 @@ func (r *AgentRepository) Create(ctx context.Context, agent *domain.Agent) error
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO agents (id, user_id, name, api_key_encrypted, last_seen_at, status, created_at, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO agents (id, user_id, name, api_key_encrypted, api_key_expires_at, last_seen_at, status, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		agent.ID,
 		agent.UserID,
 		agent.Name,
 		agent.APIKeyEncrypted,
+		agent.APIKeyExpiresAt,
 		agent.LastSeenAt,
 		agent.Status,
 		agent.CreatedAt,
@@ -55,7 +56,7 @@ func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ag
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, fingerprint, fingerprint_verified_at, created_at
+		SELECT id, user_id, name, api_key_encrypted, api_key_expires_at, last_seen_at, status, fingerprint, fingerprint_verified_at, created_at
 		FROM agents
 		WHERE id = $1 AND tenant_id = $2`
 
@@ -66,6 +67,7 @@ func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ag
 		&agent.UserID,
 		&agent.Name,
 		&agent.APIKeyEncrypted,
+		&agent.APIKeyExpiresAt,
 		&agent.LastSeenAt,
 		&agent.Status,
 		&fingerprintJSON,
@@ -90,11 +92,13 @@ func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: hard limit prevents unbounded result sets.
 	query := `
-		SELECT id, user_id, name, api_key_encrypted, last_seen_at, status, fingerprint, fingerprint_verified_at, created_at
+		SELECT id, user_id, name, api_key_encrypted, api_key_expires_at, last_seen_at, status, fingerprint, fingerprint_verified_at, created_at
 		FROM agents
 		WHERE user_id = $1 AND tenant_id = $2
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT 1000`
 
 	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
@@ -111,6 +115,7 @@ func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]
 			&agent.UserID,
 			&agent.Name,
 			&agent.APIKeyEncrypted,
+			&agent.APIKeyExpiresAt,
 			&agent.LastSeenAt,
 			&agent.Status,
 			&fingerprintJSON,
@@ -140,13 +145,14 @@ func (r *AgentRepository) Update(ctx context.Context, agent *domain.Agent) error
 
 	query := `
 		UPDATE agents
-		SET name = $2, api_key_encrypted = $3, last_seen_at = $4, status = $5
-		WHERE id = $1 AND tenant_id = $6`
+		SET name = $2, api_key_encrypted = $3, api_key_expires_at = $4, last_seen_at = $5, status = $6
+		WHERE id = $1 AND tenant_id = $7`
 
 	result, err := q.Exec(ctx, query,
 		agent.ID,
 		agent.Name,
 		agent.APIKeyEncrypted,
+		agent.APIKeyExpiresAt,
 		agent.LastSeenAt,
 		agent.Status,
 		tenantID,
