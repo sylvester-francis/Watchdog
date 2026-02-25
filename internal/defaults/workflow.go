@@ -335,10 +335,12 @@ func (m *workflowModule) executeWorkflow(ctx context.Context, wf *domain.Workflo
 		step := steps[i]
 
 		// Update current step
-		_, _ = m.pool.Exec(ctx, `
+		if _, err := m.pool.Exec(ctx, `
 			UPDATE workflows SET current_step = $1, updated_at = NOW() WHERE id = $2`,
 			i, wf.ID,
-		)
+		); err != nil {
+			m.logger.Error("workflow: failed to update current_step", slog.String("error", err.Error()))
+		}
 
 		result, stepErr := m.executeStep(ctx, step, stepInput)
 
@@ -392,11 +394,13 @@ func (m *workflowModule) executeStep(ctx context.Context, step *domain.WorkflowS
 	}
 
 	// Mark step as running
-	_, _ = m.pool.Exec(ctx, `
+	if _, err := m.pool.Exec(ctx, `
 		UPDATE workflow_steps SET status = $1, input = $2, updated_at = NOW()
 		WHERE id = $3`,
 		domain.StepStatusRunning, input, step.ID,
-	)
+	); err != nil {
+		m.logger.Error("workflow: failed to mark step running", slog.String("error", err.Error()))
+	}
 
 	start := time.Now()
 	output, err := handler.Execute(ctx, input)
@@ -404,19 +408,23 @@ func (m *workflowModule) executeStep(ctx context.Context, step *domain.WorkflowS
 
 	if err != nil {
 		m.markStepFailed(ctx, step.ID, err.Error())
-		_, _ = m.pool.Exec(ctx, `
+		if _, execErr := m.pool.Exec(ctx, `
 			UPDATE workflow_steps SET duration_ms = $1, retry_count = retry_count + 1 WHERE id = $2`,
 			durationMs, step.ID,
-		)
+		); execErr != nil {
+			m.logger.Error("workflow: failed to update step duration", slog.String("error", execErr.Error()))
+		}
 		return nil, err
 	}
 
 	// Mark step completed
-	_, _ = m.pool.Exec(ctx, `
+	if _, err := m.pool.Exec(ctx, `
 		UPDATE workflow_steps SET status = $1, output = $2, duration_ms = $3, updated_at = NOW()
 		WHERE id = $4`,
 		domain.StepStatusCompleted, output, durationMs, step.ID,
-	)
+	); err != nil {
+		m.logger.Error("workflow: failed to mark step completed", slog.String("error", err.Error()))
+	}
 
 	return output, nil
 }
@@ -437,35 +445,43 @@ func (m *workflowModule) getFailurePolicy(handler string) domain.FailurePolicy {
 }
 
 func (m *workflowModule) markStepFailed(ctx context.Context, stepID uuid.UUID, errMsg string) {
-	_, _ = m.pool.Exec(ctx, `
+	if _, err := m.pool.Exec(ctx, `
 		UPDATE workflow_steps SET status = $1, error = $2, updated_at = NOW()
 		WHERE id = $3`,
 		domain.StepStatusFailed, errMsg, stepID,
-	)
+	); err != nil {
+		m.logger.Error("workflow: failed to mark step failed", slog.String("error", err.Error()))
+	}
 }
 
 func (m *workflowModule) markStepSkipped(ctx context.Context, stepID uuid.UUID, errMsg string) {
-	_, _ = m.pool.Exec(ctx, `
+	if _, err := m.pool.Exec(ctx, `
 		UPDATE workflow_steps SET status = $1, error = $2, updated_at = NOW()
 		WHERE id = $3`,
 		domain.StepStatusSkipped, errMsg, stepID,
-	)
+	); err != nil {
+		m.logger.Error("workflow: failed to mark step skipped", slog.String("error", err.Error()))
+	}
 }
 
 func (m *workflowModule) retryStep(ctx context.Context, stepID uuid.UUID) {
-	_, _ = m.pool.Exec(ctx, `
+	if _, err := m.pool.Exec(ctx, `
 		UPDATE workflow_steps SET status = $1, retry_count = retry_count + 1, error = NULL, updated_at = NOW()
 		WHERE id = $2`,
 		domain.StepStatusPending, stepID,
-	)
+	); err != nil {
+		m.logger.Error("workflow: failed to retry step", slog.String("error", err.Error()))
+	}
 }
 
 func (m *workflowModule) failWorkflow(ctx context.Context, workflowID uuid.UUID, errMsg string) {
-	_, _ = m.pool.Exec(ctx, `
+	if _, err := m.pool.Exec(ctx, `
 		UPDATE workflows SET status = $1, error = $2, locked_by = NULL, locked_at = NULL, updated_at = NOW()
 		WHERE id = $3`,
 		domain.WorkflowStatusFailed, errMsg, workflowID,
-	)
+	); err != nil {
+		m.logger.Error("workflow: failed to update workflow status to failed", slog.String("error", err.Error()))
+	}
 	m.logger.Error("workflow failed",
 		slog.String("workflow_id", workflowID.String()),
 		slog.String("error", errMsg),
@@ -473,11 +489,13 @@ func (m *workflowModule) failWorkflow(ctx context.Context, workflowID uuid.UUID,
 }
 
 func (m *workflowModule) completeWorkflow(ctx context.Context, workflowID uuid.UUID, output json.RawMessage) {
-	_, _ = m.pool.Exec(ctx, `
+	if _, err := m.pool.Exec(ctx, `
 		UPDATE workflows SET status = $1, output = $2, locked_by = NULL, locked_at = NULL, updated_at = NOW()
 		WHERE id = $3`,
 		domain.WorkflowStatusCompleted, output, workflowID,
-	)
+	); err != nil {
+		m.logger.Error("workflow: failed to update workflow status to completed", slog.String("error", err.Error()))
+	}
 	m.logger.Info("workflow completed", slog.String("workflow_id", workflowID.String()))
 }
 
