@@ -573,7 +573,8 @@ func (h *APIV1Handler) DeleteMonitor(c echo.Context) error {
 }
 
 type createAgentRequest struct {
-	Name string `json:"name"`
+	Name          string `json:"name"`
+	ExpiresInDays *int   `json:"expires_in_days,omitempty"` // H-023: override default key expiry
 }
 
 // CreateAgent creates a new agent and returns its API key.
@@ -600,6 +601,22 @@ func (h *APIV1Handler) CreateAgent(c echo.Context) error {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
 		}
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create agent"})
+	}
+
+	// H-023: allow client to override the default key expiry.
+	if req.ExpiresInDays != nil {
+		days := *req.ExpiresInDays
+		if days <= 0 {
+			// Zero or negative means "never expires".
+			agent.APIKeyExpiresAt = nil
+		} else {
+			exp := time.Now().AddDate(0, 0, days)
+			agent.APIKeyExpiresAt = &exp
+		}
+		// Persist the custom expiry. Non-fatal if it fails — the agent was
+		// already created with the default expiry.
+		//nolint:errcheck
+		_ = h.agentRepo.Update(ctx, agent)
 	}
 
 	// H-011: audit agent creation.

@@ -82,11 +82,13 @@ func (r *AlertChannelRepository) GetByUserID(ctx context.Context, userID uuid.UU
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: hard limit prevents unbounded result sets.
 	query := `
 		SELECT id, user_id, type, name, config_encrypted, enabled, created_at, updated_at
 		FROM alert_channels
 		WHERE user_id = $1 AND tenant_id = $2
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT 100`
 
 	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
@@ -111,11 +113,13 @@ func (r *AlertChannelRepository) GetEnabledByUserID(ctx context.Context, userID 
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: hard limit prevents unbounded result sets.
 	query := `
 		SELECT id, user_id, type, name, config_encrypted, enabled, created_at, updated_at
 		FROM alert_channels
 		WHERE user_id = $1 AND tenant_id = $2 AND enabled = true
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT 100`
 
 	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {

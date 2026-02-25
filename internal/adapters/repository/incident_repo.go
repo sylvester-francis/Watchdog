@@ -87,11 +87,13 @@ func (r *IncidentRepository) GetByMonitorID(ctx context.Context, monitorID uuid.
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: hard limit prevents unbounded result sets.
 	query := `
 		SELECT id, monitor_id, started_at, resolved_at, ttr_seconds, acknowledged_by, acknowledged_at, status, created_at
 		FROM incidents
 		WHERE monitor_id = $1 AND tenant_id = $2
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT 1000`
 
 	rows, err := q.Query(ctx, query, monitorID, tenantID)
 	if err != nil {
@@ -141,11 +143,13 @@ func (r *IncidentRepository) GetActiveIncidents(ctx context.Context) ([]*domain.
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: hard limit prevents unbounded result sets.
 	query := `
 		SELECT id, monitor_id, started_at, resolved_at, ttr_seconds, acknowledged_by, acknowledged_at, status, created_at
 		FROM incidents
 		WHERE tenant_id = $1 AND status IN ('open', 'acknowledged')
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC
+		LIMIT 1000`
 
 	rows, err := q.Query(ctx, query, tenantID)
 	if err != nil {

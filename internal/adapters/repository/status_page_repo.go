@@ -80,8 +80,9 @@ func (r *StatusPageRepository) GetByUserID(ctx context.Context, userID uuid.UUID
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: hard limit prevents unbounded result sets.
 	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
-		FROM status_pages WHERE user_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`
+		FROM status_pages WHERE user_id = $1 AND tenant_id = $2 ORDER BY created_at DESC LIMIT 100`
 
 	rows, err := q.Query(ctx, query, userID, tenantID)
 	if err != nil {
