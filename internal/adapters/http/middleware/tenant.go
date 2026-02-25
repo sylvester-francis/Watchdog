@@ -11,14 +11,14 @@ import (
 // For authenticated requests it first attempts to resolve the tenant from the
 // user's database record via TenantID(). If that fails or returns empty, it
 // falls back to the generic Resolve() which returns "default" in CE.
-// Request metadata (host, headers) is injected into the context so EE's
-// resolver can read X-Tenant-ID header and subdomain without interface changes.
+// Request metadata (host, headers) is injected into the context so custom
+// resolvers can read X-Tenant-ID header and subdomain without interface changes.
 func TenantScope(resolver ports.TenantResolver) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			req := c.Request()
 
-			// Inject request metadata into context for EE resolver.
+			// Inject request metadata into context for tenant resolution.
 			md := &ports.RequestMetadata{
 				Host:     req.Host,
 				RemoteIP: c.RealIP(),
