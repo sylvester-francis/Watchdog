@@ -50,7 +50,8 @@
 		{ value: 'tls', label: 'TLS' },
 		{ value: 'docker', label: 'Docker' },
 		{ value: 'database', label: 'Database' },
-		{ value: 'system', label: 'System' }
+		{ value: 'system', label: 'System' },
+		{ value: 'service', label: 'Service' }
 	];
 
 	// Filtered monitors
@@ -118,6 +119,7 @@
 
 	function infraValue(m: MonitorSummary): string {
 		if (m.type === 'docker') return m.status === 'up' ? 'Running' : 'Stopped';
+		if (m.type === 'service') return m.status === 'up' ? 'Running' : 'Stopped';
 		if (m.type === 'database' && m.latencies?.length > 0)
 			return m.latencies[m.latencies.length - 1] + 'ms';
 		if (m.type === 'system') {
@@ -130,7 +132,7 @@
 	}
 
 	function infraValueClass(m: MonitorSummary): string {
-		if (m.type === 'docker') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
+		if (m.type === 'docker' || m.type === 'service') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
 		if (m.type === 'system') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
 		return 'text-muted-foreground';
 	}
