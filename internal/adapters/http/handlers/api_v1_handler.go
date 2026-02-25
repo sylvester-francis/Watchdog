@@ -25,6 +25,7 @@ type APIV1Handler struct {
 	monitorSvc    ports.MonitorService
 	agentAuthSvc  ports.AgentAuthService
 	hub           *realtime.Hub
+	auditSvc      ports.AuditService
 }
 
 // NewAPIV1Handler creates a new APIV1Handler.
@@ -36,6 +37,7 @@ func NewAPIV1Handler(
 	monitorSvc ports.MonitorService,
 	agentAuthSvc ports.AgentAuthService,
 	hub *realtime.Hub,
+	auditSvc ports.AuditService,
 ) *APIV1Handler {
 	return &APIV1Handler{
 		agentRepo:     agentRepo,
@@ -45,6 +47,7 @@ func NewAPIV1Handler(
 		monitorSvc:    monitorSvc,
 		agentAuthSvc:  agentAuthSvc,
 		hub:           hub,
+		auditSvc:      auditSvc,
 	}
 }
 
@@ -400,6 +403,13 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 	)
 	h.hub.SendToAgent(monitor.AgentID, taskMsg)
 
+	// H-011: audit monitor creation.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorCreated, c.RealIP(), map[string]string{
+			"monitor_id": monitor.ID.String(), "name": monitor.Name, "type": string(monitor.Type),
+		})
+	}
+
 	return c.JSON(http.StatusCreated, map[string]any{
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
@@ -486,6 +496,13 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
 	}
 
+	// H-011: audit monitor update.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorUpdated, c.RealIP(), map[string]string{
+			"monitor_id": monitor.ID.String(), "name": monitor.Name,
+		})
+	}
+
 	// Notify agent of the change
 	if monitor.Enabled {
 		taskMsg := protocol.NewTaskMessageWithMetadata(
@@ -542,6 +559,13 @@ func (h *APIV1Handler) DeleteMonitor(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete monitor"})
 	}
 
+	// H-011: audit monitor deletion.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditMonitorDeleted, c.RealIP(), map[string]string{
+			"monitor_id": monitorID.String(), "name": monitor.Name,
+		})
+	}
+
 	// Notify agent to stop the task
 	h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(monitorID.String()))
 
@@ -578,6 +602,13 @@ func (h *APIV1Handler) CreateAgent(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create agent"})
 	}
 
+	// H-011: audit agent creation.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditAgentCreated, c.RealIP(), map[string]string{
+			"agent_id": agent.ID.String(), "name": agent.Name,
+		})
+	}
+
 	return c.JSON(http.StatusCreated, map[string]any{
 		"data": map[string]string{
 			"id":      agent.ID.String(),
@@ -610,6 +641,13 @@ func (h *APIV1Handler) DeleteAgent(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})
 	}
 
+	// H-011: audit agent deletion.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditAgentDeleted, c.RealIP(), map[string]string{
+			"agent_id": agentID.String(), "name": agent.Name,
+		})
+	}
+
 	return c.NoContent(http.StatusNoContent)
 }
 
@@ -639,6 +677,12 @@ func (h *APIV1Handler) AcknowledgeIncident(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to acknowledge incident"})
 	}
 
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditIncidentAcked, c.RealIP(), map[string]string{
+			"incident_id": incidentID.String(),
+		})
+	}
+
 	return c.JSON(http.StatusOK, map[string]string{"status": "acknowledged"})
 }
 
@@ -666,6 +710,12 @@ func (h *APIV1Handler) ResolveIncident(c echo.Context) error {
 
 	if err := h.incidentSvc.ResolveIncident(ctx, incidentID); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resolve incident"})
+	}
+
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &userID, domain.AuditIncidentResolved, c.RealIP(), map[string]string{
+			"incident_id": incidentID.String(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "resolved"})

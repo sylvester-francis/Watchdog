@@ -362,6 +362,13 @@ func (h *SettingsAPIHandler) CreateChannel(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save alert channel"})
 	}
 
+	// H-011: audit channel creation.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditChannelCreated, c.RealIP(), map[string]string{
+			"channel_id": channel.ID.String(), "type": string(channel.Type), "name": channel.Name,
+		})
+	}
+
 	return c.JSON(http.StatusCreated, map[string]any{
 		"data": toChannelResponse(channel),
 	})
@@ -390,6 +397,13 @@ func (h *SettingsAPIHandler) DeleteChannel(c echo.Context) error {
 
 	if err := h.channelRepo.Delete(c.Request().Context(), id); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete channel"})
+	}
+
+	// H-011: audit channel deletion.
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditChannelDeleted, c.RealIP(), map[string]string{
+			"channel_id": id.String(), "type": string(channel.Type), "name": channel.Name,
+		})
 	}
 
 	return c.NoContent(http.StatusNoContent)
