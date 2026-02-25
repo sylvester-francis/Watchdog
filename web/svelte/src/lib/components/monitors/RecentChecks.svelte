@@ -15,6 +15,7 @@
 
 	const toast = getToasts();
 	const isNonLatency = $derived(monitorType === 'system' || monitorType === 'docker' || monitorType === 'service');
+	const isTLS = $derived(monitorType === 'tls');
 
 	let heartbeats = $state<HeartbeatPoint[]>([]);
 	let loading = $state(true);
@@ -90,7 +91,7 @@
 							{isNonLatency ? 'Value' : 'Latency'}
 						</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isNonLatency ? 'Detail' : 'Status'}
+							{isNonLatency ? 'Detail' : isTLS ? 'Certificate' : 'Status'}
 						</th>
 					</tr>
 				</thead>
@@ -116,7 +117,12 @@
 								{/if}
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isNonLatency && hb.error_message}
+								{#if isTLS && hb.cert_expiry_days != null}
+									{@const days = hb.cert_expiry_days}
+									<span class="text-xs font-mono {days < 14 ? 'text-red-400' : days < 30 ? 'text-amber-400' : 'text-emerald-400'}">
+										Expires in {days}d
+									</span>
+								{:else if isNonLatency && hb.error_message}
 									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
 								{:else if isNonLatency && hb.status === 'up'}
 									<span class="text-xs text-emerald-400 font-mono">Running</span>

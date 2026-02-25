@@ -49,16 +49,17 @@ func NewAPIV1Handler(
 }
 
 type monitorResponse struct {
-	ID               string `json:"id"`
-	AgentID          string `json:"agent_id"`
-	Name             string `json:"name"`
-	Type             string `json:"type"`
-	Target           string `json:"target"`
-	Status           string `json:"status"`
-	Enabled          bool   `json:"enabled"`
-	Interval         int    `json:"interval_seconds"`
-	Timeout          int    `json:"timeout_seconds"`
-	FailureThreshold int    `json:"failure_threshold"`
+	ID               string            `json:"id"`
+	AgentID          string            `json:"agent_id"`
+	Name             string            `json:"name"`
+	Type             string            `json:"type"`
+	Target           string            `json:"target"`
+	Status           string            `json:"status"`
+	Enabled          bool              `json:"enabled"`
+	Interval         int               `json:"interval_seconds"`
+	Timeout          int               `json:"timeout_seconds"`
+	FailureThreshold int               `json:"failure_threshold"`
+	Metadata         map[string]string `json:"metadata,omitempty"`
 }
 
 type agentResponse struct {
@@ -164,6 +165,22 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 		}
 	}
 
+	// Build metadata — start with monitor's own metadata, then overlay live data from heartbeats
+	meta := make(map[string]string)
+	for k, v := range monitor.Metadata {
+		meta[k] = v
+	}
+	// For TLS monitors, inject latest cert data from the most recent heartbeat
+	if monitor.Type == domain.MonitorTypeTLS && len(heartbeats) > 0 {
+		latest := heartbeats[0] // heartbeats are ordered DESC, so [0] is most recent
+		if latest.CertExpiryDays != nil {
+			meta["cert_expiry_days"] = fmt.Sprintf("%d", *latest.CertExpiryDays)
+		}
+		if latest.CertIssuer != nil && *latest.CertIssuer != "" {
+			meta["cert_issuer"] = *latest.CertIssuer
+		}
+	}
+
 	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
@@ -176,12 +193,13 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 			Interval:         monitor.IntervalSeconds,
 			Timeout:          monitor.TimeoutSeconds,
 			FailureThreshold: monitor.FailureThreshold,
+			Metadata:         meta,
 		},
 		"heartbeats": map[string]any{
-			"latencies":  latencies,
-			"uptime_up":  up,
+			"latencies":   latencies,
+			"uptime_up":   up,
 			"uptime_down": down,
-			"total":      len(heartbeats),
+			"total":       len(heartbeats),
 		},
 	})
 }
