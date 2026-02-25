@@ -35,5 +35,9 @@ export function uptimeColor(percent: number): string {
 }
 
 export function isInfraMonitor(type: string): boolean {
-	return type === 'docker' || type === 'database' || type === 'system';
+	return type === 'docker' || type === 'database' || type === 'system' || type === 'service';
+}
+
+export function isNonLatencyMonitor(type: string): boolean {
+	return type === 'system' || type === 'docker' || type === 'service';
 }

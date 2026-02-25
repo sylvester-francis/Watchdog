@@ -55,6 +55,7 @@
 
 	function infraValue(m: MonitorSummary): string {
 		if (m.type === 'docker') return m.status === 'up' ? 'Running' : 'Stopped';
+		if (m.type === 'service') return m.status === 'up' ? 'Running' : 'Stopped';
 		if (m.type === 'database' && m.latencies?.length > 0) return m.latencies[m.latencies.length - 1] + 'ms';
 		if (m.type === 'system') {
 			const val = parseMetricValue(m.latest_value);
@@ -66,7 +67,7 @@
 	}
 
 	function infraValueClass(m: MonitorSummary): string {
-		if (m.type === 'docker') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
+		if (m.type === 'docker' || m.type === 'service') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
 		if (m.type === 'system') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
 		return 'text-muted-foreground';
 	}
