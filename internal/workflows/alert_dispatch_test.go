@@ -101,10 +101,12 @@ func TestResolveChannelsHandler_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, output)
 
-	// Verify output contains resolved data
+	// Verify output contains resolved data with channel_ids (not full channel objects)
 	var result map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(output, &result))
 	assert.Contains(t, string(output), incidentID.String())
+	assert.Contains(t, result, "channel_ids", "output should contain channel_ids, not full channel objects")
+	assert.NotContains(t, result, "channels", "output must not contain full channel objects with secrets")
 }
 
 func TestSendGlobalHandler_Opened(t *testing.T) {
@@ -136,7 +138,7 @@ func TestSendGlobalHandler_Opened(t *testing.T) {
 		"opened":      true,
 		"incident":    &domain.Incident{ID: uuid.New()},
 		"monitor":     &domain.Monitor{ID: uuid.New()},
-		"channels":    []*domain.AlertChannel{},
+		"channel_ids": []string{},
 	}
 	input, _ := json.Marshal(payload)
 
@@ -168,7 +170,7 @@ func TestRecordDispatchHandler_LogsCompletion(t *testing.T) {
 		"opened":      true,
 		"incident":    &domain.Incident{},
 		"monitor":     &domain.Monitor{},
-		"channels":    []*domain.AlertChannel{},
+		"channel_ids": []string{},
 	}
 	input, _ := json.Marshal(payload)
 
