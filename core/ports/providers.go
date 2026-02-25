@@ -15,6 +15,31 @@ type TenantResolver interface {
 	TenantID(ctx context.Context, userID uuid.UUID) (string, error)
 }
 
+// requestMetadataKey is the context key for storing request metadata.
+type requestMetadataKey struct{}
+
+// RequestMetadata holds HTTP request details for tenant resolution.
+// Injected into context by TenantScope middleware so resolvers can
+// read headers and host without depending on Echo or net/http.
+type RequestMetadata struct {
+	Host     string
+	Headers  map[string]string
+	RemoteIP string
+}
+
+// WithRequestMetadata returns a context with the given request metadata.
+func WithRequestMetadata(ctx context.Context, md *RequestMetadata) context.Context {
+	return context.WithValue(ctx, requestMetadataKey{}, md)
+}
+
+// RequestMetadataFromContext extracts request metadata from context.
+func RequestMetadataFromContext(ctx context.Context) *RequestMetadata {
+	if md, ok := ctx.Value(requestMetadataKey{}).(*RequestMetadata); ok {
+		return md
+	}
+	return nil
+}
+
 // AuthProvider provides pluggable authentication backends.
 type AuthProvider interface {
 	UserAuthService
