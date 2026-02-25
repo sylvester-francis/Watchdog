@@ -38,13 +38,16 @@
 
 	function parseMetricValue(msg: string | undefined, status?: string): string {
 		if (!msg) {
-			// Fallback for service/docker monitors that send empty error_message on success
 			if (status === 'up') return 'Running';
 			if (status === 'down') return 'Stopped';
 			return '--';
 		}
 		const match = msg.match(/([\d.]+)%/);
-		return match ? `${parseFloat(match[1]).toFixed(1)}%` : msg;
+		if (match) return `${parseFloat(match[1]).toFixed(1)}%`;
+		// Service/docker: show simple status instead of raw message
+		if (status === 'up') return 'Running';
+		if (status === 'down') return 'Stopped';
+		return msg;
 	}
 
 	async function fetchHeartbeats() {
@@ -125,7 +128,7 @@
 								{:else if isNonLatency && hb.error_message}
 									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
 								{:else if isNonLatency && hb.status === 'up'}
-									<span class="text-xs text-emerald-400 font-mono">Running</span>
+									<span class="text-xs text-emerald-400 font-mono">OK</span>
 								{:else if hb.status === 'down' || hb.status === 'error'}
 									<span class="text-xs text-red-400 font-mono">Check failed</span>
 								{:else if hb.status === 'timeout'}
