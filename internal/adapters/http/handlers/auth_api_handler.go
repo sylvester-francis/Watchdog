@@ -23,17 +23,22 @@ type AuthAPIHandler struct {
 	loginLimiter    *middleware.LoginLimiter
 	registerLimiter *middleware.RegisterLimiter
 	auditSvc        ports.AuditService
+	sessionTracker  *middleware.SessionTracker // H-017: concurrent session limits
 }
 
 // NewAuthAPIHandler creates a new AuthAPIHandler.
-func NewAuthAPIHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository, loginLimiter *middleware.LoginLimiter, registerLimiter *middleware.RegisterLimiter, auditSvc ports.AuditService) *AuthAPIHandler {
-	return &AuthAPIHandler{
+func NewAuthAPIHandler(authSvc ports.UserAuthService, userRepo ports.UserRepository, loginLimiter *middleware.LoginLimiter, registerLimiter *middleware.RegisterLimiter, auditSvc ports.AuditService, sessionTracker ...*middleware.SessionTracker) *AuthAPIHandler {
+	h := &AuthAPIHandler{
 		authSvc:         authSvc,
 		userRepo:        userRepo,
 		loginLimiter:    loginLimiter,
 		registerLimiter: registerLimiter,
 		auditSvc:        auditSvc,
 	}
+	if len(sessionTracker) > 0 {
+		h.sessionTracker = sessionTracker[0]
+	}
+	return h
 }
 
 type loginRequest struct {
@@ -102,7 +107,7 @@ func (h *AuthAPIHandler) Login(c echo.Context) error {
 		h.auditSvc.LogEvent(c.Request().Context(), &user.ID, domain.AuditLoginSuccess, c.RealIP(), map[string]string{"email": req.Email})
 	}
 
-	if err := middleware.SetUserID(c, user.ID); err != nil {
+	if err := middleware.SetUserID(c, user.ID, h.sessionTracker); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create session"})
 	}
 
@@ -210,7 +215,7 @@ func (h *AuthAPIHandler) Logout(c echo.Context) error {
 		}
 	}
 
-	if err := middleware.ClearSession(c); err != nil {
+	if err := middleware.ClearSession(c, h.sessionTracker); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to clear session"})
 	}
 	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

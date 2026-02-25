@@ -19,7 +19,17 @@ type RateLimiterConfig struct {
 	CleanupInterval time.Duration
 }
 
-// DefaultRateLimiterConfig returns sensible defaults.
+// DefaultRateLimiterConfig returns sensible defaults for the general API rate
+// limiter (H-019).
+//
+// Rationale:
+//   - Rate=10 req/s: accommodates normal dashboard usage (page load + XHR
+//     polling) without allowing sustained abuse. A user loading the dashboard
+//     triggers ~5-8 requests; 10/s gives headroom for rapid navigation.
+//   - Burst=20: allows short spikes (e.g. initial page load fetching multiple
+//     resources simultaneously) without triggering 429.
+//   - CleanupInterval=5m: keeps the visitor map lean by evicting IPs that
+//     haven't made a request in 5 minutes.
 func DefaultRateLimiterConfig() RateLimiterConfig {
 	return RateLimiterConfig{
 		Rate:            10,
@@ -63,10 +73,21 @@ func (rl *RateLimiter) Stop() {
 func (rl *RateLimiter) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+
 			// Skip rate limiting for static assets — a single SvelteKit
 			// page load can trigger 20+ chunk requests.
-			path := c.Request().URL.Path
 			if strings.HasPrefix(path, "/_app/") || strings.HasPrefix(path, "/static/") {
+				return next(c)
+			}
+
+			// H-019: Skip rate limiting for long-lived connections (SSE and
+			// WebSocket upgrades). These endpoints hold a single connection
+			// open for extended periods; counting each keep-alive or message
+			// against the token bucket would starve them or force premature
+			// disconnects. They have their own guards (auth, per-IP conn
+			// limits for WS).
+			if strings.HasPrefix(path, "/sse/") || strings.HasPrefix(path, "/ws/") {
 				return next(c)
 			}
 
