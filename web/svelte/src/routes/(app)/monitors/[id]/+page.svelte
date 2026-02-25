@@ -9,6 +9,7 @@
 	import MonitorStats from '$lib/components/monitors/MonitorStats.svelte';
 	import LatencyChart from '$lib/components/monitors/LatencyChart.svelte';
 	import MetricChart from '$lib/components/monitors/MetricChart.svelte';
+	import StatusChart from '$lib/components/monitors/StatusChart.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
 	import EditMonitorModal from '$lib/components/monitors/EditMonitorModal.svelte';
@@ -131,9 +132,11 @@
 		<!-- Stats Cards -->
 		<MonitorStats {monitor} {uptimePercent} {agentName} />
 
-		<!-- Chart: system monitors get MetricChart, others get LatencyChart -->
+		<!-- Chart: system monitors get MetricChart, service/docker get StatusChart, others get LatencyChart -->
 		{#if monitor.type === 'system'}
 			<MetricChart {monitorId} target={monitor.target} />
+		{:else if monitor.type === 'service' || monitor.type === 'docker'}
+			<StatusChart {monitorId} />
 		{:else}
 			<LatencyChart {monitorId} />
 		{/if}

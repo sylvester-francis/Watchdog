@@ -14,7 +14,7 @@
 	let { monitorId, monitorType = '' }: Props = $props();
 
 	const toast = getToasts();
-	const isSystem = $derived(monitorType === 'system');
+	const isNonLatency = $derived(monitorType === 'system' || monitorType === 'docker' || monitorType === 'service');
 
 	let heartbeats = $state<HeartbeatPoint[]>([]);
 	let loading = $state(true);
@@ -82,10 +82,10 @@
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isSystem ? 'Value' : 'Latency'}
+							{isNonLatency ? 'Value' : 'Latency'}
 						</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isSystem ? 'Detail' : 'Status'}
+							{isNonLatency ? 'Detail' : 'Status'}
 						</th>
 					</tr>
 				</thead>
@@ -102,7 +102,7 @@
 								</div>
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isSystem}
+								{#if isNonLatency}
 									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message)}</span>
 								{:else if hb.latency_ms != null}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
@@ -111,7 +111,7 @@
 								{/if}
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isSystem && hb.error_message}
+								{#if isNonLatency && hb.error_message}
 									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
 								{:else if hb.status === 'down' || hb.status === 'error'}
 									<span class="text-xs text-red-400 font-mono">Check failed</span>
