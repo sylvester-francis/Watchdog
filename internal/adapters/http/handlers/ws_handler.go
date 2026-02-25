@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,6 +19,9 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 
+// maxWSConnsPerIP limits concurrent WebSocket connections per IP (H-005).
+const maxWSConnsPerIP = 10
+
 // WSHandler handles WebSocket connections from agents.
 type WSHandler struct {
 	agentAuthSvc   ports.AgentAuthService
@@ -26,6 +30,10 @@ type WSHandler struct {
 	hub            *realtime.Hub
 	logger         *slog.Logger
 	allowedOrigins []string
+
+	// H-005: per-IP concurrent connection tracker.
+	connMu    sync.Mutex
+	connCount map[string]int
 }
 
 // NewWSHandler creates a new WSHandler.
@@ -44,6 +52,7 @@ func NewWSHandler(
 		hub:            hub,
 		logger:         logger,
 		allowedOrigins: allowedOrigins,
+		connCount:      make(map[string]int),
 	}
 }
 
@@ -83,6 +92,31 @@ func (h *WSHandler) checkOrigin(r *http.Request) bool {
 
 // HandleConnection upgrades to WebSocket, authenticates the agent, and manages the connection.
 func (h *WSHandler) HandleConnection(c echo.Context) error {
+	clientIP := c.RealIP()
+
+	// H-005: enforce per-IP concurrent connection limit.
+	h.connMu.Lock()
+	if h.connCount[clientIP] >= maxWSConnsPerIP {
+		h.connMu.Unlock()
+		h.logger.Warn("websocket connection limit exceeded",
+			slog.String("ip", clientIP),
+			slog.Int("limit", maxWSConnsPerIP),
+		)
+		return c.JSON(http.StatusTooManyRequests, map[string]string{"error": "too many connections"})
+	}
+	h.connCount[clientIP]++
+	h.connMu.Unlock()
+
+	// Decrement on function exit (connection close).
+	defer func() {
+		h.connMu.Lock()
+		h.connCount[clientIP]--
+		if h.connCount[clientIP] <= 0 {
+			delete(h.connCount, clientIP)
+		}
+		h.connMu.Unlock()
+	}()
+
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
