@@ -169,6 +169,8 @@ func (r *Router) RegisterRoutes() {
 		AllowCredentials: true,
 		MaxAge:         86400,
 	}))
+	// H-024: reject non-JSON Content-Type on mutating endpoints.
+	v1Public.Use(middleware.RequireJSONContentType())
 	loginLLJSON := r.loginLimiter.MiddlewareJSON()
 	v1Public.POST("/auth/login", r.authAPIHandler.Login, authRL, loginLLJSON)
 	regRL := r.registerLimiter.Middleware()
@@ -189,6 +191,8 @@ func (r *Router) RegisterRoutes() {
 		AllowCredentials: true,
 		MaxAge:         86400,
 	}))
+	// H-024: reject non-JSON Content-Type on mutating endpoints.
+	v1.Use(middleware.RequireJSONContentType())
 	v1.Use(middleware.HybridAuth(r.deps.APITokenRepo))
 	v1.Use(middleware.RequireWriteScope())
 	// H-003: reject sessions issued before last password change.
