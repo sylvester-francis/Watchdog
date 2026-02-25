@@ -55,9 +55,9 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 			// Prevent cross-domain policy loading
 			h.Set("X-Permitted-Cross-Domain-Policies", "none")
 
-			// HSTS when running behind HTTPS
+			// HSTS when running behind HTTPS (H-012: includeSubDomains + preload)
 			if enableHSTS {
-				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+				h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 			}
 
 			return next(c)
