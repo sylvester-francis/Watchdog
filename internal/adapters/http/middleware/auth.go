@@ -51,8 +51,14 @@ func NoCacheHeaders(next echo.HandlerFunc) echo.HandlerFunc {
 
 // AuthRequired is middleware that requires authentication.
 // It redirects to /login if the user is not authenticated.
+// If user_id is already set in context (e.g. by upstream Kratos middleware),
+// authentication is considered complete and session check is skipped.
 func AuthRequired(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		if c.Get(UserIDKey) != nil {
+			return next(c)
+		}
+
 		sess, err := getSession(c)
 		if err != nil {
 			return c.Redirect(http.StatusFound, "/login")
@@ -72,8 +78,14 @@ func AuthRequired(next echo.HandlerFunc) echo.HandlerFunc {
 
 // AuthRequiredAPI is middleware for API endpoints that requires authentication.
 // It returns 401 Unauthorized instead of redirecting.
+// If user_id is already set in context (e.g. by upstream Kratos middleware),
+// authentication is considered complete and session check is skipped.
 func AuthRequiredAPI(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		if c.Get(UserIDKey) != nil {
+			return next(c)
+		}
+
 		sess, err := getSession(c)
 		if err != nil {
 			return c.JSON(http.StatusUnauthorized, map[string]string{
