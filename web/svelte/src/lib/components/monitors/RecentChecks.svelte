@@ -35,8 +35,13 @@
 		return `${ms}ms`;
 	}
 
-	function parseMetricValue(msg: string | undefined): string {
-		if (!msg) return '--';
+	function parseMetricValue(msg: string | undefined, status?: string): string {
+		if (!msg) {
+			// Fallback for service/docker monitors that send empty error_message on success
+			if (status === 'up') return 'Running';
+			if (status === 'down') return 'Stopped';
+			return '--';
+		}
 		const match = msg.match(/([\d.]+)%/);
 		return match ? `${parseFloat(match[1]).toFixed(1)}%` : msg;
 	}
@@ -103,7 +108,7 @@
 							</td>
 							<td class="px-5 py-2.5">
 								{#if isNonLatency}
-									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message)}</span>
+									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message, hb.status)}</span>
 								{:else if hb.latency_ms != null}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
 								{:else}
@@ -113,6 +118,8 @@
 							<td class="px-5 py-2.5">
 								{#if isNonLatency && hb.error_message}
 									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
+								{:else if isNonLatency && hb.status === 'up'}
+									<span class="text-xs text-emerald-400 font-mono">Running</span>
 								{:else if hb.status === 'down' || hb.status === 'error'}
 									<span class="text-xs text-red-400 font-mono">Check failed</span>
 								{:else if hb.status === 'timeout'}
