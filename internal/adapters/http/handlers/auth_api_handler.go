@@ -176,10 +176,13 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 
 	user, err := h.authSvc.Register(c.Request().Context(), req.Email, req.Password)
 	if err != nil {
+		// H-013: return generic error for all registration failures to prevent
+		// account enumeration. Log the real reason server-side.
 		if errors.Is(err, services.ErrEmailAlreadyExists) {
-			return c.JSON(http.StatusConflict, map[string]string{"error": "email already registered"})
+			slog.Info("registration: duplicate email", "email", req.Email)
+		} else {
+			slog.Error("registration failed", "email", req.Email, "error", err)
 		}
-		slog.Error("registration failed", "email", req.Email, "error", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
 	}
 

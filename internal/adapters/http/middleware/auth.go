@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v4"
+
+	"github.com/sylvester-francis/watchdog/core/ports"
 )
 
 // UserIDKey is the context key for the authenticated user ID.
@@ -16,6 +19,12 @@ const SessionName = "session"
 
 // sessionStoreKey is the context key for the session store.
 const sessionStoreKey = "session_store"
+
+// issuedAtKey is the session value key for when the session was created (H-002).
+const issuedAtKey = "issued_at"
+
+// maxSessionAge is the server-side session lifetime (H-002).
+const maxSessionAge = 24 * time.Hour
 
 // SessionMiddleware creates middleware that injects the session store into the context.
 func SessionMiddleware(store *sessions.CookieStore) echo.MiddlewareFunc {
@@ -69,6 +78,14 @@ func AuthRequired(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.Redirect(http.StatusFound, "/login")
 		}
 
+		// H-002: enforce server-side session age limit.
+		if issuedAt, ok := sess.Values[issuedAtKey].(int64); ok {
+			if time.Since(time.Unix(issuedAt, 0)) > maxSessionAge {
+				_ = ClearSession(c)
+				return c.Redirect(http.StatusFound, "/login")
+			}
+		}
+
 		// Store user ID in context for handlers to use
 		c.Set(UserIDKey, userID)
 
@@ -98,6 +115,16 @@ func AuthRequiredAPI(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, map[string]string{
 				"error": "unauthorized",
 			})
+		}
+
+		// H-002: enforce server-side session age limit.
+		if issuedAt, ok := sess.Values[issuedAtKey].(int64); ok {
+			if time.Since(time.Unix(issuedAt, 0)) > maxSessionAge {
+				_ = ClearSession(c)
+				return c.JSON(http.StatusUnauthorized, map[string]string{
+					"error": "session expired",
+				})
+			}
 		}
 
 		// Store user ID in context for handlers to use
@@ -131,7 +158,7 @@ func GetUserID(c echo.Context) (uuid.UUID, bool) {
 	return uuid.Nil, false
 }
 
-// SetUserID stores the user ID in the session.
+// SetUserID stores the user ID and issuance timestamp in the session (H-002).
 func SetUserID(c echo.Context, userID uuid.UUID) error {
 	sess, err := getSession(c)
 	if err != nil {
@@ -139,6 +166,7 @@ func SetUserID(c echo.Context, userID uuid.UUID) error {
 	}
 
 	sess.Values[UserIDKey] = userID.String()
+	sess.Values[issuedAtKey] = time.Now().Unix()
 	return sess.Save(c.Request(), c.Response())
 }
 
@@ -152,6 +180,43 @@ func ClearSession(c echo.Context) error {
 	sess.Values = make(map[any]any)
 	sess.Options.MaxAge = -1
 	return sess.Save(c.Request(), c.Response())
+}
+
+// SessionPasswordCheck invalidates sessions issued before the user's last
+// password change (H-003). Must run after AuthRequired sets UserIDKey.
+func SessionPasswordCheck(userRepo ports.UserRepository) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			sess, err := getSession(c)
+			if err != nil {
+				return next(c)
+			}
+
+			issuedAt, ok := sess.Values[issuedAtKey].(int64)
+			if !ok {
+				return next(c) // legacy session without issued_at
+			}
+
+			userID, ok := GetUserID(c)
+			if !ok {
+				return next(c)
+			}
+
+			user, err := userRepo.GetByID(c.Request().Context(), userID)
+			if err != nil || user == nil {
+				return next(c)
+			}
+
+			if user.PasswordChangedAt != nil && user.PasswordChangedAt.Unix() > issuedAt {
+				_ = ClearSession(c)
+				return c.JSON(http.StatusUnauthorized, map[string]string{
+					"error": "session invalidated — password was changed",
+				})
+			}
+
+			return next(c)
+		}
+	}
 }
 
 // IsAuthenticated checks if the user has a valid session.

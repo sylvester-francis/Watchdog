@@ -111,7 +111,7 @@ func (r *Router) RegisterRoutes() {
 	store := sessions.NewCookieStore([]byte(r.deps.SessionSecret))
 	store.Options = &sessions.Options{
 		Path:     "/",
-		MaxAge:   86400 * 7, // 7 days
+		MaxAge:   86400, // H-002: 24 hours (was 7 days)
 		HttpOnly: true,
 		Secure:   r.deps.SecureCookies,
 		SameSite: http.SameSiteLaxMode,
@@ -129,6 +129,9 @@ func (r *Router) RegisterRoutes() {
 	})
 	r.generalRateLimiter = middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
 	e.Use(r.generalRateLimiter.Middleware())
+
+	// H-001: Reject request bodies larger than 1 MB to prevent DoS via oversized payloads.
+	e.Use(echomw.BodyLimit("1M"))
 
 	// Static files (legacy — still serves openapi.json, favicon, etc.)
 	e.Static("/static", "web/static")
@@ -188,6 +191,8 @@ func (r *Router) RegisterRoutes() {
 	}))
 	v1.Use(middleware.HybridAuth(r.deps.APITokenRepo))
 	v1.Use(middleware.RequireWriteScope())
+	// H-003: reject sessions issued before last password change.
+	v1.Use(middleware.SessionPasswordCheck(r.deps.UserRepo))
 	v1.Use(tenantMW)
 
 	// Auth API (authenticated)
@@ -216,11 +221,11 @@ func (r *Router) RegisterRoutes() {
 	v1.GET("/dashboard/stats", r.apiV1Handler.DashboardStats)
 	v1.GET("/monitors/summary", r.apiHandler.MonitorsSummary)
 
-	// Settings: tokens
+	// Settings: tokens (tighter rate limit on mutating endpoints — H-008)
 	v1.GET("/tokens", r.settingsAPIHandler.ListTokens)
-	v1.POST("/tokens", r.settingsAPIHandler.CreateToken)
-	v1.DELETE("/tokens/:id", r.settingsAPIHandler.DeleteToken)
-	v1.POST("/tokens/:id/regenerate", r.settingsAPIHandler.RegenerateToken)
+	v1.POST("/tokens", r.settingsAPIHandler.CreateToken, authRL)
+	v1.DELETE("/tokens/:id", r.settingsAPIHandler.DeleteToken, authRL)
+	v1.POST("/tokens/:id/regenerate", r.settingsAPIHandler.RegenerateToken, authRL)
 
 	// Settings: alert channels
 	v1.GET("/alert-channels", r.settingsAPIHandler.ListChannels)
@@ -346,6 +351,11 @@ func (r *Router) registerSvelteRoutes() {
 		requestedFile := filepath.Join(absBuildDir, cleanPath)
 		// Verify resolved path stays within build directory
 		if !strings.HasPrefix(requestedFile, absBuildDir) {
+			return serveSPA(c)
+		}
+		// H-015: resolve symlinks and verify the real path stays within build dir.
+		realPath, err := filepath.EvalSymlinks(requestedFile)
+		if err == nil && !strings.HasPrefix(realPath, absBuildDir) {
 			return serveSPA(c)
 		}
 		if info, err := os.Stat(requestedFile); err == nil && !info.IsDir() {

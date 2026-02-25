@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -10,6 +11,9 @@ import (
 
 	"github.com/sylvester-francis/watchdog/internal/config"
 )
+
+// credentialPattern matches credentials in connection strings (H-014).
+var credentialPattern = regexp.MustCompile(`://[^:]+:[^@]+@`)
 
 // txKey is the context key for storing a transaction.
 type txKey struct{}
@@ -51,7 +55,7 @@ type DB struct {
 func NewDB(ctx context.Context, cfg config.DatabaseConfig) (*DB, error) {
 	poolConfig, err := pgxpool.ParseConfig(cfg.URL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse database URL: %w", err)
+		return nil, fmt.Errorf("failed to parse database URL: %s", scrubCredentials(err.Error()))
 	}
 
 	poolConfig.MaxConns = cfg.MaxConns
@@ -66,10 +70,15 @@ func NewDB(ctx context.Context, cfg config.DatabaseConfig) (*DB, error) {
 
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("failed to ping database: %s", scrubCredentials(err.Error()))
 	}
 
 	return &DB{Pool: pool}, nil
+}
+
+// scrubCredentials removes user:password from connection strings in error messages (H-014).
+func scrubCredentials(s string) string {
+	return credentialPattern.ReplaceAllString(s, "://***:***@")
 }
 
 // Close closes the database connection pool.
