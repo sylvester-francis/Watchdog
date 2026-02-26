@@ -2,10 +2,11 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { getAuth } from '$lib/stores/auth.svelte';
-	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, ShieldAlert, MessageCircle, X } from 'lucide-svelte';
+	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, ShieldAlert, MessageCircle, X, Search } from 'lucide-svelte';
 
 	const auth = getAuth();
 	let mobileOpen = $state(false);
+	let isMac = $state(false);
 
 	function toggleMobile() {
 		mobileOpen = !mobileOpen;
@@ -16,16 +17,17 @@
 	}
 
 	onMount(() => {
+		isMac = navigator.platform?.includes('Mac') ?? false;
 		function handleToggle() { toggleMobile(); }
 		window.addEventListener('toggle-sidebar', handleToggle);
 		return () => window.removeEventListener('toggle-sidebar', handleToggle);
 	});
 
 	const navItems = [
-		{ href: `/dashboard`, label: 'Dashboard', icon: LayoutDashboard, group: 'Monitoring' },
-		{ href: `/monitors`, label: 'Monitors', icon: Activity, group: 'Monitoring' },
-		{ href: `/incidents`, label: 'Incidents', icon: AlertTriangle, group: 'Monitoring' },
-		{ href: `/status-pages`, label: 'Status Pages', icon: Globe, group: 'Monitoring' },
+		{ href: `/dashboard`, label: 'Dashboard', icon: LayoutDashboard, group: 'Monitoring', shortcut: 'G D' },
+		{ href: `/monitors`, label: 'Monitors', icon: Activity, group: 'Monitoring', shortcut: 'G M' },
+		{ href: `/incidents`, label: 'Incidents', icon: AlertTriangle, group: 'Monitoring', shortcut: 'G I' },
+		{ href: `/status-pages`, label: 'Status Pages', icon: Globe, group: 'Monitoring', shortcut: 'G P' },
 	];
 
 	const systemItems = [
@@ -67,6 +69,16 @@
 		</button>
 	</div>
 
+	<!-- Search shortcut -->
+	<button
+		onclick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+		class="mx-3 mt-3 mb-1 flex items-center space-x-2 px-3 py-1.5 rounded-md border border-border/50 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors cursor-pointer"
+	>
+		<Search class="w-3.5 h-3.5" />
+		<span class="flex-1 text-left">Search...</span>
+		<kbd class="hidden sm:inline-flex px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">{isMac ? '\u2318' : 'Ctrl+'}K</kbd>
+	</button>
+
 	<!-- Navigation -->
 	<nav class="flex-1 px-3 py-4 space-y-0.5" aria-label="Main navigation">
 		<p class="text-[9px] uppercase tracking-wider text-muted-foreground/40 px-3 mb-1">Monitoring</p>
@@ -80,6 +92,9 @@
 			>
 				<item.icon class="w-4 h-4" />
 				<span class="flex-1">{item.label}</span>
+				{#if item.shortcut}
+					<kbd class="hidden lg:inline-flex px-1 py-0.5 rounded bg-muted/50 text-[9px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">{item.shortcut}</kbd>
+				{/if}
 			</a>
 		{/each}
 
