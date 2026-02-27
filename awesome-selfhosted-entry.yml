@@ -1,0 +1,12 @@
+name: WatchDog
+website_url: https://usewatchdog.dev
+description: Agent-based infrastructure monitoring for services behind firewalls. Distributed agents connect outbound via WebSocket, no inbound ports needed (alternative to Uptime Kuma, UptimeRobot).
+licenses:
+  - AGPL-3.0
+platforms:
+  - Docker
+  - Go
+tags:
+  - Status / Uptime pages
+source_code_url: https://github.com/sylvester-francis/Watchdog
+demo_url: https://usewatchdog.dev
