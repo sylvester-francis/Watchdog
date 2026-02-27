@@ -17,46 +17,16 @@
     }
   ],
   "tags": [
-    {
-      "name": "Auth",
-      "description": "Authentication and session management"
-    },
-    {
-      "name": "Monitors",
-      "description": "Monitor CRUD and data queries"
-    },
-    {
-      "name": "Agents",
-      "description": "Agent management"
-    },
-    {
-      "name": "Incidents",
-      "description": "Incident lifecycle"
-    },
-    {
-      "name": "Dashboard",
-      "description": "Dashboard statistics"
-    },
-    {
-      "name": "API Tokens",
-      "description": "Token management"
-    },
-    {
-      "name": "Alert Channels",
-      "description": "Notification channel management"
-    },
-    {
-      "name": "Settings",
-      "description": "User profile and password"
-    },
-    {
-      "name": "Status Pages",
-      "description": "Public status pages"
-    },
-    {
-      "name": "Admin",
-      "description": "System administration (admin only)"
-    }
+    { "name": "Auth", "description": "Authentication and session management" },
+    { "name": "Monitors", "description": "Monitor CRUD and data queries" },
+    { "name": "Agents", "description": "Agent management" },
+    { "name": "Incidents", "description": "Incident lifecycle" },
+    { "name": "Dashboard", "description": "Dashboard statistics" },
+    { "name": "API Tokens", "description": "Token management" },
+    { "name": "Alert Channels", "description": "Notification channel management" },
+    { "name": "Settings", "description": "User profile and password" },
+    { "name": "Status Pages", "description": "Public status pages" },
+    { "name": "Admin", "description": "System administration (admin only)" }
   ],
   "paths": {
     "/auth/needs-setup": {
@@ -64,9 +34,7 @@
         "summary": "Check if setup is needed",
         "description": "Returns whether the system needs initial admin account creation.",
         "operationId": "needsSetup",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "responses": {
           "200": {
@@ -76,9 +44,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "needs_setup": {
-                      "type": "boolean"
-                    }
+                    "needs_setup": { "type": "boolean" }
                   }
                 }
               }
@@ -92,17 +58,13 @@
         "summary": "Initial admin setup",
         "description": "Creates the first admin account. Only works when no users exist.",
         "operationId": "setup",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
             }
           }
         },
@@ -114,20 +76,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    }
+                    "user": { "$ref": "#/components/schemas/User" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "409": {
-            "description": "Setup already completed"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "description": "Setup already completed" }
         }
       }
     },
@@ -136,9 +92,7 @@
         "summary": "Login",
         "description": "Authenticates with email and password. Sets a session cookie.",
         "operationId": "login",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "requestBody": {
           "required": true,
@@ -146,18 +100,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "email",
-                  "password"
-                ],
+                "required": ["email", "password"],
                 "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
                 }
               }
             }
@@ -171,23 +117,15 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    },
-                    "must_change_password": {
-                      "type": "boolean"
-                    }
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "must_change_password": { "type": "boolean" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "description": "Rate limit exceeded"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "description": "Rate limit exceeded" }
         }
       }
     },
@@ -196,17 +134,13 @@
         "summary": "Register",
         "description": "Creates a new user account.",
         "operationId": "register",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
             }
           }
         },
@@ -218,20 +152,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    }
+                    "user": { "$ref": "#/components/schemas/User" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "429": {
-            "description": "Rate limit exceeded"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "429": { "description": "Rate limit exceeded" }
         }
       }
     },
@@ -240,16 +168,10 @@
         "summary": "Logout",
         "description": "Clears the session cookie.",
         "operationId": "logout",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
-          "200": {
-            "description": "Logged out"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "200": { "description": "Logged out" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -258,9 +180,7 @@
         "summary": "Current user",
         "description": "Returns the authenticated user's profile.",
         "operationId": "me",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
           "200": {
             "description": "User profile",
@@ -269,20 +189,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    },
-                    "must_change_password": {
-                      "type": "boolean"
-                    }
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "must_change_password": { "type": "boolean" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -291,9 +205,7 @@
         "summary": "List monitors",
         "description": "Returns all monitors across all agents owned by the authenticated user.",
         "operationId": "listMonitors",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "responses": {
           "200": {
             "description": "List of monitors",
@@ -304,34 +216,26 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Monitor"
-                      }
+                      "items": { "$ref": "#/components/schemas/Monitor" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       },
       "post": {
         "summary": "Create monitor",
         "description": "Creates a new monitor on the specified agent.",
         "operationId": "createMonitor",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMonitorRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateMonitorRequest" }
             }
           }
         },
@@ -343,20 +247,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/Monitor"
-                    }
+                    "data": { "$ref": "#/components/schemas/Monitor" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -365,9 +263,7 @@
         "summary": "Monitor summary",
         "description": "Returns a summary of all monitors with status and latest heartbeat data for the dashboard.",
         "operationId": "monitorsSummary",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "responses": {
           "200": {
             "description": "Monitor summaries",
@@ -378,18 +274,14 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/MonitorSummary"
-                      }
+                      "items": { "$ref": "#/components/schemas/MonitorSummary" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -398,13 +290,9 @@
         "summary": "Get monitor",
         "description": "Returns a single monitor by ID, including recent heartbeat statistics.",
         "operationId": "getMonitor",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/MonitorId"
-          }
+          { "$ref": "#/components/parameters/MonitorId" }
         ],
         "responses": {
           "200": {
@@ -414,44 +302,30 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/Monitor"
-                    },
-                    "heartbeats": {
-                      "$ref": "#/components/schemas/HeartbeatSummary"
-                    }
+                    "data": { "$ref": "#/components/schemas/Monitor" },
+                    "heartbeats": { "$ref": "#/components/schemas/HeartbeatSummary" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "put": {
         "summary": "Update monitor",
         "description": "Updates an existing monitor. All fields are optional — only provided fields are changed.",
         "operationId": "updateMonitor",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/MonitorId"
-          }
+          { "$ref": "#/components/parameters/MonitorId" }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMonitorRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateMonitorRequest" }
             }
           }
         },
@@ -463,47 +337,29 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/Monitor"
-                    }
+                    "data": { "$ref": "#/components/schemas/Monitor" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
         "summary": "Delete monitor",
         "description": "Permanently deletes a monitor and all associated heartbeats.",
         "operationId": "deleteMonitor",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/MonitorId"
-          }
+          { "$ref": "#/components/parameters/MonitorId" }
         ],
         "responses": {
-          "204": {
-            "description": "Monitor deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Monitor deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -512,16 +368,10 @@
         "summary": "Monitor heartbeats",
         "description": "Returns heartbeat history for a monitor.",
         "operationId": "monitorHeartbeats",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/MonitorId"
-          },
-          {
-            "$ref": "#/components/parameters/Period"
-          }
+          { "$ref": "#/components/parameters/MonitorId" },
+          { "$ref": "#/components/parameters/Period" }
         ],
         "responses": {
           "200": {
@@ -533,21 +383,15 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/HeartbeatPoint"
-                      }
+                      "items": { "$ref": "#/components/schemas/HeartbeatPoint" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -556,16 +400,10 @@
         "summary": "Monitor latency history",
         "description": "Returns aggregated latency data (avg, min, max per time bucket) for charting.",
         "operationId": "monitorLatency",
-        "tags": [
-          "Monitors"
-        ],
+        "tags": ["Monitors"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/MonitorId"
-          },
-          {
-            "$ref": "#/components/parameters/Period"
-          }
+          { "$ref": "#/components/parameters/MonitorId" },
+          { "$ref": "#/components/parameters/Period" }
         ],
         "responses": {
           "200": {
@@ -577,21 +415,15 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/LatencyPoint"
-                      }
+                      "items": { "$ref": "#/components/schemas/LatencyPoint" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -600,9 +432,7 @@
         "summary": "List agents",
         "description": "Returns all agents owned by the authenticated user.",
         "operationId": "listAgents",
-        "tags": [
-          "Agents"
-        ],
+        "tags": ["Agents"],
         "responses": {
           "200": {
             "description": "List of agents",
@@ -613,34 +443,26 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Agent"
-                      }
+                      "items": { "$ref": "#/components/schemas/Agent" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       },
       "post": {
         "summary": "Create agent",
         "description": "Creates a new agent and returns its API key. **Save the API key — it cannot be retrieved again.**",
         "operationId": "createAgent",
-        "tags": [
-          "Agents"
-        ],
+        "tags": ["Agents"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAgentRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateAgentRequest" }
             }
           }
         },
@@ -655,17 +477,9 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "id": {
-                          "type": "string",
-                          "format": "uuid"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "api_key": {
-                          "type": "string",
-                          "description": "One-time display — save this value"
-                        }
+                        "id": { "type": "string", "format": "uuid" },
+                        "name": { "type": "string" },
+                        "api_key": { "type": "string", "description": "One-time display — save this value" }
                       }
                     }
                   }
@@ -673,12 +487,8 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -687,30 +497,19 @@
         "summary": "Delete agent",
         "description": "Permanently deletes an agent and all associated monitors, heartbeats, and incidents.",
         "operationId": "deleteAgent",
-        "tags": [
-          "Agents"
-        ],
+        "tags": ["Agents"],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Agent deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Agent deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -719,9 +518,7 @@
         "summary": "List incidents",
         "description": "Returns incidents. Defaults to active (open + acknowledged). Use `?status=resolved` for resolved.",
         "operationId": "listIncidents",
-        "tags": [
-          "Incidents"
-        ],
+        "tags": ["Incidents"],
         "parameters": [
           {
             "name": "status",
@@ -729,10 +526,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "active",
-                "resolved"
-              ]
+              "enum": ["active", "resolved"]
             },
             "description": "Filter by incident status"
           }
@@ -747,18 +541,14 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Incident"
-                      }
+                      "items": { "$ref": "#/components/schemas/Incident" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -767,13 +557,9 @@
         "summary": "Acknowledge incident",
         "description": "Marks an incident as acknowledged by the authenticated user.",
         "operationId": "acknowledgeIncident",
-        "tags": [
-          "Incidents"
-        ],
+        "tags": ["Incidents"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/IncidentId"
-          }
+          { "$ref": "#/components/parameters/IncidentId" }
         ],
         "responses": {
           "200": {
@@ -783,21 +569,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "acknowledged"
-                    }
+                    "status": { "type": "string", "example": "acknowledged" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -806,13 +585,9 @@
         "summary": "Resolve incident",
         "description": "Manually resolves an incident.",
         "operationId": "resolveIncident",
-        "tags": [
-          "Incidents"
-        ],
+        "tags": ["Incidents"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/IncidentId"
-          }
+          { "$ref": "#/components/parameters/IncidentId" }
         ],
         "responses": {
           "200": {
@@ -822,21 +597,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "resolved"
-                    }
+                    "status": { "type": "string", "example": "resolved" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -845,23 +613,17 @@
         "summary": "Dashboard statistics",
         "description": "Returns summary statistics for the authenticated user's infrastructure.",
         "operationId": "dashboardStats",
-        "tags": [
-          "Dashboard"
-        ],
+        "tags": ["Dashboard"],
         "responses": {
           "200": {
             "description": "Dashboard statistics",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DashboardStats"
-                }
+                "schema": { "$ref": "#/components/schemas/DashboardStats" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -870,9 +632,7 @@
         "summary": "List API tokens",
         "description": "Returns all API tokens for the authenticated user. Plaintext values are not returned.",
         "operationId": "listTokens",
-        "tags": [
-          "API Tokens"
-        ],
+        "tags": ["API Tokens"],
         "responses": {
           "200": {
             "description": "List of tokens",
@@ -883,34 +643,26 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/APIToken"
-                      }
+                      "items": { "$ref": "#/components/schemas/APIToken" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       },
       "post": {
         "summary": "Create API token",
         "description": "Creates a new API token. **Save the plaintext token — it cannot be retrieved again.**",
         "operationId": "createToken",
-        "tags": [
-          "API Tokens"
-        ],
+        "tags": ["API Tokens"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTokenRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateTokenRequest" }
             }
           }
         },
@@ -922,24 +674,15 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/APIToken"
-                    },
-                    "plaintext": {
-                      "type": "string",
-                      "description": "One-time display. Format: wd_<32 hex chars>"
-                    }
+                    "data": { "$ref": "#/components/schemas/APIToken" },
+                    "plaintext": { "type": "string", "description": "One-time display. Format: wd_<32 hex chars>" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -948,24 +691,14 @@
         "summary": "Revoke API token",
         "description": "Permanently revokes an API token.",
         "operationId": "deleteToken",
-        "tags": [
-          "API Tokens"
-        ],
+        "tags": ["API Tokens"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/TokenId"
-          }
+          { "$ref": "#/components/parameters/TokenId" }
         ],
         "responses": {
-          "204": {
-            "description": "Token revoked"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Token revoked" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -974,13 +707,9 @@
         "summary": "Regenerate API token",
         "description": "Generates a new token value for an existing token entry. The old token is immediately invalidated.",
         "operationId": "regenerateToken",
-        "tags": [
-          "API Tokens"
-        ],
+        "tags": ["API Tokens"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/TokenId"
-          }
+          { "$ref": "#/components/parameters/TokenId" }
         ],
         "responses": {
           "200": {
@@ -990,23 +719,15 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/APIToken"
-                    },
-                    "plaintext": {
-                      "type": "string"
-                    }
+                    "data": { "$ref": "#/components/schemas/APIToken" },
+                    "plaintext": { "type": "string" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1015,9 +736,7 @@
         "summary": "List alert channels",
         "description": "Returns all alert channels. Sensitive config fields (passwords, tokens) are masked.",
         "operationId": "listAlertChannels",
-        "tags": [
-          "Alert Channels"
-        ],
+        "tags": ["Alert Channels"],
         "responses": {
           "200": {
             "description": "List of alert channels",
@@ -1028,34 +747,26 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AlertChannel"
-                      }
+                      "items": { "$ref": "#/components/schemas/AlertChannel" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       },
       "post": {
         "summary": "Create alert channel",
         "description": "Creates a new alert channel. Config is encrypted before storage. Channel is tested on creation.",
         "operationId": "createAlertChannel",
-        "tags": [
-          "Alert Channels"
-        ],
+        "tags": ["Alert Channels"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAlertChannelRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateAlertChannelRequest" }
             }
           }
         },
@@ -1067,20 +778,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/AlertChannel"
-                    }
+                    "data": { "$ref": "#/components/schemas/AlertChannel" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -1089,24 +794,14 @@
         "summary": "Delete alert channel",
         "description": "Permanently deletes an alert channel.",
         "operationId": "deleteAlertChannel",
-        "tags": [
-          "Alert Channels"
-        ],
+        "tags": ["Alert Channels"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ChannelId"
-          }
+          { "$ref": "#/components/parameters/ChannelId" }
         ],
         "responses": {
-          "204": {
-            "description": "Channel deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Channel deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1115,13 +810,9 @@
         "summary": "Toggle alert channel",
         "description": "Enables or disables an alert channel.",
         "operationId": "toggleAlertChannel",
-        "tags": [
-          "Alert Channels"
-        ],
+        "tags": ["Alert Channels"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ChannelId"
-          }
+          { "$ref": "#/components/parameters/ChannelId" }
         ],
         "responses": {
           "200": {
@@ -1131,20 +822,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/AlertChannel"
-                    }
+                    "data": { "$ref": "#/components/schemas/AlertChannel" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1153,13 +838,9 @@
         "summary": "Test alert channel",
         "description": "Sends a sample notification to verify the channel is configured correctly.",
         "operationId": "testAlertChannel",
-        "tags": [
-          "Alert Channels"
-        ],
+        "tags": ["Alert Channels"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ChannelId"
-          }
+          { "$ref": "#/components/parameters/ChannelId" }
         ],
         "responses": {
           "200": {
@@ -1169,21 +850,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "ok"
-                    }
+                    "status": { "type": "string", "example": "ok" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1192,9 +866,7 @@
         "summary": "Update profile",
         "description": "Updates the authenticated user's profile (username).",
         "operationId": "updateProfile",
-        "tags": [
-          "Settings"
-        ],
+        "tags": ["Settings"],
         "requestBody": {
           "required": true,
           "content": {
@@ -1202,10 +874,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "username": {
-                    "type": "string",
-                    "description": "3-50 chars, lowercase alphanumeric + hyphens"
-                  }
+                  "username": { "type": "string", "description": "3-50 chars, lowercase alphanumeric + hyphens" }
                 }
               }
             }
@@ -1222,9 +891,7 @@
                     "data": {
                       "type": "object",
                       "properties": {
-                        "username": {
-                          "type": "string"
-                        }
+                        "username": { "type": "string" }
                       }
                     }
                   }
@@ -1232,12 +899,8 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -1246,27 +909,17 @@
         "summary": "Change password",
         "description": "Changes the authenticated user's password. All other sessions are invalidated.",
         "operationId": "changePassword",
-        "tags": [
-          "Settings"
-        ],
+        "tags": ["Settings"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "current_password",
-                  "new_password"
-                ],
+                "required": ["current_password", "new_password"],
                 "properties": {
-                  "current_password": {
-                    "type": "string"
-                  },
-                  "new_password": {
-                    "type": "string",
-                    "minLength": 8
-                  }
+                  "current_password": { "type": "string" },
+                  "new_password": { "type": "string", "minLength": 8 }
                 }
               }
             }
@@ -1280,21 +933,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "ok"
-                    }
+                    "status": { "type": "string", "example": "ok" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -1303,9 +949,7 @@
         "summary": "List status pages",
         "description": "Returns all status pages owned by the authenticated user.",
         "operationId": "listStatusPages",
-        "tags": [
-          "Status Pages"
-        ],
+        "tags": ["Status Pages"],
         "responses": {
           "200": {
             "description": "List of status pages",
@@ -1316,34 +960,26 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/StatusPage"
-                      }
+                      "items": { "$ref": "#/components/schemas/StatusPage" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       },
       "post": {
         "summary": "Create status page",
         "description": "Creates a new status page with auto-generated slug.",
         "operationId": "createStatusPage",
-        "tags": [
-          "Status Pages"
-        ],
+        "tags": ["Status Pages"],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateStatusPageRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateStatusPageRequest" }
             }
           }
         },
@@ -1355,20 +991,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/StatusPage"
-                    }
+                    "data": { "$ref": "#/components/schemas/StatusPage" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },
@@ -1377,13 +1007,9 @@
         "summary": "Get status page",
         "description": "Returns a status page with available monitors.",
         "operationId": "getStatusPage",
-        "tags": [
-          "Status Pages"
-        ],
+        "tags": ["Status Pages"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/StatusPageId"
-          }
+          { "$ref": "#/components/parameters/StatusPageId" }
         ],
         "responses": {
           "200": {
@@ -1393,47 +1019,33 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/StatusPage"
-                    },
+                    "data": { "$ref": "#/components/schemas/StatusPage" },
                     "available_monitors": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Monitor"
-                      }
+                      "items": { "$ref": "#/components/schemas/Monitor" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "put": {
         "summary": "Update status page",
         "description": "Updates an existing status page.",
         "operationId": "updateStatusPage",
-        "tags": [
-          "Status Pages"
-        ],
+        "tags": ["Status Pages"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/StatusPageId"
-          }
+          { "$ref": "#/components/parameters/StatusPageId" }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateStatusPageRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateStatusPageRequest" }
             }
           }
         },
@@ -1445,47 +1057,29 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/StatusPage"
-                    }
+                    "data": { "$ref": "#/components/schemas/StatusPage" }
                   }
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
         "summary": "Delete status page",
         "description": "Permanently deletes a status page.",
         "operationId": "deleteStatusPage",
-        "tags": [
-          "Status Pages"
-        ],
+        "tags": ["Status Pages"],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/StatusPageId"
-          }
+          { "$ref": "#/components/parameters/StatusPageId" }
         ],
         "responses": {
-          "204": {
-            "description": "Status page deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Status page deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1494,35 +1088,25 @@
         "summary": "Public status page",
         "description": "Returns public status page data. No authentication required.",
         "operationId": "publicStatusPage",
-        "tags": [
-          "Status Pages"
-        ],
+        "tags": ["Status Pages"],
         "security": [],
         "parameters": [
           {
             "name": "username",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           },
           {
             "name": "slug",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
-          "200": {
-            "description": "Public status page data"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "200": { "description": "Public status page data" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1531,19 +1115,11 @@
         "summary": "System info",
         "description": "Returns system diagnostics including database stats, uptime, and version. Admin only.",
         "operationId": "systemInfo",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "responses": {
-          "200": {
-            "description": "System diagnostics"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
+          "200": { "description": "System diagnostics" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -1552,9 +1128,7 @@
         "summary": "List all users",
         "description": "Returns all users with resource counts (agents, monitors). Admin only.",
         "operationId": "adminListUsers",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "responses": {
           "200": {
             "description": "List of users with usage",
@@ -1565,21 +1139,15 @@
                   "properties": {
                     "data": {
                       "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AdminUser"
-                      }
+                      "items": { "$ref": "#/components/schemas/AdminUser" }
                     }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -1588,18 +1156,13 @@
         "summary": "Reset user password",
         "description": "Generates a temporary password for a user. All their sessions are invalidated. Admin only.",
         "operationId": "adminResetPassword",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1610,21 +1173,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "password": {
-                      "type": "string",
-                      "description": "Temporary password to give to the user"
-                    }
+                    "password": { "type": "string", "description": "Temporary password to give to the user" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -1633,30 +1189,19 @@
         "summary": "Delete user",
         "description": "Permanently deletes a user and all their resources (agents, monitors, tokens). Admin only.",
         "operationId": "adminDeleteUser",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "User deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
+          "204": { "description": "User deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -1665,9 +1210,7 @@
         "summary": "Security events",
         "description": "Returns recent audit/security events. Admin only.",
         "operationId": "adminSecurityEvents",
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "responses": {
           "200": {
             "description": "Security events",
@@ -1676,24 +1219,15 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AuditLogEntry"
-                      }
-                    }
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/AuditLogEntry" } }
                   }
                 }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+    }
       }
     }
   },
@@ -1710,50 +1244,35 @@
         "name": "id",
         "in": "path",
         "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        },
+        "schema": { "type": "string", "format": "uuid" },
         "description": "Monitor UUID"
       },
       "IncidentId": {
         "name": "id",
         "in": "path",
         "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        },
+        "schema": { "type": "string", "format": "uuid" },
         "description": "Incident UUID"
       },
       "TokenId": {
         "name": "id",
         "in": "path",
         "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        },
+        "schema": { "type": "string", "format": "uuid" },
         "description": "Token UUID"
       },
       "ChannelId": {
         "name": "id",
         "in": "path",
         "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        },
+        "schema": { "type": "string", "format": "uuid" },
         "description": "Alert channel UUID"
       },
       "StatusPageId": {
         "name": "id",
         "in": "path",
         "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        },
+        "schema": { "type": "string", "format": "uuid" },
         "description": "Status page UUID"
       },
       "Period": {
@@ -1762,12 +1281,7 @@
         "required": false,
         "schema": {
           "type": "string",
-          "enum": [
-            "1h",
-            "24h",
-            "7d",
-            "30d"
-          ],
+          "enum": ["1h", "24h", "7d", "30d"],
           "default": "24h"
         },
         "description": "Time period for data retrieval"
@@ -1777,671 +1291,242 @@
       "User": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "username": {
-            "type": "string"
-          },
-          "plan": {
-            "type": "string"
-          },
-          "is_admin": {
-            "type": "boolean"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "username": { "type": "string" },
+          "plan": { "type": "string" },
+          "is_admin": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "RegisterRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password",
-          "confirm_password"
-        ],
+        "required": ["email", "password", "confirm_password"],
         "properties": {
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8
-          },
-          "confirm_password": {
-            "type": "string"
-          }
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 },
+          "confirm_password": { "type": "string" }
         }
       },
       "Monitor": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "agent_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "http",
-              "tcp",
-              "ping",
-              "dns",
-              "tls",
-              "docker",
-              "database",
-              "system",
-              "service"
-            ]
-          },
-          "target": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "up",
-              "down",
-              "degraded"
-            ]
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "interval_seconds": {
-            "type": "integer",
-            "minimum": 5,
-            "maximum": 3600
-          },
-          "timeout_seconds": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 60
-          },
-          "failure_threshold": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 20
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Type-specific config (e.g., db_type, expected_content)"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "agent_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["http", "tcp", "ping", "dns", "tls", "docker", "database", "system", "service"] },
+          "target": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "up", "down", "degraded"] },
+          "enabled": { "type": "boolean" },
+          "interval_seconds": { "type": "integer", "minimum": 5, "maximum": 3600 },
+          "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 60 },
+          "failure_threshold": { "type": "integer", "minimum": 1, "maximum": 20 },
+          "metadata": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Type-specific config (e.g., db_type, expected_content)" },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "MonitorSummary": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "target": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "agent_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "interval_seconds": {
-            "type": "integer"
-          },
-          "latest_heartbeat": {
-            "$ref": "#/components/schemas/HeartbeatPoint"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "target": { "type": "string" },
+          "status": { "type": "string" },
+          "agent_id": { "type": "string", "format": "uuid" },
+          "interval_seconds": { "type": "integer" },
+          "latest_heartbeat": { "$ref": "#/components/schemas/HeartbeatPoint" }
         }
       },
       "CreateMonitorRequest": {
         "type": "object",
-        "required": [
-          "agent_id",
-          "name",
-          "type",
-          "target"
-        ],
+        "required": ["agent_id", "name", "type", "target"],
         "properties": {
-          "agent_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "http",
-              "tcp",
-              "ping",
-              "dns",
-              "tls",
-              "docker",
-              "database",
-              "system",
-              "service"
-            ]
-          },
-          "target": {
-            "type": "string",
-            "maxLength": 2048
-          },
-          "interval_seconds": {
-            "type": "integer",
-            "default": 30
-          },
-          "timeout_seconds": {
-            "type": "integer",
-            "default": 10
-          },
-          "failure_threshold": {
-            "type": "integer",
-            "default": 3
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
+          "agent_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["http", "tcp", "ping", "dns", "tls", "docker", "database", "system", "service"] },
+          "target": { "type": "string", "maxLength": 2048 },
+          "interval_seconds": { "type": "integer", "default": 30 },
+          "timeout_seconds": { "type": "integer", "default": 10 },
+          "failure_threshold": { "type": "integer", "default": 3 },
+          "metadata": { "type": "object", "additionalProperties": { "type": "string" } }
         }
       },
       "UpdateMonitorRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "target": {
-            "type": "string"
-          },
-          "interval_seconds": {
-            "type": "integer"
-          },
-          "timeout_seconds": {
-            "type": "integer"
-          },
-          "failure_threshold": {
-            "type": "integer"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
+          "name": { "type": "string" },
+          "target": { "type": "string" },
+          "interval_seconds": { "type": "integer" },
+          "timeout_seconds": { "type": "integer" },
+          "failure_threshold": { "type": "integer" },
+          "enabled": { "type": "boolean" },
+          "metadata": { "type": "object", "additionalProperties": { "type": "string" } }
         }
       },
       "Agent": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "online",
-              "offline"
-            ]
-          },
-          "last_seen_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["online", "offline"] },
+          "last_seen_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "CreateAgentRequest": {
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "properties": {
-          "name": {
-            "type": "string"
-          }
+          "name": { "type": "string" }
         }
       },
       "Incident": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "monitor_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "open",
-              "acknowledged",
-              "resolved"
-            ]
-          },
-          "started_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "resolved_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "ttr_seconds": {
-            "type": "integer",
-            "nullable": true,
-            "description": "Time-to-resolution in seconds"
-          },
-          "acknowledged_by": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "acknowledged_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "monitor_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["open", "acknowledged", "resolved"] },
+          "started_at": { "type": "string", "format": "date-time" },
+          "resolved_at": { "type": "string", "format": "date-time", "nullable": true },
+          "ttr_seconds": { "type": "integer", "nullable": true, "description": "Time-to-resolution in seconds" },
+          "acknowledged_by": { "type": "string", "format": "uuid", "nullable": true },
+          "acknowledged_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "HeartbeatPoint": {
         "type": "object",
         "properties": {
-          "time": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "up",
-              "down",
-              "timeout",
-              "error"
-            ]
-          },
-          "latency_ms": {
-            "type": "integer",
-            "nullable": true
-          },
-          "error_message": {
-            "type": "string",
-            "nullable": true
-          },
-          "cert_expiry_days": {
-            "type": "integer",
-            "nullable": true
-          },
-          "cert_issuer": {
-            "type": "string",
-            "nullable": true
-          }
+          "time": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["up", "down", "timeout", "error"] },
+          "latency_ms": { "type": "integer", "nullable": true },
+          "error_message": { "type": "string", "nullable": true },
+          "cert_expiry_days": { "type": "integer", "nullable": true },
+          "cert_issuer": { "type": "string", "nullable": true }
         }
       },
       "LatencyPoint": {
         "type": "object",
         "properties": {
-          "time": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "avg_ms": {
-            "type": "number"
-          },
-          "min_ms": {
-            "type": "number"
-          },
-          "max_ms": {
-            "type": "number"
-          }
+          "time": { "type": "string", "format": "date-time" },
+          "avg_ms": { "type": "number" },
+          "min_ms": { "type": "number" },
+          "max_ms": { "type": "number" }
         }
       },
       "HeartbeatSummary": {
         "type": "object",
         "properties": {
-          "latencies": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "uptime_up": {
-            "type": "integer"
-          },
-          "uptime_down": {
-            "type": "integer"
-          },
-          "total": {
-            "type": "integer"
-          }
+          "latencies": { "type": "array", "items": { "type": "integer" } },
+          "uptime_up": { "type": "integer" },
+          "uptime_down": { "type": "integer" },
+          "total": { "type": "integer" }
         }
       },
       "DashboardStats": {
         "type": "object",
         "properties": {
-          "total_monitors": {
-            "type": "integer"
-          },
-          "monitors_up": {
-            "type": "integer"
-          },
-          "monitors_down": {
-            "type": "integer"
-          },
-          "active_incidents": {
-            "type": "integer"
-          },
-          "total_agents": {
-            "type": "integer"
-          },
-          "online_agents": {
-            "type": "integer"
-          }
+          "total_monitors": { "type": "integer" },
+          "monitors_up": { "type": "integer" },
+          "monitors_down": { "type": "integer" },
+          "active_incidents": { "type": "integer" },
+          "total_agents": { "type": "integer" },
+          "online_agents": { "type": "integer" }
         }
       },
       "APIToken": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "prefix": {
-            "type": "string",
-            "description": "First 16 chars of token for identification"
-          },
-          "scope": {
-            "type": "string",
-            "enum": [
-              "admin",
-              "read_only"
-            ]
-          },
-          "last_used_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "last_used_ip": {
-            "type": "string",
-            "nullable": true
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "prefix": { "type": "string", "description": "First 16 chars of token for identification" },
+          "scope": { "type": "string", "enum": ["admin", "read_only"] },
+          "last_used_at": { "type": "string", "format": "date-time", "nullable": true },
+          "last_used_ip": { "type": "string", "nullable": true },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "CreateTokenRequest": {
         "type": "object",
-        "required": [
-          "name",
-          "scope"
-        ],
+        "required": ["name", "scope"],
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "scope": {
-            "type": "string",
-            "enum": [
-              "admin",
-              "read_only"
-            ]
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
+          "name": { "type": "string" },
+          "scope": { "type": "string", "enum": ["admin", "read_only"] },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true }
         }
       },
       "AlertChannel": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "discord",
-              "slack",
-              "email",
-              "telegram",
-              "pagerduty",
-              "webhook"
-            ]
-          },
-          "name": {
-            "type": "string"
-          },
-          "config": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Sensitive values are masked"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string", "enum": ["discord", "slack", "email", "telegram", "pagerduty", "webhook"] },
+          "name": { "type": "string" },
+          "config": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Sensitive values are masked" },
+          "enabled": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "CreateAlertChannelRequest": {
         "type": "object",
-        "required": [
-          "type",
-          "name",
-          "config"
-        ],
+        "required": ["type", "name", "config"],
         "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "discord",
-              "slack",
-              "email",
-              "telegram",
-              "pagerduty",
-              "webhook"
-            ]
-          },
-          "name": {
-            "type": "string"
-          },
-          "config": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "discord/slack: webhook_url. email: host, from, to. telegram: bot_token, chat_id. pagerduty: routing_key. webhook: url."
-          }
+          "type": { "type": "string", "enum": ["discord", "slack", "email", "telegram", "pagerduty", "webhook"] },
+          "name": { "type": "string" },
+          "config": { "type": "object", "additionalProperties": { "type": "string" }, "description": "discord/slack: webhook_url. email: host, from, to. telegram: bot_token, chat_id. pagerduty: routing_key. webhook: url." }
         }
       },
       "StatusPage": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "is_public": {
-            "type": "boolean"
-          },
-          "monitor_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "is_public": { "type": "boolean" },
+          "monitor_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "CreateStatusPageRequest": {
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "is_public": {
-            "type": "boolean",
-            "default": false
-          },
-          "monitor_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "is_public": { "type": "boolean", "default": false },
+          "monitor_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } }
         }
       },
       "AdminUser": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "email": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          },
-          "is_admin": {
-            "type": "boolean"
-          },
-          "agent_count": {
-            "type": "integer"
-          },
-          "monitor_count": {
-            "type": "integer"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string" },
+          "username": { "type": "string" },
+          "is_admin": { "type": "boolean" },
+          "agent_count": { "type": "integer" },
+          "monitor_count": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "AuditLogEntry": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "action": {
-            "type": "string"
-          },
-          "user_email": {
-            "type": "string"
-          },
-          "ip_address": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string",
-            "nullable": true
-          },
-          "metadata": {
-            "type": "object"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "action": { "type": "string" },
+          "user_email": { "type": "string" },
+          "ip_address": { "type": "string" },
+          "role": { "type": "string", "nullable": true },
+          "metadata": { "type": "object" },
+          "created_at": { "type": "string", "format": "date-time" }
         }
       },
       "Error": {
         "type": "object",
         "properties": {
-          "error": {
-            "type": "string"
-          }
+          "error": { "type": "string" }
         }
       }
     },
@@ -2450,12 +1535,8 @@
         "description": "Missing or invalid API token",
         "content": {
           "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "example": {
-              "error": "missing or invalid Authorization header"
-            }
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "missing or invalid Authorization header" }
           }
         }
       },
@@ -2463,12 +1544,8 @@
         "description": "Invalid request parameters",
         "content": {
           "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "example": {
-              "error": "invalid request"
-            }
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "invalid request" }
           }
         }
       },
@@ -2476,12 +1553,8 @@
         "description": "Insufficient permissions",
         "content": {
           "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "example": {
-              "error": "forbidden"
-            }
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "forbidden" }
           }
         }
       },
@@ -2489,12 +1562,8 @@
         "description": "Resource not found",
         "content": {
           "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            },
-            "example": {
-              "error": "not found"
-            }
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "not found" }
           }
         }
       }
