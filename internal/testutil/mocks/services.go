@@ -17,6 +17,7 @@ var (
 	_ ports.IncidentService  = (*MockIncidentService)(nil)
 	_ ports.Notifier         = (*MockNotifier)(nil)
 	_ ports.NotifierFactory  = (*MockNotifierFactory)(nil)
+	_ ports.AuditService     = (*MockAuditService)(nil)
 )
 
 // MockUserAuthService is a mock implementation of ports.UserAuthService.
@@ -177,6 +178,17 @@ func (m *MockIncidentService) CreateIncidentIfNeeded(ctx context.Context, monito
 		return m.CreateIncidentIfNeededFn(ctx, monitorID)
 	}
 	return nil, nil
+}
+
+// MockAuditService is a mock implementation of ports.AuditService.
+type MockAuditService struct {
+	LogEventFn func(ctx context.Context, userID *uuid.UUID, action domain.AuditAction, ipAddress string, metadata map[string]string)
+}
+
+func (m *MockAuditService) LogEvent(ctx context.Context, userID *uuid.UUID, action domain.AuditAction, ipAddress string, metadata map[string]string) {
+	if m.LogEventFn != nil {
+		m.LogEventFn(ctx, userID, action, ipAddress, metadata)
+	}
 }
 
 // MockNotifier is a mock implementation of ports.Notifier.
