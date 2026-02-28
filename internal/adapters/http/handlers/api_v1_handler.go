@@ -239,6 +239,17 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 	switch status {
 	case "resolved":
 		rawIncidents, err = h.incidentSvc.GetResolvedIncidents(ctx)
+	case "", "all":
+		// Fetch both active and resolved for "all" view
+		active, err1 := h.incidentSvc.GetActiveIncidents(ctx)
+		resolved, err2 := h.incidentSvc.GetResolvedIncidents(ctx)
+		if err1 != nil {
+			err = err1
+		} else if err2 != nil {
+			err = err2
+		} else {
+			rawIncidents = append(active, resolved...)
+		}
 	default:
 		rawIncidents, err = h.incidentSvc.GetActiveIncidents(ctx)
 	}
