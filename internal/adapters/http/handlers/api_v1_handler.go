@@ -450,6 +450,7 @@ type updateMonitorRequest struct {
 	FailureThreshold *int     `json:"failure_threshold"`
 	Enabled          *bool    `json:"enabled"`
 	SLATargetPercent *float64 `json:"sla_target_percent"`
+	AgentID          *string  `json:"agent_id"`
 }
 
 // UpdateMonitor updates an existing monitor.
@@ -514,6 +515,17 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "sla_target_percent must be between 0 and 100"})
 		}
 		monitor.SLATargetPercent = req.SLATargetPercent
+	}
+	if req.AgentID != nil {
+		newAgentID, err := uuid.Parse(*req.AgentID)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+		}
+		newAgent, err := h.agentRepo.GetByID(ctx, newAgentID)
+		if err != nil || newAgent == nil || newAgent.UserID != userID {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "agent not found or not owned by you"})
+		}
+		monitor.AgentID = newAgentID
 	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {

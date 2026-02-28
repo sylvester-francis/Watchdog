@@ -19,6 +19,7 @@
 	const toast = getToasts();
 
 	let monitor = $state<Monitor | null>(null);
+	let agents = $state<Agent[]>([]);
 	let agentName = $state('Unknown');
 	let uptimePercent = $state(0);
 	let uptimeUp = $state(0);
@@ -45,8 +46,8 @@
 			const total = monitorRes.heartbeats?.total ?? 0;
 			uptimePercent = total > 0 ? (uptimeUp / total) * 100 : 0;
 
-			// Find matching agent name
-			const agents: Agent[] = agentsRes.data ?? [];
+			// Store agents and find matching agent name
+			agents = agentsRes.data ?? [];
 			const matchedAgent = agents.find((a) => a.id === monitor?.agent_id);
 			agentName = matchedAgent?.name ?? 'Unknown';
 		} catch (err) {
@@ -200,6 +201,7 @@
 	<EditMonitorModal
 		bind:open={editOpen}
 		{monitor}
+		{agents}
 		onClose={() => editOpen = false}
 		onUpdated={() => { editOpen = false; loadData(); toast.success('Monitor updated'); }}
 	/>

@@ -33,6 +33,8 @@ interface MonitorUpdateRequest {
 	timeout_seconds?: number;
 	failure_threshold?: number;
 	enabled?: boolean;
+	sla_target_percent?: number;
+	agent_id?: string;
 }
 
 export function listMonitors(): Promise<MonitorListResponse> {
