@@ -307,6 +307,15 @@ type adminUserResponse struct {
 func (h *SystemAPIHandler) ListUsers(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+	caller, err := h.userRepo.GetByID(ctx, userID)
+	if err != nil || caller == nil || !caller.IsAdmin {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "admin access required"})
+	}
+
 	users, err := h.userRepo.GetAllWithUsage(ctx)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch users"})
@@ -337,6 +346,10 @@ func (h *SystemAPIHandler) ResetUserPassword(c echo.Context) error {
 	adminID, ok := middleware.GetUserID(c)
 	if !ok {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+	caller, err := h.userRepo.GetByID(ctx, adminID)
+	if err != nil || caller == nil || !caller.IsAdmin {
+		return c.JSON(http.StatusForbidden, map[string]string{"error": "admin access required"})
 	}
 
 	targetID, err := uuid.Parse(c.Param("id"))
