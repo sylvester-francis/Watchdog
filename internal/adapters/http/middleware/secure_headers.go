@@ -50,7 +50,7 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 			h.Set("Content-Security-Policy",
 				"default-src 'self'; "+
 					"script-src 'self' 'nonce-"+nonce+"' https://unpkg.com https://cdn.jsdelivr.net; "+
-					"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "+
+					"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "+
 					"img-src 'self' data: https://validator.swagger.io; "+
 					"font-src 'self' https://fonts.gstatic.com; "+
 					"connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
