@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { Menu } from 'lucide-svelte';
 	import { getAuth } from '$lib/stores/auth';
 
@@ -8,7 +7,7 @@
 
 	async function handleLogout() {
 		await auth.logout();
-		goto(`${base}/login`);
+		goto(`/login`);
 	}
 
 	// We dispatch a custom event for the sidebar toggle

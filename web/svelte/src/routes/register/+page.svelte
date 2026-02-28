@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { base } from '$app/paths';
 	import { ShieldCheck, AlertCircle } from 'lucide-svelte';
 	import { getAuth } from '$lib/stores/auth';
 
@@ -30,7 +29,7 @@
 		submitting = true;
 		try {
 			await auth.register(email, password, confirmPassword);
-			goto(`${base}/login?success=${encodeURIComponent('Account created successfully. Please login.')}`);
+			goto(`/login?success=${encodeURIComponent('Account created successfully. Please login.')}`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Registration failed';
 		} finally {
@@ -120,7 +119,7 @@
 
 				<p class="text-center text-muted-foreground mt-5 text-xs">
 					Already have an account?
-					<a href="{base}/login" class="text-foreground hover:text-accent transition-colors">Sign in</a>
+					<a href="/login" class="text-foreground hover:text-accent transition-colors">Sign in</a>
 				</p>
 			</div>
 

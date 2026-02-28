@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { base } from '$app/paths';
 	import { Loader2 } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
 	import type { Incident, MonitorSummary } from '$lib/types';
@@ -68,7 +67,7 @@
 	<!-- Monitor name + type -->
 	<td class="px-4 py-3">
 		{#if monitor}
-			<a href="{base}/monitors/{incident.monitor_id}" class="group">
+			<a href="/monitors/{incident.monitor_id}" class="group">
 				<div class="flex items-center space-x-2">
 					<span class="text-sm text-foreground group-hover:text-accent transition-colors">{monitor.name}</span>
 					<span class="text-[9px] text-muted-foreground font-mono uppercase shrink-0 px-1.5 py-0.5 rounded bg-muted/50">{monitor.type}</span>

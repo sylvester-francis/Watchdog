@@ -151,3 +151,35 @@ export interface MonitorSummary {
 export interface APIError {
 	error: string;
 }
+
+// Public status page types
+export interface PublicStatusPageData {
+	page: { name: string; description: string };
+	monitors: PublicMonitorData[];
+	incidents: PublicIncidentData[];
+	overall_status: string;
+	all_up: boolean;
+	aggregate_uptime: number;
+}
+
+export interface PublicMonitorData {
+	name: string;
+	type: string;
+	status: string;
+	uptime_percent: number;
+	latency_ms: number;
+	has_latency: boolean;
+	metric_value?: string;
+	monitoring_since: string;
+	data_days: number;
+	uptime_history: { date: string; percent: number }[];
+}
+
+export interface PublicIncidentData {
+	monitor_name: string;
+	started_at: string;
+	resolved_at: string | null;
+	duration_seconds: number;
+	status: string;
+	is_active: boolean;
+}

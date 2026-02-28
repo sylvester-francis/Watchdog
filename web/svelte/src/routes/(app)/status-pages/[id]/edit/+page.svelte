@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { ChevronRight, AlertCircle } from 'lucide-svelte';
@@ -95,7 +94,7 @@
 				monitor_ids: Array.from(selectedMonitorIds)
 			});
 			toast.success('Status page updated');
-			goto(`${base}/status-pages`);
+			goto(`/status-pages`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to update status page';
 		} finally {
@@ -147,7 +146,7 @@
 			<p class="text-sm text-foreground font-medium mb-1">Failed to load status page</p>
 			<p class="text-xs text-muted-foreground mb-4">{loadError}</p>
 			<a
-				href="{base}/status-pages"
+				href="/status-pages"
 				class="inline-flex items-center px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
 			>
 				Back to Status Pages
@@ -158,7 +157,7 @@
 	<div class="animate-fade-in-up space-y-5">
 		<!-- Breadcrumb -->
 		<nav class="flex items-center space-x-1.5 text-xs">
-			<a href="{base}/status-pages" class="text-muted-foreground hover:text-foreground transition-colors">
+			<a href="/status-pages" class="text-muted-foreground hover:text-foreground transition-colors">
 				Status Pages
 			</a>
 			<ChevronRight class="w-3 h-3 text-muted-foreground/50" />
@@ -267,7 +266,7 @@
 				<!-- Footer -->
 				<div class="px-5 py-3.5 border-t border-border flex justify-end space-x-2">
 					<a
-						href="{base}/status-pages"
+						href="/status-pages"
 						class="px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 text-xs font-medium rounded-md transition-colors"
 					>
 						Cancel
