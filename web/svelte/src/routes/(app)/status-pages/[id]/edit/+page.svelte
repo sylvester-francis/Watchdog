@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { ChevronRight, AlertCircle } from 'lucide-svelte';
 	import { statusPages as statusPagesApi } from '$lib/api';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { StatusPage } from '$lib/types';
 
 	const toast = getToasts();

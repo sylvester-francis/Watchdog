@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { X, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-svelte';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 
 	const toasts = getToasts();
 

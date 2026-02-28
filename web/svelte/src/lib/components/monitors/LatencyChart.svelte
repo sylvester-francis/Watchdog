@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Loader2 } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
-	import { getToasts } from '$lib/stores/toast';
+	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { LatencyPoint } from '$lib/types';
 
 	interface Props {
