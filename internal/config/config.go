@@ -13,6 +13,12 @@ type Config struct {
 	Database DatabaseConfig
 	Crypto   CryptoConfig
 	Notify   NotifyConfig
+	Feature  FeatureConfig
+}
+
+// FeatureConfig holds feature flags.
+type FeatureConfig struct {
+	DurableAlerts bool `envconfig:"WATCHDOG_DURABLE_ALERTS" default:"false"`
 }
 
 // NotifyConfig holds notification configuration.

@@ -100,6 +100,7 @@ func New(ctx context.Context) (*Engine, error) {
 		StatusPageRepo: statusPageRepo,
 		DB:             db,
 		Pool:           db.Pool,
+		DurableAlerts:  cfg.Feature.DurableAlerts,
 		Logger:         logger,
 	})
 
