@@ -157,12 +157,13 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
 		onkeydown={handleKeydown}
 	>
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<div
 			class="bg-card border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto animate-fade-in-up"
 			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-label="Create monitor"
+			tabindex="-1"
 		>
 			<!-- Header -->
 			<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">

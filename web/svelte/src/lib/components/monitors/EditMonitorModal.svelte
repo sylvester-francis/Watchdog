@@ -91,12 +91,13 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
 		onkeydown={handleKeydown}
 	>
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<div
 			class="bg-card border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto animate-fade-in-up"
 			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-label="Edit monitor"
+			tabindex="-1"
 		>
 			<!-- Header -->
 			<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
@@ -135,8 +136,9 @@
 					<!-- Type + Agent (read-only) -->
 					<div class="grid grid-cols-2 gap-3">
 						<div>
-							<label class={labelClass}>Type</label>
+							<label for="edit-monitor-type" class={labelClass}>Type</label>
 							<input
+								id="edit-monitor-type"
 								type="text"
 								value={monitor.type.toUpperCase()}
 								disabled
@@ -144,8 +146,9 @@
 							/>
 						</div>
 						<div>
-							<label class={labelClass}>Agent</label>
+							<label for="edit-monitor-agent" class={labelClass}>Agent</label>
 							<input
+								id="edit-monitor-agent"
 								type="text"
 								value={monitor.agent_id.slice(0, 8) + '...'}
 								disabled
@@ -216,6 +219,7 @@
 							class="relative w-9 h-5 rounded-full transition-colors {enabled ? 'bg-emerald-500' : 'bg-muted'}"
 							role="switch"
 							aria-checked={enabled}
+							aria-label="Toggle monitor enabled"
 						>
 							<span
 								class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform {enabled ? 'translate-x-4' : 'translate-x-0'}"
