@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/services"
@@ -16,14 +18,25 @@ import (
 
 const maxEmailLength = 254
 
+// TenantValidator validates a tenant slug during registration and returns the tenant ID.
+// If the slug is invalid or blocked, it returns an error.
+// EE sets this hook; CE leaves it nil (all users go to "default" tenant).
+type TenantValidator func(ctx context.Context, slug string) (tenantID string, err error)
+
+// PostRegisterHook runs after a user is successfully registered.
+// EE uses this to promote the first user in a tenant to super_admin.
+type PostRegisterHook func(ctx context.Context, user *domain.User, tenantSlug string) error
+
 // AuthAPIHandler handles JSON authentication endpoints for the SvelteKit SPA.
 type AuthAPIHandler struct {
-	authSvc         ports.UserAuthService
-	userRepo        ports.UserRepository
-	loginLimiter    *middleware.LoginLimiter
-	registerLimiter *middleware.RegisterLimiter
-	auditSvc        ports.AuditService
-	sessionTracker  *middleware.SessionTracker // H-017: concurrent session limits
+	authSvc           ports.UserAuthService
+	userRepo          ports.UserRepository
+	loginLimiter      *middleware.LoginLimiter
+	registerLimiter   *middleware.RegisterLimiter
+	auditSvc          ports.AuditService
+	sessionTracker    *middleware.SessionTracker // H-017: concurrent session limits
+	tenantValidator   TenantValidator            // EE hook: validates tenant slug on registration
+	postRegisterHook  PostRegisterHook           // EE hook: post-registration actions
 }
 
 // NewAuthAPIHandler creates a new AuthAPIHandler.
@@ -41,6 +54,16 @@ func NewAuthAPIHandler(authSvc ports.UserAuthService, userRepo ports.UserReposit
 	return h
 }
 
+// SetTenantValidator sets the EE hook for tenant-scoped registration.
+func (h *AuthAPIHandler) SetTenantValidator(v TenantValidator) {
+	h.tenantValidator = v
+}
+
+// SetPostRegisterHook sets the EE hook for post-registration actions.
+func (h *AuthAPIHandler) SetPostRegisterHook(hook PostRegisterHook) {
+	h.postRegisterHook = hook
+}
+
 type loginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -50,7 +73,8 @@ type registerRequest struct {
 	Email           string `json:"email"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirm_password"`
-	Website         string `json:"website"` // honeypot — invisible field, bots auto-fill it
+	Website         string `json:"website"`      // honeypot — invisible field, bots auto-fill it
+	TenantSlug      string `json:"tenant_slug"`   // EE multi-tenant: target tenant slug
 }
 
 type userResponse struct {
@@ -179,7 +203,21 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		h.registerLimiter.Record(ip)
 	}
 
-	user, err := h.authSvc.Register(c.Request().Context(), req.Email, req.Password)
+	// EE multi-tenant: validate tenant slug and inject tenant_id into context.
+	ctx := c.Request().Context()
+	if h.tenantValidator != nil && req.TenantSlug != "" {
+		tenantID, err := h.tenantValidator(ctx, req.TenantSlug)
+		if err != nil {
+			slog.Info("registration: tenant validation failed", "slug", req.TenantSlug, "error", err)
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
+		}
+		ctx = repository.WithTenantID(ctx, tenantID)
+	} else if h.tenantValidator != nil && req.TenantSlug == "" {
+		// EE mode: tenant_slug is required for registration.
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
+	}
+
+	user, err := h.authSvc.Register(ctx, req.Email, req.Password)
 	if err != nil {
 		// H-013: return generic error for all registration failures to prevent
 		// account enumeration. Log the real reason server-side.
@@ -191,11 +229,19 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
 	}
 
+	// EE post-registration hook (e.g., promote first user to super_admin).
+	if h.postRegisterHook != nil {
+		if err := h.postRegisterHook(ctx, user, req.TenantSlug); err != nil {
+			slog.Error("post-register hook failed", "user_id", user.ID, "error", err)
+		}
+	}
+
 	// Layer 4: Audit log the registration.
 	if h.auditSvc != nil {
-		h.auditSvc.LogEvent(c.Request().Context(), &user.ID, domain.AuditRegisterSuccess, ip, map[string]string{
-			"email":   req.Email,
-			"user_id": user.ID.String(),
+		h.auditSvc.LogEvent(ctx, &user.ID, domain.AuditRegisterSuccess, ip, map[string]string{
+			"email":       req.Email,
+			"user_id":     user.ID.String(),
+			"tenant_slug": req.TenantSlug,
 		})
 	}
 
