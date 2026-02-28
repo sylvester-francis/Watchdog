@@ -47,4 +47,12 @@
 	<title>API Docs - WatchDog</title>
 </svelte:head>
 
-<div id="swagger-ui"></div>
+<div id="swagger-ui" class="swagger-wrapper"></div>
+
+<style>
+	.swagger-wrapper {
+		background: #ffffff;
+		color: #3b4151;
+		min-height: 100vh;
+	}
+</style>
