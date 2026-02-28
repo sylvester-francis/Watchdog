@@ -302,6 +302,11 @@ func (r *Router) tenantMiddleware() echo.MiddlewareFunc {
 	}
 }
 
+// AuthAPIHandler returns the auth handler so EE can set hooks (e.g. tenant validator).
+func (r *Router) AuthAPIHandler() *handlers.AuthAPIHandler {
+	return r.authAPIHandler
+}
+
 // Stop cleans up router resources (rate limiters, session tracker).
 func (r *Router) Stop() {
 	if r.authRateLimiter != nil {
