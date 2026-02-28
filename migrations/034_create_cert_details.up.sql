@@ -1,6 +1,6 @@
 CREATE TABLE cert_details (
     monitor_id UUID NOT NULL REFERENCES monitors(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL,
+    tenant_id VARCHAR(255) NOT NULL DEFAULT 'default',
     last_checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expiry_days INT,
     issuer TEXT,
