@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Monitor, MonitorSummary, HeartbeatPoint, LatencyPoint, DashboardStats } from '$lib/types';
+import type { Monitor, MonitorSummary, HeartbeatPoint, LatencyPoint, DashboardStats, CertDetails, SLAResponse } from '$lib/types';
 
 interface MonitorListResponse {
 	data: Monitor[];
@@ -71,4 +71,16 @@ export function getDashboardStats(): Promise<DashboardStats> {
 
 export function getMonitorsSummary(): Promise<MonitorSummary[]> {
 	return api.get<MonitorSummary[]>('/api/v1/monitors/summary');
+}
+
+export function getCertDetails(monitorId: string): Promise<{ data: CertDetails }> {
+	return api.get<{ data: CertDetails }>(`/api/v1/monitors/${monitorId}/certificate`);
+}
+
+export function getExpiringCertificates(days = 30): Promise<{ data: CertDetails[] }> {
+	return api.get<{ data: CertDetails[] }>(`/api/v1/certificates/expiring?days=${days}`);
+}
+
+export function getMonitorSLA(monitorId: string, period = '30d'): Promise<{ data: SLAResponse }> {
+	return api.get<{ data: SLAResponse }>(`/api/v1/monitors/${monitorId}/sla?period=${period}`);
 }
