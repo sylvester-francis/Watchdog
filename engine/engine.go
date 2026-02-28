@@ -17,6 +17,7 @@ import (
 
 	"github.com/sylvester-francis/watchdog/core/registry"
 	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
@@ -226,6 +227,18 @@ func (e *Engine) Logger() *slog.Logger {
 // same session-based auth that CE uses. Returns JSON 401 on failure.
 func (e *Engine) AuthMiddleware() echo.MiddlewareFunc {
 	return middleware.AuthRequiredAPI
+}
+
+// SetTenantValidator sets the EE hook for tenant-scoped registration.
+// When set, registration requires a valid tenant_slug and creates users in
+// the specified tenant rather than the default.
+func (e *Engine) SetTenantValidator(v handlers.TenantValidator) {
+	e.router.AuthAPIHandler().SetTenantValidator(v)
+}
+
+// SetPostRegisterHook sets the EE hook for post-registration actions.
+func (e *Engine) SetPostRegisterHook(hook handlers.PostRegisterHook) {
+	e.router.AuthAPIHandler().SetPostRegisterHook(hook)
 }
 
 // Init initializes all registered modules and registers HTTP routes.
