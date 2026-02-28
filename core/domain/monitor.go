@@ -83,9 +83,10 @@ type Monitor struct {
 	TimeoutSeconds   int
 	Status           MonitorStatus
 	Enabled          bool
-	FailureThreshold int
-	Metadata         map[string]string
-	CreatedAt        time.Time
+	FailureThreshold  int
+	Metadata          map[string]string
+	SLATargetPercent  *float64
+	CreatedAt         time.Time
 }
 
 // Default values for monitor configuration.

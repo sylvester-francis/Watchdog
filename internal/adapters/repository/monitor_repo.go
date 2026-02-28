@@ -12,7 +12,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
-const monitorColumns = "id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, failure_threshold, metadata, created_at"
+const monitorColumns = "id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, failure_threshold, metadata, sla_target_percent, created_at"
 
 // MonitorRepository implements ports.MonitorRepository using PostgreSQL.
 type MonitorRepository struct {
@@ -29,7 +29,7 @@ func scanMonitor(scanner interface{ Scan(dest ...any) error }) (*domain.Monitor,
 	var metadataBytes []byte
 	err := scanner.Scan(
 		&m.ID, &m.AgentID, &m.Name, &m.Type, &m.Target,
-		&m.IntervalSeconds, &m.TimeoutSeconds, &m.Status, &m.Enabled, &m.FailureThreshold, &metadataBytes, &m.CreatedAt,
+		&m.IntervalSeconds, &m.TimeoutSeconds, &m.Status, &m.Enabled, &m.FailureThreshold, &metadataBytes, &m.SLATargetPercent, &m.CreatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -65,12 +65,12 @@ func (r *MonitorRepository) Create(ctx context.Context, monitor *domain.Monitor)
 	}
 
 	query := `
-		INSERT INTO monitors (id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, failure_threshold, metadata, created_at, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+		INSERT INTO monitors (id, agent_id, name, type, target, interval_seconds, timeout_seconds, status, enabled, failure_threshold, metadata, sla_target_percent, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	_, err = q.Exec(ctx, query,
 		monitor.ID, monitor.AgentID, monitor.Name, monitor.Type, monitor.Target,
-		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.FailureThreshold, metadataJSON, monitor.CreatedAt,
+		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.FailureThreshold, metadataJSON, monitor.SLATargetPercent, monitor.CreatedAt,
 		tenantID,
 	)
 	if err != nil {
@@ -152,12 +152,12 @@ func (r *MonitorRepository) Update(ctx context.Context, monitor *domain.Monitor)
 
 	query := `
 		UPDATE monitors
-		SET name = $2, type = $3, target = $4, interval_seconds = $5, timeout_seconds = $6, status = $7, enabled = $8, failure_threshold = $9, metadata = $10
-		WHERE id = $1 AND tenant_id = $11`
+		SET name = $2, type = $3, target = $4, interval_seconds = $5, timeout_seconds = $6, status = $7, enabled = $8, failure_threshold = $9, metadata = $10, sla_target_percent = $11
+		WHERE id = $1 AND tenant_id = $12`
 
 	result, err := q.Exec(ctx, query,
 		monitor.ID, monitor.Name, monitor.Type, monitor.Target,
-		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.FailureThreshold, metadataJSON,
+		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.FailureThreshold, metadataJSON, monitor.SLATargetPercent,
 		tenantID,
 	)
 	if err != nil {
