@@ -522,11 +522,14 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
 		}
-		newAgent, err := h.agentRepo.GetByID(ctx, newAgentID)
-		if err != nil || newAgent == nil || newAgent.UserID != userID {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "agent not found or not owned by you"})
+		// Only validate and reassign if the agent is actually changing
+		if newAgentID != oldAgentID {
+			newAgent, err := h.agentRepo.GetByID(ctx, newAgentID)
+			if err != nil || newAgent == nil || newAgent.UserID != userID {
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": "agent not found or not owned by you"})
+			}
+			monitor.AgentID = newAgentID
 		}
-		monitor.AgentID = newAgentID
 	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
