@@ -15,6 +15,7 @@ const (
 	ModuleAuditLogger        = "audit_logger"
 	ModuleClusterCoordinator = "cluster_coordinator"
 	ModuleStatusPageProvider = "status_page_provider"
+	ModuleWorkflowEngine    = "workflow_engine"
 )
 
 // TenantResolver returns the registered TenantResolver module.
@@ -70,4 +71,13 @@ func (r *Registry) ClusterCoordinator() ports.ClusterCoordinator {
 // StatusPageProvider returns the registered StatusPageProvider module.
 func (r *Registry) StatusPageProvider() ports.StatusPageProvider {
 	return r.MustGet(ModuleStatusPageProvider).(ports.StatusPageProvider)
+}
+
+// WorkflowEngine returns the registered WorkflowEngine module, or nil if not registered.
+func (r *Registry) WorkflowEngine() ports.WorkflowEngine {
+	m, ok := r.Get(ModuleWorkflowEngine)
+	if !ok {
+		return nil
+	}
+	return m.(ports.WorkflowEngine)
 }

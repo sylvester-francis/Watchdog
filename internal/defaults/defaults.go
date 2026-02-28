@@ -3,6 +3,8 @@ package defaults
 import (
 	"log/slog"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/core/registry"
 )
@@ -16,6 +18,7 @@ type Deps struct {
 	AuditService   ports.AuditService
 	StatusPageRepo ports.StatusPageRepository
 	DB             ports.Transactor
+	Pool           *pgxpool.Pool
 	Logger         *slog.Logger
 }
 
@@ -32,4 +35,7 @@ func RegisterAll(reg *registry.Registry, deps Deps) {
 	reg.Register(newDashboardModule())
 	reg.Register(newReportModule())
 	reg.Register(newStatusModule(deps.StatusPageRepo))
+	if deps.Pool != nil {
+		reg.Register(newWorkflowModule(deps.Pool, deps.Logger))
+	}
 }
