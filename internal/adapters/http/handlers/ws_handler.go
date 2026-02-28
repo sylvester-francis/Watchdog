@@ -356,6 +356,12 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		if err := h.agentRepo.UpdateStatus(ctx, agent.ID, domain.AgentStatusOffline); err != nil {
 			h.logger.Error("failed to mark agent offline", slog.String("error", err.Error()))
 		}
+		if err := h.monitorSvc.MarkAgentMonitorsDown(ctx, agent.ID); err != nil {
+			h.logger.Error("failed to mark monitors down for disconnected agent",
+				slog.String("agent_id", agent.ID.String()),
+				slog.String("error", err.Error()),
+			)
+		}
 		h.logger.Info("agent disconnected",
 			slog.String("agent_id", agent.ID.String()),
 			slog.String("agent_name", agent.Name),

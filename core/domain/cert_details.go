@@ -9,7 +9,7 @@ import (
 // CertDetails holds TLS certificate metadata for a monitor.
 type CertDetails struct {
 	MonitorID     uuid.UUID
-	TenantID      uuid.UUID
+	TenantID      string
 	LastCheckedAt time.Time
 	ExpiryDays    *int
 	Issuer        string
