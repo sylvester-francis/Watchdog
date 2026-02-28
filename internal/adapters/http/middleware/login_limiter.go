@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -89,22 +92,36 @@ func (ll *LoginLimiter) RetryAfter(ip, email string) time.Duration {
 	return d2
 }
 
-// Middleware returns an Echo middleware that rejects requests when the
-// client IP or submitted email is locked out.
-func (ll *LoginLimiter) Middleware() echo.MiddlewareFunc {
+// MiddlewareJSON returns an Echo middleware for JSON login endpoints.
+// It extracts the email from the JSON request body for rate limiting,
+// then restores the body so downstream handlers can read it.
+func (ll *LoginLimiter) MiddlewareJSON() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			ip := c.RealIP()
-			email := c.FormValue("email")
+			var email string
+
+			// Only attempt JSON parsing for JSON content types
+			ct := c.Request().Header.Get("Content-Type")
+			if strings.HasPrefix(ct, "application/json") {
+				bodyBytes, err := io.ReadAll(c.Request().Body)
+				if err == nil {
+					// Restore body for downstream handlers
+					c.Request().Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
+					var payload struct {
+						Email string `json:"email"`
+					}
+					if json.Unmarshal(bodyBytes, &payload) == nil {
+						email = payload.Email
+					}
+				}
+			}
 
 			if ll.IsBlocked(ip, email) {
 				retry := ll.RetryAfter(ip, email)
 				c.Response().Header().Set("Retry-After", fmt.Sprintf("%d", int(retry.Seconds())))
-				return c.Render(http.StatusTooManyRequests, "auth.html", map[string]any{
-					"Title":   "Login",
-					"IsLogin": true,
-					"Error":   fmt.Sprintf("Too many failed attempts. Try again in %d minutes.", int(retry.Minutes())+1),
-					"Email":   email,
+				return c.JSON(http.StatusTooManyRequests, map[string]string{
+					"error": fmt.Sprintf("Too many failed attempts. Try again in %d minutes.", int(retry.Minutes())+1),
 				})
 			}
 
