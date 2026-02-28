@@ -3,7 +3,6 @@ package defaults
 import (
 	"log/slog"
 
-	"github.com/sylvester-francis/watchdog/internal/adapters/http/view"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/core/registry"
 )
@@ -17,7 +16,6 @@ type Deps struct {
 	AuditService   ports.AuditService
 	StatusPageRepo ports.StatusPageRepository
 	DB             ports.Transactor
-	Templates      *view.Templates
 	Logger         *slog.Logger
 }
 
@@ -31,7 +29,7 @@ func RegisterAll(reg *registry.Registry, deps Deps) {
 	reg.Register(newMetricsModule())
 	reg.Register(newAuditModule(deps.AuditService))
 	reg.Register(newClusterModule())
-	reg.Register(newDashboardModule(deps.Templates))
+	reg.Register(newDashboardModule())
 	reg.Register(newReportModule())
 	reg.Register(newStatusModule(deps.StatusPageRepo))
 }
