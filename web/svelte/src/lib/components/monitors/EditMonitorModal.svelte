@@ -19,6 +19,7 @@
 	let timeoutSeconds = $state(10);
 	let failureThreshold = $state(3);
 	let enabled = $state(true);
+	let slaTargetPercent = $state<number | null>(null);
 
 	let loading = $state(false);
 	let error = $state('');
@@ -32,6 +33,7 @@
 			timeoutSeconds = monitor.timeout_seconds;
 			failureThreshold = monitor.failure_threshold;
 			enabled = monitor.enabled;
+			slaTargetPercent = monitor.sla_target_percent ?? null;
 			error = '';
 			loading = false;
 		}
@@ -59,14 +61,18 @@
 		error = '';
 
 		try {
-			await monitorsApi.updateMonitor(monitor.id, {
+			const payload: Record<string, unknown> = {
 				name: name.trim(),
 				target: target.trim(),
 				interval_seconds: intervalSeconds,
 				timeout_seconds: timeoutSeconds,
 				failure_threshold: failureThreshold,
 				enabled
-			});
+			};
+			if (slaTargetPercent !== null && slaTargetPercent > 0) {
+				payload.sla_target_percent = slaTargetPercent;
+			}
+			await monitorsApi.updateMonitor(monitor.id, payload);
 			onUpdated();
 			handleClose();
 		} catch (err) {
@@ -225,6 +231,26 @@
 								class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform {enabled ? 'translate-x-4' : 'translate-x-0'}"
 							></span>
 						</button>
+					</div>
+
+					<!-- SLA Target -->
+					<div>
+						<label for="edit-monitor-sla" class={labelClass}>SLA Target %</label>
+						<input
+							id="edit-monitor-sla"
+							type="number"
+							step="0.01"
+							min="0"
+							max="100"
+							placeholder="e.g. 99.9"
+							value={slaTargetPercent ?? ''}
+							onchange={(e) => {
+								const v = parseFloat((e.target as HTMLInputElement).value);
+								slaTargetPercent = isNaN(v) ? null : v;
+							}}
+							class={inputClass}
+						/>
+						<p class="text-[10px] text-muted-foreground mt-1">Leave empty to disable SLA tracking</p>
 					</div>
 				</div>
 

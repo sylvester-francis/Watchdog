@@ -27,6 +27,7 @@ export interface Monitor {
 	timeout_seconds: number;
 	failure_threshold: number;
 	metadata?: Record<string, string>;
+	sla_target_percent?: number;
 	created_at: string;
 }
 
@@ -171,6 +172,26 @@ export interface SecurityEvent {
 	ip_address: string;
 	metadata: Record<string, string>;
 	created_at: string;
+}
+
+export interface CertDetails {
+	monitor_id: string;
+	last_checked_at: string;
+	expiry_days: number | null;
+	issuer: string;
+	sans: string[];
+	algorithm: string;
+	key_size: number;
+	serial_number: string;
+	chain_valid: boolean;
+}
+
+export interface SLAResponse {
+	uptime_percent: number;
+	sla_target: number;
+	breached: boolean;
+	margin: number;
+	period: string;
 }
 
 export interface APIError {

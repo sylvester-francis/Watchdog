@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -25,12 +26,13 @@ const maxWSConnsPerIP = 10
 
 // WSHandler handles WebSocket connections from agents.
 type WSHandler struct {
-	agentAuthSvc   ports.AgentAuthService
-	monitorSvc     ports.MonitorService
-	agentRepo      ports.AgentRepository
-	hub            *realtime.Hub
-	logger         *slog.Logger
-	allowedOrigins []string
+	agentAuthSvc    ports.AgentAuthService
+	monitorSvc      ports.MonitorService
+	agentRepo       ports.AgentRepository
+	certDetailsRepo ports.CertDetailsRepository
+	hub             *realtime.Hub
+	logger          *slog.Logger
+	allowedOrigins  []string
 
 	// H-005: per-IP concurrent connection tracker.
 	connMu    sync.Mutex
@@ -42,18 +44,20 @@ func NewWSHandler(
 	agentAuthSvc ports.AgentAuthService,
 	monitorSvc ports.MonitorService,
 	agentRepo ports.AgentRepository,
+	certDetailsRepo ports.CertDetailsRepository,
 	hub *realtime.Hub,
 	logger *slog.Logger,
 	allowedOrigins []string,
 ) *WSHandler {
 	return &WSHandler{
-		agentAuthSvc:   agentAuthSvc,
-		monitorSvc:     monitorSvc,
-		agentRepo:      agentRepo,
-		hub:            hub,
-		logger:         logger,
-		allowedOrigins: allowedOrigins,
-		connCount:      make(map[string]int),
+		agentAuthSvc:    agentAuthSvc,
+		monitorSvc:      monitorSvc,
+		agentRepo:       agentRepo,
+		certDetailsRepo: certDetailsRepo,
+		hub:             hub,
+		logger:          logger,
+		allowedOrigins:  allowedOrigins,
+		connCount:       make(map[string]int),
 	}
 }
 
@@ -303,6 +307,31 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 				slog.String("monitor_id", payload.MonitorID),
 				slog.String("error", err.Error()),
 			)
+		}
+
+		// Upsert extended cert details if agent sent cert metadata
+		if h.certDetailsRepo != nil && payload.Metadata["cert_algorithm"] != "" {
+			keySize, _ := strconv.Atoi(payload.Metadata["cert_key_size"])
+			var sans []string
+			if s := payload.Metadata["cert_sans"]; s != "" {
+				sans = strings.Split(s, ",")
+			}
+			cd := &domain.CertDetails{
+				MonitorID:    monitorID,
+				ExpiryDays:   payload.CertExpiryDays,
+				Issuer:       payload.CertIssuer,
+				SANs:         sans,
+				Algorithm:    payload.Metadata["cert_algorithm"],
+				KeySize:      keySize,
+				SerialNumber: payload.Metadata["cert_serial"],
+				ChainValid:   payload.Metadata["cert_chain_valid"] == "true",
+			}
+			if err := h.certDetailsRepo.Upsert(ctx, cd); err != nil {
+				h.logger.Error("failed to upsert cert details",
+					slog.String("monitor_id", payload.MonitorID),
+					slog.String("error", err.Error()),
+				)
+			}
 		}
 
 		// Update agent last seen

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,14 +19,15 @@ import (
 
 // APIV1Handler serves the public JSON API endpoints (token-authenticated).
 type APIV1Handler struct {
-	agentRepo     ports.AgentRepository
-	monitorRepo   ports.MonitorRepository
-	heartbeatRepo ports.HeartbeatRepository
-	incidentSvc   ports.IncidentService
-	monitorSvc    ports.MonitorService
-	agentAuthSvc  ports.AgentAuthService
-	hub           *realtime.Hub
-	auditSvc      ports.AuditService
+	agentRepo       ports.AgentRepository
+	monitorRepo     ports.MonitorRepository
+	heartbeatRepo   ports.HeartbeatRepository
+	certDetailsRepo ports.CertDetailsRepository
+	incidentSvc     ports.IncidentService
+	monitorSvc      ports.MonitorService
+	agentAuthSvc    ports.AgentAuthService
+	hub             *realtime.Hub
+	auditSvc        ports.AuditService
 }
 
 // NewAPIV1Handler creates a new APIV1Handler.
@@ -33,6 +35,7 @@ func NewAPIV1Handler(
 	agentRepo ports.AgentRepository,
 	monitorRepo ports.MonitorRepository,
 	heartbeatRepo ports.HeartbeatRepository,
+	certDetailsRepo ports.CertDetailsRepository,
 	incidentSvc ports.IncidentService,
 	monitorSvc ports.MonitorService,
 	agentAuthSvc ports.AgentAuthService,
@@ -40,14 +43,15 @@ func NewAPIV1Handler(
 	auditSvc ports.AuditService,
 ) *APIV1Handler {
 	return &APIV1Handler{
-		agentRepo:     agentRepo,
-		monitorRepo:   monitorRepo,
-		heartbeatRepo: heartbeatRepo,
-		incidentSvc:   incidentSvc,
-		monitorSvc:    monitorSvc,
-		agentAuthSvc:  agentAuthSvc,
-		hub:           hub,
-		auditSvc:      auditSvc,
+		agentRepo:       agentRepo,
+		monitorRepo:     monitorRepo,
+		heartbeatRepo:   heartbeatRepo,
+		certDetailsRepo: certDetailsRepo,
+		incidentSvc:     incidentSvc,
+		monitorSvc:      monitorSvc,
+		agentAuthSvc:    agentAuthSvc,
+		hub:             hub,
+		auditSvc:        auditSvc,
 	}
 }
 
@@ -63,6 +67,7 @@ type monitorResponse struct {
 	Timeout          int               `json:"timeout_seconds"`
 	FailureThreshold int               `json:"failure_threshold"`
 	Metadata         map[string]string `json:"metadata,omitempty"`
+	SLATargetPercent *float64          `json:"sla_target_percent,omitempty"`
 }
 
 type agentResponse struct {
@@ -114,6 +119,7 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 				Interval:         m.IntervalSeconds,
 				Timeout:          m.TimeoutSeconds,
 				FailureThreshold: m.FailureThreshold,
+				SLATargetPercent: m.SLATargetPercent,
 			})
 		}
 	}
@@ -196,6 +202,7 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 			Interval:         monitor.IntervalSeconds,
 			Timeout:          monitor.TimeoutSeconds,
 			FailureThreshold: monitor.FailureThreshold,
+			SLATargetPercent: monitor.SLATargetPercent,
 			Metadata:         meta,
 		},
 		"heartbeats": map[string]any{
@@ -337,6 +344,7 @@ type createMonitorRequest struct {
 	Timeout          int               `json:"timeout_seconds"`
 	FailureThreshold *int              `json:"failure_threshold,omitempty"`
 	Metadata         map[string]string `json:"metadata,omitempty"`
+	SLATargetPercent *float64          `json:"sla_target_percent,omitempty"`
 }
 
 // CreateMonitor creates a new monitor.
@@ -390,7 +398,14 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 		}
 		monitor.FailureThreshold = ft
 	}
-	if req.Interval > 0 || req.Timeout > 0 || req.FailureThreshold != nil {
+	if req.SLATargetPercent != nil {
+		sla := *req.SLATargetPercent
+		if sla < 0 || sla > 100 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "sla_target_percent must be between 0 and 100"})
+		}
+		monitor.SLATargetPercent = req.SLATargetPercent
+	}
+	if req.Interval > 0 || req.Timeout > 0 || req.FailureThreshold != nil || req.SLATargetPercent != nil {
 		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "monitor created but failed to apply settings"})
 		}
@@ -422,17 +437,19 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 			Interval:         monitor.IntervalSeconds,
 			Timeout:          monitor.TimeoutSeconds,
 			FailureThreshold: monitor.FailureThreshold,
+			SLATargetPercent: monitor.SLATargetPercent,
 		},
 	})
 }
 
 type updateMonitorRequest struct {
-	Name             *string `json:"name"`
-	Target           *string `json:"target"`
-	Interval         *int    `json:"interval_seconds"`
-	Timeout          *int    `json:"timeout_seconds"`
-	FailureThreshold *int    `json:"failure_threshold"`
-	Enabled          *bool   `json:"enabled"`
+	Name             *string  `json:"name"`
+	Target           *string  `json:"target"`
+	Interval         *int     `json:"interval_seconds"`
+	Timeout          *int     `json:"timeout_seconds"`
+	FailureThreshold *int     `json:"failure_threshold"`
+	Enabled          *bool    `json:"enabled"`
+	SLATargetPercent *float64 `json:"sla_target_percent"`
 }
 
 // UpdateMonitor updates an existing monitor.
@@ -491,6 +508,13 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		}
 		monitor.FailureThreshold = ft
 	}
+	if req.SLATargetPercent != nil {
+		sla := *req.SLATargetPercent
+		if sla < 0 || sla > 100 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "sla_target_percent must be between 0 and 100"})
+		}
+		monitor.SLATargetPercent = req.SLATargetPercent
+	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
@@ -526,6 +550,7 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 			Interval:         monitor.IntervalSeconds,
 			Timeout:          monitor.TimeoutSeconds,
 			FailureThreshold: monitor.FailureThreshold,
+			SLATargetPercent: monitor.SLATargetPercent,
 		},
 	})
 }
@@ -795,5 +820,175 @@ func (h *APIV1Handler) DashboardStats(c echo.Context) error {
 		"active_incidents": activeIncidents,
 		"total_agents":     totalAgents,
 		"online_agents":    onlineAgents,
+	})
+}
+
+type certDetailsResponse struct {
+	MonitorID     string   `json:"monitor_id"`
+	LastCheckedAt string   `json:"last_checked_at"`
+	ExpiryDays    *int     `json:"expiry_days"`
+	Issuer        string   `json:"issuer"`
+	SANs          []string `json:"sans"`
+	Algorithm     string   `json:"algorithm"`
+	KeySize       int      `json:"key_size"`
+	SerialNumber  string   `json:"serial_number"`
+	ChainValid    bool     `json:"chain_valid"`
+}
+
+// GetMonitorCertificate returns TLS certificate details for a monitor.
+// GET /api/v1/monitors/:id/certificate
+func (h *APIV1Handler) GetMonitorCertificate(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	monitorID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+	}
+
+	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch monitor"})
+	}
+	if monitor == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+	}
+
+	if h.certDetailsRepo == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "certificate tracking not available"})
+	}
+
+	details, err := h.certDetailsRepo.GetByMonitorID(ctx, monitorID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch certificate details"})
+	}
+	if details == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "no certificate data available"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"data": certDetailsResponse{
+			MonitorID:     details.MonitorID.String(),
+			LastCheckedAt: details.LastCheckedAt.Format(time.RFC3339),
+			ExpiryDays:    details.ExpiryDays,
+			Issuer:        details.Issuer,
+			SANs:          details.SANs,
+			Algorithm:     details.Algorithm,
+			KeySize:       details.KeySize,
+			SerialNumber:  details.SerialNumber,
+			ChainValid:    details.ChainValid,
+		},
+	})
+}
+
+// GetExpiringCertificates lists monitors with certs expiring within N days.
+// GET /api/v1/certificates/expiring?days=30
+func (h *APIV1Handler) GetExpiringCertificates(c echo.Context) error {
+	ctx := c.Request().Context()
+	_, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	days := 30
+	if d := c.QueryParam("days"); d != "" {
+		parsed, err := strconv.Atoi(d)
+		if err != nil || parsed < 1 || parsed > 365 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "days must be between 1 and 365"})
+		}
+		days = parsed
+	}
+
+	if h.certDetailsRepo == nil {
+		return c.JSON(http.StatusOK, map[string]any{"data": []certDetailsResponse{}})
+	}
+
+	results, err := h.certDetailsRepo.GetExpiring(ctx, days)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch expiring certificates"})
+	}
+
+	var resp []certDetailsResponse
+	for _, d := range results {
+		resp = append(resp, certDetailsResponse{
+			MonitorID:     d.MonitorID.String(),
+			LastCheckedAt: d.LastCheckedAt.Format(time.RFC3339),
+			ExpiryDays:    d.ExpiryDays,
+			Issuer:        d.Issuer,
+			SANs:          d.SANs,
+			Algorithm:     d.Algorithm,
+			KeySize:       d.KeySize,
+			SerialNumber:  d.SerialNumber,
+			ChainValid:    d.ChainValid,
+		})
+	}
+	if resp == nil {
+		resp = []certDetailsResponse{}
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"data": resp})
+}
+
+// GetMonitorSLA returns uptime SLA data for a monitor.
+// GET /api/v1/monitors/:id/sla?period=7d|30d|90d
+func (h *APIV1Handler) GetMonitorSLA(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	monitorID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+	}
+
+	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch monitor"})
+	}
+	if monitor == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+	}
+
+	// Parse period
+	period := c.QueryParam("period")
+	var since time.Time
+	periodLabel := "30d"
+	switch period {
+	case "7d":
+		since = time.Now().AddDate(0, 0, -7)
+		periodLabel = "7d"
+	case "90d":
+		since = time.Now().AddDate(0, 0, -90)
+		periodLabel = "90d"
+	default:
+		since = time.Now().AddDate(0, 0, -30)
+	}
+
+	uptimePercent, err := h.heartbeatRepo.GetUptimePercent(ctx, monitorID, since)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to calculate uptime"})
+	}
+
+	slaTarget := 99.9 // default
+	if monitor.SLATargetPercent != nil {
+		slaTarget = *monitor.SLATargetPercent
+	}
+
+	margin := uptimePercent - slaTarget
+	breached := uptimePercent < slaTarget
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"data": map[string]any{
+			"uptime_percent": uptimePercent,
+			"sla_target":     slaTarget,
+			"breached":       breached,
+			"margin":         margin,
+			"period":         periodLabel,
+		},
 	})
 }
