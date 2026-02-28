@@ -332,8 +332,8 @@ func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
 
 	monitorIDs, _ := h.statusPageRepo.GetMonitorIDs(ctx, page.ID)
 
-	var monitors []publicMonitorResponse
-	var incidents []publicIncidentResponse
+	monitors := make([]publicMonitorResponse, 0)
+	incidents := make([]publicIncidentResponse, 0)
 	allUp := true
 	now := time.Now().UTC()
 	ninetyDaysAgo := now.AddDate(0, 0, -90)
@@ -351,7 +351,7 @@ func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
 			allUp = false
 		}
 
-		var uptimeHistory []dayUptimeResponse
+		uptimeHistory := make([]dayUptimeResponse, 0)
 		var uptimePercent float64 = -1
 		var latencyMs int
 		var hasLatency bool
