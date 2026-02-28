@@ -1,20 +1,22 @@
 <script lang="ts">
 	import { X, AlertCircle } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
-	import type { Monitor } from '$lib/types';
+	import type { Monitor, Agent } from '$lib/types';
 
 	interface Props {
 		open: boolean;
 		monitor: Monitor;
+		agents: Agent[];
 		onClose: () => void;
 		onUpdated: () => void;
 	}
 
-	let { open = $bindable(), monitor, onClose, onUpdated }: Props = $props();
+	let { open = $bindable(), monitor, agents, onClose, onUpdated }: Props = $props();
 
-	// Editable fields (type and agent are read-only after creation)
+	// Editable fields (type is read-only after creation)
 	let name = $state('');
 	let target = $state('');
+	let agentId = $state('');
 	let intervalSeconds = $state(30);
 	let timeoutSeconds = $state(10);
 	let failureThreshold = $state(3);
@@ -29,6 +31,7 @@
 		if (open && monitor) {
 			name = monitor.name;
 			target = monitor.target;
+			agentId = monitor.agent_id;
 			intervalSeconds = monitor.interval_seconds;
 			timeoutSeconds = monitor.timeout_seconds;
 			failureThreshold = monitor.failure_threshold;
@@ -67,7 +70,8 @@
 				interval_seconds: intervalSeconds,
 				timeout_seconds: timeoutSeconds,
 				failure_threshold: failureThreshold,
-				enabled
+				enabled,
+				agent_id: agentId
 			};
 			if (slaTargetPercent !== null && slaTargetPercent > 0) {
 				payload.sla_target_percent = slaTargetPercent;
@@ -153,14 +157,16 @@
 						</div>
 						<div>
 							<label for="edit-monitor-agent" class={labelClass}>Agent</label>
-							<input
+							<select
 								id="edit-monitor-agent"
-								type="text"
-								value={monitor.agent_id.slice(0, 8) + '...'}
-								disabled
-								class={readOnlyClass}
-								title={monitor.agent_id}
-							/>
+								bind:value={agentId}
+								required
+								class={inputClass}
+							>
+								{#each agents as agent}
+									<option value={agent.id}>{agent.name}</option>
+								{/each}
+							</select>
 						</div>
 					</div>
 

@@ -152,12 +152,12 @@ func (r *MonitorRepository) Update(ctx context.Context, monitor *domain.Monitor)
 
 	query := `
 		UPDATE monitors
-		SET name = $2, type = $3, target = $4, interval_seconds = $5, timeout_seconds = $6, status = $7, enabled = $8, failure_threshold = $9, metadata = $10, sla_target_percent = $11
-		WHERE id = $1 AND tenant_id = $12`
+		SET name = $2, type = $3, target = $4, interval_seconds = $5, timeout_seconds = $6, status = $7, enabled = $8, failure_threshold = $9, metadata = $10, sla_target_percent = $11, agent_id = $12
+		WHERE id = $1 AND tenant_id = $13`
 
 	result, err := q.Exec(ctx, query,
 		monitor.ID, monitor.Name, monitor.Type, monitor.Target,
-		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.FailureThreshold, metadataJSON, monitor.SLATargetPercent,
+		monitor.IntervalSeconds, monitor.TimeoutSeconds, monitor.Status, monitor.Enabled, monitor.FailureThreshold, metadataJSON, monitor.SLATargetPercent, monitor.AgentID,
 		tenantID,
 	)
 	if err != nil {
