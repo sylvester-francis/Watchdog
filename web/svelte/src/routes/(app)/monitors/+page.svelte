@@ -16,6 +16,7 @@
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
 	import Sparkline from '$lib/components/dashboard/Sparkline.svelte';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal.svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
 
 	const toast = getToasts();
@@ -29,9 +30,13 @@
 	let activeFilter = $state<'all' | MonitorType>('all');
 	let searchQuery = $state('');
 
-	// Delete confirmation state
-	let confirmDeleteId = $state<string | null>(null);
+	// Delete confirmation modal
 	let deleting = $state(false);
+	let confirmModal = $state<{
+		open: boolean;
+		monitorId: string;
+		monitorName: string;
+	}>({ open: false, monitorId: '', monitorName: '' });
 
 	// Actions dropdown state
 	let openDropdownId = $state<string | null>(null);
@@ -125,18 +130,18 @@
 		openDropdownId = null;
 	}
 
-	async function handleDelete(id: string) {
-		if (confirmDeleteId !== id) {
-			confirmDeleteId = id;
-			return;
-		}
+	function handleDelete(id: string) {
+		const monitor = summaries.find(m => m.id === id);
+		openDropdownId = null;
+		confirmModal = { open: true, monitorId: id, monitorName: monitor?.name ?? 'this monitor' };
+	}
 
+	async function executeDelete() {
 		deleting = true;
 		try {
-			await monitorsApi.deleteMonitor(id);
-			summaries = summaries.filter((m) => m.id !== id);
-			confirmDeleteId = null;
-			openDropdownId = null;
+			await monitorsApi.deleteMonitor(confirmModal.monitorId);
+			summaries = summaries.filter((m) => m.id !== confirmModal.monitorId);
+			confirmModal = { open: false, monitorId: '', monitorName: '' };
 			toast.success('Monitor deleted');
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to delete monitor');
@@ -145,8 +150,8 @@
 		}
 	}
 
-	function cancelDelete() {
-		confirmDeleteId = null;
+	function closeConfirmModal() {
+		if (!deleting) confirmModal = { open: false, monitorId: '', monitorName: '' };
 	}
 
 	async function loadData() {
@@ -396,34 +401,13 @@
 												<Eye class="w-3.5 h-3.5 text-muted-foreground" />
 												<span>View Details</span>
 											</a>
-											{#if confirmDeleteId === m.id}
-												<div class="px-3 py-1.5">
-													<p class="text-[10px] text-red-400 mb-1.5">Delete this monitor?</p>
-													<div class="flex items-center space-x-1.5">
-														<button
-															onclick={() => handleDelete(m.id)}
-															disabled={deleting}
-															class="px-2 py-1 text-[10px] bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded transition-colors disabled:opacity-50"
-														>
-															{deleting ? 'Deleting...' : 'Confirm'}
-														</button>
-														<button
-															onclick={cancelDelete}
-															class="px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-														>
-															Cancel
-														</button>
-													</div>
-												</div>
-											{:else}
-												<button
-													onclick={() => handleDelete(m.id)}
-													class="flex items-center space-x-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors w-full text-left"
-												>
-													<Trash2 class="w-3.5 h-3.5" />
-													<span>Delete</span>
-												</button>
-											{/if}
+											<button
+												onclick={() => handleDelete(m.id)}
+												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors w-full text-left"
+											>
+												<Trash2 class="w-3.5 h-3.5" />
+												<span>Delete</span>
+											</button>
 										</div>
 									{/if}
 								</div>
@@ -521,34 +505,13 @@
 												<Eye class="w-3.5 h-3.5 text-muted-foreground" />
 												<span>View Details</span>
 											</a>
-											{#if confirmDeleteId === m.id}
-												<div class="px-3 py-1.5">
-													<p class="text-[10px] text-red-400 mb-1.5">Delete this monitor?</p>
-													<div class="flex items-center space-x-1.5">
-														<button
-															onclick={() => handleDelete(m.id)}
-															disabled={deleting}
-															class="px-2 py-1 text-[10px] bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded transition-colors disabled:opacity-50"
-														>
-															{deleting ? 'Deleting...' : 'Confirm'}
-														</button>
-														<button
-															onclick={cancelDelete}
-															class="px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-														>
-															Cancel
-														</button>
-													</div>
-												</div>
-											{:else}
-												<button
-													onclick={() => handleDelete(m.id)}
-													class="flex items-center space-x-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors w-full text-left"
-												>
-													<Trash2 class="w-3.5 h-3.5" />
-													<span>Delete</span>
-												</button>
-											{/if}
+											<button
+												onclick={() => handleDelete(m.id)}
+												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors w-full text-left"
+											>
+												<Trash2 class="w-3.5 h-3.5" />
+												<span>Delete</span>
+											</button>
 										</div>
 									{/if}
 								</div>
@@ -565,5 +528,16 @@
 		agents={agentList}
 		onClose={() => { showCreateModal = false; }}
 		onCreated={handleMonitorCreated}
+	/>
+
+	<ConfirmModal
+		open={confirmModal.open}
+		title="Delete Monitor"
+		message="Are you sure you want to delete &quot;{confirmModal.monitorName}&quot;? All heartbeat data and incident history will be permanently removed."
+		confirmLabel="Delete"
+		variant="danger"
+		loading={deleting}
+		onConfirm={executeDelete}
+		onCancel={closeConfirmModal}
 	/>
 {/if}
