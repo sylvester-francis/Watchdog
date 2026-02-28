@@ -28,6 +28,7 @@ type MonitorService interface {
 	UpdateMonitor(ctx context.Context, monitor *domain.Monitor) error
 	DeleteMonitor(ctx context.Context, id uuid.UUID) error
 	ProcessHeartbeat(ctx context.Context, heartbeat *domain.Heartbeat) error
+	MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error
 }
 
 // IncidentService defines the interface for incident lifecycle management.

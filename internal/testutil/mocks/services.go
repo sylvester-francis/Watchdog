@@ -62,12 +62,13 @@ func (m *MockAgentAuthService) CreateAgent(ctx context.Context, userID string, n
 
 // MockMonitorService is a mock implementation of ports.MonitorService.
 type MockMonitorService struct {
-	CreateMonitorFn    func(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error)
-	GetMonitorFn       func(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
-	GetMonitorsByAgentFn func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
-	UpdateMonitorFn    func(ctx context.Context, monitor *domain.Monitor) error
-	DeleteMonitorFn    func(ctx context.Context, id uuid.UUID) error
-	ProcessHeartbeatFn func(ctx context.Context, heartbeat *domain.Heartbeat) error
+	CreateMonitorFn         func(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error)
+	GetMonitorFn            func(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
+	GetMonitorsByAgentFn    func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
+	UpdateMonitorFn         func(ctx context.Context, monitor *domain.Monitor) error
+	DeleteMonitorFn         func(ctx context.Context, id uuid.UUID) error
+	ProcessHeartbeatFn      func(ctx context.Context, heartbeat *domain.Heartbeat) error
+	MarkAgentMonitorsDownFn func(ctx context.Context, agentID uuid.UUID) error
 }
 
 func (m *MockMonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error) {
@@ -108,6 +109,13 @@ func (m *MockMonitorService) DeleteMonitor(ctx context.Context, id uuid.UUID) er
 func (m *MockMonitorService) ProcessHeartbeat(ctx context.Context, heartbeat *domain.Heartbeat) error {
 	if m.ProcessHeartbeatFn != nil {
 		return m.ProcessHeartbeatFn(ctx, heartbeat)
+	}
+	return nil
+}
+
+func (m *MockMonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error {
+	if m.MarkAgentMonitorsDownFn != nil {
+		return m.MarkAgentMonitorsDownFn(ctx, agentID)
 	}
 	return nil
 }
