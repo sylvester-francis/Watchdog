@@ -28,8 +28,8 @@
 		}
 	}
 
-	function formatTTR(seconds: number | null): string {
-		if (seconds === null) return '--';
+	function formatTTR(seconds: number | null | undefined): string {
+		if (seconds == null) return '--';
 		if (seconds < 60) return `${seconds}s`;
 		const minutes = Math.floor(seconds / 60);
 		const hours = Math.floor(minutes / 60);
