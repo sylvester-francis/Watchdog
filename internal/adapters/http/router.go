@@ -250,6 +250,7 @@ func (r *Router) RegisterRoutes() {
 	admin.Use(middleware.AdminRequiredJSON(r.deps.UserRepo))
 	admin.GET("/users", r.systemAPIHandler.ListUsers)
 	admin.POST("/users/:id/reset-password", r.systemAPIHandler.ResetUserPassword, authRL)
+	admin.DELETE("/users/:id", r.systemAPIHandler.DeleteUser)
 	admin.GET("/security-events", r.systemAPIHandler.GetSecurityEvents)
 
 	// SvelteKit SPA — serve build output from root (catches all non-API routes)
