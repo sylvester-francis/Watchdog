@@ -143,6 +143,7 @@ export interface MonitorSummary {
 	status: string;
 	type: string;
 	target: string;
+	interval_seconds: number;
 	latencies: number[];
 	uptimeUp: number;
 	uptimeDown: number;

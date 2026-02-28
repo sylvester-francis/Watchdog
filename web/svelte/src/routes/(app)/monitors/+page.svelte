@@ -88,8 +88,16 @@
 	}
 
 	function lastLatency(m: MonitorSummary): string {
-		if (!m.latencies || m.latencies.length === 0) return '--';
+		if (!m.latencies || m.latencies.length === 0) {
+			return m.status === 'up' ? 'OK' : '--';
+		}
 		return m.latencies[m.latencies.length - 1] + 'ms';
+	}
+
+	function formatInterval(seconds: number): string {
+		if (!seconds) return '--';
+		if (seconds < 60) return `${seconds}s`;
+		return `${Math.floor(seconds / 60)}m`;
 	}
 
 	function checkResults(m: MonitorSummary): number[] {
@@ -387,7 +395,7 @@
 
 								<!-- Interval -->
 								<div class="w-12 shrink-0 hidden md:flex items-center justify-end ml-2">
-									<span class="text-[10px] font-mono text-muted-foreground/70">--</span>
+									<span class="text-[10px] font-mono text-muted-foreground/70">{formatInterval(m.interval_seconds)}</span>
 								</div>
 
 								<!-- Actions dropdown -->
@@ -493,7 +501,7 @@
 
 								<!-- Interval -->
 								<div class="w-12 shrink-0 hidden md:flex items-center justify-end ml-2">
-									<span class="text-[10px] font-mono text-muted-foreground/70">--</span>
+									<span class="text-[10px] font-mono text-muted-foreground/70">{formatInterval(m.interval_seconds)}</span>
 								</div>
 
 								<!-- Actions dropdown -->

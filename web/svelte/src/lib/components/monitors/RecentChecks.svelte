@@ -85,7 +85,7 @@
 							{isSystem ? 'Value' : 'Latency'}
 						</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isSystem ? 'Detail' : 'Error'}
+							{isSystem ? 'Detail' : 'Status'}
 						</th>
 					</tr>
 				</thead>
@@ -117,6 +117,8 @@
 									<span class="text-xs text-red-400 font-mono">Check failed</span>
 								{:else if hb.status === 'timeout'}
 									<span class="text-xs text-amber-400 font-mono">Timeout</span>
+								{:else if hb.status === 'up'}
+									<span class="text-xs text-emerald-400 font-mono">OK</span>
 								{:else}
 									<span class="text-xs text-muted-foreground">{@html '&mdash;'}</span>
 								{/if}
