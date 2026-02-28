@@ -516,6 +516,7 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		}
 		monitor.SLATargetPercent = req.SLATargetPercent
 	}
+	oldAgentID := monitor.AgentID
 	if req.AgentID != nil {
 		newAgentID, err := uuid.Parse(*req.AgentID)
 		if err != nil {
@@ -539,7 +540,12 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		})
 	}
 
-	// Notify agent of the change
+	// If agent changed, cancel the monitor on the old agent
+	if oldAgentID != monitor.AgentID {
+		h.hub.SendToAgent(oldAgentID, protocol.NewTaskCancelMessage(monitor.ID.String()))
+	}
+
+	// Notify the (possibly new) agent of the task
 	if monitor.Enabled {
 		taskMsg := protocol.NewTaskMessageWithMetadata(
 			monitor.ID.String(), string(monitor.Type),
