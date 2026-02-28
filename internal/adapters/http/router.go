@@ -93,9 +93,9 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub)
 	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, deps.AuditService)
-	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService)
+	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
 	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
-	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.StartTime)
+	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.AuditService, deps.Hasher, deps.StartTime)
 
 	return r, nil
 }
@@ -237,6 +237,15 @@ func (r *Router) RegisterRoutes() {
 
 	// System dashboard (admin-only)
 	v1.GET("/system", r.systemAPIHandler.GetSystemInfo)
+
+	// Self-service password change
+	v1.POST("/users/me/password", r.settingsAPIHandler.ChangePassword)
+
+	// Admin routes (admin-only middleware, returns JSON 403)
+	admin := v1.Group("/admin")
+	admin.Use(middleware.AdminRequiredJSON(r.deps.UserRepo))
+	admin.GET("/users", r.systemAPIHandler.ListUsers)
+	admin.POST("/users/:id/reset-password", r.systemAPIHandler.ResetUserPassword, authRL)
 
 	// SvelteKit SPA — serve build output from root (catches all non-API routes)
 	r.registerSvelteRoutes()

@@ -103,9 +103,14 @@ func (h *AuthAPIHandler) Login(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create session"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
+	resp := map[string]any{
 		"user": toUserResponse(user),
-	})
+	}
+	if user.PasswordChangedAt == nil {
+		resp["must_change_password"] = true
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
 
 // Register creates a new user account via JSON.
@@ -167,9 +172,14 @@ func (h *AuthAPIHandler) Me(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
+	resp := map[string]any{
 		"user": toUserResponse(user),
-	})
+	}
+	if user.PasswordChangedAt == nil {
+		resp["must_change_password"] = true
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
 
 // Setup creates the first admin account (only works when no users exist).

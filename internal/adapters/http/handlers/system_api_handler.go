@@ -10,11 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
+	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/crypto"
 )
 
 // SystemAPIHandler serves the system dashboard data as JSON (admin-only).
@@ -24,6 +26,8 @@ type SystemAPIHandler struct {
 	cfg          *config.Config
 	auditLogRepo ports.AuditLogRepository
 	userRepo     ports.UserRepository
+	auditSvc     ports.AuditService
+	hasher       *crypto.PasswordHasher
 	startTime    time.Time
 }
 
@@ -34,6 +38,8 @@ func NewSystemAPIHandler(
 	cfg *config.Config,
 	auditLogRepo ports.AuditLogRepository,
 	userRepo ports.UserRepository,
+	auditSvc ports.AuditService,
+	hasher *crypto.PasswordHasher,
 	startTime time.Time,
 ) *SystemAPIHandler {
 	return &SystemAPIHandler{
@@ -42,6 +48,8 @@ func NewSystemAPIHandler(
 		cfg:          cfg,
 		auditLogRepo: auditLogRepo,
 		userRepo:     userRepo,
+		auditSvc:     auditSvc,
+		hasher:       hasher,
 		startTime:    startTime,
 	}
 }
@@ -270,4 +278,96 @@ func roundTo(val float64, decimals int) float64 {
 	var result float64
 	fmt.Sscanf(fmt.Sprintf(format, val), "%f", &result)
 	return result
+}
+
+// adminUserResponse is the JSON shape for a user in the admin list.
+type adminUserResponse struct {
+	ID           string `json:"id"`
+	Email        string `json:"email"`
+	Username     string `json:"username"`
+	Plan         string `json:"plan"`
+	IsAdmin      bool   `json:"is_admin"`
+	AgentCount   int    `json:"agent_count"`
+	MonitorCount int    `json:"monitor_count"`
+	CreatedAt    string `json:"created_at"`
+}
+
+// ListUsers returns all users with usage counts.
+// GET /api/v1/admin/users
+func (h *SystemAPIHandler) ListUsers(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	users, err := h.userRepo.GetAllWithUsage(ctx)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch users"})
+	}
+
+	result := make([]adminUserResponse, 0, len(users))
+	for _, u := range users {
+		result = append(result, adminUserResponse{
+			ID:           u.ID.String(),
+			Email:        u.Email,
+			Username:     u.Username,
+			Plan:         string(u.Plan),
+			IsAdmin:      u.IsAdmin,
+			AgentCount:   u.AgentCount,
+			MonitorCount: u.MonitorCount,
+			CreatedAt:    u.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"data": result})
+}
+
+// ResetUserPassword generates a new random password for a user (admin-only).
+// POST /api/v1/admin/users/:id/reset-password
+func (h *SystemAPIHandler) ResetUserPassword(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	adminID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	targetID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid user ID"})
+	}
+
+	// Cannot reset own password via admin endpoint
+	if targetID == adminID {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "use the self-service password change to update your own password"})
+	}
+
+	targetUser, err := h.userRepo.GetByID(ctx, targetID)
+	if err != nil || targetUser == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
+	}
+
+	plaintext, err := crypto.GenerateRandomPassword(16)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate password"})
+	}
+
+	hash, err := h.hasher.Hash(plaintext)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+	}
+
+	targetUser.PasswordHash = hash
+	targetUser.PasswordChangedAt = nil // Force password change on next login
+	targetUser.UpdatedAt = time.Now()
+
+	if err := h.userRepo.Update(ctx, targetUser); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update user"})
+	}
+
+	if h.auditSvc != nil {
+		h.auditSvc.LogEvent(ctx, &adminID, domain.AuditPasswordResetByAdmin, c.RealIP(), map[string]string{
+			"target_user_id": targetID.String(),
+			"target_email":   targetUser.Email,
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"password": plaintext})
 }

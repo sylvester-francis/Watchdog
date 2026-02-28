@@ -1,6 +1,14 @@
 import { api } from './client';
-import type { SystemInfo } from '$lib/types';
+import type { SystemInfo, AdminUser } from '$lib/types';
 
 export function getSystemInfo(): Promise<SystemInfo> {
 	return api.get<SystemInfo>('/api/v1/system');
+}
+
+export function listUsers(): Promise<{ data: AdminUser[] }> {
+	return api.get<{ data: AdminUser[] }>('/api/v1/admin/users');
+}
+
+export function resetUserPassword(userId: string): Promise<{ password: string }> {
+	return api.post<{ password: string }>(`/api/v1/admin/users/${userId}/reset-password`);
 }

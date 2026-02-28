@@ -41,15 +41,16 @@ func (p Plan) String() string {
 
 // User represents a registered user in the system.
 type User struct {
-	ID           uuid.UUID
-	Email        string
-	Username     string
-	PasswordHash string
-	Plan     Plan
-	IsAdmin  bool
-	TenantID string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID                uuid.UUID
+	Email             string
+	Username          string
+	PasswordHash      string
+	Plan              Plan
+	IsAdmin           bool
+	TenantID          string
+	PasswordChangedAt *time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // UsernameFromEmail generates a username from an email address.

@@ -148,6 +148,17 @@ export interface MonitorSummary {
 	total: number;
 }
 
+export interface AdminUser {
+	id: string;
+	email: string;
+	username: string;
+	plan: string;
+	is_admin: boolean;
+	agent_count: number;
+	monitor_count: number;
+	created_at: string;
+}
+
 export interface APIError {
 	error: string;
 }

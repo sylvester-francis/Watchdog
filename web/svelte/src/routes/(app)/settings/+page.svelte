@@ -17,11 +17,14 @@
 		Mail,
 		Send,
 		PhoneCall,
-		Webhook
+		Webhook,
+		Lock,
+		AlertTriangle
 	} from 'lucide-svelte';
 	import { settings as settingsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
+	import { page } from '$app/state';
 	import type { APIToken, AlertChannel, AlertChannelType } from '$lib/types';
 	import CreateChannelModal from '$lib/components/settings/CreateChannelModal.svelte';
 	import CreateTokenModal from '$lib/components/settings/CreateTokenModal.svelte';
@@ -29,6 +32,10 @@
 
 	const toast = getToasts();
 	const auth = getAuth();
+
+	// Force change password banner
+	const forceChange = $derived(page.url.searchParams.get('change_password') === '1');
+	let showForceChangeBanner = $state(false);
 
 	// Data
 	let tokens = $state<APIToken[]>([]);
@@ -40,6 +47,14 @@
 	let usernameLoading = $state(false);
 	let usernameSuccess = $state('');
 	let usernameError = $state('');
+
+	// Change password form
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmNewPassword = $state('');
+	let passwordLoading = $state(false);
+	let passwordSuccess = $state('');
+	let passwordError = $state('');
 
 	// Modals
 	let showChannelModal = $state(false);
@@ -317,10 +332,56 @@
 		}
 	}
 
+	async function handlePasswordSubmit(e: Event) {
+		e.preventDefault();
+		passwordSuccess = '';
+		passwordError = '';
+
+		if (!currentPassword || !newPassword) {
+			passwordError = 'All fields are required.';
+			return;
+		}
+		if (newPassword.length < 8) {
+			passwordError = 'New password must be at least 8 characters.';
+			return;
+		}
+		if (newPassword !== confirmNewPassword) {
+			passwordError = 'New passwords do not match.';
+			return;
+		}
+		if (newPassword === currentPassword) {
+			passwordError = 'New password must be different from current password.';
+			return;
+		}
+
+		passwordLoading = true;
+		try {
+			await settingsApi.changePassword({
+				current_password: currentPassword,
+				new_password: newPassword,
+				confirm_password: confirmNewPassword
+			});
+			passwordSuccess = 'Password changed successfully.';
+			currentPassword = '';
+			newPassword = '';
+			confirmNewPassword = '';
+			showForceChangeBanner = false;
+			auth.clearMustChangePassword();
+			setTimeout(() => { passwordSuccess = ''; }, 5000);
+		} catch (err) {
+			passwordError = err instanceof Error ? err.message : 'Failed to change password.';
+		} finally {
+			passwordLoading = false;
+		}
+	}
+
 	onMount(() => {
 		// Prefill username from auth store
 		if (auth.user?.username) {
 			username = auth.user.username;
+		}
+		if (forceChange) {
+			showForceChangeBanner = true;
 		}
 		loadData();
 	});
@@ -394,39 +455,42 @@
 		{/if}
 
 		<!-- ==================== USERNAME SECTION ==================== -->
-		<div class="bg-card border border-border rounded-lg">
-			<div class="p-5">
-				<div class="flex items-center space-x-3 mb-4">
-					<div class="w-9 h-9 bg-blue-500/10 rounded-lg flex items-center justify-center">
-						<AtSign class="w-4.5 h-4.5 text-blue-400" />
+		<div class="bg-card border border-border rounded-lg overflow-hidden">
+			<div class="px-5 py-4 border-b border-border">
+				<div class="flex items-center space-x-3">
+					<div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+						<AtSign class="w-4 h-4 text-blue-400" />
 					</div>
 					<div>
 						<h2 class="text-sm font-medium text-foreground">Username</h2>
-						<p class="text-xs text-muted-foreground">Your public identifier for status page URLs.</p>
+						<p class="text-[11px] text-muted-foreground mt-0.5">Your public identifier for status page URLs.</p>
 					</div>
 				</div>
-
+			</div>
+			<div class="p-5">
 				<form onsubmit={handleUsernameSubmit} class="space-y-3">
 					<div>
 						<label for="settings-username" class={labelClass}>Username</label>
-						<div class="flex items-center gap-2">
-							<span class="px-3 py-2 bg-muted/50 border border-border border-r-0 rounded-l-md text-xs text-muted-foreground font-mono whitespace-nowrap">usewatchdog.dev/status/@</span>
-							<input
-								id="settings-username"
-								type="text"
-								bind:value={username}
-								placeholder="your-name"
-								class="flex-1 px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background -ml-2 rounded-l-none"
-							/>
-							<button
-								type="submit"
-								disabled={usernameLoading}
-								class="shrink-0 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-							>
-								{usernameLoading ? 'Saving...' : 'Save'}
-							</button>
+						<div class="flex flex-col sm:flex-row">
+							<span class="px-3 py-2 bg-muted/30 border border-border rounded-t-md sm:rounded-t-none sm:rounded-l-md sm:border-r-0 text-xs text-muted-foreground font-mono truncate">usewatchdog.dev/status/@</span>
+							<div class="flex flex-1 min-w-0">
+								<input
+									id="settings-username"
+									type="text"
+									bind:value={username}
+									placeholder="my-username"
+									class="flex-1 min-w-0 px-3 py-2 bg-background border border-t-0 sm:border-t border-border border-r-0 rounded-bl-md sm:rounded-none text-sm text-foreground font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent"
+								/>
+								<button
+									type="submit"
+									disabled={usernameLoading}
+									class="shrink-0 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-br-md sm:rounded-r-md transition-colors disabled:opacity-50 whitespace-nowrap"
+								>
+									{usernameLoading ? 'Saving...' : 'Save'}
+								</button>
+							</div>
 						</div>
-						<p class="text-[10px] text-muted-foreground/70 mt-1.5">3-50 characters. Lowercase letters, numbers, and hyphens only.</p>
+						<p class="text-[10px] text-muted-foreground/60 mt-1">3-50 characters. Lowercase letters, numbers, and hyphens only.</p>
 					</div>
 
 					{#if usernameError}
@@ -446,27 +510,109 @@
 			</div>
 		</div>
 
-		<!-- ==================== ALERT CHANNELS SECTION ==================== -->
-		<div class="bg-card border border-border rounded-lg">
-			<!-- Header -->
-			<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
+		<!-- ==================== CHANGE PASSWORD SECTION ==================== -->
+		<div class="bg-card border border-border rounded-lg overflow-hidden">
+			<div class="px-5 py-4 border-b border-border">
 				<div class="flex items-center space-x-3">
-					<div class="w-9 h-9 bg-accent/10 rounded-lg flex items-center justify-center">
-						<Bell class="w-4.5 h-4.5 text-accent" />
+					<div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+						<Lock class="w-4 h-4 text-yellow-400" />
+					</div>
+					<div>
+						<h2 class="text-sm font-medium text-foreground">Change Password</h2>
+						<p class="text-[11px] text-muted-foreground mt-0.5">Update your account password.</p>
+					</div>
+				</div>
+			</div>
+			<div class="p-5">
+				{#if showForceChangeBanner}
+					<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-md px-3 py-2 mb-4 flex items-center space-x-2" role="alert">
+						<AlertTriangle class="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+						<span class="text-xs text-yellow-400">Your password was reset by an administrator. Please set a new password.</span>
+					</div>
+				{/if}
+
+				<form onsubmit={handlePasswordSubmit} class="space-y-3">
+					<div>
+						<label for="current-password" class={labelClass}>Current Password</label>
+						<input
+							id="current-password"
+							type="password"
+							bind:value={currentPassword}
+							autocomplete="current-password"
+							placeholder="Enter current password"
+							class={inputClass}
+						/>
+					</div>
+					<div>
+						<label for="new-password" class={labelClass}>New Password</label>
+						<input
+							id="new-password"
+							type="password"
+							bind:value={newPassword}
+							autocomplete="new-password"
+							placeholder="Enter new password"
+							class={inputClass}
+						/>
+						<p class="text-[10px] text-muted-foreground/70 mt-1">Minimum 8 characters.</p>
+					</div>
+					<div>
+						<label for="confirm-new-password" class={labelClass}>Confirm New Password</label>
+						<input
+							id="confirm-new-password"
+							type="password"
+							bind:value={confirmNewPassword}
+							autocomplete="new-password"
+							placeholder="Confirm new password"
+							class={inputClass}
+						/>
+					</div>
+
+					{#if passwordError}
+						<div class="bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 flex items-center space-x-2" role="alert">
+							<AlertCircle class="w-3.5 h-3.5 text-destructive flex-shrink-0" />
+							<span class="text-xs text-destructive">{passwordError}</span>
+						</div>
+					{/if}
+
+					{#if passwordSuccess}
+						<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 flex items-center space-x-2">
+							<Check class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+							<span class="text-xs text-emerald-400">{passwordSuccess}</span>
+						</div>
+					{/if}
+
+					<button
+						type="submit"
+						disabled={passwordLoading}
+						class="px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+					>
+						{passwordLoading ? 'Changing...' : 'Change Password'}
+					</button>
+				</form>
+			</div>
+		</div>
+
+		<!-- ==================== ALERT CHANNELS SECTION ====================-->
+		<div class="bg-card border border-border rounded-lg overflow-hidden">
+			<!-- Header -->
+			<div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+				<div class="flex items-center space-x-3">
+					<div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+						<Bell class="w-4 h-4 text-accent" />
 					</div>
 					<div>
 						<div class="flex items-center space-x-2">
 							<h2 class="text-sm font-medium text-foreground">Alert Channels</h2>
 							{#if channels.length > 0}
-								<span class="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">{channels.length}</span>
+								<span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{channels.length}</span>
 							{/if}
 						</div>
-						<p class="text-xs text-muted-foreground">Where notifications are sent when incidents occur.</p>
+						<p class="text-[11px] text-muted-foreground mt-0.5">Get notified when incidents open or resolve.</p>
 					</div>
 				</div>
 				<button
 					onclick={() => { showChannelModal = true; }}
-					class="flex items-center space-x-1.5 px-3 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
+					class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5 w-fit"
 				>
 					<Plus class="w-3.5 h-3.5" />
 					<span>Add Channel</span>
@@ -475,27 +621,22 @@
 
 			<!-- Channel list -->
 			{#if channels.length === 0}
-				<div class="p-8 text-center">
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-						<BellOff class="w-6 h-6 text-muted-foreground/40" />
+				<div class="p-4">
+					<div class="text-center py-10">
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+							<BellOff class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+						<p class="text-sm text-muted-foreground font-medium">No alert channels</p>
+						<p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Add Discord, Slack, Email, or other integrations to receive incident alerts.</p>
 					</div>
-					<p class="text-sm font-medium text-foreground mb-1">No alert channels</p>
-					<p class="text-xs text-muted-foreground mb-4">
-						Add a channel to receive notifications when your monitors go down.
-					</p>
-					<button
-						onclick={() => { showChannelModal = true; }}
-						class="inline-flex items-center space-x-1.5 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-					>
-						<Plus class="w-3.5 h-3.5" />
-						<span>Add Channel</span>
-					</button>
 				</div>
 			{:else}
-				<div class="divide-y divide-border/20">
+				<div class="p-4">
+					<div class="space-y-2">
 					{#each channels as channel (channel.id)}
 						{@const typeConf = channelTypeConfig[channel.type]}
-						<div class="px-5 py-3.5 flex items-center justify-between gap-3">
+						<div class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
+						<div class="flex items-center justify-between p-3 gap-3">
 							<div class="flex items-center space-x-3 min-w-0">
 								<div class="w-8 h-8 {typeConf.iconBg} rounded-lg flex items-center justify-center flex-shrink-0">
 									<svelte:component this={typeConf.icon} class="w-4 h-4 {typeConf.iconColor}" />
@@ -563,42 +704,47 @@
 								</button>
 							</div>
 						</div>
+						</div>
 					{/each}
+					</div>
 				</div>
 			{/if}
 
 			<!-- Footer: integrations row -->
-			<div class="px-5 py-3 border-t border-border/50">
-				<div class="flex items-center flex-wrap gap-2">
-					<span class="text-[10px] text-muted-foreground/70 font-medium">Integrations:</span>
+			<div class="px-5 py-2.5 border-t border-border/50 bg-muted/10">
+				<div class="flex flex-wrap items-center gap-2 text-[11px] opacity-60">
+					<span class="text-muted-foreground/50 mr-0.5">Integrations:</span>
 					{#each Object.entries(channelTypeConfig) as [key, conf]}
-						<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded {conf.badgeBg} {conf.badgeText}">{conf.label}</span>
+						<span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
+							<svelte:component this={conf.icon} class="w-3 h-3" />
+							<span>{conf.label}</span>
+						</span>
 					{/each}
 				</div>
 			</div>
 		</div>
 
 		<!-- ==================== API TOKENS SECTION ==================== -->
-		<div class="bg-card border border-border rounded-lg">
+		<div class="bg-card border border-border rounded-lg overflow-hidden">
 			<!-- Header -->
-			<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
+			<div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 				<div class="flex items-center space-x-3">
-					<div class="w-9 h-9 bg-yellow-500/10 rounded-lg flex items-center justify-center">
-						<Key class="w-4.5 h-4.5 text-yellow-400" />
+					<div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+						<Key class="w-4 h-4 text-yellow-400" />
 					</div>
 					<div>
 						<div class="flex items-center space-x-2">
 							<h2 class="text-sm font-medium text-foreground">API Tokens</h2>
 							{#if tokens.length > 0}
-								<span class="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">{tokens.length}</span>
+								<span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{tokens.length}</span>
 							{/if}
 						</div>
-						<p class="text-xs text-muted-foreground">Manage tokens for API access and integrations.</p>
+						<p class="text-[11px] text-muted-foreground mt-0.5">Programmatic access to the WatchDog API.</p>
 					</div>
 				</div>
 				<button
 					onclick={() => { showTokenModal = true; }}
-					class="flex items-center space-x-1.5 px-3 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
+					class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5 w-fit"
 				>
 					<Plus class="w-3.5 h-3.5" />
 					<span>New Token</span>
@@ -607,77 +753,76 @@
 
 			<!-- Token list -->
 			{#if tokens.length === 0}
-				<div class="p-8 text-center">
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-						<Key class="w-6 h-6 text-muted-foreground/40" />
+				<div class="p-4">
+					<div class="text-center py-10">
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+							<Key class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+						<p class="text-sm text-muted-foreground font-medium">No API tokens</p>
+						<p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Create tokens for CI/CD pipelines, Grafana, or custom integrations.</p>
 					</div>
-					<p class="text-sm font-medium text-foreground mb-1">No API tokens</p>
-					<p class="text-xs text-muted-foreground mb-4">
-						Create a token to access the WatchDog API programmatically.
-					</p>
-					<button
-						onclick={() => { showTokenModal = true; }}
-						class="inline-flex items-center space-x-1.5 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-					>
-						<Plus class="w-3.5 h-3.5" />
-						<span>New Token</span>
-					</button>
 				</div>
 			{:else}
-				<div class="divide-y divide-border/20">
+				<div class="p-4">
+					<div class="space-y-2">
 					{#each tokens as token (token.id)}
-						<div class="px-5 py-3.5 flex items-center justify-between gap-3">
-							<div class="flex items-center space-x-3 min-w-0">
-								<div class="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-									<Key class="w-4 h-4 text-yellow-400" />
-								</div>
-								<div class="min-w-0">
-									<div class="flex items-center space-x-2">
-										<span class="text-sm text-foreground truncate">{token.name}</span>
-										<code class="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">{token.prefix}...</code>
-										{#if token.scope === 'admin'}
-											<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-400">Admin</span>
-										{:else}
-											<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">Read Only</span>
-										{/if}
+						<div class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
+							<div class="flex items-center justify-between p-3 gap-3">
+								<div class="flex items-center space-x-3 min-w-0">
+									<div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+										<Key class="w-4 h-4 text-yellow-400" />
 									</div>
-									<div class="flex items-center space-x-3 mt-0.5 text-[10px] text-muted-foreground">
-										<span>Created {timeAgo(token.created_at)}</span>
-										{#if token.expires_at}
-											<span>Expires {timeAgo(token.expires_at)}</span>
-										{:else}
-											<span>No expiry</span>
-										{/if}
-										{#if token.last_used_at}
-											<span>Last used {timeAgo(token.last_used_at)}{token.last_used_ip ? ` from ${token.last_used_ip}` : ''}</span>
-										{:else}
-											<span>Never used</span>
-										{/if}
+									<div class="min-w-0">
+										<div class="flex items-center space-x-2">
+											<span class="text-sm font-medium text-foreground truncate">{token.name}</span>
+											<code class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{token.prefix}...</code>
+											{#if token.scope === 'admin'}
+												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-yellow-500/15 text-yellow-400">admin</span>
+											{:else}
+												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-blue-500/15 text-blue-400">read-only</span>
+											{/if}
+										</div>
+										<div class="flex items-center space-x-1.5 mt-0.5">
+											<span class="text-[10px] text-muted-foreground/60">Created {timeAgo(token.created_at)}</span>
+											{#if token.expires_at}
+												<span class="text-[10px] text-yellow-400/70">Expires {timeAgo(token.expires_at)}</span>
+											{:else}
+												<span class="text-[10px] text-muted-foreground/40">No expiry</span>
+											{/if}
+											{#if token.last_used_at}
+												<span class="text-[10px] text-muted-foreground/60 hidden sm:inline">Last used: {timeAgo(token.last_used_at)}</span>
+												{#if token.last_used_ip}
+													<span class="text-[10px] text-muted-foreground/40 hidden sm:inline font-mono">IP: {token.last_used_ip}</span>
+												{/if}
+											{:else}
+												<span class="text-[10px] text-muted-foreground/60 hidden sm:inline">Never used</span>
+											{/if}
+										</div>
 									</div>
 								</div>
-							</div>
 
-							<div class="flex items-center space-x-1.5 flex-shrink-0">
-								<!-- Regenerate button -->
-								<button
-									onclick={() => handleRegenerateToken(token.id)}
-									class="p-1.5 text-muted-foreground/40 hover:text-yellow-400 rounded-md hover:bg-yellow-500/10 transition-colors"
-									aria-label="Regenerate token"
-								>
-									<RefreshCw class="w-3.5 h-3.5" />
-								</button>
+								<div class="flex items-center gap-1 shrink-0">
+									<!-- Regenerate button (text) -->
+									<button
+										onclick={() => handleRegenerateToken(token.id)}
+										class="px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+									>
+										Regenerate
+									</button>
 
-								<!-- Delete button -->
-								<button
-									onclick={() => handleDeleteToken(token.id)}
-									class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors"
-									aria-label="Delete token"
-								>
-									<Trash2 class="w-3.5 h-3.5" />
-								</button>
+									<!-- Delete button -->
+									<button
+										onclick={() => handleDeleteToken(token.id)}
+										class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10"
+										aria-label="Delete token"
+									>
+										<Trash2 class="w-3.5 h-3.5" />
+									</button>
+								</div>
 							</div>
 						</div>
 					{/each}
+					</div>
 				</div>
 			{/if}
 		</div>

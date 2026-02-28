@@ -31,32 +31,32 @@
 	}
 </script>
 
-<div class="flex items-start justify-between">
-	<div class="flex items-start space-x-3">
-		<div class="mt-1.5">
-			<div class="w-3 h-3 rounded-full {statusDotClass(monitor.status)}"></div>
-		</div>
-		<div>
-			<div class="flex items-center space-x-2.5">
-				<h1 class="text-xl font-semibold text-foreground">{monitor.name}</h1>
-				<span class="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-muted/50 text-muted-foreground">
-					{monitor.type}
-				</span>
-				<span class="text-xs font-medium {statusTextClass(monitor.status)}">
-					{statusLabel(monitor.status)}
-				</span>
+<div class="bg-card border border-border rounded-lg p-5">
+	<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+		<div class="flex items-center space-x-4">
+			<div class="w-10 h-10 rounded-lg {monitor.status === 'up' ? 'bg-emerald-500/10' : monitor.status === 'down' ? 'bg-red-500/10' : 'bg-muted/50'} flex items-center justify-center">
+				<div class="w-3 h-3 rounded-full {statusDotClass(monitor.status)}" aria-label="Status: {monitor.status}"></div>
 			</div>
-			<p class="text-xs text-muted-foreground font-mono mt-1">{monitor.target}</p>
+			<div>
+				<h2 class="text-lg font-semibold text-foreground">{monitor.name}</h2>
+				<div class="flex items-center space-x-3 mt-1">
+					<span class="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground uppercase font-mono">{monitor.type}</span>
+					<span class="text-xs text-muted-foreground font-mono">{monitor.target}</span>
+				</div>
+			</div>
+		</div>
+		<div class="flex items-center space-x-3">
+			<span class="text-sm font-medium {statusTextClass(monitor.status)}">{statusLabel(monitor.status)}</span>
+			{#if onEdit}
+				<button
+					onclick={onEdit}
+					class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
+					aria-label="Edit monitor"
+				>
+					<Pencil class="w-3.5 h-3.5" />
+					<span>Edit</span>
+				</button>
+			{/if}
 		</div>
 	</div>
-	{#if onEdit}
-		<button
-			onclick={onEdit}
-			class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
-			aria-label="Edit monitor"
-		>
-			<Pencil class="w-3.5 h-3.5" />
-			<span>Edit</span>
-		</button>
-	{/if}
 </div>
