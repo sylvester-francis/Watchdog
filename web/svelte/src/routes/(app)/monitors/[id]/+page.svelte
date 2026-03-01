@@ -12,6 +12,8 @@
 	import StatusChart from '$lib/components/monitors/StatusChart.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
+	import CertDetailsCard from '$lib/components/monitors/CertDetailsCard.svelte';
+	import SLACard from '$lib/components/monitors/SLACard.svelte';
 	import EditMonitorModal from '$lib/components/monitors/EditMonitorModal.svelte';
 
 	const toast = getToasts();
@@ -139,6 +141,16 @@
 			<StatusChart {monitorId} />
 		{:else}
 			<LatencyChart {monitorId} />
+		{/if}
+
+		<!-- TLS Certificate Details -->
+		{#if monitor.type === 'tls'}
+			<CertDetailsCard {monitorId} />
+		{/if}
+
+		<!-- SLA Compliance -->
+		{#if monitor.metadata?.sla_target_percent || monitor.sla_target_percent}
+			<SLACard {monitorId} />
 		{/if}
 
 		<!-- Uptime Bar -->

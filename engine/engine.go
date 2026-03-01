@@ -78,6 +78,7 @@ func New(ctx context.Context) (*Engine, error) {
 	auditLogRepo := repository.NewAuditLogRepository(db)
 	statusPageRepo := repository.NewStatusPageRepository(db)
 	alertChannelRepo := repository.NewAlertChannelRepository(db, encryptor)
+	certDetailsRepo := repository.NewCertDetailsRepository(db)
 
 	// Notifiers
 	notifier := buildNotifier(cfg.Notify, logger)
@@ -169,6 +170,7 @@ func New(ctx context.Context) (*Engine, error) {
 		APITokenRepo:     apiTokenRepo,
 		StatusPageRepo:   statusPageRepo,
 		AlertChannelRepo: alertChannelRepo,
+		CertDetailsRepo:  certDetailsRepo,
 		Hub:              hub,
 		Hasher:           hasher,
 		AuditService:     auditSvc,

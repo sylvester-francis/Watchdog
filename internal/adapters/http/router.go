@@ -37,6 +37,7 @@ type Dependencies struct {
 	APITokenRepo     ports.APITokenRepository
 	StatusPageRepo   ports.StatusPageRepository
 	AlertChannelRepo ports.AlertChannelRepository
+	CertDetailsRepo  ports.CertDetailsRepository
 	Hub              *realtime.Hub
 	Hasher           *crypto.PasswordHasher
 	AuditService     ports.AuditService
@@ -97,9 +98,9 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	// Initialize handlers
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.MonitorRepo, deps.IncidentService)
-	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
+	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.CertDetailsRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
-	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub, deps.AuditService)
+	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.CertDetailsRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub, deps.AuditService)
 	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, registerLimiter, deps.AuditService, sessionTracker)
 	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
 	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
@@ -221,6 +222,9 @@ func (r *Router) RegisterRoutes() {
 	v1.POST("/monitors", r.apiV1Handler.CreateMonitor)
 	v1.PUT("/monitors/:id", r.apiV1Handler.UpdateMonitor)
 	v1.DELETE("/monitors/:id", r.apiV1Handler.DeleteMonitor)
+	v1.GET("/monitors/:id/certificate", r.apiV1Handler.GetMonitorCertificate)
+	v1.GET("/monitors/:id/sla", r.apiV1Handler.GetMonitorSLA)
+	v1.GET("/certificates/expiring", r.apiV1Handler.GetExpiringCertificates)
 
 	// Agents
 	v1.GET("/agents", r.apiV1Handler.ListAgents)

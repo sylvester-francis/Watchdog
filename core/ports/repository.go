@@ -157,6 +157,13 @@ type WaitlistRepository interface {
 	Count(ctx context.Context) (int, error)
 }
 
+// CertDetailsRepository defines the interface for TLS certificate detail persistence.
+type CertDetailsRepository interface {
+	Upsert(ctx context.Context, details *domain.CertDetails) error
+	GetByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.CertDetails, error)
+	GetExpiring(ctx context.Context, withinDays int) ([]*domain.CertDetails, error)
+}
+
 // Transactor defines the interface for database transactions.
 type Transactor interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
