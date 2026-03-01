@@ -202,6 +202,14 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 // Logout clears the session cookie.
 // POST /api/v1/auth/logout
 func (h *AuthAPIHandler) Logout(c echo.Context) error {
+	// H-011: audit logout before clearing session (need user ID from session).
+	if h.auditSvc != nil {
+		userID, ok := middleware.GetUserID(c)
+		if ok {
+			h.auditSvc.LogEvent(c.Request().Context(), &userID, domain.AuditLogout, c.RealIP(), nil)
+		}
+	}
+
 	if err := middleware.ClearSession(c); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to clear session"})
 	}
