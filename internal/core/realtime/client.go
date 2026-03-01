@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/sylvester-francis/watchdog-proto/protocol"
 )
+
+// maxHeartbeatsPerWindow caps heartbeats per rate-limit window (H-009).
+const maxHeartbeatsPerWindow = 200
 
 // Client configuration constants.
 const (
@@ -22,8 +26,8 @@ const (
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 
-	// Maximum message size allowed from peer.
-	maxMessageSize = 512 * 1024 // 512 KB
+	// Maximum message size allowed from peer (H-004: 64 KB cap).
+	maxMessageSize = 64 * 1024 // 64 KB
 )
 
 // HeartbeatCallback is called when a heartbeat is received from an agent.
@@ -40,6 +44,7 @@ type Client struct {
 	closeOnce   sync.Once
 	closeCh     chan struct{}
 	onHeartbeat HeartbeatCallback
+	hbCount     atomic.Int64 // heartbeats in current window (H-009)
 }
 
 // NewClient creates a new client for the given connection.
@@ -186,6 +191,9 @@ func (c *Client) writePump() {
 			}
 
 		case <-ticker.C:
+			// H-009: reset heartbeat rate limiter each ping period (~54s).
+			c.hbCount.Store(0)
+
 			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				return
 			}
@@ -217,6 +225,14 @@ func (c *Client) handleMessage(msg *protocol.Message) {
 
 // handleHeartbeat processes heartbeat messages from the agent.
 func (c *Client) handleHeartbeat(msg *protocol.Message) {
+	// H-009: cap heartbeats per rate-limit window to prevent DB insert storms.
+	if c.hbCount.Add(1) > int64(maxHeartbeatsPerWindow) {
+		c.logger.Warn("heartbeat rate limit exceeded, dropping",
+			slog.String("agent_id", c.AgentID.String()),
+		)
+		return
+	}
+
 	var payload protocol.HeartbeatPayload
 	if err := msg.ParsePayload(&payload); err != nil {
 		c.logger.Warn("failed to parse heartbeat payload",
