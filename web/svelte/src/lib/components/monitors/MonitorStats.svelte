@@ -54,14 +54,25 @@
 
 	<!-- Type-specific extra cards -->
 	{#if monitor.type === 'tls' && monitor.metadata?.cert_expiry_days}
+		{@const days = parseInt(monitor.metadata.cert_expiry_days)}
 		<div class="bg-card border border-border rounded-lg p-4">
 			<div class="flex items-center space-x-1.5 mb-1">
 				<Shield class="w-3 h-3 text-muted-foreground" />
 				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Cert Expiry</p>
 			</div>
-			<p class="text-lg font-semibold text-foreground font-mono">
-				{monitor.metadata.cert_expiry_days}d
+			<p class="text-lg font-semibold font-mono {days < 14 ? 'text-red-400' : days < 30 ? 'text-amber-400' : 'text-emerald-400'}">
+				{days}d
 			</p>
+		</div>
+	{/if}
+
+	{#if monitor.type === 'tls' && monitor.metadata?.cert_issuer}
+		<div class="bg-card border border-border rounded-lg p-4">
+			<div class="flex items-center space-x-1.5 mb-1">
+				<Shield class="w-3 h-3 text-muted-foreground" />
+				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Issuer</p>
+			</div>
+			<p class="text-sm font-medium text-foreground truncate">{monitor.metadata.cert_issuer}</p>
 		</div>
 	{/if}
 
