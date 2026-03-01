@@ -51,6 +51,9 @@ web/svelte/node_modules/
 web/svelte/.svelte-kit/
 web/svelte/build/
 
+# Release build artifacts
+dist/
+
 # Backups
 backups/
 *.sql.gz
