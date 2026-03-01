@@ -128,6 +128,8 @@ export interface HeartbeatPoint {
 	status: 'up' | 'down' | 'timeout' | 'error';
 	latency_ms: number | null;
 	error_message?: string;
+	cert_expiry_days?: number;
+	cert_issuer?: string;
 }
 
 export interface LatencyPoint {
