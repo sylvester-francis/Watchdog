@@ -71,6 +71,9 @@ type Router struct {
 	generalRateLimiter *middleware.RateLimiter
 	loginLimiter       *middleware.LoginLimiter
 	registerLimiter    *middleware.RegisterLimiter
+
+	// H-017: concurrent session tracker
+	sessionTracker *middleware.SessionTracker
 }
 
 // NewRouter creates a new Router instance.
@@ -82,12 +85,14 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	loginLimiter := middleware.NewLoginLimiter()
 	registerLimiter := middleware.NewRegisterLimiter()
+	sessionTracker := middleware.NewSessionTracker() // H-017
 
 	r := &Router{
 		echo:            e,
 		deps:            deps,
 		loginLimiter:    loginLimiter,
 		registerLimiter: registerLimiter,
+		sessionTracker:  sessionTracker,
 	}
 
 	// Initialize handlers
@@ -95,7 +100,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub, deps.AuditService)
-	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, registerLimiter, deps.AuditService)
+	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, registerLimiter, deps.AuditService, sessionTracker)
 	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
 	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
 	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.AuditService, deps.Hasher, deps.StartTime)
@@ -121,12 +126,18 @@ func (r *Router) RegisterRoutes() {
 	// CSRF protection for HTML form submissions
 	e.Use(middleware.CSRFMiddleware(r.deps.SecureCookies))
 
-	// Rate limiters
+	// Rate limiters (H-019: documented rationale for each config).
+	//
+	// Auth rate limiter: stricter limits for login/register/token-create endpoints.
+	//   - Rate=5/s, Burst=10: login is a high-value target for credential stuffing.
+	//     5 req/s per IP is generous for legitimate use but limits brute-force.
 	r.authRateLimiter = middleware.NewRateLimiter(middleware.RateLimiterConfig{
 		Rate:            5,
 		Burst:           10,
 		CleanupInterval: 5 * time.Minute,
 	})
+	// General API rate limiter: see DefaultRateLimiterConfig() for rationale.
+	// SSE and WebSocket upgrade paths are excluded in the middleware itself.
 	r.generalRateLimiter = middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
 	e.Use(r.generalRateLimiter.Middleware())
 
@@ -287,7 +298,7 @@ func (r *Router) tenantMiddleware() echo.MiddlewareFunc {
 	}
 }
 
-// Stop cleans up router resources (rate limiters).
+// Stop cleans up router resources (rate limiters, session tracker).
 func (r *Router) Stop() {
 	if r.authRateLimiter != nil {
 		r.authRateLimiter.Stop()
@@ -300,6 +311,9 @@ func (r *Router) Stop() {
 	}
 	if r.registerLimiter != nil {
 		r.registerLimiter.Stop()
+	}
+	if r.sessionTracker != nil {
+		r.sessionTracker.Stop()
 	}
 }
 
