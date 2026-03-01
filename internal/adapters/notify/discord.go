@@ -27,9 +27,7 @@ type DiscordNotifier struct {
 func NewDiscordNotifier(webhookURL string) *DiscordNotifier {
 	return &DiscordNotifier{
 		webhookURL: webhookURL,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient: NewHTTPClient(10 * time.Second),
 	}
 }
 

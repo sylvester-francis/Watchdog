@@ -21,9 +21,7 @@ type SlackNotifier struct {
 func NewSlackNotifier(webhookURL string) *SlackNotifier {
 	return &SlackNotifier{
 		webhookURL: webhookURL,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient: NewHTTPClient(10 * time.Second),
 	}
 }
 
