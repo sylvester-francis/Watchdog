@@ -21,9 +21,7 @@ type WebhookNotifier struct {
 func NewWebhookNotifier(url string) *WebhookNotifier {
 	return &WebhookNotifier{
 		url: url,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient: NewHTTPClient(10 * time.Second),
 	}
 }
 
