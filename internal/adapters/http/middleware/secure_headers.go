@@ -41,10 +41,16 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 
 			// Nonce-based CSP — the SvelteKit SPA has one inline bootstrap
 			// script that gets the nonce injected by the router.
+			// H-018: 'unsafe-inline' retained in style-src because SvelteKit
+			// generates inline styles for transitions and components use
+			// inline style= attributes (10 occurrences). Removing it would
+			// break the UI. CSS injection risk is low: connect-src 'self'
+			// blocks data exfiltration via background-url, and style
+			// injection cannot execute JavaScript.
 			h.Set("Content-Security-Policy",
 				"default-src 'self'; "+
 					"script-src 'self' 'nonce-"+nonce+"' https://unpkg.com https://cdn.jsdelivr.net; "+
-					"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "+
+					"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "+
 					"img-src 'self' data: https://validator.swagger.io; "+
 					"font-src 'self' https://fonts.gstatic.com; "+
 					"connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
