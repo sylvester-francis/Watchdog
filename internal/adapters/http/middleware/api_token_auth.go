@@ -19,6 +19,11 @@ import (
 func HybridAuth(tokenRepo ports.APITokenRepository) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			// 0. If already authenticated by upstream middleware (e.g. Kratos SSO), skip.
+			if c.Get(UserIDKey) != nil {
+				return next(c)
+			}
+
 			// 1. Try Bearer token first
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
