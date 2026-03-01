@@ -115,7 +115,7 @@ func (s *AuthService) ValidateAPIKey(ctx context.Context, apiKey string) (*domai
 	}
 	secret := parts[1]
 
-	agent, err := s.agentRepo.GetByID(ctx, agentID)
+	agent, err := s.agentRepo.GetByIDGlobal(ctx, agentID)
 	if err != nil {
 		return nil, fmt.Errorf("authService.ValidateAPIKey: get agent: %w", err)
 	}

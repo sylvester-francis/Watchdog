@@ -136,12 +136,13 @@ func (m *MockUserRepository) GetAllWithUsage(ctx context.Context) ([]ports.Admin
 
 // MockAgentRepository is a mock implementation of ports.AgentRepository.
 type MockAgentRepository struct {
-	CreateFn          func(ctx context.Context, agent *domain.Agent) error
-	GetByIDFn         func(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
-	GetByUserIDFn     func(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error)
-	UpdateFn          func(ctx context.Context, agent *domain.Agent) error
-	DeleteFn          func(ctx context.Context, id uuid.UUID) error
-	UpdateStatusFn    func(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
+	CreateFn            func(ctx context.Context, agent *domain.Agent) error
+	GetByIDFn           func(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
+	GetByIDGlobalFn     func(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
+	GetByUserIDFn       func(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error)
+	UpdateFn            func(ctx context.Context, agent *domain.Agent) error
+	DeleteFn            func(ctx context.Context, id uuid.UUID) error
+	UpdateStatusFn      func(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
 	UpdateLastSeenFn    func(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
 	UpdateFingerprintFn func(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error
 	CountByUserIDFn     func(ctx context.Context, userID uuid.UUID) (int, error)
@@ -157,6 +158,13 @@ func (m *MockAgentRepository) Create(ctx context.Context, agent *domain.Agent) e
 func (m *MockAgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Agent, error) {
 	if m.GetByIDFn != nil {
 		return m.GetByIDFn(ctx, id)
+	}
+	return nil, nil
+}
+
+func (m *MockAgentRepository) GetByIDGlobal(ctx context.Context, id uuid.UUID) (*domain.Agent, error) {
+	if m.GetByIDGlobalFn != nil {
+		return m.GetByIDGlobalFn(ctx, id)
 	}
 	return nil, nil
 }
