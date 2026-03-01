@@ -41,6 +41,7 @@ type Agent struct {
 	Status                AgentStatus
 	Fingerprint           map[string]string
 	FingerprintVerifiedAt *time.Time
+	TenantID              string
 	CreatedAt             time.Time
 }
 

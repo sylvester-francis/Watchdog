@@ -18,6 +18,7 @@ import (
 	"github.com/sylvester-francis/watchdog-proto/protocol"
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 )
 
@@ -222,8 +223,8 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		return nil
 	}
 
-	// Mark agent online
-	ctx := context.Background()
+	// Mark agent online — use agent's tenant context for all post-auth operations.
+	ctx := repository.WithTenantID(context.Background(), agent.TenantID)
 	if err := h.agentRepo.UpdateStatus(ctx, agent.ID, domain.AgentStatusOnline); err != nil {
 		h.logger.Error("failed to update agent status", slog.String("error", err.Error()))
 	}
