@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Clock, Timer, Activity, Server, Shield, Container, Database, Cpu } from 'lucide-svelte';
+	import { Clock, Timer, Activity, Server, Shield, Container, Database, Cpu, Cog } from 'lucide-svelte';
 	import { formatPercent, uptimeColor } from '$lib/utils';
 	import type { Monitor } from '$lib/types';
 
@@ -92,6 +92,16 @@
 				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Metric</p>
 			</div>
 			<p class="text-sm font-medium text-foreground capitalize">{monitor.metadata.metric_name}</p>
+		</div>
+	{/if}
+
+	{#if monitor.type === 'service'}
+		<div class="bg-card border border-border rounded-lg p-4">
+			<div class="flex items-center space-x-1.5 mb-1">
+				<Cog class="w-3 h-3 text-muted-foreground" />
+				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Service</p>
+			</div>
+			<p class="text-sm font-medium text-foreground font-mono">{monitor.target}</p>
 		</div>
 	{/if}
 </div>
