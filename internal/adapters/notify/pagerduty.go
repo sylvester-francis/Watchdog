@@ -25,9 +25,7 @@ func NewPagerDutyNotifier(routingKey string) *PagerDutyNotifier {
 	return &PagerDutyNotifier{
 		routingKey: routingKey,
 		eventsURL:  pagerdutyDefaultEventsURL,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient: NewHTTPClient(10 * time.Second),
 	}
 }
 

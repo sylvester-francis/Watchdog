@@ -27,9 +27,7 @@ func NewTelegramNotifier(botToken, chatID string) *TelegramNotifier {
 		botToken: botToken,
 		chatID:   chatID,
 		baseURL:  telegramDefaultBaseURL,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		httpClient: NewHTTPClient(10 * time.Second),
 	}
 }
 
