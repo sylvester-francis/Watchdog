@@ -42,6 +42,12 @@ type APIToken struct {
 	CreatedAt  time.Time
 }
 
+// tokenPrefixLen is the number of characters to store as the visible prefix of
+// an API token. Increased from 11 to 16 in H-022 to expand the collision
+// space from ~4 billion to ~4.7 * 10^15 combinations. This only affects newly
+// generated tokens; existing tokens with the shorter prefix continue to work.
+const tokenPrefixLen = 16
+
 // GenerateAPIToken creates a new APIToken and returns the plaintext token (shown once).
 // Token format: wd_<32 hex chars> (e.g. wd_a1b2c3d4e5f6789012345678901234ab)
 func GenerateAPIToken(userID uuid.UUID, name string, expiresAt *time.Time, scope TokenScope) (*APIToken, string, error) {
@@ -53,7 +59,8 @@ func GenerateAPIToken(userID uuid.UUID, name string, expiresAt *time.Time, scope
 	plaintext := "wd_" + hex.EncodeToString(raw)
 	hash := sha256.Sum256([]byte(plaintext))
 	hashHex := hex.EncodeToString(hash[:])
-	prefix := plaintext[:11] // "wd_" + first 8 hex chars
+	// H-022: use longer prefix for better uniqueness (was 11, now 16).
+	prefix := plaintext[:tokenPrefixLen]
 
 	if !scope.IsValid() {
 		scope = TokenScopeAdmin

@@ -26,12 +26,17 @@ func (s AgentStatus) IsValid() bool {
 	}
 }
 
+// DefaultAPIKeyExpiryDays is the default validity period for newly created
+// agent API keys (H-023). Set to 365 days (1 year).
+const DefaultAPIKeyExpiryDays = 365
+
 // Agent represents a monitoring agent deployed in a private network.
 type Agent struct {
 	ID                    uuid.UUID
 	UserID                uuid.UUID
 	Name                  string
 	APIKeyEncrypted       []byte
+	APIKeyExpiresAt       *time.Time // H-023: optional key expiry (nil = never)
 	LastSeenAt            *time.Time
 	Status                AgentStatus
 	Fingerprint           map[string]string
@@ -39,16 +44,28 @@ type Agent struct {
 	CreatedAt             time.Time
 }
 
-// NewAgent creates a new Agent with generated ID and offline status.
+// NewAgent creates a new Agent with generated ID, offline status, and a
+// default API key expiry of DefaultAPIKeyExpiryDays from now (H-023).
 func NewAgent(userID uuid.UUID, name string, apiKeyEncrypted []byte) *Agent {
+	expiresAt := time.Now().AddDate(0, 0, DefaultAPIKeyExpiryDays)
 	return &Agent{
 		ID:              uuid.New(),
 		UserID:          userID,
 		Name:            name,
 		APIKeyEncrypted: apiKeyEncrypted,
+		APIKeyExpiresAt: &expiresAt,
 		Status:          AgentStatusOffline,
 		CreatedAt:       time.Now(),
 	}
+}
+
+// IsAPIKeyExpired returns true if the agent's API key has an expiry and it has
+// passed (H-023).
+func (a *Agent) IsAPIKeyExpired() bool {
+	if a.APIKeyExpiresAt == nil {
+		return false // nil = never expires (legacy agents)
+	}
+	return time.Now().After(*a.APIKeyExpiresAt)
 }
 
 // MarkOnline marks the agent as online and updates last seen time.

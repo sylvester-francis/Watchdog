@@ -88,6 +88,12 @@ func (r *HeartbeatRepository) GetByMonitorID(ctx context.Context, monitorID uuid
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: clamp caller-supplied limit to a safe maximum.
+	const maxLimit = 1000
+	if limit <= 0 || limit > maxLimit {
+		limit = maxLimit
+	}
+
 	query := `
 		SELECT time, monitor_id, agent_id, status, latency_ms, error_message, cert_expiry_days, cert_issuer
 		FROM heartbeats
@@ -109,11 +115,13 @@ func (r *HeartbeatRepository) GetByMonitorIDInRange(ctx context.Context, monitor
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// H-020: hard limit prevents unbounded result sets even within a valid time range.
 	query := `
 		SELECT time, monitor_id, agent_id, status, latency_ms, error_message, cert_expiry_days, cert_issuer
 		FROM heartbeats
 		WHERE monitor_id = $1 AND tenant_id = $2 AND time >= $3 AND time <= $4
-		ORDER BY time DESC`
+		ORDER BY time DESC
+		LIMIT 10000`
 
 	rows, err := q.Query(ctx, query, monitorID, tenantID, from, to)
 	if err != nil {
