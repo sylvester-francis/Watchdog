@@ -47,7 +47,7 @@ func (p *PagerDutyNotifier) NotifyIncidentOpened(ctx context.Context, incident *
 		DedupKey:    incident.ID.String(),
 		Payload: pagerdutyPayload{
 			Summary:   fmt.Sprintf("Monitor %s is DOWN (%s)", monitor.Name, monitor.Target),
-			Source:    "watchdog",
+			Source:    BrandName,
 			Severity:  "critical",
 			Timestamp: incident.StartedAt.Format(time.RFC3339),
 			CustomDetails: map[string]string{
@@ -69,7 +69,7 @@ func (p *PagerDutyNotifier) NotifyIncidentResolved(ctx context.Context, incident
 		DedupKey:    incident.ID.String(),
 		Payload: pagerdutyPayload{
 			Summary:   fmt.Sprintf("Monitor %s is UP (%s)", monitor.Name, monitor.Target),
-			Source:    "watchdog",
+			Source:    BrandName,
 			Severity:  "info",
 			Timestamp: time.Now().Format(time.RFC3339),
 			CustomDetails: map[string]string{
