@@ -24,6 +24,7 @@ type FeatureConfig struct {
 // NotifyConfig holds notification configuration.
 // All fields are optional. Set the relevant config to activate a notifier.
 type NotifyConfig struct {
+	BrandName         string `envconfig:"NOTIFICATION_BRAND" default:"WatchDog Monitoring"`
 	SlackWebhookURL   string `envconfig:"SLACK_WEBHOOK_URL"`
 	DiscordWebhookURL string `envconfig:"DISCORD_WEBHOOK_URL"`
 	WebhookURL        string `envconfig:"WEBHOOK_URL"`
