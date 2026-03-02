@@ -45,7 +45,7 @@ func (d *DiscordNotifier) NotifyIncidentOpened(ctx context.Context, incident *do
 		},
 		Timestamp: incident.StartedAt.Format(time.RFC3339),
 		Footer: discordFooter{
-			Text: "WatchDog Monitoring",
+			Text: BrandName,
 		},
 	}
 
@@ -69,7 +69,7 @@ func (d *DiscordNotifier) NotifyIncidentResolved(ctx context.Context, incident *
 			{Name: "Duration", Value: durationStr, Inline: true},
 		},
 		Footer: discordFooter{
-			Text: "WatchDog Monitoring",
+			Text: BrandName,
 		},
 	}
 
