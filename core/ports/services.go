@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/sylvester-francis/watchdog-proto/protocol"
 	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
@@ -46,6 +47,11 @@ type IncidentService interface {
 // AuditService defines the interface for security audit logging.
 type AuditService interface {
 	LogEvent(ctx context.Context, userID *uuid.UUID, action domain.AuditAction, ipAddress string, metadata map[string]string)
+}
+
+// AgentMessenger sends protocol messages to connected agents via WebSocket.
+type AgentMessenger interface {
+	SendToAgent(agentID uuid.UUID, msg *protocol.Message) bool
 }
 
 // Notifier defines the interface for sending alerts.
