@@ -298,6 +298,8 @@ func (e *Engine) Shutdown(ctx context.Context) error {
 
 // buildNotifier creates the appropriate notifier based on configuration.
 func buildNotifier(cfg config.NotifyConfig, logger *slog.Logger) notify.Notifier {
+	notify.SetBrandName(cfg.BrandName)
+
 	multi := notify.NewMultiNotifier()
 	count := 0
 

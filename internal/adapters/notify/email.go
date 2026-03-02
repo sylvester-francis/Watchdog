@@ -43,14 +43,15 @@ func NewEmailNotifier(cfg EmailConfig) *EmailNotifier {
 
 // NotifyIncidentOpened sends an email when an incident is opened.
 func (e *EmailNotifier) NotifyIncidentOpened(_ context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
-	subject := fmt.Sprintf("[WatchDog] Incident Opened: %s is DOWN", monitor.Name)
+	subject := fmt.Sprintf("[%s] Incident Opened: %s is DOWN", BrandName, monitor.Name)
 	body := fmt.Sprintf(
-		"Monitor: %s\nType: %s\nTarget: %s\nStarted: %s\n\nMonitor %s is currently DOWN.\n\n— WatchDog Monitoring",
+		"Monitor: %s\nType: %s\nTarget: %s\nStarted: %s\n\nMonitor %s is currently DOWN.\n\n— %s",
 		monitor.Name,
 		string(monitor.Type),
 		monitor.Target,
 		incident.StartedAt.Format(time.RFC3339),
 		monitor.Name,
+		BrandName,
 	)
 
 	return e.send(subject, body)
@@ -59,15 +60,16 @@ func (e *EmailNotifier) NotifyIncidentOpened(_ context.Context, incident *domain
 // NotifyIncidentResolved sends an email when an incident is resolved.
 func (e *EmailNotifier) NotifyIncidentResolved(_ context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
 	duration := formatDuration(incident.Duration())
-	subject := fmt.Sprintf("[WatchDog] Incident Resolved: %s is UP", monitor.Name)
+	subject := fmt.Sprintf("[%s] Incident Resolved: %s is UP", BrandName, monitor.Name)
 	body := fmt.Sprintf(
-		"Monitor: %s\nType: %s\nTarget: %s\nStarted: %s\nDuration: %s\n\nMonitor %s is back UP.\n\n— WatchDog Monitoring",
+		"Monitor: %s\nType: %s\nTarget: %s\nStarted: %s\nDuration: %s\n\nMonitor %s is back UP.\n\n— %s",
 		monitor.Name,
 		string(monitor.Type),
 		monitor.Target,
 		incident.StartedAt.Format(time.RFC3339),
 		duration,
 		monitor.Name,
+		BrandName,
 	)
 
 	return e.send(subject, body)
