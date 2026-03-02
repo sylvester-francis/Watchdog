@@ -15,6 +15,7 @@ import (
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 
+	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/core/registry"
 	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
@@ -39,6 +40,17 @@ type Engine struct {
 	router *internalhttp.Router
 	hub    *realtime.Hub
 	cfg    *config.Config
+
+	// Exposed for EE extensions via accessor methods.
+	agentRepo       ports.AgentRepository
+	monitorRepo     ports.MonitorRepository
+	heartbeatRepo   ports.HeartbeatRepository
+	certDetailsRepo ports.CertDetailsRepository
+	statusPageRepo  ports.StatusPageRepository
+	incidentSvc     ports.IncidentService
+	monitorSvc      ports.MonitorService
+	agentAuthSvc    ports.AgentAuthService
+	auditSvc        ports.AuditService
 }
 
 // New creates a new Engine, loading config, connecting to the database,
@@ -198,6 +210,16 @@ func New(ctx context.Context) (*Engine, error) {
 		router: router,
 		hub:    hub,
 		cfg:    cfg,
+
+		agentRepo:       agentRepo,
+		monitorRepo:     monitorRepo,
+		heartbeatRepo:   heartbeatRepo,
+		certDetailsRepo: certDetailsRepo,
+		statusPageRepo:  statusPageRepo,
+		incidentSvc:     incidentSvc,
+		monitorSvc:      monitorSvc,
+		agentAuthSvc:    authSvc,
+		auditSvc:        auditSvc,
 	}, nil
 }
 
@@ -228,6 +250,36 @@ func (e *Engine) Logger() *slog.Logger {
 func (e *Engine) AuthMiddleware() echo.MiddlewareFunc {
 	return middleware.AuthRequiredAPI
 }
+
+// AgentRepo returns the agent repository for EE extensions.
+func (e *Engine) AgentRepo() ports.AgentRepository { return e.agentRepo }
+
+// MonitorRepo returns the monitor repository for EE extensions.
+func (e *Engine) MonitorRepo() ports.MonitorRepository { return e.monitorRepo }
+
+// HeartbeatRepo returns the heartbeat repository for EE extensions.
+func (e *Engine) HeartbeatRepo() ports.HeartbeatRepository { return e.heartbeatRepo }
+
+// CertDetailsRepo returns the certificate details repository for EE extensions.
+func (e *Engine) CertDetailsRepo() ports.CertDetailsRepository { return e.certDetailsRepo }
+
+// StatusPageRepo returns the status page repository for EE extensions.
+func (e *Engine) StatusPageRepo() ports.StatusPageRepository { return e.statusPageRepo }
+
+// IncidentService returns the incident service for EE extensions.
+func (e *Engine) IncidentService() ports.IncidentService { return e.incidentSvc }
+
+// MonitorService returns the monitor service for EE extensions.
+func (e *Engine) MonitorService() ports.MonitorService { return e.monitorSvc }
+
+// AgentAuthService returns the agent auth service for EE extensions.
+func (e *Engine) AgentAuthService() ports.AgentAuthService { return e.agentAuthSvc }
+
+// AuditService returns the audit service for EE extensions.
+func (e *Engine) AuditService() ports.AuditService { return e.auditSvc }
+
+// AgentMessenger returns the WebSocket hub as an AgentMessenger for EE extensions.
+func (e *Engine) AgentMessenger() ports.AgentMessenger { return e.hub }
 
 // SetTenantValidator sets the EE hook for tenant-scoped registration.
 // When set, registration requires a valid tenant_slug and creates users in
