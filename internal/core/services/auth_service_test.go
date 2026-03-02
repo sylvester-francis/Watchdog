@@ -149,7 +149,7 @@ func TestValidateAPIKey_Success(t *testing.T) {
 	agentID := uuid.New()
 
 	agentRepo := &mocks.MockAgentRepository{
-		GetByIDFn: func(_ context.Context, id uuid.UUID) (*domain.Agent, error) {
+		GetByIDGlobalFn: func(_ context.Context, id uuid.UUID) (*domain.Agent, error) {
 			assert.Equal(t, agentID, id)
 			return &domain.Agent{
 				ID:              agentID,
@@ -186,7 +186,7 @@ func TestValidateAPIKey_InvalidUUID(t *testing.T) {
 
 func TestValidateAPIKey_AgentNotFound(t *testing.T) {
 	agentRepo := &mocks.MockAgentRepository{
-		GetByIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Agent, error) {
+		GetByIDGlobalFn: func(_ context.Context, _ uuid.UUID) (*domain.Agent, error) {
 			return nil, nil
 		},
 	}
@@ -204,7 +204,7 @@ func TestValidateAPIKey_WrongSecret(t *testing.T) {
 	agentID := uuid.New()
 
 	agentRepo := &mocks.MockAgentRepository{
-		GetByIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Agent, error) {
+		GetByIDGlobalFn: func(_ context.Context, _ uuid.UUID) (*domain.Agent, error) {
 			return &domain.Agent{
 				ID:              agentID,
 				APIKeyEncrypted: encrypted,
