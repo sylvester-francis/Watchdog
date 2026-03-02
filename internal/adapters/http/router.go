@@ -192,7 +192,7 @@ func (r *Router) RegisterRoutes() {
 	v1Public.GET("/auth/needs-setup", r.authAPIHandler.NeedsSetup)
 
 	// Public status page API (no auth required)
-	v1Public.GET("/public/status/:username/:slug", r.statusPageAPIHandler.PublicView)
+	v1Public.GET("/public/status/:tenant/:username/:slug", r.statusPageAPIHandler.PublicView)
 
 	// API v1 (hybrid auth: Bearer token OR session cookie)
 	v1 := e.Group("/api/v1")

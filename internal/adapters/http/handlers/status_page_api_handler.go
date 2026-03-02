@@ -14,6 +14,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 // statusPageResponse is the JSON DTO for a status page.
@@ -333,9 +334,10 @@ type publicIncidentResponse struct {
 	IsActive        bool    `json:"is_active"`
 }
 
-// PublicView handles GET /api/v1/public/status/:username/:slug (no auth required).
+// PublicView handles GET /api/v1/public/status/:tenant/:username/:slug (no auth required).
 func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
-	ctx := c.Request().Context()
+	tenantSlug := c.Param("tenant")
+	ctx := repository.WithTenantID(c.Request().Context(), tenantSlug)
 	username := c.Param("username")
 	slug := c.Param("slug")
 
