@@ -315,6 +315,12 @@ func (m *workflowModule) processNext(ctx context.Context) {
 
 // executeWorkflow runs all remaining steps in a workflow.
 func (m *workflowModule) executeWorkflow(ctx context.Context, wf *domain.Workflow) {
+	// Inject the workflow's tenant_id into context so step handlers
+	// (e.g. alert channel lookups) query the correct tenant.
+	if wf.TenantID != "" {
+		ctx = repository.WithTenantID(ctx, wf.TenantID)
+	}
+
 	// Get step definitions
 	steps, err := m.getSteps(ctx, wf.ID)
 	if err != nil {
