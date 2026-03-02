@@ -103,6 +103,33 @@ func (r *StatusPageRepository) GetByUserID(ctx context.Context, userID uuid.UUID
 	return pages, nil
 }
 
+// GetAllInTenant retrieves all status pages in the current tenant.
+func (r *StatusPageRepository) GetAllInTenant(ctx context.Context) ([]*domain.StatusPage, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `SELECT id, user_id, name, slug, description, is_public, created_at, updated_at
+		FROM status_pages WHERE tenant_id = $1 ORDER BY created_at DESC`
+
+	rows, err := q.Query(ctx, query, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("get all status pages in tenant: %w", err)
+	}
+	defer rows.Close()
+
+	var pages []*domain.StatusPage
+	for rows.Next() {
+		page := &domain.StatusPage{}
+		if err := rows.Scan(
+			&page.ID, &page.UserID, &page.Name, &page.Slug, &page.Description, &page.IsPublic, &page.CreatedAt, &page.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan status page: %w", err)
+		}
+		pages = append(pages, page)
+	}
+	return pages, nil
+}
+
 // Update updates a status page.
 func (r *StatusPageRepository) Update(ctx context.Context, page *domain.StatusPage) error {
 	q := r.db.Querier(ctx)
@@ -166,6 +193,46 @@ func (r *StatusPageRepository) SetMonitors(ctx context.Context, pageID uuid.UUID
 			}
 			if result.RowsAffected() == 0 {
 				return fmt.Errorf("monitor %s not owned by user", monitorID)
+			}
+		}
+
+		return nil
+	})
+}
+
+// SetMonitorsInTenant replaces all monitors for a status page using tenant-scoped validation.
+// Unlike SetMonitors which verifies user ownership, this validates by tenant_id only.
+func (r *StatusPageRepository) SetMonitorsInTenant(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error {
+	return r.db.WithTransaction(ctx, func(txCtx context.Context) error {
+		q := r.db.Querier(txCtx)
+		tenantID := TenantIDFromContext(txCtx)
+
+		// Scope DELETE by tenant via JOIN
+		_, err := q.Exec(txCtx,
+			`DELETE FROM status_page_monitors spm
+			 USING status_pages sp
+			 WHERE spm.status_page_id = sp.id
+			   AND spm.status_page_id = $1
+			   AND sp.tenant_id = $2`,
+			pageID, tenantID)
+		if err != nil {
+			return fmt.Errorf("clear monitors: %w", err)
+		}
+
+		// INSERT with tenant verification — any monitor in the tenant is valid
+		for i, monitorID := range monitorIDs {
+			result, err := q.Exec(txCtx,
+				`INSERT INTO status_page_monitors (status_page_id, monitor_id, sort_order)
+				 SELECT $1, m.id, $3
+				 FROM monitors m
+				 WHERE m.id = $2
+				   AND m.tenant_id = $4`,
+				pageID, monitorID, i, tenantID)
+			if err != nil {
+				return fmt.Errorf("insert monitor %s: %w", monitorID, err)
+			}
+			if result.RowsAffected() == 0 {
+				return fmt.Errorf("monitor %s not found in tenant", monitorID)
 			}
 		}
 

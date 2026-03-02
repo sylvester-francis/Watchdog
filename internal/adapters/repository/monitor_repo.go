@@ -140,6 +140,27 @@ func (r *MonitorRepository) GetEnabledByAgentID(ctx context.Context, agentID uui
 	return monitors, nil
 }
 
+// GetAllInTenant retrieves all monitors in the current tenant.
+func (r *MonitorRepository) GetAllInTenant(ctx context.Context) ([]*domain.Monitor, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	// H-020: hard limit prevents unbounded result sets.
+	query := `SELECT ` + monitorColumns + ` FROM monitors WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 10000`
+
+	rows, err := q.Query(ctx, query, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetAllInTenant: %w", err)
+	}
+
+	monitors, err := scanMonitors(rows)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetAllInTenant: %w", err)
+	}
+
+	return monitors, nil
+}
+
 // Update updates an existing monitor in the database.
 func (r *MonitorRepository) Update(ctx context.Context, monitor *domain.Monitor) error {
 	q := r.db.Querier(ctx)

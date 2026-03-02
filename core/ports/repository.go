@@ -56,6 +56,7 @@ type AgentRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
 	GetByIDGlobal(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error)
+	GetAllInTenant(ctx context.Context) ([]*domain.Agent, error)
 	Update(ctx context.Context, agent *domain.Agent) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
@@ -70,6 +71,7 @@ type MonitorRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	GetEnabledByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
+	GetAllInTenant(ctx context.Context) ([]*domain.Monitor, error)
 	Update(ctx context.Context, monitor *domain.Monitor) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error
@@ -134,9 +136,11 @@ type StatusPageRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error)
 	GetByUserAndSlug(ctx context.Context, username, slug string) (*domain.StatusPage, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error)
+	GetAllInTenant(ctx context.Context) ([]*domain.StatusPage, error)
 	Update(ctx context.Context, page *domain.StatusPage) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
+	SetMonitorsInTenant(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
 	GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
 	SlugExistsForUser(ctx context.Context, userID uuid.UUID, slug string) (bool, error)
 }
