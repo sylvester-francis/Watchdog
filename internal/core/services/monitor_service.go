@@ -252,6 +252,41 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 	return nil
 }
 
+// MarkAgentMonitorsDown marks all enabled, healthy monitors for a disconnected agent as down
+// by creating incidents through the standard incident lifecycle.
+func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error {
+	monitors, err := s.monitorRepo.GetByAgentID(ctx, agentID)
+	if err != nil {
+		return fmt.Errorf("monitorService.MarkAgentMonitorsDown: get monitors: %w", err)
+	}
+
+	marked := 0
+	for _, monitor := range monitors {
+		if !monitor.Enabled || monitor.Status != domain.MonitorStatusUp {
+			continue
+		}
+
+		if _, err := s.incidentSvc.CreateIncidentIfNeeded(ctx, monitor.ID); err != nil {
+			s.logger.Error("failed to create incident for disconnected agent monitor",
+				"monitor_id", monitor.ID,
+				"agent_id", agentID,
+				"error", err,
+			)
+			continue
+		}
+		marked++
+	}
+
+	if marked > 0 {
+		s.logger.Info("marked monitors down for disconnected agent",
+			"agent_id", agentID,
+			"count", marked,
+		)
+	}
+
+	return nil
+}
+
 // GetEnabledMonitorsByAgent retrieves all enabled monitors for an agent.
 // This is used for task distribution when an agent connects.
 func (s *MonitorService) GetEnabledMonitorsByAgent(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error) {
