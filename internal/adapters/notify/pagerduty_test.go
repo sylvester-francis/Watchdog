@@ -61,7 +61,7 @@ func TestPagerDutyNotifier_TriggerEvent(t *testing.T) {
 	assert.Equal(t, incident.ID.String(), received.DedupKey)
 
 	// Verify payload contents.
-	assert.Equal(t, "watchdog", received.Payload.Source)
+	assert.Equal(t, notify.BrandName, received.Payload.Source)
 	assert.Equal(t, "critical", received.Payload.Severity)
 	assert.Contains(t, received.Payload.Summary, "API Server")
 	assert.Contains(t, received.Payload.Summary, "DOWN")
@@ -105,7 +105,7 @@ func TestPagerDutyNotifier_ResolveEvent(t *testing.T) {
 	assert.Equal(t, incident.ID.String(), received.DedupKey)
 
 	// Verify payload contents.
-	assert.Equal(t, "watchdog", received.Payload.Source)
+	assert.Equal(t, notify.BrandName, received.Payload.Source)
 	assert.Equal(t, "info", received.Payload.Severity)
 	assert.Contains(t, received.Payload.Summary, "API Server")
 	assert.Contains(t, received.Payload.Summary, "UP")

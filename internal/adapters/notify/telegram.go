@@ -44,11 +44,12 @@ func (t *TelegramNotifier) SetHTTPClient(client *http.Client) {
 // NotifyIncidentOpened sends a Telegram message when an incident is opened.
 func (t *TelegramNotifier) NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
 	text := fmt.Sprintf(
-		"🔴 *Incident Opened*\n\n*Monitor:* %s\n*Type:* %s\n*Target:* `%s`\n*Started:* %s",
+		"🔴 *Incident Opened*\n\n*Monitor:* %s\n*Type:* %s\n*Target:* `%s`\n*Started:* %s\n\n— %s",
 		escapeMarkdown(monitor.Name),
 		string(monitor.Type),
 		monitor.Target,
 		incident.StartedAt.Format(time.RFC3339),
+		escapeMarkdown(BrandName),
 	)
 
 	return t.send(ctx, text)
@@ -57,11 +58,12 @@ func (t *TelegramNotifier) NotifyIncidentOpened(ctx context.Context, incident *d
 // NotifyIncidentResolved sends a Telegram message when an incident is resolved.
 func (t *TelegramNotifier) NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
 	text := fmt.Sprintf(
-		"🟢 *Incident Resolved*\n\n*Monitor:* %s\n*Type:* %s\n*Target:* `%s`\n*Duration:* %s",
+		"🟢 *Incident Resolved*\n\n*Monitor:* %s\n*Type:* %s\n*Target:* `%s`\n*Duration:* %s\n\n— %s",
 		escapeMarkdown(monitor.Name),
 		string(monitor.Type),
 		monitor.Target,
 		formatDuration(incident.Duration()),
+		escapeMarkdown(BrandName),
 	)
 
 	return t.send(ctx, text)
