@@ -87,6 +87,44 @@ func (r *AgentRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ag
 	return agent, nil
 }
 
+// GetByIDGlobal retrieves an agent by its ID without tenant scoping.
+// Used for API key validation where the caller has no tenant context (e.g. WebSocket auth).
+func (r *AgentRepository) GetByIDGlobal(ctx context.Context, id uuid.UUID) (*domain.Agent, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT id, user_id, name, api_key_encrypted, api_key_expires_at, last_seen_at, status, fingerprint, fingerprint_verified_at, tenant_id, created_at
+		FROM agents
+		WHERE id = $1`
+
+	agent := &domain.Agent{}
+	var fingerprintJSON []byte
+	err := q.QueryRow(ctx, query, id).Scan(
+		&agent.ID,
+		&agent.UserID,
+		&agent.Name,
+		&agent.APIKeyEncrypted,
+		&agent.APIKeyExpiresAt,
+		&agent.LastSeenAt,
+		&agent.Status,
+		&fingerprintJSON,
+		&agent.FingerprintVerifiedAt,
+		&agent.TenantID,
+		&agent.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("agentRepo.GetByIDGlobal(%s): %w", id, err)
+	}
+	if fingerprintJSON != nil {
+		_ = json.Unmarshal(fingerprintJSON, &agent.Fingerprint)
+	}
+
+	return agent, nil
+}
+
 // GetByUserID retrieves all agents belonging to a user.
 func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error) {
 	q := r.db.Querier(ctx)

@@ -54,6 +54,7 @@ type UserRepository interface {
 type AgentRepository interface {
 	Create(ctx context.Context, agent *domain.Agent) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
+	GetByIDGlobal(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error)
 	Update(ctx context.Context, agent *domain.Agent) error
 	Delete(ctx context.Context, id uuid.UUID) error
