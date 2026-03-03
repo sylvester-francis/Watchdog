@@ -90,7 +90,7 @@
 						<span class="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase font-mono hidden lg:inline">{monitor.type}</span>
 					</a>
 				{:else}
-					<span class="text-sm text-muted-foreground">{incident.monitor_id.slice(0, 8)}...</span>
+					<span class="text-sm text-muted-foreground">{incident.monitor_name ?? 'Unknown Monitor'}</span>
 				{/if}
 			</div>
 		</div>

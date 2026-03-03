@@ -18,6 +18,7 @@ export interface Agent {
 export interface Monitor {
 	id: string;
 	agent_id: string;
+	agent_name?: string;
 	name: string;
 	type: MonitorType;
 	target: string;
@@ -37,6 +38,7 @@ export type MonitorStatus = 'pending' | 'up' | 'down' | 'degraded';
 export interface Incident {
 	id: string;
 	monitor_id: string;
+	monitor_name?: string;
 	status: IncidentStatus;
 	started_at: string;
 	resolved_at: string | null;
@@ -192,6 +194,17 @@ export interface SLAResponse {
 	breached: boolean;
 	margin: number;
 	period: string;
+}
+
+export interface MaintenanceWindow {
+	id: string;
+	agent_id: string;
+	agent_name: string;
+	name: string;
+	starts_at: string;
+	ends_at: string;
+	status: 'scheduled' | 'active' | 'expired';
+	created_at: string;
 }
 
 export interface APIError {
