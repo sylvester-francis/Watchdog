@@ -83,7 +83,7 @@ type IncidentRepository interface {
 	Create(ctx context.Context, incident *domain.Incident) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
 	GetByMonitorID(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
-	GetOpenByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	GetActiveByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
 	GetActiveIncidents(ctx context.Context) ([]*domain.Incident, error)
 	GetResolvedIncidents(ctx context.Context) ([]*domain.Incident, error)
 	GetAllIncidents(ctx context.Context) ([]*domain.Incident, error)

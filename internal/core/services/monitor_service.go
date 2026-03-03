@@ -142,15 +142,15 @@ func (s *MonitorService) ProcessHeartbeat(ctx context.Context, heartbeat *domain
 	return s.handleFailure(ctx, heartbeat.MonitorID)
 }
 
-// handleRecovery handles a successful heartbeat, potentially resolving an open incident.
+// handleRecovery handles a successful heartbeat, resolving any active incident (open or acknowledged).
 func (s *MonitorService) handleRecovery(ctx context.Context, monitorID uuid.UUID) error {
-	// Check for an open incident
-	incident, err := s.incidentRepo.GetOpenByMonitorID(ctx, monitorID)
+	// Check for an active incident (open or acknowledged)
+	incident, err := s.incidentRepo.GetActiveByMonitorID(ctx, monitorID)
 	if err != nil {
-		return fmt.Errorf("check open incident: %w", err)
+		return fmt.Errorf("check active incident: %w", err)
 	}
 
-	// No open incident, just update status to up
+	// No active incident, just update status to up
 	if incident == nil {
 		if err := s.monitorRepo.UpdateStatus(ctx, monitorID, domain.MonitorStatusUp); err != nil {
 			s.logger.Warn("failed to update monitor status to up",
@@ -191,7 +191,7 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 	}
 
 	// Check if there's already an open incident
-	existing, err := s.incidentRepo.GetOpenByMonitorID(ctx, monitorID)
+	existing, err := s.incidentRepo.GetActiveByMonitorID(ctx, monitorID)
 	if err != nil {
 		return fmt.Errorf("check existing incident: %w", err)
 	}
