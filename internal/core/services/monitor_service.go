@@ -20,6 +20,7 @@ type MonitorService struct {
 	userRepo        ports.UserRepository
 	usageEventRepo  ports.UsageEventRepository
 	maintenanceRepo ports.MaintenanceWindowRepository // optional, set by EE
+	auditSvc        ports.AuditService               // optional, set by EE
 	logger          *slog.Logger
 }
 
@@ -51,6 +52,11 @@ func NewMonitorService(
 // When set, MarkAgentMonitorsDown will check for active windows and suppress alerts.
 func (s *MonitorService) SetMaintenanceWindowRepo(repo ports.MaintenanceWindowRepository) {
 	s.maintenanceRepo = repo
+}
+
+// SetAuditService sets the optional audit service for logging maintenance events.
+func (s *MonitorService) SetAuditService(svc ports.AuditService) {
+	s.auditSvc = svc
 }
 
 // CreateMonitor creates a new monitor for an agent, enforcing plan limits.
@@ -279,6 +285,14 @@ func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid
 				"window_name", window.Name,
 				"ends_at", window.EndsAt,
 			)
+			s.incidentSvc.NotifyAgentMaintenance(ctx, agentID, window.Name)
+			if s.auditSvc != nil {
+				s.auditSvc.LogEvent(ctx, nil, domain.AuditMaintenanceAlertsSuppressed, "", map[string]string{
+					"agent_id":    agentID.String(),
+					"window_id":   window.ID.String(),
+					"window_name": window.Name,
+				})
+			}
 			return nil
 		}
 	}

@@ -323,6 +323,34 @@ func (s *IncidentService) NotifyAgentOnline(ctx context.Context, agentID uuid.UU
 	}
 }
 
+// NotifyAgentMaintenance sends a single agent-maintenance notification.
+func (s *IncidentService) NotifyAgentMaintenance(ctx context.Context, agentID uuid.UUID, windowName string) {
+	agent, err := s.agentRepo.GetByID(ctx, agentID)
+	if err != nil || agent == nil {
+		s.logger.Error("failed to get agent for maintenance notification", "agent_id", agentID, "error", err)
+		return
+	}
+
+	if err := s.notifier.NotifyAgentMaintenance(ctx, agent, windowName); err != nil {
+		s.logger.Error("agent maintenance notification failed", "agent_id", agentID, "error", err)
+	}
+
+	// Per-user channels
+	channels, err := s.alertChannelRepo.GetEnabledByUserID(ctx, agent.UserID)
+	if err != nil || len(channels) == 0 {
+		return
+	}
+	for _, ch := range channels {
+		n, err := s.notifierFactory.BuildFromChannel(ch)
+		if err != nil {
+			continue
+		}
+		if err := n.NotifyAgentMaintenance(ctx, agent, windowName); err != nil {
+			s.logger.Error("per-user agent maintenance notification failed", "channel_id", ch.ID, "error", err)
+		}
+	}
+}
+
 // dispatchAlert routes notifications through the workflow engine if available,
 // falling back to direct dispatch for backward compatibility.
 func (s *IncidentService) dispatchAlert(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {

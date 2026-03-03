@@ -174,3 +174,7 @@ func (s *stubNotifier) NotifyAgentOnline(_ context.Context, _ *domain.Agent, _ i
 	}
 	return nil
 }
+
+func (s *stubNotifier) NotifyAgentMaintenance(_ context.Context, _ *domain.Agent, _ string) error {
+	return nil
+}

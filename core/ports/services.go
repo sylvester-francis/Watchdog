@@ -47,6 +47,7 @@ type IncidentService interface {
 	ResolveIncidentSilently(ctx context.Context, id uuid.UUID) error
 	NotifyAgentOffline(ctx context.Context, agentID uuid.UUID, affectedMonitors int)
 	NotifyAgentOnline(ctx context.Context, agentID uuid.UUID, resolvedIncidents int)
+	NotifyAgentMaintenance(ctx context.Context, agentID uuid.UUID, windowName string)
 }
 
 // AuditService defines the interface for security audit logging.
@@ -65,6 +66,7 @@ type Notifier interface {
 	NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
 	NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error
 	NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error
+	NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error
 }
 
 // NotifierFactory creates a Notifier from an AlertChannel configuration.

@@ -30,6 +30,12 @@ const (
 	AuditLogout                AuditAction = "logout"
 	AuditChannelCreated        AuditAction = "channel_created"
 	AuditChannelDeleted        AuditAction = "channel_deleted"
+
+	AuditMaintenanceWindowCreated    AuditAction = "maintenance_window_created"
+	AuditMaintenanceWindowUpdated    AuditAction = "maintenance_window_updated"
+	AuditMaintenanceWindowDeleted    AuditAction = "maintenance_window_deleted"
+	AuditMaintenanceAlertsSuppressed AuditAction = "maintenance_alerts_suppressed"
+	AuditMaintenanceWindowExpired    AuditAction = "maintenance_window_expired"
 )
 
 // AuditLog represents a security audit event.

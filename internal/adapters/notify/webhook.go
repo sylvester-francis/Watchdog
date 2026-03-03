@@ -96,6 +96,19 @@ func (w *WebhookNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.A
 	return w.sendAgent(ctx, payload)
 }
 
+// NotifyAgentMaintenance sends a notification when an agent enters maintenance mode.
+func (w *WebhookNotifier) NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error {
+	payload := webhookAgentPayload{
+		Event:      "agent.maintenance",
+		Timestamp:  time.Now(),
+		AgentID:    agent.ID.String(),
+		AgentName:  agent.Name,
+		WindowName: windowName,
+	}
+
+	return w.sendAgent(ctx, payload)
+}
+
 func (w *WebhookNotifier) sendAgent(ctx context.Context, payload webhookAgentPayload) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -175,4 +188,5 @@ type webhookAgentPayload struct {
 	AgentName         string    `json:"agent_name"`
 	AffectedMonitors  int       `json:"affected_monitors,omitempty"`
 	ResolvedIncidents int       `json:"resolved_incidents,omitempty"`
+	WindowName        string    `json:"window_name,omitempty"`
 }

@@ -103,6 +103,20 @@ func (e *EmailNotifier) NotifyAgentOnline(_ context.Context, agent *domain.Agent
 	return e.send(subject, body)
 }
 
+// NotifyAgentMaintenance sends an email when an agent enters maintenance mode.
+func (e *EmailNotifier) NotifyAgentMaintenance(_ context.Context, agent *domain.Agent, windowName string) error {
+	subject := fmt.Sprintf("[%s] Maintenance Mode: %s", BrandName, agent.Name)
+	body := fmt.Sprintf(
+		"Agent: %s\nStatus: Maintenance Mode\nWindow: %s\n\nAgent %s entered maintenance mode. Alerts are suppressed until the window expires.\n\n— %s",
+		agent.Name,
+		windowName,
+		agent.Name,
+		BrandName,
+	)
+
+	return e.send(subject, body)
+}
+
 func (e *EmailNotifier) send(subject, body string) error {
 	msg := fmt.Sprintf(
 		"From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",

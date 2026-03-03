@@ -13,8 +13,9 @@ import (
 
 // Discord embed colors.
 const (
-	colorRed   = 0xFF0000 // Incident opened
-	colorGreen = 0x00FF00 // Incident resolved
+	colorRed    = 0xFF0000 // Incident opened
+	colorGreen  = 0x00FF00 // Incident resolved
+	colorYellow = 0xFFAA00 // Maintenance / warning
 )
 
 // DiscordNotifier sends notifications to a Discord webhook.
@@ -108,6 +109,25 @@ func (d *DiscordNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.A
 		Fields: []discordField{
 			{Name: "Agent", Value: agent.Name, Inline: true},
 			{Name: "Resolved Incidents", Value: fmt.Sprintf("%d", resolvedIncidents), Inline: true},
+		},
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: discordFooter{
+			Text: BrandName,
+		},
+	}
+
+	return d.sendWebhook(ctx, embed)
+}
+
+// NotifyAgentMaintenance sends a notification when an agent enters maintenance mode.
+func (d *DiscordNotifier) NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error {
+	embed := discordEmbed{
+		Title:       fmt.Sprintf("🔧 Maintenance Mode: %s", agent.Name),
+		Description: fmt.Sprintf("Agent **%s** entered maintenance mode", agent.Name),
+		Color:       colorYellow,
+		Fields: []discordField{
+			{Name: "Agent", Value: agent.Name, Inline: true},
+			{Name: "Window", Value: windowName, Inline: true},
 		},
 		Timestamp: time.Now().Format(time.RFC3339),
 		Footer: discordFooter{

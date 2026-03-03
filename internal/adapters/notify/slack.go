@@ -115,6 +115,27 @@ func (s *SlackNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Age
 	return s.send(ctx, payload)
 }
 
+// NotifyAgentMaintenance sends a notification when an agent enters maintenance mode.
+func (s *SlackNotifier) NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error {
+	payload := slackPayload{
+		Attachments: []slackAttachment{
+			{
+				Color: "#FFAA00",
+				Title: fmt.Sprintf("Maintenance Mode: %s", agent.Name),
+				Text:  fmt.Sprintf("Agent *%s* entered maintenance mode", agent.Name),
+				Fields: []slackField{
+					{Title: "Agent", Value: agent.Name, Short: true},
+					{Title: "Window", Value: windowName, Short: true},
+				},
+				Footer: BrandName,
+				Ts:     time.Now().Unix(),
+			},
+		},
+	}
+
+	return s.send(ctx, payload)
+}
+
 func (s *SlackNotifier) send(ctx context.Context, payload slackPayload) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
