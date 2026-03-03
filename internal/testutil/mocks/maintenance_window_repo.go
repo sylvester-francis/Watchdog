@@ -22,6 +22,7 @@ type MockMaintenanceWindowRepository struct {
 	UpdateFn                      func(ctx context.Context, window *domain.MaintenanceWindow) error
 	DeleteFn                      func(ctx context.Context, id uuid.UUID) error
 	GetExpiredWithOfflineAgentsFn func(ctx context.Context) ([]*domain.MaintenanceWindow, error)
+	GetExpiredRecurringFn         func(ctx context.Context) ([]*domain.MaintenanceWindow, error)
 	DeleteExpiredFn               func(ctx context.Context, before time.Time) error
 }
 
@@ -70,6 +71,13 @@ func (m *MockMaintenanceWindowRepository) Delete(ctx context.Context, id uuid.UU
 func (m *MockMaintenanceWindowRepository) GetExpiredWithOfflineAgents(ctx context.Context) ([]*domain.MaintenanceWindow, error) {
 	if m.GetExpiredWithOfflineAgentsFn != nil {
 		return m.GetExpiredWithOfflineAgentsFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockMaintenanceWindowRepository) GetExpiredRecurring(ctx context.Context) ([]*domain.MaintenanceWindow, error) {
+	if m.GetExpiredRecurringFn != nil {
+		return m.GetExpiredRecurringFn(ctx)
 	}
 	return nil, nil
 }
