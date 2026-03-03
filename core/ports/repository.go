@@ -169,6 +169,18 @@ type CertDetailsRepository interface {
 	GetExpiring(ctx context.Context, withinDays int) ([]*domain.CertDetails, error)
 }
 
+// MaintenanceWindowRepository defines the interface for maintenance window persistence.
+type MaintenanceWindowRepository interface {
+	Create(ctx context.Context, window *domain.MaintenanceWindow) error
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.MaintenanceWindow, error)
+	GetByTenant(ctx context.Context) ([]*domain.MaintenanceWindow, error)
+	GetActiveByAgentID(ctx context.Context, agentID uuid.UUID) (*domain.MaintenanceWindow, error)
+	Update(ctx context.Context, window *domain.MaintenanceWindow) error
+	Delete(ctx context.Context, id uuid.UUID) error
+	GetExpiredWithOfflineAgents(ctx context.Context) ([]*domain.MaintenanceWindow, error)
+	DeleteExpired(ctx context.Context, before time.Time) error
+}
+
 // Transactor defines the interface for database transactions.
 type Transactor interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
