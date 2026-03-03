@@ -76,6 +76,7 @@ type MonitorRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error
 	CountByUserID(ctx context.Context, userID uuid.UUID) (int, error)
+	UpdateMetadata(ctx context.Context, id uuid.UUID, metadata map[string]string) error
 }
 
 // IncidentRepository defines the interface for incident persistence.

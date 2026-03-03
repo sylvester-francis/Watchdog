@@ -98,7 +98,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	// Initialize handlers
 	r.sseHandler = handlers.NewSSEHandler(deps.Hub, deps.AgentRepo, deps.MonitorRepo, deps.IncidentService)
-	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.CertDetailsRepo, deps.Hub, logger, deps.AllowedOrigins)
+	r.wsHandler = handlers.NewWSHandler(deps.AgentAuthService, deps.MonitorService, deps.AgentRepo, deps.MonitorRepo, deps.CertDetailsRepo, deps.Hub, logger, deps.AllowedOrigins)
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.CertDetailsRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub, deps.AuditService)
 	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, registerLimiter, deps.AuditService, sessionTracker)
@@ -244,6 +244,7 @@ func (r *Router) RegisterRoutes() {
 
 	// Incidents
 	v1.GET("/incidents", r.apiV1Handler.ListIncidents)
+	v1.GET("/incidents/:id/investigation", r.apiV1Handler.GetIncidentInvestigation)
 	v1.POST("/incidents/:id/acknowledge", r.apiV1Handler.AcknowledgeIncident)
 	v1.POST("/incidents/:id/resolve", r.apiV1Handler.ResolveIncident)
 
@@ -316,6 +317,11 @@ func (r *Router) TenantMiddleware() echo.MiddlewareFunc {
 // AuthAPIHandler returns the auth handler so EE can set hooks (e.g. tenant validator).
 func (r *Router) AuthAPIHandler() *handlers.AuthAPIHandler {
 	return r.authAPIHandler
+}
+
+// APIV1Handler returns the API v1 handler so EE can set services (e.g. investigation).
+func (r *Router) APIV1Handler() *handlers.APIV1Handler {
+	return r.apiV1Handler
 }
 
 // Stop cleans up router resources (rate limiters, session tracker).
