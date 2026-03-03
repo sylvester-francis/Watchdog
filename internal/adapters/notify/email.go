@@ -75,6 +75,34 @@ func (e *EmailNotifier) NotifyIncidentResolved(_ context.Context, incident *doma
 	return e.send(subject, body)
 }
 
+// NotifyAgentOffline sends an email when an agent goes offline.
+func (e *EmailNotifier) NotifyAgentOffline(_ context.Context, agent *domain.Agent, affectedMonitors int) error {
+	subject := fmt.Sprintf("[%s] Agent Offline: %s", BrandName, agent.Name)
+	body := fmt.Sprintf(
+		"Agent: %s\nStatus: Offline\nAffected Monitors: %d\n\nAgent %s has disconnected.\n\n— %s",
+		agent.Name,
+		affectedMonitors,
+		agent.Name,
+		BrandName,
+	)
+
+	return e.send(subject, body)
+}
+
+// NotifyAgentOnline sends an email when an agent comes back online.
+func (e *EmailNotifier) NotifyAgentOnline(_ context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	subject := fmt.Sprintf("[%s] Agent Online: %s", BrandName, agent.Name)
+	body := fmt.Sprintf(
+		"Agent: %s\nStatus: Online\nResolved Incidents: %d\n\nAgent %s has reconnected.\n\n— %s",
+		agent.Name,
+		resolvedIncidents,
+		agent.Name,
+		BrandName,
+	)
+
+	return e.send(subject, body)
+}
+
 func (e *EmailNotifier) send(subject, body string) error {
 	msg := fmt.Sprintf(
 		"From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
