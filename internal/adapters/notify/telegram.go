@@ -95,6 +95,19 @@ func (t *TelegramNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.
 	return t.send(ctx, text)
 }
 
+// NotifyAgentMaintenance sends a Telegram message when an agent enters maintenance mode.
+func (t *TelegramNotifier) NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error {
+	text := fmt.Sprintf(
+		"🔧 *Maintenance Mode*\n\n*Agent:* %s\n*Window:* %s\n\nAgent %s entered maintenance mode. Alerts are suppressed.\n\n— %s",
+		escapeMarkdown(agent.Name),
+		escapeMarkdown(windowName),
+		escapeMarkdown(agent.Name),
+		escapeMarkdown(BrandName),
+	)
+
+	return t.send(ctx, text)
+}
+
 func (t *TelegramNotifier) send(ctx context.Context, text string) error {
 	url := fmt.Sprintf("%s/bot%s/sendMessage", t.baseURL, t.botToken)
 
