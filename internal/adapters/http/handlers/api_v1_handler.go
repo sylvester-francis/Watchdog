@@ -58,6 +58,7 @@ func NewAPIV1Handler(
 type monitorResponse struct {
 	ID               string            `json:"id"`
 	AgentID          string            `json:"agent_id"`
+	AgentName        string            `json:"agent_name"`
 	Name             string            `json:"name"`
 	Type             string            `json:"type"`
 	Target           string            `json:"target"`
@@ -80,6 +81,7 @@ type agentResponse struct {
 type incidentResponse struct {
 	ID             string  `json:"id"`
 	MonitorID      string  `json:"monitor_id"`
+	MonitorName    string  `json:"monitor_name"`
 	Status         string  `json:"status"`
 	StartedAt      string  `json:"started_at"`
 	ResolvedAt     *string `json:"resolved_at"`
@@ -111,6 +113,7 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 			monitors = append(monitors, monitorResponse{
 				ID:               m.ID.String(),
 				AgentID:          m.AgentID.String(),
+				AgentName:        agent.Name,
 				Name:             m.Name,
 				Type:             string(m.Type),
 				Target:           m.Target,
@@ -194,6 +197,7 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
 			AgentID:          monitor.AgentID.String(),
+			AgentName:        agent.Name,
 			Name:             monitor.Name,
 			Type:             string(monitor.Type),
 			Target:           monitor.Target,
@@ -285,33 +289,35 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
 	}
 
-	// Filter incidents to only those belonging to the user's monitors
+	// Filter incidents to only those belonging to the user's monitors.
+	// Build a monitor name map while iterating.
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
 	}
-	userMonitorIDs := make(map[uuid.UUID]struct{})
+	monitorNames := make(map[uuid.UUID]string)
 	for _, agent := range agents {
 		monitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
 		if err != nil {
 			continue
 		}
 		for _, m := range monitors {
-			userMonitorIDs[m.ID] = struct{}{}
+			monitorNames[m.ID] = m.Name
 		}
 	}
 
 	var result []incidentResponse
 	for _, i := range rawIncidents {
-		if _, owns := userMonitorIDs[i.MonitorID]; !owns {
+		if _, owns := monitorNames[i.MonitorID]; !owns {
 			continue
 		}
 		resp := incidentResponse{
-			ID:        i.ID.String(),
-			MonitorID: i.MonitorID.String(),
-			Status:    string(i.Status),
-			StartedAt: i.StartedAt.Format(time.RFC3339),
-			TTRSeconds: i.TTRSeconds,
+			ID:          i.ID.String(),
+			MonitorID:   i.MonitorID.String(),
+			MonitorName: monitorNames[i.MonitorID],
+			Status:      string(i.Status),
+			StartedAt:   i.StartedAt.Format(time.RFC3339),
+			TTRSeconds:  i.TTRSeconds,
 		}
 		if i.ResolvedAt != nil {
 			t := i.ResolvedAt.Format(time.RFC3339)
@@ -429,6 +435,7 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
 			AgentID:          monitor.AgentID.String(),
+			AgentName:        agent.Name,
 			Name:             monitor.Name,
 			Type:             string(monitor.Type),
 			Target:           monitor.Target,
@@ -559,10 +566,19 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 		h.hub.SendToAgent(monitor.AgentID, protocol.NewTaskCancelMessage(monitor.ID.String()))
 	}
 
+	// Resolve agent name — use current (possibly reassigned) agent.
+	agentName := agent.Name
+	if monitor.AgentID != agent.ID {
+		if newAgent, err := h.agentRepo.GetByID(ctx, monitor.AgentID); err == nil && newAgent != nil {
+			agentName = newAgent.Name
+		}
+	}
+
 	return c.JSON(http.StatusOK, map[string]any{
 		"data": monitorResponse{
 			ID:               monitor.ID.String(),
 			AgentID:          monitor.AgentID.String(),
+			AgentName:        agentName,
 			Name:             monitor.Name,
 			Type:             string(monitor.Type),
 			Target:           monitor.Target,
