@@ -97,7 +97,7 @@ func (r *MaintenanceWindowRepository) GetByTenant(ctx context.Context) ([]*domai
 		var mw domain.MaintenanceWindow
 		if err := rows.Scan(
 			&mw.ID, &mw.AgentID, &mw.UserID, &mw.Name,
-			&mw.StartsAt, &mw.EndsAt, &mw.CreatedAt, &mw.TenantID,
+			&mw.StartsAt, &mw.EndsAt, &mw.Recurrence, &mw.CreatedAt, &mw.TenantID,
 		); err != nil {
 			return nil, fmt.Errorf("maintenanceWindowRepo.GetByTenant: scan: %w", err)
 		}
@@ -194,7 +194,7 @@ func (r *MaintenanceWindowRepository) GetExpiredWithOfflineAgents(ctx context.Co
 		var mw domain.MaintenanceWindow
 		if err := rows.Scan(
 			&mw.ID, &mw.AgentID, &mw.UserID, &mw.Name,
-			&mw.StartsAt, &mw.EndsAt, &mw.CreatedAt, &mw.TenantID,
+			&mw.StartsAt, &mw.EndsAt, &mw.Recurrence, &mw.CreatedAt, &mw.TenantID,
 		); err != nil {
 			return nil, fmt.Errorf("maintenanceWindowRepo.GetExpiredWithOfflineAgents: scan: %w", err)
 		}
