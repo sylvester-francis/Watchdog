@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { MaintenanceWindow } from '$lib/types';
+import type { MaintenanceWindow, MaintenanceRecurrence } from '$lib/types';
 
 interface MaintenanceListResponse {
 	data: MaintenanceWindow[];
@@ -10,12 +10,14 @@ interface MaintenanceCreateRequest {
 	name: string;
 	starts_at: string;
 	ends_at: string;
+	recurrence: MaintenanceRecurrence;
 }
 
 interface MaintenanceUpdateRequest {
 	name?: string;
 	starts_at?: string;
 	ends_at?: string;
+	recurrence?: MaintenanceRecurrence;
 }
 
 export function listWindows(): Promise<MaintenanceListResponse> {
