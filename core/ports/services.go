@@ -30,6 +30,7 @@ type MonitorService interface {
 	DeleteMonitor(ctx context.Context, id uuid.UUID) error
 	ProcessHeartbeat(ctx context.Context, heartbeat *domain.Heartbeat) error
 	MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error
+	ResolveAgentMonitors(ctx context.Context, agentID uuid.UUID) error
 }
 
 // IncidentService defines the interface for incident lifecycle management.
@@ -42,6 +43,10 @@ type IncidentService interface {
 	AcknowledgeIncident(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	ResolveIncident(ctx context.Context, id uuid.UUID) error
 	CreateIncidentIfNeeded(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	CreateIncidentSilently(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	ResolveIncidentSilently(ctx context.Context, id uuid.UUID) error
+	NotifyAgentOffline(ctx context.Context, agentID uuid.UUID, affectedMonitors int)
+	NotifyAgentOnline(ctx context.Context, agentID uuid.UUID, resolvedIncidents int)
 }
 
 // AuditService defines the interface for security audit logging.
@@ -58,6 +63,8 @@ type AgentMessenger interface {
 type Notifier interface {
 	NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
 	NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
+	NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error
+	NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error
 }
 
 // NotifierFactory creates a Notifier from an AlertChannel configuration.

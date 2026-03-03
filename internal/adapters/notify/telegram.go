@@ -69,6 +69,32 @@ func (t *TelegramNotifier) NotifyIncidentResolved(ctx context.Context, incident 
 	return t.send(ctx, text)
 }
 
+// NotifyAgentOffline sends a Telegram message when an agent goes offline.
+func (t *TelegramNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error {
+	text := fmt.Sprintf(
+		"🔴 *Agent Offline*\n\n*Agent:* %s\n*Affected Monitors:* %d\n\nAgent %s has disconnected.\n\n— %s",
+		escapeMarkdown(agent.Name),
+		affectedMonitors,
+		escapeMarkdown(agent.Name),
+		escapeMarkdown(BrandName),
+	)
+
+	return t.send(ctx, text)
+}
+
+// NotifyAgentOnline sends a Telegram message when an agent comes back online.
+func (t *TelegramNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	text := fmt.Sprintf(
+		"🟢 *Agent Online*\n\n*Agent:* %s\n*Resolved Incidents:* %d\n\nAgent %s has reconnected.\n\n— %s",
+		escapeMarkdown(agent.Name),
+		resolvedIncidents,
+		escapeMarkdown(agent.Name),
+		escapeMarkdown(BrandName),
+	)
+
+	return t.send(ctx, text)
+}
+
 func (t *TelegramNotifier) send(ctx context.Context, text string) error {
 	url := fmt.Sprintf("%s/bot%s/sendMessage", t.baseURL, t.botToken)
 

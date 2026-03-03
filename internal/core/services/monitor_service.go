@@ -252,8 +252,8 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 	return nil
 }
 
-// MarkAgentMonitorsDown marks all enabled, healthy monitors for a disconnected agent as down
-// by creating incidents through the standard incident lifecycle.
+// MarkAgentMonitorsDown marks all enabled, healthy monitors for a disconnected agent as down.
+// Creates incidents silently (no per-monitor alerts) and sends a single agent-offline notification.
 func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error {
 	monitors, err := s.monitorRepo.GetByAgentID(ctx, agentID)
 	if err != nil {
@@ -266,7 +266,7 @@ func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid
 			continue
 		}
 
-		if _, err := s.incidentSvc.CreateIncidentIfNeeded(ctx, monitor.ID); err != nil {
+		if _, err := s.incidentSvc.CreateIncidentSilently(ctx, monitor.ID); err != nil {
 			s.logger.Error("failed to create incident for disconnected agent monitor",
 				"monitor_id", monitor.ID,
 				"agent_id", agentID,
@@ -282,6 +282,51 @@ func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid
 			"agent_id", agentID,
 			"count", marked,
 		)
+		s.incidentSvc.NotifyAgentOffline(ctx, agentID, marked)
+	}
+
+	return nil
+}
+
+// ResolveAgentMonitors resolves all active incidents for an agent's monitors when it reconnects.
+// Sends a single agent-online notification instead of per-monitor resolved alerts.
+func (s *MonitorService) ResolveAgentMonitors(ctx context.Context, agentID uuid.UUID) error {
+	monitors, err := s.monitorRepo.GetByAgentID(ctx, agentID)
+	if err != nil {
+		return fmt.Errorf("monitorService.ResolveAgentMonitors: get monitors: %w", err)
+	}
+
+	resolved := 0
+	for _, monitor := range monitors {
+		incident, err := s.incidentRepo.GetActiveByMonitorID(ctx, monitor.ID)
+		if err != nil {
+			s.logger.Error("failed to check active incident",
+				"monitor_id", monitor.ID,
+				"error", err,
+			)
+			continue
+		}
+		if incident == nil {
+			continue
+		}
+
+		if err := s.incidentSvc.ResolveIncidentSilently(ctx, incident.ID); err != nil {
+			s.logger.Error("failed to resolve incident for reconnected agent",
+				"incident_id", incident.ID,
+				"monitor_id", monitor.ID,
+				"error", err,
+			)
+			continue
+		}
+		resolved++
+	}
+
+	if resolved > 0 {
+		s.logger.Info("resolved incidents for reconnected agent",
+			"agent_id", agentID,
+			"count", resolved,
+		)
+		s.incidentSvc.NotifyAgentOnline(ctx, agentID, resolved)
 	}
 
 	return nil

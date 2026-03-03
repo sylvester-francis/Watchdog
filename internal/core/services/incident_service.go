@@ -209,6 +209,120 @@ func (s *IncidentService) CreateIncidentIfNeeded(ctx context.Context, monitorID 
 	return incident, nil
 }
 
+// ResolveIncidentSilently resolves an incident without sending per-monitor notifications.
+// Used when an agent reconnects — individual resolved alerts are suppressed
+// in favor of a single agent-level notification.
+func (s *IncidentService) ResolveIncidentSilently(ctx context.Context, id uuid.UUID) error {
+	incident, err := s.incidentRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("incidentService.ResolveIncidentSilently: get incident: %w", err)
+	}
+	if incident == nil {
+		return fmt.Errorf("incidentService.ResolveIncidentSilently: incident not found")
+	}
+
+	err = s.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+		if err := s.incidentRepo.Resolve(txCtx, id); err != nil {
+			return fmt.Errorf("resolve incident: %w", err)
+		}
+		if err := s.monitorRepo.UpdateStatus(txCtx, incident.MonitorID, domain.MonitorStatusUp); err != nil {
+			return fmt.Errorf("update monitor status: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("incidentService.ResolveIncidentSilently: %w", err)
+	}
+
+	return nil
+}
+
+// CreateIncidentSilently creates an incident without sending notifications.
+// Used when an agent disconnects — individual monitor alerts are suppressed
+// in favor of a single agent-level notification.
+func (s *IncidentService) CreateIncidentSilently(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error) {
+	existing, err := s.incidentRepo.GetActiveByMonitorID(ctx, monitorID)
+	if err != nil {
+		return nil, fmt.Errorf("incidentService.CreateIncidentSilently: check existing: %w", err)
+	}
+	if existing != nil {
+		return existing, nil
+	}
+
+	incident := domain.NewIncident(monitorID)
+
+	err = s.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+		if err := s.incidentRepo.Create(txCtx, incident); err != nil {
+			return fmt.Errorf("create incident: %w", err)
+		}
+		if err := s.monitorRepo.UpdateStatus(txCtx, monitorID, domain.MonitorStatusDown); err != nil {
+			return fmt.Errorf("update monitor status: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("incidentService.CreateIncidentSilently: %w", err)
+	}
+
+	return incident, nil
+}
+
+// NotifyAgentOffline sends a single agent-offline notification.
+func (s *IncidentService) NotifyAgentOffline(ctx context.Context, agentID uuid.UUID, affectedMonitors int) {
+	agent, err := s.agentRepo.GetByID(ctx, agentID)
+	if err != nil || agent == nil {
+		s.logger.Error("failed to get agent for offline notification", "agent_id", agentID, "error", err)
+		return
+	}
+
+	if err := s.notifier.NotifyAgentOffline(ctx, agent, affectedMonitors); err != nil {
+		s.logger.Error("agent offline notification failed", "agent_id", agentID, "error", err)
+	}
+
+	// Per-user channels
+	channels, err := s.alertChannelRepo.GetEnabledByUserID(ctx, agent.UserID)
+	if err != nil || len(channels) == 0 {
+		return
+	}
+	for _, ch := range channels {
+		n, err := s.notifierFactory.BuildFromChannel(ch)
+		if err != nil {
+			continue
+		}
+		if err := n.NotifyAgentOffline(ctx, agent, affectedMonitors); err != nil {
+			s.logger.Error("per-user agent offline notification failed", "channel_id", ch.ID, "error", err)
+		}
+	}
+}
+
+// NotifyAgentOnline sends a single agent-online notification.
+func (s *IncidentService) NotifyAgentOnline(ctx context.Context, agentID uuid.UUID, resolvedIncidents int) {
+	agent, err := s.agentRepo.GetByID(ctx, agentID)
+	if err != nil || agent == nil {
+		s.logger.Error("failed to get agent for online notification", "agent_id", agentID, "error", err)
+		return
+	}
+
+	if err := s.notifier.NotifyAgentOnline(ctx, agent, resolvedIncidents); err != nil {
+		s.logger.Error("agent online notification failed", "agent_id", agentID, "error", err)
+	}
+
+	// Per-user channels
+	channels, err := s.alertChannelRepo.GetEnabledByUserID(ctx, agent.UserID)
+	if err != nil || len(channels) == 0 {
+		return
+	}
+	for _, ch := range channels {
+		n, err := s.notifierFactory.BuildFromChannel(ch)
+		if err != nil {
+			continue
+		}
+		if err := n.NotifyAgentOnline(ctx, agent, resolvedIncidents); err != nil {
+			s.logger.Error("per-user agent online notification failed", "channel_id", ch.ID, "error", err)
+		}
+	}
+}
+
 // dispatchAlert routes notifications through the workflow engine if available,
 // falling back to direct dispatch for backward compatibility.
 func (s *IncidentService) dispatchAlert(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
