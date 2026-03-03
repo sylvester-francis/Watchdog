@@ -104,16 +104,16 @@ func (r *IncidentRepository) GetByMonitorID(ctx context.Context, monitorID uuid.
 	return scanIncidents(rows)
 }
 
-// GetOpenByMonitorID retrieves the currently open incident for a monitor, if any.
-// There should only be one open incident per monitor at any time.
-func (r *IncidentRepository) GetOpenByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error) {
+// GetActiveByMonitorID retrieves the currently active (open or acknowledged) incident for a monitor, if any.
+// There should only be one active incident per monitor at any time.
+func (r *IncidentRepository) GetActiveByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error) {
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
 		SELECT id, monitor_id, started_at, resolved_at, ttr_seconds, acknowledged_by, acknowledged_at, status, created_at
 		FROM incidents
-		WHERE monitor_id = $1 AND tenant_id = $2 AND status = 'open'
+		WHERE monitor_id = $1 AND tenant_id = $2 AND status IN ('open', 'acknowledged')
 		LIMIT 1`
 
 	incident := &domain.Incident{}
@@ -132,7 +132,7 @@ func (r *IncidentRepository) GetOpenByMonitorID(ctx context.Context, monitorID u
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("incidentRepo.GetOpenByMonitorID(%s): %w", monitorID, err)
+		return nil, fmt.Errorf("incidentRepo.GetActiveByMonitorID(%s): %w", monitorID, err)
 	}
 
 	return incident, nil

@@ -38,7 +38,7 @@ func TestNewMonitorService_NilLogger(t *testing.T) {
 		CreateFn: func(_ context.Context, _ *domain.Heartbeat) error { return nil },
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil // No open incident → takes UpdateStatus path
 		},
 	}
@@ -163,7 +163,7 @@ func TestProcessHeartbeat_Success_NoIncident(t *testing.T) {
 		CreateFn: func(_ context.Context, _ *domain.Heartbeat) error { return nil },
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil // No open incident
 		},
 	}
@@ -194,7 +194,7 @@ func TestProcessHeartbeat_Success_ResolvesIncident(t *testing.T) {
 		CreateFn: func(_ context.Context, _ *domain.Heartbeat) error { return nil },
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return &domain.Incident{
 				ID:        incidentID,
 				MonitorID: monitorID,
@@ -243,7 +243,7 @@ func TestProcessHeartbeat_SingleFailure_NoIncident(t *testing.T) {
 		},
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil // No open incident
 		},
 	}
@@ -275,7 +275,7 @@ func TestProcessHeartbeat_TwoFailures_NoIncident(t *testing.T) {
 		},
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 	}
@@ -309,7 +309,7 @@ func TestProcessHeartbeat_ThreeConsecutiveFailures_CreatesIncident(t *testing.T)
 		},
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 	}
@@ -345,7 +345,7 @@ func TestProcessHeartbeat_FailuresNotConsecutive_NoIncident(t *testing.T) {
 		},
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 	}
@@ -371,7 +371,7 @@ func TestProcessHeartbeat_AlreadyOpenIncident_NoNew(t *testing.T) {
 		CreateFn: func(_ context.Context, _ *domain.Heartbeat) error { return nil },
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return domain.NewIncident(monitorID), nil // Existing open incident
 		},
 	}
@@ -401,7 +401,7 @@ func TestProcessHeartbeat_Success_UpdateStatusError_LogsWarning(t *testing.T) {
 		CreateFn: func(_ context.Context, _ *domain.Heartbeat) error { return nil },
 	}
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil // No open incident — takes the UpdateStatus path
 		},
 	}
