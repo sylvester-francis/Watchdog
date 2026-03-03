@@ -196,6 +196,8 @@ export interface SLAResponse {
 	period: string;
 }
 
+export type MaintenanceRecurrence = 'once' | 'daily' | 'weekly' | 'monthly';
+
 export interface MaintenanceWindow {
 	id: string;
 	agent_id: string;
@@ -203,6 +205,7 @@ export interface MaintenanceWindow {
 	name: string;
 	starts_at: string;
 	ends_at: string;
+	recurrence: MaintenanceRecurrence;
 	status: 'scheduled' | 'active' | 'expired';
 	created_at: string;
 }

@@ -178,6 +178,7 @@ type MaintenanceWindowRepository interface {
 	Update(ctx context.Context, window *domain.MaintenanceWindow) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetExpiredWithOfflineAgents(ctx context.Context) ([]*domain.MaintenanceWindow, error)
+	GetExpiredRecurring(ctx context.Context) ([]*domain.MaintenanceWindow, error)
 	DeleteExpired(ctx context.Context, before time.Time) error
 }
 
