@@ -329,7 +329,7 @@ func TestCreateIncidentIfNeeded_New(t *testing.T) {
 	notified := false
 
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil // No existing incident
 		},
 		CreateFn: func(_ context.Context, _ *domain.Incident) error {
@@ -368,7 +368,7 @@ func TestCreateIncidentIfNeeded_AlreadyOpen(t *testing.T) {
 	existingIncident := domain.NewIncident(monitorID)
 
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return existingIncident, nil
 		},
 		CreateFn: func(_ context.Context, _ *domain.Incident) error {
@@ -389,7 +389,7 @@ func TestCreateIncidentIfNeeded_MonitorNotFound(t *testing.T) {
 	monitorID := uuid.New()
 
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 	}
@@ -413,7 +413,7 @@ func TestCreateIncidentIfNeeded_TransactionFails(t *testing.T) {
 	txErr := errors.New("tx failed")
 
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 	}
@@ -444,7 +444,7 @@ func TestCreateIncidentIfNeeded_NotificationCalledWithCorrectArgs(t *testing.T) 
 	var notifiedMonitor *domain.Monitor
 
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 		CreateFn: func(_ context.Context, _ *domain.Incident) error { return nil },
@@ -481,7 +481,7 @@ func TestCreateIncidentIfNeeded_NotificationFails_LogsError(t *testing.T) {
 	logger, logBuf := testLogger()
 
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 		CreateFn: func(_ context.Context, _ *domain.Incident) error { return nil },
@@ -510,7 +510,7 @@ func TestCreateIncidentIfNeeded_NotificationFails_StillSucceeds(t *testing.T) {
 	monitorID := uuid.New()
 
 	incidentRepo := &mocks.MockIncidentRepository{
-		GetOpenByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
+		GetActiveByMonitorIDFn: func(_ context.Context, _ uuid.UUID) (*domain.Incident, error) {
 			return nil, nil
 		},
 		CreateFn: func(_ context.Context, _ *domain.Incident) error { return nil },
