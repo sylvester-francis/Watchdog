@@ -14,6 +14,7 @@ type Notifier interface {
 	NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
 	NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error
 	NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error
+	NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error
 }
 
 // MultiNotifier sends notifications to multiple notifiers.
@@ -82,6 +83,17 @@ func (m *MultiNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Age
 	return combineErrors(errs)
 }
 
+// NotifyAgentMaintenance sends agent maintenance notifications to all notifiers.
+func (m *MultiNotifier) NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error {
+	var errs []error
+	for _, n := range m.notifiers {
+		if err := n.NotifyAgentMaintenance(ctx, agent, windowName); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return combineErrors(errs)
+}
+
 // NoOpNotifier is a notifier that does nothing.
 // Useful as a default or for testing.
 type NoOpNotifier struct{}
@@ -108,6 +120,11 @@ func (n *NoOpNotifier) NotifyAgentOffline(_ context.Context, _ *domain.Agent, _ 
 
 // NotifyAgentOnline does nothing.
 func (n *NoOpNotifier) NotifyAgentOnline(_ context.Context, _ *domain.Agent, _ int) error {
+	return nil
+}
+
+// NotifyAgentMaintenance does nothing.
+func (n *NoOpNotifier) NotifyAgentMaintenance(_ context.Context, _ *domain.Agent, _ string) error {
 	return nil
 }
 
