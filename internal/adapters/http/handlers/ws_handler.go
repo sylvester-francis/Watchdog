@@ -232,6 +232,14 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		h.logger.Error("failed to update last seen", slog.String("error", err.Error()))
 	}
 
+	// Resolve any incidents created when the agent was offline
+	if err := h.monitorSvc.ResolveAgentMonitors(ctx, agent.ID); err != nil {
+		h.logger.Error("failed to resolve agent monitors on reconnect",
+			slog.String("agent_id", agent.ID.String()),
+			slog.String("error", err.Error()),
+		)
+	}
+
 	// Handle agent fingerprinting
 	if len(authPayload.Fingerprint) > 0 {
 		if agent.Fingerprint == nil {

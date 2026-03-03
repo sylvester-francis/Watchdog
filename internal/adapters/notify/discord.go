@@ -80,6 +80,44 @@ func (d *DiscordNotifier) NotifyIncidentResolved(ctx context.Context, incident *
 	return d.sendWebhook(ctx, embed)
 }
 
+// NotifyAgentOffline sends a notification when an agent goes offline.
+func (d *DiscordNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error {
+	embed := discordEmbed{
+		Title:       fmt.Sprintf("⚠️ Agent Offline: %s", agent.Name),
+		Description: fmt.Sprintf("Agent **%s** has disconnected", agent.Name),
+		Color:       colorRed,
+		Fields: []discordField{
+			{Name: "Agent", Value: agent.Name, Inline: true},
+			{Name: "Affected Monitors", Value: fmt.Sprintf("%d", affectedMonitors), Inline: true},
+		},
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: discordFooter{
+			Text: BrandName,
+		},
+	}
+
+	return d.sendWebhook(ctx, embed)
+}
+
+// NotifyAgentOnline sends a notification when an agent comes back online.
+func (d *DiscordNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	embed := discordEmbed{
+		Title:       fmt.Sprintf("✅ Agent Online: %s", agent.Name),
+		Description: fmt.Sprintf("Agent **%s** has reconnected", agent.Name),
+		Color:       colorGreen,
+		Fields: []discordField{
+			{Name: "Agent", Value: agent.Name, Inline: true},
+			{Name: "Resolved Incidents", Value: fmt.Sprintf("%d", resolvedIncidents), Inline: true},
+		},
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: discordFooter{
+			Text: BrandName,
+		},
+	}
+
+	return d.sendWebhook(ctx, embed)
+}
+
 // sendWebhook sends a webhook message to Discord.
 func (d *DiscordNotifier) sendWebhook(ctx context.Context, embed discordEmbed) error {
 	payload := discordWebhookPayload{

@@ -68,7 +68,8 @@ type MockMonitorService struct {
 	UpdateMonitorFn         func(ctx context.Context, monitor *domain.Monitor) error
 	DeleteMonitorFn         func(ctx context.Context, id uuid.UUID) error
 	ProcessHeartbeatFn      func(ctx context.Context, heartbeat *domain.Heartbeat) error
-	MarkAgentMonitorsDownFn func(ctx context.Context, agentID uuid.UUID) error
+	MarkAgentMonitorsDownFn  func(ctx context.Context, agentID uuid.UUID) error
+	ResolveAgentMonitorsFn  func(ctx context.Context, agentID uuid.UUID) error
 }
 
 func (m *MockMonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error) {
@@ -120,6 +121,13 @@ func (m *MockMonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID 
 	return nil
 }
 
+func (m *MockMonitorService) ResolveAgentMonitors(ctx context.Context, agentID uuid.UUID) error {
+	if m.ResolveAgentMonitorsFn != nil {
+		return m.ResolveAgentMonitorsFn(ctx, agentID)
+	}
+	return nil
+}
+
 // MockIncidentService is a mock implementation of ports.IncidentService.
 type MockIncidentService struct {
 	GetIncidentFn            func(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
@@ -129,7 +137,11 @@ type MockIncidentService struct {
 	GetIncidentsByMonitorFn  func(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
 	AcknowledgeIncidentFn    func(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	ResolveIncidentFn        func(ctx context.Context, id uuid.UUID) error
-	CreateIncidentIfNeededFn func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	CreateIncidentIfNeededFn  func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	CreateIncidentSilentlyFn  func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	ResolveIncidentSilentlyFn func(ctx context.Context, id uuid.UUID) error
+	NotifyAgentOfflineFn      func(ctx context.Context, agentID uuid.UUID, affectedMonitors int)
+	NotifyAgentOnlineFn       func(ctx context.Context, agentID uuid.UUID, resolvedIncidents int)
 }
 
 func (m *MockIncidentService) GetIncident(ctx context.Context, id uuid.UUID) (*domain.Incident, error) {
@@ -188,6 +200,32 @@ func (m *MockIncidentService) CreateIncidentIfNeeded(ctx context.Context, monito
 	return nil, nil
 }
 
+func (m *MockIncidentService) CreateIncidentSilently(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error) {
+	if m.CreateIncidentSilentlyFn != nil {
+		return m.CreateIncidentSilentlyFn(ctx, monitorID)
+	}
+	return nil, nil
+}
+
+func (m *MockIncidentService) ResolveIncidentSilently(ctx context.Context, id uuid.UUID) error {
+	if m.ResolveIncidentSilentlyFn != nil {
+		return m.ResolveIncidentSilentlyFn(ctx, id)
+	}
+	return nil
+}
+
+func (m *MockIncidentService) NotifyAgentOffline(ctx context.Context, agentID uuid.UUID, affectedMonitors int) {
+	if m.NotifyAgentOfflineFn != nil {
+		m.NotifyAgentOfflineFn(ctx, agentID, affectedMonitors)
+	}
+}
+
+func (m *MockIncidentService) NotifyAgentOnline(ctx context.Context, agentID uuid.UUID, resolvedIncidents int) {
+	if m.NotifyAgentOnlineFn != nil {
+		m.NotifyAgentOnlineFn(ctx, agentID, resolvedIncidents)
+	}
+}
+
 // MockAuditService is a mock implementation of ports.AuditService.
 type MockAuditService struct {
 	LogEventFn func(ctx context.Context, userID *uuid.UUID, action domain.AuditAction, ipAddress string, metadata map[string]string)
@@ -203,6 +241,8 @@ func (m *MockAuditService) LogEvent(ctx context.Context, userID *uuid.UUID, acti
 type MockNotifier struct {
 	NotifyIncidentOpenedFn   func(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
 	NotifyIncidentResolvedFn func(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
+	NotifyAgentOfflineFn     func(ctx context.Context, agent *domain.Agent, affectedMonitors int) error
+	NotifyAgentOnlineFn      func(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error
 }
 
 func (m *MockNotifier) NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
@@ -215,6 +255,20 @@ func (m *MockNotifier) NotifyIncidentOpened(ctx context.Context, incident *domai
 func (m *MockNotifier) NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
 	if m.NotifyIncidentResolvedFn != nil {
 		return m.NotifyIncidentResolvedFn(ctx, incident, monitor)
+	}
+	return nil
+}
+
+func (m *MockNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error {
+	if m.NotifyAgentOfflineFn != nil {
+		return m.NotifyAgentOfflineFn(ctx, agent, affectedMonitors)
+	}
+	return nil
+}
+
+func (m *MockNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	if m.NotifyAgentOnlineFn != nil {
+		return m.NotifyAgentOnlineFn(ctx, agent, resolvedIncidents)
 	}
 	return nil
 }
