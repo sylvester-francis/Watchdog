@@ -141,8 +141,10 @@ func TestIsNotifierError_Wrapped(t *testing.T) {
 
 // stubNotifier is a test helper for creating simple inline notifiers.
 type stubNotifier struct {
-	openFn    func() error
-	resolveFn func() error
+	openFn         func() error
+	resolveFn      func() error
+	agentOfflineFn func() error
+	agentOnlineFn  func() error
 }
 
 func (s *stubNotifier) NotifyIncidentOpened(_ context.Context, _ *domain.Incident, _ *domain.Monitor) error {
@@ -155,6 +157,20 @@ func (s *stubNotifier) NotifyIncidentOpened(_ context.Context, _ *domain.Inciden
 func (s *stubNotifier) NotifyIncidentResolved(_ context.Context, _ *domain.Incident, _ *domain.Monitor) error {
 	if s.resolveFn != nil {
 		return s.resolveFn()
+	}
+	return nil
+}
+
+func (s *stubNotifier) NotifyAgentOffline(_ context.Context, _ *domain.Agent, _ int) error {
+	if s.agentOfflineFn != nil {
+		return s.agentOfflineFn()
+	}
+	return nil
+}
+
+func (s *stubNotifier) NotifyAgentOnline(_ context.Context, _ *domain.Agent, _ int) error {
+	if s.agentOnlineFn != nil {
+		return s.agentOnlineFn()
 	}
 	return nil
 }
