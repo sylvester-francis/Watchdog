@@ -50,6 +50,11 @@ type IncidentService interface {
 	NotifyAgentMaintenance(ctx context.Context, agentID uuid.UUID, windowName string)
 }
 
+// InvestigationService aggregates existing data into incident investigation views.
+type InvestigationService interface {
+	Investigate(ctx context.Context, incidentID uuid.UUID) (*domain.IncidentInvestigation, error)
+}
+
 // AuditService defines the interface for security audit logging.
 type AuditService interface {
 	LogEvent(ctx context.Context, userID *uuid.UUID, action domain.AuditAction, ipAddress string, metadata map[string]string)

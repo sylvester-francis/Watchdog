@@ -19,12 +19,14 @@ const (
 	MonitorTypeDatabase MonitorType = "database"
 	MonitorTypeSystem   MonitorType = "system"
 	MonitorTypeService  MonitorType = "service"
+	MonitorTypePortScan MonitorType = "port_scan"
 )
 
 // ValidMonitorTypes lists all valid monitor types.
 var ValidMonitorTypes = []MonitorType{
 	MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS,
 	MonitorTypeDocker, MonitorTypeDatabase, MonitorTypeSystem, MonitorTypeService,
+	MonitorTypePortScan,
 }
 
 // ValidMonitorTypeStrings returns monitor types as strings (for templates).
@@ -40,7 +42,8 @@ func ValidMonitorTypeStrings() []string {
 func (t MonitorType) IsValid() bool {
 	switch t {
 	case MonitorTypePing, MonitorTypeHTTP, MonitorTypeTCP, MonitorTypeDNS, MonitorTypeTLS,
-		MonitorTypeDocker, MonitorTypeDatabase, MonitorTypeSystem, MonitorTypeService:
+		MonitorTypeDocker, MonitorTypeDatabase, MonitorTypeSystem, MonitorTypeService,
+		MonitorTypePortScan:
 		return true
 	default:
 		return false
