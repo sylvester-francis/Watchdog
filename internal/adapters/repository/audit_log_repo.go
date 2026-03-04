@@ -114,6 +114,72 @@ func (r *AuditLogRepository) GetRecentByActions(ctx context.Context, actions []d
 	return scanAuditLogs(rows)
 }
 
+// GetPaginated returns audit logs with filtering and pagination.
+func (r *AuditLogRepository) GetPaginated(ctx context.Context, userID uuid.UUID, opts domain.AuditQueryOpts) ([]*domain.AuditLog, int, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	if opts.PerPage <= 0 {
+		opts.PerPage = 25
+	}
+	if opts.PerPage > 100 {
+		opts.PerPage = 100
+	}
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+	offset := (opts.Page - 1) * opts.PerPage
+
+	// Build dynamic WHERE clause
+	where := "WHERE user_id = $1 AND tenant_id = $2"
+	args := []any{userID, tenantID}
+	argIdx := 3
+
+	if opts.Action != "" {
+		where += fmt.Sprintf(" AND action = $%d", argIdx)
+		args = append(args, opts.Action)
+		argIdx++
+	}
+	if !opts.From.IsZero() {
+		where += fmt.Sprintf(" AND created_at >= $%d", argIdx)
+		args = append(args, opts.From)
+		argIdx++
+	}
+	if !opts.To.IsZero() {
+		where += fmt.Sprintf(" AND created_at < $%d", argIdx)
+		args = append(args, opts.To)
+		argIdx++
+	}
+
+	// Count total matching records
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM audit_logs %s", where)
+	var total int
+	if err := q.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("auditLogRepo.GetPaginated count: %w", err)
+	}
+
+	// Fetch page
+	dataQuery := fmt.Sprintf(`
+		SELECT id, user_id, action, metadata, ip_address::text, created_at
+		FROM audit_logs %s
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d`, where, argIdx, argIdx+1)
+	args = append(args, opts.PerPage, offset)
+
+	rows, err := q.Query(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("auditLogRepo.GetPaginated: %w", err)
+	}
+	defer rows.Close()
+
+	logs, err := scanAuditLogs(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return logs, total, nil
+}
+
 func scanAuditLogs(rows interface {
 	Next() bool
 	Scan(dest ...any) error
