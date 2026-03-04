@@ -341,6 +341,11 @@ func (r *Router) APIV1Handler() *handlers.APIV1Handler {
 	return r.apiV1Handler
 }
 
+// WSHandler returns the WebSocket handler so EE can register heartbeat hooks.
+func (r *Router) WSHandler() *handlers.WSHandler {
+	return r.wsHandler
+}
+
 // Stop cleans up router resources (rate limiters, session tracker).
 func (r *Router) Stop() {
 	if r.authRateLimiter != nil {
