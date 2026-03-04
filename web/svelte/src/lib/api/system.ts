@@ -1,8 +1,18 @@
 import { api } from './client';
-import type { SystemInfo, AdminUser, SecurityEvent } from '$lib/types';
+import type { SystemInfo, AdminUser, SecurityEvent, AuditLogParams, PaginatedAuditResponse } from '$lib/types';
 
 export function getSystemInfo(): Promise<SystemInfo> {
 	return api.get<SystemInfo>('/api/v1/system');
+}
+
+export function getAuditLogs(params: AuditLogParams): Promise<PaginatedAuditResponse> {
+	const searchParams = new URLSearchParams();
+	searchParams.set('page', String(params.page));
+	searchParams.set('per_page', String(params.per_page));
+	if (params.action) searchParams.set('action', params.action);
+	if (params.from) searchParams.set('from', params.from);
+	if (params.to) searchParams.set('to', params.to);
+	return api.get<PaginatedAuditResponse>(`/api/v1/audit-logs?${searchParams.toString()}`);
 }
 
 export function listUsers(): Promise<{ data: AdminUser[] }> {
