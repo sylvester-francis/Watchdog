@@ -1095,6 +1095,19 @@ func (h *APIV1Handler) GetIncidentInvestigation(c echo.Context) error {
 		prevIncidents = []incidentResponse{}
 	}
 
+	// Map cert_details to snake_case response format (CertDetails struct has no JSON tags)
+	var certDetails *certDetailsResponse
+	if investigation.CertDetails != nil {
+		certDetails = &certDetailsResponse{
+			Issuer:       investigation.CertDetails.Issuer,
+			ExpiryDays:   investigation.CertDetails.ExpiryDays,
+			Algorithm:    investigation.CertDetails.Algorithm,
+			ChainValid:   investigation.CertDetails.ChainValid,
+			SerialNumber: investigation.CertDetails.SerialNumber,
+			KeySize:      investigation.CertDetails.KeySize,
+		}
+	}
+
 	return c.JSON(http.StatusOK, map[string]any{
 		"data": map[string]any{
 			"agent_summary":      investigation.AgentSummary,
@@ -1103,7 +1116,7 @@ func (h *APIV1Handler) GetIncidentInvestigation(c echo.Context) error {
 			"sibling_monitors":   investigation.SiblingMonitors,
 			"previous_incidents": prevIncidents,
 			"system_metrics":     investigation.SystemMetrics,
-			"cert_details":       investigation.CertDetails,
+			"cert_details":       certDetails,
 			"timeline":           investigation.Timeline,
 		},
 	})
