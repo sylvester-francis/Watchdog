@@ -728,6 +728,7 @@ type MockAuditLogRepository struct {
 	GetByUserIDFn        func(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.AuditLog, error)
 	GetRecentFn          func(ctx context.Context, limit int) ([]*domain.AuditLog, error)
 	GetRecentByActionsFn func(ctx context.Context, actions []domain.AuditAction, limit int) ([]*domain.AuditLog, error)
+	GetPaginatedFn       func(ctx context.Context, userID uuid.UUID, opts domain.AuditQueryOpts) ([]*domain.AuditLog, int, error)
 }
 
 func (m *MockAuditLogRepository) Create(ctx context.Context, log *domain.AuditLog) error {
@@ -756,6 +757,13 @@ func (m *MockAuditLogRepository) GetRecentByActions(ctx context.Context, actions
 		return m.GetRecentByActionsFn(ctx, actions, limit)
 	}
 	return nil, nil
+}
+
+func (m *MockAuditLogRepository) GetPaginated(ctx context.Context, userID uuid.UUID, opts domain.AuditQueryOpts) ([]*domain.AuditLog, int, error) {
+	if m.GetPaginatedFn != nil {
+		return m.GetPaginatedFn(ctx, userID, opts)
+	}
+	return nil, 0, nil
 }
 
 // MockTransactor is a mock implementation of ports.Transactor.

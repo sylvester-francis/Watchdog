@@ -54,6 +54,7 @@ type Engine struct {
 	concreteMonitorSvc *services.MonitorService
 	agentAuthSvc       ports.AgentAuthService
 	auditSvc           ports.AuditService
+	mwRepo             ports.MaintenanceWindowRepository
 }
 
 // New creates a new Engine, loading config, connecting to the database,
@@ -172,6 +173,11 @@ func New(ctx context.Context) (*Engine, error) {
 	e.Use(echomw.RequestID())
 	e.Use(middleware.SecureHeaders(cfg.Server.SecureCookies))
 
+	// Maintenance windows — create and wire into monitor service
+	mwRepo := repository.NewMaintenanceWindowRepository(db)
+	monitorSvc.SetMaintenanceWindowRepo(mwRepo)
+	monitorSvc.SetAuditService(auditSvc)
+
 	// Router
 	routerDeps := internalhttp.Dependencies{
 		UserAuthService:  authSvc,
@@ -187,8 +193,9 @@ func New(ctx context.Context) (*Engine, error) {
 		APITokenRepo:     apiTokenRepo,
 		StatusPageRepo:   statusPageRepo,
 		AlertChannelRepo: alertChannelRepo,
-		CertDetailsRepo:  certDetailsRepo,
-		Hub:              hub,
+		CertDetailsRepo:       certDetailsRepo,
+		MaintenanceWindowRepo: mwRepo,
+		Hub:                   hub,
 		Hasher:           hasher,
 		AuditService:     auditSvc,
 		AuditLogRepo:     auditLogRepo,
@@ -231,6 +238,7 @@ func New(ctx context.Context) (*Engine, error) {
 		concreteMonitorSvc: monitorSvc,
 		agentAuthSvc:       authSvc,
 		auditSvc:           auditSvc,
+		mwRepo:             mwRepo,
 	}, nil
 }
 
@@ -302,13 +310,11 @@ func (e *Engine) InvestigationService() ports.InvestigationService { return e.in
 // IncidentRepo returns the incident repository for EE extensions.
 func (e *Engine) IncidentRepo() ports.IncidentRepository { return e.incidentRepo }
 
-// NewMaintenanceWindowRepo creates and returns a new MaintenanceWindowRepository.
-// Also wires it into the MonitorService for suppression during active windows.
+// NewMaintenanceWindowRepo returns the maintenance window repository.
+// The repo is already wired into MonitorService during New().
+// Kept for EE compatibility.
 func (e *Engine) NewMaintenanceWindowRepo() ports.MaintenanceWindowRepository {
-	repo := repository.NewMaintenanceWindowRepository(e.db)
-	e.concreteMonitorSvc.SetMaintenanceWindowRepo(repo)
-	e.concreteMonitorSvc.SetAuditService(e.auditSvc)
-	return repo
+	return e.mwRepo
 }
 
 // AgentMessenger returns the WebSocket hub as an AgentMessenger for EE extensions.
@@ -336,7 +342,67 @@ func (e *Engine) Init(ctx context.Context) error {
 	go e.hub.Run()
 	e.router.RegisterRoutes()
 
+	// Background maintenance window processor (60s tick).
+	if e.mwRepo != nil {
+		go e.runMaintenanceTicker(ctx)
+	}
+
 	return nil
+}
+
+// runMaintenanceTicker processes expired maintenance windows every 60 seconds.
+func (e *Engine) runMaintenanceTicker(ctx context.Context) {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			e.processMaintenanceWindows(ctx)
+		}
+	}
+}
+
+// processMaintenanceWindows handles expired windows, recurring regeneration, and cleanup.
+func (e *Engine) processMaintenanceWindows(ctx context.Context) {
+	// 1. Expired windows with offline agents — mark monitors down.
+	expired, err := e.mwRepo.GetExpiredWithOfflineAgents(ctx)
+	if err == nil {
+		for _, mw := range expired {
+			if err := e.monitorSvc.MarkAgentMonitorsDown(ctx, mw.AgentID); err != nil {
+				e.logger.Error("maintenance: failed to mark monitors down",
+					slog.String("agent_id", mw.AgentID.String()),
+					slog.String("error", err.Error()),
+				)
+			}
+		}
+	}
+
+	// 2. Expired recurring windows — create next occurrence.
+	recurring, err := e.mwRepo.GetExpiredRecurring(ctx)
+	if err == nil {
+		for _, mw := range recurring {
+			next := mw.NextOccurrence()
+			if next != nil {
+				if err := e.mwRepo.Create(ctx, next); err != nil {
+					e.logger.Error("maintenance: failed to create next occurrence",
+						slog.String("window_id", mw.ID.String()),
+						slog.String("error", err.Error()),
+					)
+				}
+			}
+		}
+	}
+
+	// 3. Cleanup windows older than 30 days.
+	cutoff := time.Now().Add(-30 * 24 * time.Hour)
+	if err := e.mwRepo.DeleteExpired(ctx, cutoff); err != nil {
+		e.logger.Error("maintenance: failed to cleanup old windows",
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 // Run starts the HTTP server and blocks until SIGINT/SIGTERM.

@@ -37,8 +37,9 @@ type Dependencies struct {
 	APITokenRepo     ports.APITokenRepository
 	StatusPageRepo   ports.StatusPageRepository
 	AlertChannelRepo ports.AlertChannelRepository
-	CertDetailsRepo  ports.CertDetailsRepository
-	Hub              *realtime.Hub
+	CertDetailsRepo        ports.CertDetailsRepository
+	MaintenanceWindowRepo  ports.MaintenanceWindowRepository
+	Hub                    *realtime.Hub
 	Hasher           *crypto.PasswordHasher
 	AuditService     ports.AuditService
 	AuditLogRepo     ports.AuditLogRepository
@@ -66,6 +67,7 @@ type Router struct {
 	settingsAPIHandler   *handlers.SettingsAPIHandler
 	statusPageAPIHandler *handlers.StatusPageAPIHandler
 	systemAPIHandler     *handlers.SystemAPIHandler
+	maintenanceHandler   *handlers.MaintenanceHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -105,6 +107,10 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
 	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
 	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.AuditService, deps.Hasher, deps.StartTime)
+
+	if deps.MaintenanceWindowRepo != nil {
+		r.maintenanceHandler = handlers.NewMaintenanceHandler(deps.MaintenanceWindowRepo, deps.AgentRepo, deps.AuditService)
+	}
 
 	return r, nil
 }
@@ -274,6 +280,17 @@ func (r *Router) RegisterRoutes() {
 	v1.GET("/status-pages/:id", r.statusPageAPIHandler.Get)
 	v1.PUT("/status-pages/:id", r.statusPageAPIHandler.Update)
 	v1.DELETE("/status-pages/:id", r.statusPageAPIHandler.Delete)
+
+	// Maintenance windows
+	if r.maintenanceHandler != nil {
+		v1.GET("/maintenance-windows", r.maintenanceHandler.List)
+		v1.POST("/maintenance-windows", r.maintenanceHandler.Create)
+		v1.PUT("/maintenance-windows/:id", r.maintenanceHandler.Update)
+		v1.DELETE("/maintenance-windows/:id", r.maintenanceHandler.Delete)
+	}
+
+	// Audit logs (user-scoped)
+	v1.GET("/audit-logs", r.systemAPIHandler.GetAuditLogs)
 
 	// System dashboard (admin-only)
 	v1.GET("/system", r.systemAPIHandler.GetSystemInfo)

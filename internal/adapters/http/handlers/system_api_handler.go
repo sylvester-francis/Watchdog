@@ -3,8 +3,10 @@ package handlers
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -484,4 +486,78 @@ func (h *SystemAPIHandler) ResetUserPassword(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"password": plaintext})
+}
+
+// GetAuditLogs returns paginated audit logs for the authenticated user.
+// GET /api/v1/audit-logs?page=1&per_page=25&action=login_success&from=2024-01-01&to=2024-12-31
+func (h *SystemAPIHandler) GetAuditLogs(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	page, _ := strconv.Atoi(c.QueryParam("page"))
+	perPage, _ := strconv.Atoi(c.QueryParam("per_page"))
+	if page <= 0 {
+		page = 1
+	}
+	if perPage <= 0 {
+		perPage = 25
+	}
+
+	opts := domain.AuditQueryOpts{
+		Page:    page,
+		PerPage: perPage,
+		Action:  c.QueryParam("action"),
+	}
+
+	if from := c.QueryParam("from"); from != "" {
+		t, err := time.Parse("2006-01-02", from)
+		if err == nil {
+			opts.From = t
+		}
+	}
+	if to := c.QueryParam("to"); to != "" {
+		t, err := time.Parse("2006-01-02", to)
+		if err == nil {
+			opts.To = t.Add(24 * time.Hour) // inclusive end date
+		}
+	}
+
+	logs, total, err := h.auditLogRepo.GetPaginated(ctx, userID, opts)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch audit logs"})
+	}
+
+	// Map to response format
+	entries := make([]auditLogEntry, 0, len(logs))
+	for _, log := range logs {
+		email := ""
+		if log.UserID != nil {
+			if u, err := h.userRepo.GetByID(ctx, *log.UserID); err == nil && u != nil {
+				email = u.Email
+			}
+		}
+		entries = append(entries, auditLogEntry{
+			ID:        log.ID,
+			Action:    string(log.Action),
+			UserEmail: email,
+			IPAddress: log.IPAddress,
+			Metadata:  log.Metadata,
+			CreatedAt: log.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(opts.PerPage)))
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"data": entries,
+		"meta": map[string]int{
+			"page":     page,
+			"per_page": opts.PerPage,
+			"total":    total,
+			"pages":    totalPages,
+		},
+	})
 }
