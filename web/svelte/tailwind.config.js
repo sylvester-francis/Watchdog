@@ -38,6 +38,13 @@ export default {
         'stat': ['2rem', { lineHeight: '1', fontWeight: '700' }],
         'stat-sm': ['1.5rem', { lineHeight: '1', fontWeight: '700' }],
       },
+      height: {
+        '55dvh': '55dvh',
+        '92dvh': '92dvh',
+      },
+      transitionTimingFunction: {
+        sheet: 'cubic-bezier(0.32, 0.72, 0, 1)',
+      },
     },
   },
   plugins: [],
