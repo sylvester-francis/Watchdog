@@ -5,7 +5,8 @@
 	import {
 		ShieldCheck, Menu, X, EyeOff, Eye, Download, Radar, Bell, Server,
 		Activity, BellRing, Terminal, Zap, Flame, Globe, Code, ScrollText,
-		Database, Radio, LayoutDashboard, ShieldOff, Scan, Lock, Copy, Check
+		Database, Radio, LayoutDashboard, ShieldOff, Scan, Lock, Copy, Check,
+		Target, Shield, Search, Wrench
 	} from 'lucide-svelte';
 
 	const auth = getAuth();
@@ -122,6 +123,16 @@
 		{ icon: Globe, title: 'Public status pages', desc: 'Share real-time service health with your team or customers. 90-day uptime history, incident timeline, and custom URLs. No authentication required to view.' },
 		{ icon: Code, title: 'REST API', desc: 'Token-authenticated API for programmatic access. Manage monitors, agents, and incidents from your own scripts or CI/CD pipelines.' },
 		{ icon: ScrollText, title: 'Audit trail', desc: 'Every login, monitor change, and incident action is logged with timestamps, user IDs, and IP addresses. Full event history for compliance and debugging.' },
+		{ icon: Target, title: 'SLA tracking', desc: 'Set per-monitor SLA targets and track uptime compliance. Real-time breach detection across 7, 30, and 90 day windows.',
+			pre: '<span class="text-foreground">api-gateway</span> <span class="text-muted-foreground/40">·········</span> SLA: <span class="text-emerald-400">99.95%</span>\n<span class="text-muted-foreground/60">  7d:</span> <span class="text-emerald-400">100.00%</span>  <span class="text-muted-foreground/60">30d:</span> <span class="text-emerald-400">99.97%</span>  <span class="text-muted-foreground/60">90d:</span> <span class="text-emerald-400">99.95%</span>\n<span class="text-foreground">postgres:5432</span> <span class="text-muted-foreground/40">·······</span> SLA: <span class="text-red-400">99.20%</span> <span class="text-red-400">BREACH</span>\n<span class="text-muted-foreground/60">  Target:</span> <span class="text-foreground">99.50%</span>  <span class="text-muted-foreground/60">Current:</span> <span class="text-red-400">99.20%</span>'
+		},
+		{ icon: Shield, title: 'TLS certificate monitoring', desc: 'Track certificate expiry, chain validity, key strength, and SANs. Alerts before expiry so you never get caught off guard.',
+			pre: '<span class="text-foreground">api.example.com</span>\n<span class="text-muted-foreground/60">  Issuer:</span>  <span class="text-foreground">Let\'s Encrypt R3</span>\n<span class="text-muted-foreground/60">  Expiry:</span>  <span class="text-emerald-400">62 days</span>\n<span class="text-muted-foreground/60">  Algo:</span>    <span class="text-foreground">ECDSA P-256</span>\n<span class="text-muted-foreground/60">  Chain:</span>   <span class="text-emerald-400">valid</span>'
+		},
+		{ icon: Search, title: 'Incident investigation', desc: 'One-click root cause analysis. Correlated monitors, system metrics, MTTR tracking, incident timeline, and recurrence patterns.',
+			pre: '<span class="text-muted-foreground/60">#1042</span> <span class="text-foreground">postgres:5432</span>  <span class="text-red-400">recurring</span>\n<span class="text-muted-foreground/60">  MTTR:</span> <span class="text-foreground">4m 12s</span>  <span class="text-muted-foreground/60">Previous:</span> <span class="text-foreground">3</span>\n<span class="text-muted-foreground/30">\u251c\u2500</span> <span class="text-red-400">\u25cf</span> <span class="text-muted-foreground/70">Connection refused    09:41:03</span>\n<span class="text-muted-foreground/30">\u251c\u2500</span> <span class="text-red-400">\u25cf</span> <span class="text-muted-foreground/70">Heartbeat: down       09:41:33</span>\n<span class="text-muted-foreground/30">\u2514\u2500</span> <span class="text-emerald-400">\u25cf</span> <span class="text-muted-foreground/70">Resolved              09:45:15</span>'
+		},
+		{ icon: Wrench, title: 'Maintenance windows', desc: 'Schedule maintenance per agent to suppress alerts. Recurring schedules (daily, weekly, monthly) with automatic next-occurrence generation.' },
 	];
 
 	const comparisons = [

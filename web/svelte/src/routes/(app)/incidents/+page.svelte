@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-svelte';
+	import { AlertTriangle, CheckCircle2, ShieldAlert, X, Loader2 } from 'lucide-svelte';
 	import { incidents as incidentsApi, monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
-	import type { Incident, MonitorSummary, IncidentStatus } from '$lib/types';
+	import type { Incident, MonitorSummary, IncidentStatus, IncidentInvestigation } from '$lib/types';
 	import IncidentStats from '$lib/components/incidents/IncidentStats.svelte';
 	import IncidentRow from '$lib/components/incidents/IncidentRow.svelte';
+	import InvestigationPanel from '$lib/components/incidents/InvestigationPanel.svelte';
 
 	const toast = getToasts();
 
@@ -16,6 +17,31 @@
 	let monitorMap = $state<Map<string, MonitorSummary>>(new Map());
 	let loading = $state(true);
 	let activeTab = $state<FilterTab>('active');
+
+	// Investigation panel state
+	let selectedIncidentId = $state<string | null>(null);
+	let investigation = $state<IncidentInvestigation | null>(null);
+	let investigationLoading = $state(false);
+
+	async function handleInvestigate(id: string) {
+		selectedIncidentId = id;
+		investigationLoading = true;
+		investigation = null;
+		try {
+			const res = await incidentsApi.getIncidentInvestigation(id);
+			investigation = res.data;
+		} catch {
+			toast.error('Failed to load investigation');
+			selectedIncidentId = null;
+		} finally {
+			investigationLoading = false;
+		}
+	}
+
+	function closeInvestigation() {
+		selectedIncidentId = null;
+		investigation = null;
+	}
 
 	// Stats computed from all incidents (not just filtered)
 	let openCount = $derived(allIncidents.filter((i) => i.status === 'open').length);
@@ -257,6 +283,7 @@
 								monitor={monitorMap.get(incident.monitor_id)}
 								onAcknowledge={handleAcknowledge}
 								onResolve={handleResolve}
+								onInvestigate={handleInvestigate}
 							/>
 						{/each}
 					</tbody>
@@ -277,4 +304,34 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Investigation slide-over panel -->
+	{#if selectedIncidentId}
+		<!-- Backdrop -->
+		<button
+			class="fixed inset-0 bg-black/50 z-40"
+			onclick={closeInvestigation}
+			aria-label="Close investigation panel"
+		></button>
+
+		<!-- Panel -->
+		<div class="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-background border-l border-border shadow-2xl overflow-y-auto animate-slide-in-right">
+			<div class="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4 flex items-center justify-between z-10">
+				<h2 class="text-sm font-semibold text-foreground">Incident Investigation</h2>
+				<button onclick={closeInvestigation} class="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors" aria-label="Close">
+					<X class="w-4 h-4" />
+				</button>
+			</div>
+
+			<div class="p-6">
+				{#if investigationLoading}
+					<div class="flex items-center justify-center py-16">
+						<Loader2 class="w-6 h-6 text-muted-foreground animate-spin" />
+					</div>
+				{:else if investigation}
+					<InvestigationPanel {investigation} />
+				{/if}
+			</div>
+		</div>
+	{/if}
 {/if}

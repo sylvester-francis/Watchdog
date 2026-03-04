@@ -104,11 +104,21 @@
     animation: pulse-slow 4s ease-in-out infinite;
 }
 
+/* Slide-in from right (investigation panel) */
+@keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+.animate-slide-in-right {
+    animation: slide-in-right 0.25s ease-out both;
+}
+
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
     .animate-pulse-dot,
     .animate-pulse-slow,
     .animate-fade-in-up,
+    .animate-slide-in-right,
     .toast-enter,
     .toast-exit,
     .modal-enter,
