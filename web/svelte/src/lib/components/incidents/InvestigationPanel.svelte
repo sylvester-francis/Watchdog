@@ -54,8 +54,8 @@
 		<!-- Pattern -->
 		<div class="bg-card border border-border rounded-lg p-4">
 			<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Pattern</div>
-			<span class="text-xs font-medium px-2 py-0.5 rounded border {patternColor(investigation.recurrence_pattern)}">
-				{patternLabel(investigation.recurrence_pattern)}
+			<span class="text-xs font-medium px-2 py-0.5 rounded border {patternColor(investigation.recurrence_pattern ?? 'unknown')}">
+				{patternLabel(investigation.recurrence_pattern ?? 'unknown')}
 			</span>
 		</div>
 
@@ -69,8 +69,8 @@
 		<div class="bg-card border border-border rounded-lg p-4">
 			<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Agent</div>
 			<div class="flex items-center space-x-1.5">
-				<div class="w-2 h-2 rounded-full {investigation.agent_summary.status === 'online' ? 'bg-emerald-400' : 'bg-red-400'}"></div>
-				<span class="text-xs text-foreground truncate">{investigation.agent_summary.name || '--'}</span>
+				<div class="w-2 h-2 rounded-full {investigation.agent_summary?.status === 'online' ? 'bg-emerald-400' : 'bg-red-400'}"></div>
+				<span class="text-xs text-foreground truncate">{investigation.agent_summary?.name || '--'}</span>
 			</div>
 		</div>
 
