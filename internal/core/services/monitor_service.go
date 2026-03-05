@@ -19,8 +19,8 @@ type MonitorService struct {
 	incidentSvc     ports.IncidentService
 	userRepo        ports.UserRepository
 	usageEventRepo  ports.UsageEventRepository
-	maintenanceRepo ports.MaintenanceWindowRepository // optional, set by EE
-	auditSvc        ports.AuditService               // optional, set by EE
+	maintenanceRepo ports.MaintenanceWindowRepository // optional, set by extensions
+	auditSvc        ports.AuditService               // optional, set by extensions
 	logger          *slog.Logger
 }
 
@@ -269,7 +269,7 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 // Creates incidents silently (no per-monitor alerts) and sends a single agent-offline notification.
 // If a maintenance window is active for the agent, alerts are suppressed (fail-open on error).
 func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error {
-	// Check for active maintenance window (EE feature, optional).
+	// Check for active maintenance window (optional).
 	if s.maintenanceRepo != nil {
 		window, err := s.maintenanceRepo.GetActiveByAgentID(ctx, agentID)
 		if err != nil {

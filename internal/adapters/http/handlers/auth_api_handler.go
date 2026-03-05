@@ -20,11 +20,11 @@ const maxEmailLength = 254
 
 // TenantValidator validates a tenant slug during registration and returns the tenant ID.
 // If the slug is invalid or blocked, it returns an error.
-// EE sets this hook; CE leaves it nil (all users go to "default" tenant).
+// Extensions set this hook; default is nil (all users go to "default" tenant).
 type TenantValidator func(ctx context.Context, slug string) (tenantID string, err error)
 
 // PostRegisterHook runs after a user is successfully registered.
-// EE uses this to promote the first user in a tenant to super_admin.
+// Extensions use this to run post-registration logic.
 type PostRegisterHook func(ctx context.Context, user *domain.User, tenantSlug string) error
 
 // AuthAPIHandler handles JSON authentication endpoints for the SvelteKit SPA.
@@ -35,8 +35,8 @@ type AuthAPIHandler struct {
 	registerLimiter   *middleware.RegisterLimiter
 	auditSvc          ports.AuditService
 	sessionTracker    *middleware.SessionTracker // H-017: concurrent session limits
-	tenantValidator   TenantValidator            // EE hook: validates tenant slug on registration
-	postRegisterHook  PostRegisterHook           // EE hook: post-registration actions
+	tenantValidator   TenantValidator            // Extension hook: validates tenant slug on registration
+	postRegisterHook  PostRegisterHook           // Extension hook: post-registration actions
 }
 
 // NewAuthAPIHandler creates a new AuthAPIHandler.
@@ -54,12 +54,12 @@ func NewAuthAPIHandler(authSvc ports.UserAuthService, userRepo ports.UserReposit
 	return h
 }
 
-// SetTenantValidator sets the EE hook for tenant-scoped registration.
+// SetTenantValidator sets the hook for tenant-scoped registration.
 func (h *AuthAPIHandler) SetTenantValidator(v TenantValidator) {
 	h.tenantValidator = v
 }
 
-// SetPostRegisterHook sets the EE hook for post-registration actions.
+// SetPostRegisterHook sets the hook for post-registration actions.
 func (h *AuthAPIHandler) SetPostRegisterHook(hook PostRegisterHook) {
 	h.postRegisterHook = hook
 }
@@ -74,7 +74,7 @@ type registerRequest struct {
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirm_password"`
 	Website         string `json:"website"`      // honeypot — invisible field, bots auto-fill it
-	TenantSlug      string `json:"tenant_slug"`   // EE multi-tenant: target tenant slug
+	TenantSlug      string `json:"tenant_slug"`   // Multi-tenant: target tenant slug
 }
 
 type userResponse struct {
@@ -203,7 +203,7 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		h.registerLimiter.Record(ip)
 	}
 
-	// EE multi-tenant: validate tenant slug and inject tenant_id into context.
+	// Multi-tenant: validate tenant slug and inject tenant_id into context.
 	ctx := c.Request().Context()
 	if h.tenantValidator != nil && req.TenantSlug != "" {
 		tenantID, err := h.tenantValidator(ctx, req.TenantSlug)
@@ -213,7 +213,7 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		}
 		ctx = repository.WithTenantID(ctx, tenantID)
 	} else if h.tenantValidator != nil && req.TenantSlug == "" {
-		// EE mode: tenant_slug is required for registration.
+		// Multi-tenant mode: tenant_slug is required for registration.
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
 	}
 
@@ -229,7 +229,7 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
 	}
 
-	// EE post-registration hook (e.g., promote first user to super_admin).
+	// Post-registration hook (e.g., promote first user to super_admin).
 	if h.postRegisterHook != nil {
 		if err := h.postRegisterHook(ctx, user, req.TenantSlug); err != nil {
 			slog.Error("post-register hook failed", "user_id", user.ID, "error", err)

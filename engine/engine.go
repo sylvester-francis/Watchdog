@@ -33,7 +33,7 @@ import (
 )
 
 // HeartbeatHook is called after each heartbeat is processed.
-// EE uses this to store port scan results and detect service changes.
+// Extensions can use this to add custom post-processing.
 type HeartbeatHook func(ctx context.Context, agentID, monitorID uuid.UUID, payload *protocol.HeartbeatPayload)
 
 // TenantIDFromContext extracts the tenant ID from a request context.
@@ -53,7 +53,7 @@ type Engine struct {
 	hub    *realtime.Hub
 	cfg    *config.Config
 
-	// Exposed for EE extensions via accessor methods.
+	// Exposed for extensions via accessor methods.
 	agentRepo          ports.AgentRepository
 	monitorRepo        ports.MonitorRepository
 	heartbeatRepo      ports.HeartbeatRepository
@@ -276,76 +276,76 @@ func (e *Engine) Logger() *slog.Logger {
 
 // AuthMiddleware returns an Echo middleware that authenticates requests via
 // session cookie and sets "user_id" in the Echo context. This is exposed so
-// that EE route groups (which cannot import internal packages) can reuse the
+// that external route groups (which cannot import internal packages) can reuse the
 // same session-based auth that CE uses. Returns JSON 401 on failure.
 func (e *Engine) AuthMiddleware() echo.MiddlewareFunc {
 	return middleware.AuthRequiredAPI
 }
 
 // TenantMiddleware returns the tenant-scoping middleware that injects
-// tenant_id into the request context. EE route groups need this to ensure
+// tenant_id into the request context. External route groups need this to ensure
 // repository queries are correctly scoped by tenant.
 func (e *Engine) TenantMiddleware() echo.MiddlewareFunc {
 	return e.router.TenantMiddleware()
 }
 
-// AgentRepo returns the agent repository for EE extensions.
+// AgentRepo returns the agent repository for extensions.
 func (e *Engine) AgentRepo() ports.AgentRepository { return e.agentRepo }
 
-// MonitorRepo returns the monitor repository for EE extensions.
+// MonitorRepo returns the monitor repository for extensions.
 func (e *Engine) MonitorRepo() ports.MonitorRepository { return e.monitorRepo }
 
-// HeartbeatRepo returns the heartbeat repository for EE extensions.
+// HeartbeatRepo returns the heartbeat repository for extensions.
 func (e *Engine) HeartbeatRepo() ports.HeartbeatRepository { return e.heartbeatRepo }
 
-// CertDetailsRepo returns the certificate details repository for EE extensions.
+// CertDetailsRepo returns the certificate details repository for extensions.
 func (e *Engine) CertDetailsRepo() ports.CertDetailsRepository { return e.certDetailsRepo }
 
-// StatusPageRepo returns the status page repository for EE extensions.
+// StatusPageRepo returns the status page repository for extensions.
 func (e *Engine) StatusPageRepo() ports.StatusPageRepository { return e.statusPageRepo }
 
-// IncidentService returns the incident service for EE extensions.
+// IncidentService returns the incident service for extensions.
 func (e *Engine) IncidentService() ports.IncidentService { return e.incidentSvc }
 
-// MonitorService returns the monitor service for EE extensions.
+// MonitorService returns the monitor service for extensions.
 func (e *Engine) MonitorService() ports.MonitorService { return e.monitorSvc }
 
-// AgentAuthService returns the agent auth service for EE extensions.
+// AgentAuthService returns the agent auth service for extensions.
 func (e *Engine) AgentAuthService() ports.AgentAuthService { return e.agentAuthSvc }
 
-// AuditService returns the audit service for EE extensions.
+// AuditService returns the audit service for extensions.
 func (e *Engine) AuditService() ports.AuditService { return e.auditSvc }
 
-// InvestigationService returns the investigation service for EE extensions.
+// InvestigationService returns the investigation service for extensions.
 func (e *Engine) InvestigationService() ports.InvestigationService { return e.investigationSvc }
 
-// IncidentRepo returns the incident repository for EE extensions.
+// IncidentRepo returns the incident repository for extensions.
 func (e *Engine) IncidentRepo() ports.IncidentRepository { return e.incidentRepo }
 
 // NewMaintenanceWindowRepo returns the maintenance window repository.
 // The repo is already wired into MonitorService during New().
-// Kept for EE compatibility.
+// Kept for compatibility.
 func (e *Engine) NewMaintenanceWindowRepo() ports.MaintenanceWindowRepository {
 	return e.mwRepo
 }
 
-// AgentMessenger returns the WebSocket hub as an AgentMessenger for EE extensions.
+// AgentMessenger returns the WebSocket hub as an AgentMessenger for extensions.
 func (e *Engine) AgentMessenger() ports.AgentMessenger { return e.hub }
 
-// SetTenantValidator sets the EE hook for tenant-scoped registration.
+// SetTenantValidator sets the hook for tenant-scoped registration.
 // When set, registration requires a valid tenant_slug and creates users in
 // the specified tenant rather than the default.
 func (e *Engine) SetTenantValidator(v handlers.TenantValidator) {
 	e.router.AuthAPIHandler().SetTenantValidator(v)
 }
 
-// SetPostRegisterHook sets the EE hook for post-registration actions.
+// SetPostRegisterHook sets the hook for post-registration actions.
 func (e *Engine) SetPostRegisterHook(hook handlers.PostRegisterHook) {
 	e.router.AuthAPIHandler().SetPostRegisterHook(hook)
 }
 
 // AddHeartbeatHook registers a hook to be called after each heartbeat is processed.
-// EE uses this for port scan storage and service change detection.
+// Extensions can use this for post-processing heartbeat data.
 func (e *Engine) AddHeartbeatHook(hook HeartbeatHook) {
 	e.router.WSHandler().AddHeartbeatHook(handlers.HeartbeatHook(hook))
 }
