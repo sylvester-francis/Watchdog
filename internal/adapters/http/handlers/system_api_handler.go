@@ -15,6 +15,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	prommetrics "github.com/sylvester-francis/watchdog/internal/adapters/metrics"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
@@ -23,16 +24,17 @@ import (
 
 // SystemAPIHandler serves the system dashboard data as JSON.
 type SystemAPIHandler struct {
-	db           *repository.DB
-	hub          *realtime.Hub
-	cfg          *config.Config
-	auditLogRepo ports.AuditLogRepository
-	userRepo     ports.UserRepository
-	agentRepo    ports.AgentRepository
-	monitorRepo  ports.MonitorRepository
-	auditSvc     ports.AuditService
-	hasher       *crypto.PasswordHasher
-	startTime    time.Time
+	db             *repository.DB
+	hub            *realtime.Hub
+	cfg            *config.Config
+	auditLogRepo   ports.AuditLogRepository
+	userRepo       ports.UserRepository
+	agentRepo      ports.AgentRepository
+	monitorRepo    ports.MonitorRepository
+	auditSvc       ports.AuditService
+	hasher         *crypto.PasswordHasher
+	startTime      time.Time
+	metricsHistory *prommetrics.MetricsHistory
 }
 
 // NewSystemAPIHandler creates a new SystemAPIHandler.
@@ -60,6 +62,28 @@ func NewSystemAPIHandler(
 		hasher:       hasher,
 		startTime:    startTime,
 	}
+}
+
+// SetMetricsHistory sets the metrics history for the metrics dashboard API.
+func (h *SystemAPIHandler) SetMetricsHistory(mh *prommetrics.MetricsHistory) {
+	h.metricsHistory = mh
+}
+
+// GetMetrics returns current and historical hub metrics for the dashboard.
+// GET /api/v1/system/metrics
+func (h *SystemAPIHandler) GetMetrics(c echo.Context) error {
+	if _, ok := middleware.GetUserID(c); !ok {
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
+	}
+
+	if h.metricsHistory == nil {
+		return errJSON(c, http.StatusServiceUnavailable, "metrics not available")
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"current": h.metricsHistory.Current(),
+		"history": h.metricsHistory.History(),
+	})
 }
 
 // dbResponse holds database health and pool information.

@@ -295,6 +295,7 @@ func (r *Router) RegisterRoutes() {
 
 	// System dashboard (admin-only)
 	v1.GET("/system", r.systemAPIHandler.GetSystemInfo)
+	v1.GET("/system/metrics", r.systemAPIHandler.GetMetrics)
 
 	// Self-service password change
 	v1.POST("/users/me/password", r.settingsAPIHandler.ChangePassword)
@@ -345,6 +346,11 @@ func (r *Router) APIV1Handler() *handlers.APIV1Handler {
 // WSHandler returns the WebSocket handler so extensions can register heartbeat hooks.
 func (r *Router) WSHandler() *handlers.WSHandler {
 	return r.wsHandler
+}
+
+// SystemAPIHandler returns the system API handler for extension wiring.
+func (r *Router) SystemAPIHandler() *handlers.SystemAPIHandler {
+	return r.systemAPIHandler
 }
 
 // Stop cleans up router resources (rate limiters, session tracker).
