@@ -36,6 +36,16 @@ func (s HeartbeatStatus) IsFailure() bool {
 	return s == HeartbeatStatusDown || s == HeartbeatStatusTimeout || s == HeartbeatStatusError
 }
 
+// AlertContext holds transient contextual data for alert notifications.
+// Populated at dispatch time, never persisted to the database.
+type AlertContext struct {
+	ErrorMessage  string
+	LastLatencyMs *int
+	AgentName     string
+	Interval      int // check interval in seconds
+	Threshold     int // failure threshold count
+}
+
 // LatencyPoint represents an aggregated latency data point for charts.
 type LatencyPoint struct {
 	Time  time.Time

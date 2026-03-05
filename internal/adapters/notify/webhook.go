@@ -42,6 +42,7 @@ func (w *WebhookNotifier) NotifyIncidentOpened(ctx context.Context, incident *do
 			Type:   string(monitor.Type),
 			Target: monitor.Target,
 		},
+		Context: buildWebhookContext(incident),
 	}
 
 	return w.send(ctx, payload)
@@ -65,6 +66,7 @@ func (w *WebhookNotifier) NotifyIncidentResolved(ctx context.Context, incident *
 			Type:   string(monitor.Type),
 			Target: monitor.Target,
 		},
+		Context: buildWebhookContext(incident),
 	}
 
 	return w.send(ctx, payload)
@@ -160,10 +162,11 @@ func (w *WebhookNotifier) send(ctx context.Context, payload webhookPayload) erro
 }
 
 type webhookPayload struct {
-	Event     string          `json:"event"`
-	Timestamp time.Time       `json:"timestamp"`
-	Incident  webhookIncident `json:"incident"`
-	Monitor   webhookMonitor  `json:"monitor"`
+	Event     string               `json:"event"`
+	Timestamp time.Time            `json:"timestamp"`
+	Incident  webhookIncident      `json:"incident"`
+	Monitor   webhookMonitor       `json:"monitor"`
+	Context   *webhookAlertContext `json:"context,omitempty"`
 }
 
 type webhookIncident struct {
@@ -179,6 +182,29 @@ type webhookMonitor struct {
 	Name   string `json:"name"`
 	Type   string `json:"type"`
 	Target string `json:"target"`
+}
+
+type webhookAlertContext struct {
+	ErrorMessage string `json:"error_message,omitempty"`
+	AgentName    string `json:"agent_name,omitempty"`
+	Interval     string `json:"interval,omitempty"`
+	Threshold    int    `json:"threshold,omitempty"`
+}
+
+func buildWebhookContext(incident *domain.Incident) *webhookAlertContext {
+	ac := incident.AlertContext
+	if ac == nil {
+		return nil
+	}
+	wctx := &webhookAlertContext{
+		ErrorMessage: ac.ErrorMessage,
+		AgentName:    ac.AgentName,
+		Threshold:    ac.Threshold,
+	}
+	if ac.Interval > 0 {
+		wctx.Interval = formatInterval(ac.Interval)
+	}
+	return wctx
 }
 
 type webhookAgentPayload struct {

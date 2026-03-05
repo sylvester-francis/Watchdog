@@ -116,7 +116,7 @@ func New(ctx context.Context) (*Engine, error) {
 	auditSvc := services.NewAuditService(auditLogRepo, logger)
 	authSvc := services.NewAuthService(userRepo, agentRepo, usageEventRepo, hasher, encryptor, logger)
 	notifierFactory := notify.NewChannelNotifierFactory()
-	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
+	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 	investigationSvc := services.NewInvestigationService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, certDetailsRepo, logger)
 
@@ -139,7 +139,7 @@ func New(ctx context.Context) (*Engine, error) {
 	if wfEngine := reg.WorkflowEngine(); wfEngine != nil {
 		workflows.RegisterAlertHandlers(
 			wfEngine, notifier, notifierFactory,
-			agentRepo, alertChannelRepo, incidentRepo, monitorRepo, logger,
+			agentRepo, heartbeatRepo, alertChannelRepo, incidentRepo, monitorRepo, logger,
 		)
 		incidentSvc.SetWorkflowEngine(wfEngine)
 		logger.Info("durable alert dispatch enabled")

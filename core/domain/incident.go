@@ -49,6 +49,7 @@ type Incident struct {
 	AcknowledgedAt *time.Time
 	Status         IncidentStatus
 	CreatedAt      time.Time
+	AlertContext   *AlertContext `json:"-"` // transient, populated at dispatch time
 }
 
 // NewIncident creates a new open incident.

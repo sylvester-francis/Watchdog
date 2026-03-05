@@ -44,11 +44,26 @@ func NewEmailNotifier(cfg EmailConfig) *EmailNotifier {
 // NotifyIncidentOpened sends an email when an incident is opened.
 func (e *EmailNotifier) NotifyIncidentOpened(_ context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
 	subject := fmt.Sprintf("[%s] Incident Opened: %s is DOWN", BrandName, monitor.Name)
+
+	extra := ""
+	if ac := incident.AlertContext; ac != nil {
+		if ac.ErrorMessage != "" {
+			extra += fmt.Sprintf("Error: %s\n", ac.ErrorMessage)
+		}
+		if ac.AgentName != "" {
+			extra += fmt.Sprintf("Agent: %s\n", ac.AgentName)
+		}
+		if ac.Interval > 0 {
+			extra += fmt.Sprintf("Interval: %s\n", formatInterval(ac.Interval))
+		}
+	}
+
 	body := fmt.Sprintf(
-		"Monitor: %s\nType: %s\nTarget: %s\nStarted: %s\n\nMonitor %s is currently DOWN.\n\n— %s",
+		"Monitor: %s\nType: %s\nTarget: %s\n%sStarted: %s\n\nMonitor %s is currently DOWN.\n\n— %s",
 		monitor.Name,
 		string(monitor.Type),
 		monitor.Target,
+		extra,
 		incident.StartedAt.Format(time.RFC3339),
 		monitor.Name,
 		BrandName,
@@ -59,15 +74,23 @@ func (e *EmailNotifier) NotifyIncidentOpened(_ context.Context, incident *domain
 
 // NotifyIncidentResolved sends an email when an incident is resolved.
 func (e *EmailNotifier) NotifyIncidentResolved(_ context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
-	duration := formatDuration(incident.Duration())
 	subject := fmt.Sprintf("[%s] Incident Resolved: %s is UP", BrandName, monitor.Name)
+
+	extra := ""
+	if ac := incident.AlertContext; ac != nil {
+		if ac.AgentName != "" {
+			extra += fmt.Sprintf("Agent: %s\n", ac.AgentName)
+		}
+	}
+
 	body := fmt.Sprintf(
-		"Monitor: %s\nType: %s\nTarget: %s\nStarted: %s\nDuration: %s\n\nMonitor %s is back UP.\n\n— %s",
+		"Monitor: %s\nType: %s\nTarget: %s\n%sStarted: %s\nDuration: %s\n\nMonitor %s is back UP.\n\n— %s",
 		monitor.Name,
 		string(monitor.Type),
 		monitor.Target,
+		extra,
 		incident.StartedAt.Format(time.RFC3339),
-		duration,
+		formatDuration(incident.Duration()),
 		monitor.Name,
 		BrandName,
 	)
