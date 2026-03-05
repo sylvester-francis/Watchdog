@@ -828,6 +828,11 @@
 												{mw.status === 'active' ? 'bg-green-500/15 text-green-400' : mw.status === 'expired' ? 'bg-muted text-muted-foreground' : 'bg-orange-500/15 text-orange-400'}">
 												{mw.status}
 											</span>
+											{#if mw.recurrence && mw.recurrence !== 'once'}
+												<span class="text-[9px] font-medium px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">
+													↻ {mw.recurrence}
+												</span>
+											{/if}
 										</div>
 										<div class="flex items-center space-x-2 mt-0.5 flex-wrap">
 											<span class="text-[10px] text-muted-foreground">{mw.agent_name}</span>

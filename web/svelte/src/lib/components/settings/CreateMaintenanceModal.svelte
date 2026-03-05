@@ -12,10 +12,13 @@
 
 	let { open = $bindable(), onClose, onCreated }: Props = $props();
 
+	import type { MaintenanceRecurrence } from '$lib/types';
+
 	let name = $state('');
 	let agentId = $state('');
 	let startsAt = $state('');
 	let endsAt = $state('');
+	let recurrence = $state<MaintenanceRecurrence>('once');
 	let loading = $state(false);
 	let error = $state('');
 	let agents = $state<Agent[]>([]);
@@ -28,6 +31,7 @@
 		agentId = '';
 		startsAt = '';
 		endsAt = '';
+		recurrence = 'once';
 		error = '';
 		loading = false;
 	}
@@ -89,7 +93,8 @@
 				agent_id: agentId,
 				name: name.trim(),
 				starts_at: toRFC3339(startsAt),
-				ends_at: toRFC3339(endsAt)
+				ends_at: toRFC3339(endsAt),
+				recurrence
 			});
 			onCreated();
 			handleClose();
@@ -193,6 +198,20 @@
 								class={inputClass}
 							/>
 						</div>
+					</div>
+
+					<div>
+						<label for="mw-recurrence" class={labelClass}>Recurrence</label>
+						<select
+							id="mw-recurrence"
+							bind:value={recurrence}
+							class={inputClass}
+						>
+							<option value="once">Once</option>
+							<option value="daily">Daily</option>
+							<option value="weekly">Weekly</option>
+							<option value="monthly">Monthly</option>
+						</select>
 					</div>
 				</div>
 
