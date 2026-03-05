@@ -16,6 +16,7 @@
 	const toast = getToasts();
 	const isNonLatency = $derived(monitorType === 'system' || monitorType === 'docker' || monitorType === 'service');
 	const isTLS = $derived(monitorType === 'tls');
+	const isPortScan = $derived(monitorType === 'port_scan');
 
 	let heartbeats = $state<HeartbeatPoint[]>([]);
 	let loading = $state(true);
@@ -34,6 +35,16 @@
 		if (ms === null || ms === undefined) return '--';
 		if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
 		return `${ms}ms`;
+	}
+
+	function parsePortScanSummary(msg: string | undefined): string {
+		if (!msg) return '--';
+		// Error messages from agent contain port scan details
+		const openMatch = msg.match(/(\d+)\s*(?:open|ports?\s*open)/i);
+		const scannedMatch = msg.match(/(\d+)\s*(?:scanned|total)/i);
+		if (openMatch && scannedMatch) return `${openMatch[1]}/${scannedMatch[1]} open`;
+		if (openMatch) return `${openMatch[1]} open`;
+		return msg.length > 40 ? msg.slice(0, 40) + '...' : msg;
 	}
 
 	function parseMetricValue(msg: string | undefined, status?: string): string {
@@ -91,10 +102,10 @@
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isNonLatency ? 'Value' : 'Latency'}
+							{isPortScan ? 'Ports' : isNonLatency ? 'Value' : 'Latency'}
 						</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isNonLatency ? 'Detail' : isTLS ? 'Certificate' : 'Status'}
+							{isPortScan ? 'Detail' : isNonLatency ? 'Detail' : isTLS ? 'Certificate' : 'Status'}
 						</th>
 					</tr>
 				</thead>
@@ -111,7 +122,9 @@
 								</div>
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isNonLatency}
+								{#if isPortScan}
+									<span class="text-xs text-foreground font-mono">{parsePortScanSummary(hb.error_message)}</span>
+								{:else if isNonLatency}
 									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message, hb.status)}</span>
 								{:else if hb.latency_ms != null}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
@@ -120,7 +133,11 @@
 								{/if}
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isTLS && hb.cert_expiry_days != null}
+								{#if isPortScan && hb.error_message}
+									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
+								{:else if isPortScan && hb.status === 'up'}
+									<span class="text-xs text-emerald-400 font-mono">Scan OK</span>
+								{:else if isTLS && hb.cert_expiry_days != null}
 									{@const days = hb.cert_expiry_days}
 									<span class="text-xs font-mono {days < 14 ? 'text-red-400' : days < 30 ? 'text-amber-400' : 'text-emerald-400'}">
 										Expires in {days}d
