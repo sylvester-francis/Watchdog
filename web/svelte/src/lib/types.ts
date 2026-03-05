@@ -210,8 +210,19 @@ export interface MaintenanceWindow {
 	created_at: string;
 }
 
+export interface APIErrorDetail {
+	field: string;
+	message: string;
+}
+
+export interface APIErrorBody {
+	code: string;
+	message: string;
+	details?: APIErrorDetail[];
+}
+
 export interface APIError {
-	error: string;
+	error: string | APIErrorBody;
 }
 
 // Public status page types

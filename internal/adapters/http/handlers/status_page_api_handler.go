@@ -87,7 +87,7 @@ func toStatusPageResponse(page *domain.StatusPage, monitorIDs []uuid.UUID) statu
 func (h *StatusPageAPIHandler) List(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	ctx := c.Request().Context()
@@ -112,7 +112,7 @@ func (h *StatusPageAPIHandler) List(c echo.Context) error {
 func (h *StatusPageAPIHandler) Create(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	ctx := c.Request().Context()
@@ -122,12 +122,12 @@ func (h *StatusPageAPIHandler) Create(c echo.Context) error {
 		Description string `json:"description"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name is required"})
+		return errJSON(c, http.StatusBadRequest, "name is required")
 	}
 
 	slug := domain.GenerateSlug(name)
@@ -141,7 +141,7 @@ func (h *StatusPageAPIHandler) Create(c echo.Context) error {
 	page.Description = strings.TrimSpace(req.Description)
 
 	if err := h.statusPageRepo.Create(ctx, page); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create status page"})
+		return errJSON(c, http.StatusInternalServerError, "failed to create status page")
 	}
 
 	resp := toStatusPageResponse(page, nil)
@@ -154,19 +154,19 @@ func (h *StatusPageAPIHandler) Create(c echo.Context) error {
 func (h *StatusPageAPIHandler) Get(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	ctx := c.Request().Context()
 
 	pageID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid ID")
 	}
 
 	page, err := h.statusPageRepo.GetByID(ctx, pageID)
 	if err != nil || page.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
+		return errJSON(c, http.StatusNotFound, "not found")
 	}
 
 	monitorIDs, _ := h.statusPageRepo.GetMonitorIDs(ctx, pageID)
@@ -198,19 +198,19 @@ func (h *StatusPageAPIHandler) Get(c echo.Context) error {
 func (h *StatusPageAPIHandler) Update(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	ctx := c.Request().Context()
 
 	pageID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid ID")
 	}
 
 	page, err := h.statusPageRepo.GetByID(ctx, pageID)
 	if err != nil || page.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
+		return errJSON(c, http.StatusNotFound, "not found")
 	}
 
 	var req struct {
@@ -220,7 +220,7 @@ func (h *StatusPageAPIHandler) Update(c echo.Context) error {
 		MonitorIDs  []string `json:"monitor_ids"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	page.Name = strings.TrimSpace(req.Name)
@@ -228,7 +228,7 @@ func (h *StatusPageAPIHandler) Update(c echo.Context) error {
 	page.IsPublic = req.IsPublic
 
 	if err := h.statusPageRepo.Update(ctx, page); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update status page"})
+		return errJSON(c, http.StatusInternalServerError, "failed to update status page")
 	}
 
 	// Verify all requested monitors belong to the authenticated user.
@@ -245,14 +245,12 @@ func (h *StatusPageAPIHandler) Update(c echo.Context) error {
 			continue
 		}
 		if _, ok := allowedIDs[id]; !ok {
-			return c.JSON(http.StatusForbidden, map[string]string{
-				"error": "monitor not owned by user",
-			})
+			return errJSON(c, http.StatusForbidden, "monitor not owned by user")
 		}
 		monitorIDs = append(monitorIDs, id)
 	}
 	if err := h.statusPageRepo.SetMonitors(ctx, pageID, monitorIDs); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "status page updated but failed to save monitor assignments"})
+		return errJSON(c, http.StatusInternalServerError, "status page updated but failed to save monitor assignments")
 	}
 
 	resp := toStatusPageResponse(page, monitorIDs)
@@ -265,23 +263,23 @@ func (h *StatusPageAPIHandler) Update(c echo.Context) error {
 func (h *StatusPageAPIHandler) Delete(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	ctx := c.Request().Context()
 
 	pageID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid ID")
 	}
 
 	page, err := h.statusPageRepo.GetByID(ctx, pageID)
 	if err != nil || page.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
+		return errJSON(c, http.StatusNotFound, "not found")
 	}
 
 	if err := h.statusPageRepo.Delete(ctx, pageID); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete status page"})
+		return errJSON(c, http.StatusInternalServerError, "failed to delete status page")
 	}
 
 	return c.NoContent(http.StatusNoContent)
@@ -343,7 +341,7 @@ func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
 
 	page, err := h.statusPageRepo.GetByUserAndSlug(ctx, username, slug)
 	if err != nil || !page.IsPublic {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
+		return errJSON(c, http.StatusNotFound, "not found")
 	}
 
 	monitorIDs, _ := h.statusPageRepo.GetMonitorIDs(ctx, page.ID)
