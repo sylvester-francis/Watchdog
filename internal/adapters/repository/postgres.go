@@ -120,7 +120,7 @@ func (db *DB) WithTransaction(ctx context.Context, fn func(ctx context.Context) 
 	// Set RLS tenant context for this transaction.
 	// SET LOCAL scopes the setting to the current transaction only.
 	tenantID := TenantIDFromContext(ctx)
-	if _, err := tx.Exec(ctx, "SET LOCAL app.tenant_id = $1", tenantID); err != nil {
+	if _, err := tx.Exec(ctx, "SELECT set_config('app.tenant_id', $1, true)", tenantID); err != nil {
 		_ = tx.Rollback(ctx)
 		return fmt.Errorf("set tenant context: %w", err)
 	}

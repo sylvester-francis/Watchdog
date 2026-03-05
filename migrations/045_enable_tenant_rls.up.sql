@@ -19,7 +19,8 @@ BEGIN
             'users',
             'agents',
             'monitors',
-            'heartbeats',
+            -- 'heartbeats' excluded: TimescaleDB hypertable with columnstore does not support RLS.
+            -- Heartbeats are tenant-scoped via monitor_id FK; application code enforces isolation.
             'incidents',
             'status_pages',
             'alert_channels',
