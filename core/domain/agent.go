@@ -39,6 +39,7 @@ type Agent struct {
 	APIKeyExpiresAt       *time.Time // H-023: optional key expiry (nil = never)
 	LastSeenAt            *time.Time
 	Status                AgentStatus
+	Version               string
 	Fingerprint           map[string]string
 	FingerprintVerifiedAt *time.Time
 	TenantID              string

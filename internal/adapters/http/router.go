@@ -247,6 +247,7 @@ func (r *Router) RegisterRoutes() {
 	v1.GET("/agents", r.apiV1Handler.ListAgents)
 	v1.POST("/agents", r.apiV1Handler.CreateAgent)
 	v1.DELETE("/agents/:id", r.apiV1Handler.DeleteAgent)
+	v1.POST("/agents/:id/update", r.apiV1Handler.PushAgentUpdate)
 
 	// Incidents
 	v1.GET("/incidents", r.apiV1Handler.ListIncidents)

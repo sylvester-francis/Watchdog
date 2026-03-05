@@ -114,12 +114,12 @@ func toChannelResponse(ch *domain.AlertChannel) channelResponse {
 func (h *SettingsAPIHandler) ListTokens(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	tokens, err := h.tokenRepo.GetByUserID(c.Request().Context(), userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch tokens"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch tokens")
 	}
 
 	result := make([]tokenResponse, 0, len(tokens))
@@ -137,7 +137,7 @@ func (h *SettingsAPIHandler) ListTokens(c echo.Context) error {
 func (h *SettingsAPIHandler) CreateToken(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req struct {
@@ -146,12 +146,12 @@ func (h *SettingsAPIHandler) CreateToken(c echo.Context) error {
 		Expires string `json:"expires"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name is required"})
+		return errJSON(c, http.StatusBadRequest, "name is required")
 	}
 
 	scope := domain.TokenScope(req.Scope)
@@ -170,16 +170,16 @@ func (h *SettingsAPIHandler) CreateToken(c echo.Context) error {
 	case "":
 		// no expiry
 	default:
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid expires value; use \"30d\", \"90d\", or \"\""})
+		return errJSON(c, http.StatusBadRequest, "invalid expires value; use \"30d\", \"90d\", or \"\"")
 	}
 
 	token, plaintext, err := domain.GenerateAPIToken(userID, name, expiresAt, scope)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
+		return errJSON(c, http.StatusInternalServerError, "failed to generate token")
 	}
 
 	if err := h.tokenRepo.Create(c.Request().Context(), token); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save token"})
+		return errJSON(c, http.StatusInternalServerError, "failed to save token")
 	}
 
 	if h.auditSvc != nil {
@@ -201,17 +201,17 @@ func (h *SettingsAPIHandler) CreateToken(c echo.Context) error {
 func (h *SettingsAPIHandler) DeleteToken(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid token ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid token ID")
 	}
 
 	tokens, err := h.tokenRepo.GetByUserID(c.Request().Context(), userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to verify token ownership"})
+		return errJSON(c, http.StatusInternalServerError, "failed to verify token ownership")
 	}
 
 	owned := false
@@ -222,11 +222,11 @@ func (h *SettingsAPIHandler) DeleteToken(c echo.Context) error {
 		}
 	}
 	if !owned {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "token not found"})
+		return errJSON(c, http.StatusNotFound, "token not found")
 	}
 
 	if err := h.tokenRepo.Delete(c.Request().Context(), id); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete token"})
+		return errJSON(c, http.StatusInternalServerError, "failed to delete token")
 	}
 
 	if h.auditSvc != nil {
@@ -243,17 +243,17 @@ func (h *SettingsAPIHandler) DeleteToken(c echo.Context) error {
 func (h *SettingsAPIHandler) RegenerateToken(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid token ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid token ID")
 	}
 
 	tokens, err := h.tokenRepo.GetByUserID(c.Request().Context(), userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to verify token ownership"})
+		return errJSON(c, http.StatusInternalServerError, "failed to verify token ownership")
 	}
 
 	var old *domain.APIToken
@@ -264,20 +264,20 @@ func (h *SettingsAPIHandler) RegenerateToken(c echo.Context) error {
 		}
 	}
 	if old == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "token not found"})
+		return errJSON(c, http.StatusNotFound, "token not found")
 	}
 
 	if err := h.tokenRepo.Delete(c.Request().Context(), id); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete old token"})
+		return errJSON(c, http.StatusInternalServerError, "failed to delete old token")
 	}
 
 	newToken, plaintext, err := domain.GenerateAPIToken(userID, old.Name, old.ExpiresAt, old.Scope)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
+		return errJSON(c, http.StatusInternalServerError, "failed to generate token")
 	}
 
 	if err := h.tokenRepo.Create(c.Request().Context(), newToken); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save token"})
+		return errJSON(c, http.StatusInternalServerError, "failed to save token")
 	}
 
 	if h.auditSvc != nil {
@@ -304,12 +304,12 @@ func (h *SettingsAPIHandler) RegenerateToken(c echo.Context) error {
 func (h *SettingsAPIHandler) ListChannels(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	channels, err := h.channelRepo.GetByUserID(c.Request().Context(), userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch channels"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch channels")
 	}
 
 	result := make([]channelResponse, 0, len(channels))
@@ -327,7 +327,7 @@ func (h *SettingsAPIHandler) ListChannels(c echo.Context) error {
 func (h *SettingsAPIHandler) CreateChannel(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req struct {
@@ -336,17 +336,17 @@ func (h *SettingsAPIHandler) CreateChannel(c echo.Context) error {
 		Config map[string]string `json:"config"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	channelType := domain.AlertChannelType(req.Type)
 	if !domain.ValidAlertChannelTypes[channelType] {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid channel type"})
+		return errJSON(c, http.StatusBadRequest, "invalid channel type")
 	}
 
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name is required"})
+		return errJSON(c, http.StatusBadRequest, "name is required")
 	}
 
 	if req.Config == nil {
@@ -355,11 +355,11 @@ func (h *SettingsAPIHandler) CreateChannel(c echo.Context) error {
 
 	channel := domain.NewAlertChannel(userID, channelType, name, req.Config)
 	if err := channel.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return errJSON(c, http.StatusBadRequest, err.Error())
 	}
 
 	if err := h.channelRepo.Create(c.Request().Context(), channel); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save alert channel"})
+		return errJSON(c, http.StatusInternalServerError, "failed to save alert channel")
 	}
 
 	// H-011: audit channel creation.
@@ -379,24 +379,24 @@ func (h *SettingsAPIHandler) CreateChannel(c echo.Context) error {
 func (h *SettingsAPIHandler) DeleteChannel(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid channel ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid channel ID")
 	}
 
 	channel, err := h.channelRepo.GetByID(c.Request().Context(), id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get channel"})
+		return errJSON(c, http.StatusInternalServerError, "failed to get channel")
 	}
 	if channel == nil || channel.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "channel not found"})
+		return errJSON(c, http.StatusNotFound, "channel not found")
 	}
 
 	if err := h.channelRepo.Delete(c.Request().Context(), id); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete channel"})
+		return errJSON(c, http.StatusInternalServerError, "failed to delete channel")
 	}
 
 	// H-011: audit channel deletion.
@@ -414,25 +414,25 @@ func (h *SettingsAPIHandler) DeleteChannel(c echo.Context) error {
 func (h *SettingsAPIHandler) ToggleChannel(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid channel ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid channel ID")
 	}
 
 	channel, err := h.channelRepo.GetByID(c.Request().Context(), id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get channel"})
+		return errJSON(c, http.StatusInternalServerError, "failed to get channel")
 	}
 	if channel == nil || channel.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "channel not found"})
+		return errJSON(c, http.StatusNotFound, "channel not found")
 	}
 
 	channel.Enabled = !channel.Enabled
 	if err := h.channelRepo.Update(c.Request().Context(), channel); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update channel"})
+		return errJSON(c, http.StatusInternalServerError, "failed to update channel")
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
@@ -445,25 +445,25 @@ func (h *SettingsAPIHandler) ToggleChannel(c echo.Context) error {
 func (h *SettingsAPIHandler) TestChannel(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid channel ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid channel ID")
 	}
 
 	channel, err := h.channelRepo.GetByID(c.Request().Context(), id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to get channel"})
+		return errJSON(c, http.StatusInternalServerError, "failed to get channel")
 	}
 	if channel == nil || channel.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "channel not found"})
+		return errJSON(c, http.StatusNotFound, "channel not found")
 	}
 
 	notifier, err := notify.BuildFromChannel(channel)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid channel configuration"})
+		return errJSON(c, http.StatusBadRequest, "invalid channel configuration")
 	}
 
 	testMonitor := &domain.Monitor{
@@ -482,7 +482,7 @@ func (h *SettingsAPIHandler) TestChannel(c echo.Context) error {
 	defer cancel()
 
 	if err := notifier.NotifyIncidentOpened(ctx, testIncident, testMonitor); err != nil {
-		return c.JSON(http.StatusBadGateway, map[string]string{"error": "Test failed. Check your configuration."})
+		return errJSON(c, http.StatusBadGateway, "Test failed. Check your configuration.")
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
@@ -495,37 +495,37 @@ func (h *SettingsAPIHandler) TestChannel(c echo.Context) error {
 func (h *SettingsAPIHandler) UpdateProfile(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req struct {
 		Username string `json:"username"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	username := strings.ToLower(strings.TrimSpace(req.Username))
 	if !domain.IsValidUsername(username) {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "username must be 3-50 characters, lowercase alphanumeric and hyphens only"})
+		return errJSON(c, http.StatusBadRequest, "username must be 3-50 characters, lowercase alphanumeric and hyphens only")
 	}
 
 	ctx := c.Request().Context()
 
 	existing, err := h.userRepo.GetByUsername(ctx, username)
 	if err == nil && existing != nil && existing.ID != userID {
-		return c.JSON(http.StatusConflict, map[string]string{"error": "username is already taken"})
+		return errJSON(c, http.StatusConflict, "username is already taken")
 	}
 
 	user, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil || user == nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load user"})
+		return errJSON(c, http.StatusInternalServerError, "failed to load user")
 	}
 
 	user.Username = username
 	user.UpdatedAt = time.Now()
 	if err := h.userRepo.Update(ctx, user); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update username"})
+		return errJSON(c, http.StatusInternalServerError, "failed to update username")
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
@@ -540,7 +540,7 @@ func (h *SettingsAPIHandler) UpdateProfile(c echo.Context) error {
 func (h *SettingsAPIHandler) ChangePassword(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req struct {
@@ -549,37 +549,37 @@ func (h *SettingsAPIHandler) ChangePassword(c echo.Context) error {
 		ConfirmPassword string `json:"confirm_password"`
 	}
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.CurrentPassword == "" || req.NewPassword == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "current password and new password are required"})
+		return errJSON(c, http.StatusBadRequest, "current password and new password are required")
 	}
 	if len(req.NewPassword) < 8 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "new password must be at least 8 characters"})
+		return errJSON(c, http.StatusBadRequest, "new password must be at least 8 characters")
 	}
 	if req.NewPassword != req.ConfirmPassword {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "new passwords do not match"})
+		return errJSON(c, http.StatusBadRequest, "new passwords do not match")
 	}
 	if req.NewPassword == req.CurrentPassword {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "new password must be different from current password"})
+		return errJSON(c, http.StatusBadRequest, "new password must be different from current password")
 	}
 
 	ctx := c.Request().Context()
 
 	user, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil || user == nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load user"})
+		return errJSON(c, http.StatusInternalServerError, "failed to load user")
 	}
 
 	match, err := h.hasher.Verify(req.CurrentPassword, user.PasswordHash)
 	if err != nil || !match {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "current password is incorrect"})
+		return errJSON(c, http.StatusBadRequest, "current password is incorrect")
 	}
 
 	hash, err := h.hasher.Hash(req.NewPassword)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+		return errJSON(c, http.StatusInternalServerError, "failed to hash password")
 	}
 
 	now := time.Now()
@@ -588,7 +588,7 @@ func (h *SettingsAPIHandler) ChangePassword(c echo.Context) error {
 	user.UpdatedAt = now
 
 	if err := h.userRepo.Update(ctx, user); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update password"})
+		return errJSON(c, http.StatusInternalServerError, "failed to update password")
 	}
 
 	if h.auditSvc != nil {

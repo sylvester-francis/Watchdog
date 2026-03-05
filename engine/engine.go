@@ -22,6 +22,7 @@ import (
 	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	prommetrics "github.com/sylvester-francis/watchdog/internal/adapters/metrics"
 	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
@@ -52,6 +53,8 @@ type Engine struct {
 	router *internalhttp.Router
 	hub    *realtime.Hub
 	cfg    *config.Config
+
+	metrics *prommetrics.Metrics
 
 	// Exposed for extensions via accessor methods.
 	agentRepo          ports.AgentRepository
@@ -185,6 +188,11 @@ func New(ctx context.Context) (*Engine, error) {
 	e.Use(echomw.RequestID())
 	e.Use(middleware.SecureHeaders(cfg.Server.SecureCookies))
 
+	// Prometheus metrics
+	prom := prommetrics.New(hub, db.Pool)
+	e.Use(prom.HTTPMiddleware())
+	e.GET("/metrics", prommetrics.Handler())
+
 	// Maintenance windows — create and wire into monitor service
 	mwRepo := repository.NewMaintenanceWindowRepository(db)
 	monitorSvc.SetMaintenanceWindowRepo(mwRepo)
@@ -229,14 +237,29 @@ func New(ctx context.Context) (*Engine, error) {
 	// Wire investigation service into the API handler
 	router.APIV1Handler().SetInvestigationService(investigationSvc)
 
+	// Wire agent auto-update service if manifest URL is configured.
+	if cfg.Feature.AgentUpdateManifestURL != "" {
+		updateSvc := services.NewUpdateService(cfg.Feature.AgentUpdateManifestURL, logger)
+		updateSvc.Start(ctx)
+		router.WSHandler().SetUpdateService(updateSvc)
+		router.APIV1Handler().SetUpdateService(updateSvc)
+		logger.Info("agent auto-update enabled",
+			slog.String("manifest_url", cfg.Feature.AgentUpdateManifestURL),
+		)
+	}
+
+	// Wire Prometheus heartbeat latency observer
+	router.WSHandler().SetHeartbeatTimer(prom.ObserveHeartbeat)
+
 	return &Engine{
-		reg:    reg,
-		db:     db,
-		echo:   e,
-		logger: logger,
-		router: router,
-		hub:    hub,
-		cfg:    cfg,
+		reg:     reg,
+		db:      db,
+		echo:    e,
+		logger:  logger,
+		router:  router,
+		hub:     hub,
+		cfg:     cfg,
+		metrics: prom,
 
 		agentRepo:          agentRepo,
 		monitorRepo:        monitorRepo,
@@ -331,6 +354,13 @@ func (e *Engine) NewMaintenanceWindowRepo() ports.MaintenanceWindowRepository {
 
 // AgentMessenger returns the WebSocket hub as an AgentMessenger for extensions.
 func (e *Engine) AgentMessenger() ports.AgentMessenger { return e.hub }
+
+// SetIncidents updates the Prometheus incidents_active gauge.
+func (e *Engine) SetIncidents(open, acknowledged int) {
+	if e.metrics != nil {
+		e.metrics.SetIncidents(open, acknowledged)
+	}
+}
 
 // SetTenantValidator sets the hook for tenant-scoped registration.
 // When set, registration requires a valid tenant_slug and creates users in

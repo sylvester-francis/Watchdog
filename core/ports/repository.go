@@ -62,6 +62,7 @@ type AgentRepository interface {
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
 	UpdateLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
 	UpdateFingerprint(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error
+	UpdateVersion(ctx context.Context, id uuid.UUID, version string) error
 	CountByUserID(ctx context.Context, userID uuid.UUID) (int, error)
 }
 

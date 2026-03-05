@@ -66,7 +66,7 @@ type IncidentEvent struct {
 func (h *SSEHandler) Events(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	// Set SSE headers
