@@ -15,6 +15,12 @@ import (
 // maxHeartbeatsPerWindow caps heartbeats per rate-limit window (H-009).
 const maxHeartbeatsPerWindow = 200
 
+// maxMessagesPerWindow caps total messages per rate-limit window to prevent floods.
+const maxMessagesPerWindow = 300
+
+// maxBadMessages is the maximum consecutive bad (unparseable/unknown) messages before disconnect.
+const maxBadMessages = 5
+
 // Client configuration constants.
 const (
 	// Time allowed to write a message to the peer.
@@ -45,6 +51,8 @@ type Client struct {
 	closeCh     chan struct{}
 	onHeartbeat HeartbeatCallback
 	hbCount     atomic.Int64 // heartbeats in current window (H-009)
+	msgCount    atomic.Int64 // total messages in current window
+	badMsgCount atomic.Int64 // consecutive bad messages
 }
 
 // NewClient creates a new client for the given connection.
@@ -139,14 +147,31 @@ func (c *Client) readPump() {
 			return
 		}
 
+		// Total message rate limit: disconnect if exceeded.
+		if c.msgCount.Add(1) > int64(maxMessagesPerWindow) {
+			c.logger.Warn("total message rate limit exceeded, disconnecting",
+				slog.String("agent_id", c.AgentID.String()),
+			)
+			return
+		}
+
 		var msg protocol.Message
 		if err := json.Unmarshal(data, &msg); err != nil {
 			c.logger.Warn("failed to parse message",
 				slog.String("agent_id", c.AgentID.String()),
 				slog.String("error", err.Error()),
 			)
+			if c.badMsgCount.Add(1) >= int64(maxBadMessages) {
+				c.logger.Warn("too many bad messages, disconnecting",
+					slog.String("agent_id", c.AgentID.String()),
+				)
+				return
+			}
 			continue
 		}
+
+		// Valid message resets bad message counter.
+		c.badMsgCount.Store(0)
 
 		c.handleMessage(&msg)
 	}
@@ -193,6 +218,7 @@ func (c *Client) writePump() {
 		case <-ticker.C:
 			// H-009: reset heartbeat rate limiter each ping period (~54s).
 			c.hbCount.Store(0)
+			c.msgCount.Store(0)
 
 			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				return
@@ -220,6 +246,12 @@ func (c *Client) handleMessage(msg *protocol.Message) {
 			slog.String("agent_id", c.AgentID.String()),
 			slog.String("type", msg.Type),
 		)
+		if c.badMsgCount.Add(1) >= int64(maxBadMessages) {
+			c.logger.Warn("too many bad messages, disconnecting",
+				slog.String("agent_id", c.AgentID.String()),
+			)
+			c.Close()
+		}
 	}
 }
 
