@@ -63,6 +63,15 @@ func NewDB(ctx context.Context, cfg config.DatabaseConfig) (*DB, error) {
 	poolConfig.MaxConnLifetime = cfg.MaxConnLifetime
 	poolConfig.MaxConnIdleTime = cfg.MaxConnIdleTime
 
+	// Set default RLS tenant context on every new connection.
+	// Transactions override this with SET LOCAL for the correct tenant.
+	// This ensures RLS policies have a valid app.tenant_id even for
+	// non-transactional pool queries (fail-closed: defaults to "default").
+	poolConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx, "SET app.tenant_id = 'default'")
+		return err
+	}
+
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
@@ -101,10 +110,19 @@ func (db *DB) Stats() *pgxpool.Stat {
 // WithTransaction executes fn within a database transaction.
 // If fn returns an error, the transaction is rolled back.
 // If fn succeeds, the transaction is committed.
+// Sets the RLS tenant context (app.tenant_id) for the transaction.
 func (db *DB) WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
 	tx, err := db.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
+	}
+
+	// Set RLS tenant context for this transaction.
+	// SET LOCAL scopes the setting to the current transaction only.
+	tenantID := TenantIDFromContext(ctx)
+	if _, err := tx.Exec(ctx, "SET LOCAL app.tenant_id = $1", tenantID); err != nil {
+		_ = tx.Rollback(ctx)
+		return fmt.Errorf("set tenant context: %w", err)
 	}
 
 	// Inject transaction into context
