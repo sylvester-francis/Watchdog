@@ -148,6 +148,22 @@ func combineErrors(errs []error) error {
 	return combined
 }
 
+// formatInterval returns a human-readable check interval string.
+func formatInterval(seconds int) string {
+	if seconds < 60 {
+		return fmt.Sprintf("Every %ds", seconds)
+	}
+	if seconds < 3600 {
+		m := seconds / 60
+		if seconds%60 == 0 {
+			return fmt.Sprintf("Every %dm", m)
+		}
+		return fmt.Sprintf("Every %dm %ds", m, seconds%60)
+	}
+	h := seconds / 3600
+	return fmt.Sprintf("Every %dh", h)
+}
+
 // IsNotifierError checks if an error is a notifier-related error.
 func IsNotifierError(err error) bool {
 	var notifierErr *NotifierError

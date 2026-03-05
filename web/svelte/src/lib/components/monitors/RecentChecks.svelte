@@ -3,6 +3,24 @@
 	import { Loader2, List } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { formatTimeAgo } from '$lib/utils';
+
+	function formatCheckTime(date: string): string {
+		const d = new Date(date);
+		const now = Date.now();
+		const diffMs = now - d.getTime();
+		const diffHours = diffMs / (1000 * 60 * 60);
+
+		if (diffHours < 1) {
+			return formatTimeAgo(date);
+		}
+
+		const today = new Date();
+		const isToday = d.toDateString() === today.toDateString();
+		const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+		if (isToday) return time;
+		const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+		return `${dateStr} ${time}`;
+	}
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { HeartbeatPoint } from '$lib/types';
 
@@ -66,7 +84,7 @@
 		try {
 			const res = await monitorsApi.getHeartbeats(monitorId);
 			const arr = Array.isArray(res) ? res : [];
-			heartbeats = arr.slice(-20).reverse();
+			heartbeats = arr.slice(0, 20);
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to load heartbeats');
 			heartbeats = [];
@@ -113,7 +131,7 @@
 					{#each heartbeats as hb}
 						<tr class="hover:bg-card-elevated transition-colors">
 							<td class="px-5 py-2.5">
-								<span class="text-xs text-muted-foreground font-mono">{formatTimeAgo(hb.time)}</span>
+								<span class="text-xs text-muted-foreground font-mono">{formatCheckTime(hb.time)}</span>
 							</td>
 							<td class="px-5 py-2.5">
 								<div class="flex items-center space-x-2">

@@ -18,6 +18,7 @@ type IncidentService struct {
 	incidentRepo     ports.IncidentRepository
 	monitorRepo      ports.MonitorRepository
 	agentRepo        ports.AgentRepository
+	heartbeatRepo    ports.HeartbeatRepository
 	alertChannelRepo ports.AlertChannelRepository
 	notifier         ports.Notifier         // global notifier (env-based, server admin fallback)
 	notifierFactory  ports.NotifierFactory  // builds per-user notifiers from alert channels
@@ -31,6 +32,7 @@ func NewIncidentService(
 	incidentRepo ports.IncidentRepository,
 	monitorRepo ports.MonitorRepository,
 	agentRepo ports.AgentRepository,
+	heartbeatRepo ports.HeartbeatRepository,
 	alertChannelRepo ports.AlertChannelRepository,
 	notifier ports.Notifier,
 	notifierFactory ports.NotifierFactory,
@@ -44,6 +46,7 @@ func NewIncidentService(
 		incidentRepo:     incidentRepo,
 		monitorRepo:      monitorRepo,
 		agentRepo:        agentRepo,
+		heartbeatRepo:    heartbeatRepo,
 		alertChannelRepo: alertChannelRepo,
 		notifier:         notifier,
 		notifierFactory:  notifierFactory,
@@ -424,6 +427,29 @@ func (s *IncidentService) submitAlertWorkflow(ctx context.Context, incident *dom
 	)
 }
 
+// populateAlertContext enriches the incident with contextual data for notifications.
+func (s *IncidentService) populateAlertContext(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) {
+	actx := &domain.AlertContext{
+		Interval:  monitor.IntervalSeconds,
+		Threshold: monitor.FailureThreshold,
+	}
+
+	// Fetch latest heartbeat for error message and latency
+	if hb, err := s.heartbeatRepo.GetLatestByMonitorID(ctx, monitor.ID); err == nil && hb != nil {
+		if hb.ErrorMessage != nil {
+			actx.ErrorMessage = *hb.ErrorMessage
+		}
+		actx.LastLatencyMs = hb.LatencyMs
+	}
+
+	// Fetch agent name
+	if agent, err := s.agentRepo.GetByID(ctx, monitor.AgentID); err == nil && agent != nil {
+		actx.AgentName = agent.Name
+	}
+
+	incident.AlertContext = actx
+}
+
 // notifyAll sends notifications via the global notifier and all per-user alert channels.
 func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
 	alertType := "resolved"
@@ -437,6 +463,9 @@ func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incide
 		"monitor_name", monitor.Name,
 		"alert_type", alertType,
 	)
+
+	// Populate alert context for notifiers
+	s.populateAlertContext(ctx, incident, monitor)
 
 	// 1. Global notifier (env-based, server admin)
 	var globalErr error

@@ -331,17 +331,17 @@ func (r *Router) TenantMiddleware() echo.MiddlewareFunc {
 	}
 }
 
-// AuthAPIHandler returns the auth handler so EE can set hooks (e.g. tenant validator).
+// AuthAPIHandler returns the auth handler so extensions can set hooks (e.g. tenant validator).
 func (r *Router) AuthAPIHandler() *handlers.AuthAPIHandler {
 	return r.authAPIHandler
 }
 
-// APIV1Handler returns the API v1 handler so EE can set services (e.g. investigation).
+// APIV1Handler returns the API v1 handler so extensions can set services (e.g. investigation).
 func (r *Router) APIV1Handler() *handlers.APIV1Handler {
 	return r.apiV1Handler
 }
 
-// WSHandler returns the WebSocket handler so EE can register heartbeat hooks.
+// WSHandler returns the WebSocket handler so extensions can register heartbeat hooks.
 func (r *Router) WSHandler() *handlers.WSHandler {
 	return r.wsHandler
 }

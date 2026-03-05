@@ -26,7 +26,7 @@ import (
 const maxWSConnsPerIP = 10
 
 // HeartbeatHook is called after each heartbeat is processed.
-// EE uses this to store port scan results and detect service changes.
+// Extensions can use this for post-processing.
 type HeartbeatHook func(ctx context.Context, agentID, monitorID uuid.UUID, payload *protocol.HeartbeatPayload)
 
 // WSHandler handles WebSocket connections from agents.
@@ -379,7 +379,7 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 			}
 		}
 
-		// Invoke EE heartbeat hooks (port scan storage, service change detection, etc.)
+		// Invoke heartbeat hooks (port scan storage, service change detection, etc.)
 		for _, hook := range h.heartbeatHooks {
 			hook(ctx, agentID, monitorID, payload)
 		}

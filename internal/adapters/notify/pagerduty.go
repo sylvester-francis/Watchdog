@@ -41,20 +41,34 @@ func (p *PagerDutyNotifier) SetHTTPClient(client *http.Client) {
 
 // NotifyIncidentOpened sends a trigger event to PagerDuty.
 func (p *PagerDutyNotifier) NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
+	details := map[string]string{
+		"monitor_name": monitor.Name,
+		"monitor_type": string(monitor.Type),
+		"target":       monitor.Target,
+	}
+
+	if ac := incident.AlertContext; ac != nil {
+		if ac.ErrorMessage != "" {
+			details["error_message"] = ac.ErrorMessage
+		}
+		if ac.AgentName != "" {
+			details["agent_name"] = ac.AgentName
+		}
+		if ac.Interval > 0 {
+			details["interval"] = formatInterval(ac.Interval)
+		}
+	}
+
 	payload := pagerdutyEvent{
 		RoutingKey:  p.routingKey,
 		EventAction: "trigger",
 		DedupKey:    incident.ID.String(),
 		Payload: pagerdutyPayload{
-			Summary:   fmt.Sprintf("Monitor %s is DOWN (%s)", monitor.Name, monitor.Target),
-			Source:    BrandName,
-			Severity:  "critical",
-			Timestamp: incident.StartedAt.Format(time.RFC3339),
-			CustomDetails: map[string]string{
-				"monitor_name": monitor.Name,
-				"monitor_type": string(monitor.Type),
-				"target":       monitor.Target,
-			},
+			Summary:       fmt.Sprintf("Monitor %s is DOWN (%s)", monitor.Name, monitor.Target),
+			Source:        BrandName,
+			Severity:      "critical",
+			Timestamp:     incident.StartedAt.Format(time.RFC3339),
+			CustomDetails: details,
 		},
 	}
 
@@ -63,19 +77,27 @@ func (p *PagerDutyNotifier) NotifyIncidentOpened(ctx context.Context, incident *
 
 // NotifyIncidentResolved sends a resolve event to PagerDuty.
 func (p *PagerDutyNotifier) NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
+	details := map[string]string{
+		"monitor_name": monitor.Name,
+		"duration":     formatDuration(incident.Duration()),
+	}
+
+	if ac := incident.AlertContext; ac != nil {
+		if ac.AgentName != "" {
+			details["agent_name"] = ac.AgentName
+		}
+	}
+
 	payload := pagerdutyEvent{
 		RoutingKey:  p.routingKey,
 		EventAction: "resolve",
 		DedupKey:    incident.ID.String(),
 		Payload: pagerdutyPayload{
-			Summary:   fmt.Sprintf("Monitor %s is UP (%s)", monitor.Name, monitor.Target),
-			Source:    BrandName,
-			Severity:  "info",
-			Timestamp: time.Now().Format(time.RFC3339),
-			CustomDetails: map[string]string{
-				"monitor_name": monitor.Name,
-				"duration":     formatDuration(incident.Duration()),
-			},
+			Summary:       fmt.Sprintf("Monitor %s is UP (%s)", monitor.Name, monitor.Target),
+			Source:        BrandName,
+			Severity:      "info",
+			Timestamp:     time.Now().Format(time.RFC3339),
+			CustomDetails: details,
 		},
 	}
 

@@ -66,6 +66,7 @@ func TestResolveChannelsHandler_Success(t *testing.T) {
 				return agent, nil
 			},
 		},
+		&mocks.MockHeartbeatRepository{},
 		&mocks.MockAlertChannelRepository{
 			GetEnabledByUserIDFn: func(_ context.Context, id uuid.UUID) ([]*domain.AlertChannel, error) {
 				assert.Equal(t, userID, id)
@@ -123,6 +124,7 @@ func TestSendGlobalHandler_Opened(t *testing.T) {
 		},
 		&mocks.MockNotifierFactory{},
 		&mocks.MockAgentRepository{},
+		&mocks.MockHeartbeatRepository{},
 		&mocks.MockAlertChannelRepository{},
 		&mocks.MockIncidentRepository{},
 		&mocks.MockMonitorRepository{},
@@ -155,6 +157,7 @@ func TestRecordDispatchHandler_LogsCompletion(t *testing.T) {
 		&mocks.MockNotifier{},
 		&mocks.MockNotifierFactory{},
 		&mocks.MockAgentRepository{},
+		&mocks.MockHeartbeatRepository{},
 		&mocks.MockAlertChannelRepository{},
 		&mocks.MockIncidentRepository{},
 		&mocks.MockMonitorRepository{},
@@ -187,6 +190,7 @@ func TestAllHandlersRegistered(t *testing.T) {
 		&mocks.MockNotifier{},
 		&mocks.MockNotifierFactory{},
 		&mocks.MockAgentRepository{},
+		&mocks.MockHeartbeatRepository{},
 		&mocks.MockAlertChannelRepository{},
 		&mocks.MockIncidentRepository{},
 		&mocks.MockMonitorRepository{},

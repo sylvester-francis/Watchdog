@@ -59,6 +59,7 @@ func RegisterAlertHandlers(
 	notifier ports.Notifier,
 	notifierFactory ports.NotifierFactory,
 	agentRepo ports.AgentRepository,
+	heartbeatRepo ports.HeartbeatRepository,
 	alertChannelRepo ports.AlertChannelRepository,
 	incidentRepo ports.IncidentRepository,
 	monitorRepo ports.MonitorRepository,
@@ -66,6 +67,7 @@ func RegisterAlertHandlers(
 ) {
 	engine.RegisterHandler("alert.resolve_channels", &resolveChannelsHandler{
 		agentRepo:        agentRepo,
+		heartbeatRepo:    heartbeatRepo,
 		alertChannelRepo: alertChannelRepo,
 		incidentRepo:     incidentRepo,
 		monitorRepo:      monitorRepo,
@@ -102,6 +104,7 @@ type resolveChannelsPayload struct {
 // resolveChannelsHandler looks up the incident, monitor, and alert channels.
 type resolveChannelsHandler struct {
 	agentRepo        ports.AgentRepository
+	heartbeatRepo    ports.HeartbeatRepository
 	alertChannelRepo ports.AlertChannelRepository
 	incidentRepo     ports.IncidentRepository
 	monitorRepo      ports.MonitorRepository
@@ -144,6 +147,20 @@ func (h *resolveChannelsHandler) Execute(ctx context.Context, input json.RawMess
 	for i, ch := range channels {
 		channelIDs[i] = ch.ID
 	}
+
+	// Populate AlertContext for notifiers
+	actx := &domain.AlertContext{
+		AgentName: agent.Name,
+		Interval:  monitor.IntervalSeconds,
+		Threshold: monitor.FailureThreshold,
+	}
+	if hb, hbErr := h.heartbeatRepo.GetLatestByMonitorID(ctx, monitor.ID); hbErr == nil && hb != nil {
+		if hb.ErrorMessage != nil {
+			actx.ErrorMessage = *hb.ErrorMessage
+		}
+		actx.LastLatencyMs = hb.LatencyMs
+	}
+	incident.AlertContext = actx
 
 	payload := resolveChannelsPayload{
 		IncidentID: in.IncidentID,

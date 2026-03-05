@@ -162,12 +162,26 @@ func (s *SlackNotifier) send(ctx context.Context, payload slackPayload) error {
 }
 
 func incidentFields(incident *domain.Incident, monitor *domain.Monitor) []slackField {
-	return []slackField{
+	fields := []slackField{
 		{Title: "Monitor", Value: monitor.Name, Short: true},
 		{Title: "Type", Value: string(monitor.Type), Short: true},
 		{Title: "Target", Value: monitor.Target, Short: false},
-		{Title: "Started At", Value: incident.StartedAt.Format(time.RFC3339), Short: true},
 	}
+
+	if ac := incident.AlertContext; ac != nil {
+		if ac.ErrorMessage != "" {
+			fields = append(fields, slackField{Title: "Error", Value: ac.ErrorMessage, Short: false})
+		}
+		if ac.AgentName != "" {
+			fields = append(fields, slackField{Title: "Agent", Value: ac.AgentName, Short: true})
+		}
+		if ac.Interval > 0 {
+			fields = append(fields, slackField{Title: "Interval", Value: formatInterval(ac.Interval), Short: true})
+		}
+	}
+
+	fields = append(fields, slackField{Title: "Started At", Value: incident.StartedAt.Format(time.RFC3339), Short: true})
+	return fields
 }
 
 type slackPayload struct {

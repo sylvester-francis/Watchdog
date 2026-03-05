@@ -34,17 +34,36 @@ func NewDiscordNotifier(webhookURL string) *DiscordNotifier {
 
 // NotifyIncidentOpened sends a notification when an incident is opened.
 func (d *DiscordNotifier) NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
+	fields := []discordField{
+		{Name: "Monitor", Value: monitor.Name, Inline: true},
+		{Name: "Type", Value: string(monitor.Type), Inline: true},
+		{Name: "Target", Value: monitor.Target, Inline: false},
+	}
+
+	if ac := incident.AlertContext; ac != nil {
+		if ac.ErrorMessage != "" {
+			fields = append(fields, discordField{Name: "Error", Value: ac.ErrorMessage, Inline: false})
+		}
+		if ac.AgentName != "" {
+			fields = append(fields, discordField{Name: "Agent", Value: ac.AgentName, Inline: true})
+		}
+		if ac.Interval > 0 {
+			fields = append(fields, discordField{Name: "Interval", Value: formatInterval(ac.Interval), Inline: true})
+		}
+	}
+
+	fields = append(fields, discordField{
+		Name:   "Started",
+		Value:  fmt.Sprintf("<t:%d:f>", incident.StartedAt.Unix()),
+		Inline: true,
+	})
+
 	embed := discordEmbed{
 		Title:       fmt.Sprintf("🚨 Incident Opened: %s", monitor.Name),
 		Description: fmt.Sprintf("Monitor **%s** is DOWN", monitor.Name),
 		Color:       colorRed,
-		Fields: []discordField{
-			{Name: "Monitor", Value: monitor.Name, Inline: true},
-			{Name: "Type", Value: string(monitor.Type), Inline: true},
-			{Name: "Target", Value: monitor.Target, Inline: false},
-			{Name: "Started At", Value: incident.StartedAt.Format(time.RFC3339), Inline: true},
-		},
-		Timestamp: incident.StartedAt.Format(time.RFC3339),
+		Fields:      fields,
+		Timestamp:   incident.StartedAt.Format(time.RFC3339),
 		Footer: discordFooter{
 			Text: BrandName,
 		},
@@ -55,20 +74,25 @@ func (d *DiscordNotifier) NotifyIncidentOpened(ctx context.Context, incident *do
 
 // NotifyIncidentResolved sends a notification when an incident is resolved.
 func (d *DiscordNotifier) NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error {
-	duration := incident.Duration()
-	durationStr := formatDuration(duration)
+	fields := []discordField{
+		{Name: "Monitor", Value: monitor.Name, Inline: true},
+		{Name: "Type", Value: string(monitor.Type), Inline: true},
+		{Name: "Target", Value: monitor.Target, Inline: false},
+	}
+
+	if ac := incident.AlertContext; ac != nil {
+		if ac.AgentName != "" {
+			fields = append(fields, discordField{Name: "Agent", Value: ac.AgentName, Inline: true})
+		}
+	}
+
+	fields = append(fields, discordField{Name: "Duration", Value: formatDuration(incident.Duration()), Inline: true})
 
 	embed := discordEmbed{
 		Title:       fmt.Sprintf("✅ Incident Resolved: %s", monitor.Name),
 		Description: fmt.Sprintf("Monitor **%s** is UP", monitor.Name),
 		Color:       colorGreen,
-		Fields: []discordField{
-			{Name: "Monitor", Value: monitor.Name, Inline: true},
-			{Name: "Type", Value: string(monitor.Type), Inline: true},
-			{Name: "Target", Value: monitor.Target, Inline: false},
-			{Name: "Started At", Value: incident.StartedAt.Format(time.RFC3339), Inline: true},
-			{Name: "Duration", Value: durationStr, Inline: true},
-		},
+		Fields:      fields,
 		Footer: discordFooter{
 			Text: BrandName,
 		},
