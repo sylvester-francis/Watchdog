@@ -18,7 +18,8 @@ type Config struct {
 
 // FeatureConfig holds feature flags.
 type FeatureConfig struct {
-	DurableAlerts bool `envconfig:"WATCHDOG_DURABLE_ALERTS" default:"false"`
+	DurableAlerts         bool   `envconfig:"WATCHDOG_DURABLE_ALERTS" default:"false"`
+	AgentUpdateManifestURL string `envconfig:"AGENT_UPDATE_MANIFEST_URL"`
 }
 
 // NotifyConfig holds notification configuration.

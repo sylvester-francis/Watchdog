@@ -20,6 +20,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/core/services"
 )
 
 // maxWSConnsPerIP limits concurrent WebSocket connections per IP (H-005).
@@ -45,6 +46,18 @@ type WSHandler struct {
 	connCount map[string]int
 
 	heartbeatHooks []HeartbeatHook
+	heartbeatTimer func(time.Duration) // optional: records heartbeat processing latency
+	updateSvc      *services.UpdateService
+}
+
+// SetHeartbeatTimer sets a function to record heartbeat processing latency.
+func (h *WSHandler) SetHeartbeatTimer(fn func(time.Duration)) {
+	h.heartbeatTimer = fn
+}
+
+// SetUpdateService sets the update service for auto-update checks.
+func (h *WSHandler) SetUpdateService(svc *services.UpdateService) {
+	h.updateSvc = svc
 }
 
 // AddHeartbeatHook registers a hook to be called after heartbeat processing.
@@ -149,7 +162,7 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 			slog.String("ip", clientIP),
 			slog.Int("limit", maxWSConnsPerIP),
 		)
-		return c.JSON(http.StatusTooManyRequests, map[string]string{"error": "too many connections"})
+		return errJSON(c, http.StatusTooManyRequests, "too many connections")
 	}
 	h.connCount[clientIP]++
 	h.connMu.Unlock()
@@ -246,6 +259,13 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		h.logger.Error("failed to update last seen", slog.String("error", err.Error()))
 	}
 
+	// Store agent version reported during auth handshake.
+	if authPayload.Version != "" {
+		if err := h.agentRepo.UpdateVersion(ctx, agent.ID, authPayload.Version); err != nil {
+			h.logger.Error("failed to update agent version", slog.String("error", err.Error()))
+		}
+	}
+
 	// Resolve any incidents created when the agent was offline
 	if err := h.monitorSvc.ResolveAgentMonitors(ctx, agent.ID); err != nil {
 		h.logger.Error("failed to resolve agent monitors on reconnect",
@@ -297,6 +317,13 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 
 	// Wire heartbeat processing: agent heartbeats -> MonitorService.ProcessHeartbeat
 	client.SetHeartbeatCallback(func(agentID uuid.UUID, payload *protocol.HeartbeatPayload) {
+		hbStart := time.Now()
+		defer func() {
+			if h.heartbeatTimer != nil {
+				h.heartbeatTimer(time.Since(hbStart))
+			}
+		}()
+
 		monitorID, err := uuid.Parse(payload.MonitorID)
 		if err != nil {
 			h.logger.Warn("invalid monitor ID in heartbeat", slog.String("monitor_id", payload.MonitorID))
@@ -393,6 +420,19 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 
 	// Send monitor tasks to the agent
 	h.sendTasks(ctx, client, agent.ID)
+
+	// Check for agent updates and notify if a newer version is available.
+	if h.updateSvc != nil && authPayload.Version != "" {
+		agentOS := authPayload.Fingerprint["os"]
+		agentArch := authPayload.Fingerprint["arch"]
+		if updateMsg := h.updateSvc.GetUpdateForAgent(authPayload.Version, agentOS, agentArch); updateMsg != nil {
+			client.Send(updateMsg)
+			h.logger.Info("update available notification sent",
+				slog.String("agent_id", agent.ID.String()),
+				slog.String("current_version", authPayload.Version),
+			)
+		}
+	}
 
 	// Block until client disconnects (readPump/writePump handle the lifecycle)
 	<-client.CloseCh()
