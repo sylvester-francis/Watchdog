@@ -19,6 +19,7 @@ type Metrics struct {
 	heartbeatLatency prometheus.Histogram
 	incidentsActive  *prometheus.GaugeVec
 	dbPoolActive     prometheus.GaugeFunc
+	history          *MetricsHistory
 }
 
 // New creates and registers the Prometheus metrics.
@@ -65,7 +66,14 @@ func New(hub *realtime.Hub, pool *pgxpool.Pool) *Metrics {
 		m.dbPoolActive,
 	)
 
+	m.history = NewMetricsHistory()
+
 	return m
+}
+
+// History returns the metrics history ring buffer.
+func (m *Metrics) History() *MetricsHistory {
+	return m.history
 }
 
 // HTTPMiddleware returns an Echo middleware that records request latency.
