@@ -23,6 +23,12 @@
 	let enabled = $state(true);
 	let slaTargetPercent = $state<number | null>(null);
 
+	// Port scan-specific
+	let portScanPorts = $state('');
+	let portScanRange = $state('');
+	let portScanExpectedOpen = $state('');
+	let bannerGrab = $state(true);
+
 	let loading = $state(false);
 	let error = $state('');
 
@@ -37,6 +43,16 @@
 			failureThreshold = monitor.failure_threshold;
 			enabled = monitor.enabled;
 			slaTargetPercent = monitor.sla_target_percent ?? null;
+
+			// Populate port scan metadata
+			const meta = monitor.metadata ?? {};
+			if (monitor.type === 'port_scan') {
+				portScanPorts = meta.ports || '';
+				portScanRange = meta.port_range || '';
+				portScanExpectedOpen = meta.expected_open || '';
+				bannerGrab = meta.banner_grab === 'true';
+			}
+
 			error = '';
 			loading = false;
 		}
@@ -60,6 +76,22 @@
 			return;
 		}
 
+		if (monitor.type === 'port_scan') {
+			const portPattern = /^[\d,\s-]*$/;
+			if (portScanPorts.trim() && !portPattern.test(portScanPorts)) {
+				error = 'Ports must be comma-separated numbers (e.g. 80,443)';
+				return;
+			}
+			if (portScanExpectedOpen.trim() && !portPattern.test(portScanExpectedOpen)) {
+				error = 'Expected open ports must be comma-separated numbers';
+				return;
+			}
+			if (!portScanPorts.trim() && !portScanRange.trim()) {
+				error = 'Please specify ports or a port range';
+				return;
+			}
+		}
+
 		loading = true;
 		error = '';
 
@@ -75,6 +107,14 @@
 			};
 			if (slaTargetPercent !== null && slaTargetPercent > 0) {
 				payload.sla_target_percent = slaTargetPercent;
+			}
+			if (monitor.type === 'port_scan') {
+				const meta: Record<string, string> = {};
+				if (portScanPorts.trim()) meta.ports = portScanPorts.trim();
+				if (portScanRange.trim()) meta.port_range = portScanRange.trim();
+				if (portScanExpectedOpen.trim()) meta.expected_open = portScanExpectedOpen.trim();
+				if (bannerGrab) meta.banner_grab = 'true';
+				if (Object.keys(meta).length > 0) payload.metadata = meta;
 			}
 			await monitorsApi.updateMonitor(monitor.id, payload);
 			onUpdated();
@@ -258,6 +298,59 @@
 						/>
 						<p class="text-[10px] text-muted-foreground mt-1">Leave empty to disable SLA tracking</p>
 					</div>
+
+					{#if monitor.type === 'port_scan'}
+						<div class="space-y-3 pt-1">
+							<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Port Scan Settings</div>
+							<div>
+								<label for="edit-monitor-ps-ports" class={labelClass}>Ports (comma-separated)</label>
+								<input
+									id="edit-monitor-ps-ports"
+									type="text"
+									bind:value={portScanPorts}
+									placeholder="22,80,443,3306,8080"
+									class={inputClass}
+								/>
+								<p class="text-[10px] text-muted-foreground mt-1">Supports ranges: 8000-9000</p>
+							</div>
+							<div>
+								<label for="edit-monitor-ps-range" class={labelClass}>Port Range (alternative)</label>
+								<input
+									id="edit-monitor-ps-range"
+									type="text"
+									bind:value={portScanRange}
+									placeholder="1-1024"
+									class={inputClass}
+								/>
+							</div>
+							<div>
+								<label for="edit-monitor-ps-expected" class={labelClass}>Expected Open Ports (optional)</label>
+								<input
+									id="edit-monitor-ps-expected"
+									type="text"
+									bind:value={portScanExpectedOpen}
+									placeholder="22,80,443"
+									class={inputClass}
+								/>
+								<p class="text-[10px] text-muted-foreground mt-1">If set, alerts when expected ports close or unexpected ports open</p>
+							</div>
+							<div class="flex items-center justify-between pt-1">
+								<div>
+									<label for="edit-monitor-banner-grab" class={labelClass}>Service Detection</label>
+									<p class="text-[10px] text-muted-foreground">Identify services and versions on open ports</p>
+								</div>
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input
+										id="edit-monitor-banner-grab"
+										type="checkbox"
+										bind:checked={bannerGrab}
+										class="sr-only peer"
+									/>
+									<div class="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-accent transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
+								</label>
+							</div>
+						</div>
+					{/if}
 				</div>
 
 				<!-- Footer -->

@@ -33,6 +33,12 @@
 	let systemMetric = $state('cpu');
 	let systemThreshold = $state(80);
 
+	// Port scan-specific
+	let portScanPorts = $state('');
+	let portScanRange = $state('');
+	let portScanExpectedOpen = $state('');
+	let bannerGrab = $state(true);
+
 	let loading = $state(false);
 	let error = $state('');
 
@@ -45,7 +51,8 @@
 		{ value: 'docker', label: 'Docker' },
 		{ value: 'database', label: 'Database' },
 		{ value: 'system', label: 'System' },
-		{ value: 'service', label: 'Service' }
+		{ value: 'service', label: 'Service' },
+		{ value: 'port_scan', label: 'Port Scan' }
 	];
 
 	const targetPlaceholders: Record<MonitorType, string> = {
@@ -57,7 +64,8 @@
 		docker: 'container_name',
 		database: 'localhost:5432',
 		system: 'localhost',
-		service: 'nginx'
+		service: 'nginx',
+		port_scan: '192.168.1.1 or hostname'
 	};
 
 	function buildMetadata(): Record<string, string> | undefined {
@@ -80,6 +88,13 @@
 			meta.threshold = String(systemThreshold);
 		}
 
+		if (type === 'port_scan') {
+			if (portScanPorts.trim()) meta.ports = portScanPorts.trim();
+			if (portScanRange.trim()) meta.port_range = portScanRange.trim();
+			if (portScanExpectedOpen.trim()) meta.expected_open = portScanExpectedOpen.trim();
+			if (bannerGrab) meta.banner_grab = 'true';
+		}
+
 		return Object.keys(meta).length > 0 ? meta : undefined;
 	}
 
@@ -97,6 +112,10 @@
 		dbPassword = '';
 		systemMetric = 'cpu';
 		systemThreshold = 80;
+		portScanPorts = '';
+		portScanRange = '';
+		portScanExpectedOpen = '';
+		bannerGrab = true;
 		error = '';
 		loading = false;
 	}
@@ -120,6 +139,22 @@
 		if (!agentId) {
 			error = 'Please select an agent';
 			return;
+		}
+
+		if (type === 'port_scan') {
+			const portPattern = /^[\d,\s-]*$/;
+			if (portScanPorts.trim() && !portPattern.test(portScanPorts)) {
+				error = 'Ports must be comma-separated numbers (e.g. 80,443)';
+				return;
+			}
+			if (portScanExpectedOpen.trim() && !portPattern.test(portScanExpectedOpen)) {
+				error = 'Expected open ports must be comma-separated numbers';
+				return;
+			}
+			if (!portScanPorts.trim() && !portScanRange.trim()) {
+				error = 'Please specify ports or a port range';
+				return;
+			}
 		}
 
 		loading = true;
@@ -363,6 +398,59 @@
 										class={inputClass}
 									/>
 								</div>
+							</div>
+						</div>
+					{/if}
+
+					{#if type === 'port_scan'}
+						<div class="space-y-3 pt-1">
+							<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Port Scan Settings</div>
+							<div>
+								<label for="monitor-ps-ports" class={labelClass}>Ports (comma-separated)</label>
+								<input
+									id="monitor-ps-ports"
+									type="text"
+									bind:value={portScanPorts}
+									placeholder="22,80,443,3306,8080"
+									class={inputClass}
+								/>
+								<p class="text-[10px] text-muted-foreground mt-1">Supports ranges: 8000-9000</p>
+							</div>
+							<div>
+								<label for="monitor-ps-range" class={labelClass}>Port Range (alternative)</label>
+								<input
+									id="monitor-ps-range"
+									type="text"
+									bind:value={portScanRange}
+									placeholder="1-1024"
+									class={inputClass}
+								/>
+							</div>
+							<div>
+								<label for="monitor-ps-expected" class={labelClass}>Expected Open Ports (optional)</label>
+								<input
+									id="monitor-ps-expected"
+									type="text"
+									bind:value={portScanExpectedOpen}
+									placeholder="22,80,443"
+									class={inputClass}
+								/>
+								<p class="text-[10px] text-muted-foreground mt-1">If set, alerts when expected ports close or unexpected ports open</p>
+							</div>
+							<div class="flex items-center justify-between pt-1">
+								<div>
+									<label for="monitor-banner-grab" class={labelClass}>Service Detection</label>
+									<p class="text-[10px] text-muted-foreground">Identify services and versions on open ports</p>
+								</div>
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input
+										id="monitor-banner-grab"
+										type="checkbox"
+										bind:checked={bannerGrab}
+										class="sr-only peer"
+									/>
+									<div class="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-accent transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
+								</label>
 							</div>
 						</div>
 					{/if}
