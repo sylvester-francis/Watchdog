@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { SystemInfo, AdminUser, SecurityEvent, AuditLogParams, PaginatedAuditResponse } from '$lib/types';
+import type { SystemInfo, AdminUser, SecurityEvent, AuditLogParams, PaginatedAuditResponse, MetricsResponse } from '$lib/types';
 
 export function getSystemInfo(): Promise<SystemInfo> {
 	return api.get<SystemInfo>('/api/v1/system');
@@ -29,4 +29,8 @@ export function deleteUser(userId: string): Promise<{ status: string }> {
 
 export function getSecurityEvents(): Promise<{ data: SecurityEvent[] }> {
 	return api.get<{ data: SecurityEvent[] }>('/api/v1/admin/security-events');
+}
+
+export function getMetrics(): Promise<MetricsResponse> {
+	return api.get<MetricsResponse>('/api/v1/system/metrics');
 }

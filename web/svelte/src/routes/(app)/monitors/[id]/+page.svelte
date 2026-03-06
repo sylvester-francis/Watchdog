@@ -10,6 +10,7 @@
 	import LatencyChart from '$lib/components/monitors/LatencyChart.svelte';
 	import MetricChart from '$lib/components/monitors/MetricChart.svelte';
 	import StatusChart from '$lib/components/monitors/StatusChart.svelte';
+	import PortScanResults from '$lib/components/monitors/PortScanResults.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
 	import CertDetailsCard from '$lib/components/monitors/CertDetailsCard.svelte';
@@ -135,13 +136,17 @@
 		<!-- Stats Cards -->
 		<MonitorStats {monitor} {uptimePercent} {agentName} />
 
-		<!-- Chart: system monitors get MetricChart, service/docker get StatusChart, others get LatencyChart -->
+		<!-- Charts: type-specific primary chart + StatusChart for all types -->
 		{#if monitor.type === 'system'}
 			<MetricChart {monitorId} target={monitor.target} />
+		{:else if monitor.type === 'port_scan'}
+			<PortScanResults metadata={monitor.metadata} />
+			<StatusChart {monitorId} />
 		{:else if monitor.type === 'service' || monitor.type === 'docker'}
 			<StatusChart {monitorId} />
 		{:else}
 			<LatencyChart {monitorId} />
+			<StatusChart {monitorId} />
 		{/if}
 
 		<!-- TLS Certificate Details -->
@@ -154,8 +159,8 @@
 			<SLACard {monitorId} />
 		{/if}
 
-		<!-- Uptime Bar -->
-		{#if uptimeUp > 0 || uptimeDown > 0}
+		<!-- Uptime Bar (hidden for port_scan — redundant with StatusChart) -->
+		{#if monitor.type !== 'port_scan' && (uptimeUp > 0 || uptimeDown > 0)}
 			<div class="bg-card border border-border rounded-lg">
 				<div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
 					<HeartPulse class="w-4 h-4 text-muted-foreground" />

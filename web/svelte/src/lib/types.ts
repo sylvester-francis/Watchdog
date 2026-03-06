@@ -221,6 +221,33 @@ export interface APIErrorBody {
 	details?: APIErrorDetail[];
 }
 
+export interface PortDetail {
+	port: number;
+	state: string;
+	service?: string;
+	version?: string;
+	banner?: string;
+}
+
+export interface MetricsSnapshot {
+	timestamp: number;
+	ws_connections: number;
+	db_pool_active: number;
+	incidents_open: number;
+	incidents_acked: number;
+	http_latency_p50: number;
+	http_latency_p95: number;
+	http_latency_p99: number;
+	heartbeat_p50: number;
+	heartbeat_p95: number;
+	http_request_rate: number;
+}
+
+export interface MetricsResponse {
+	current: MetricsSnapshot;
+	history: MetricsSnapshot[] | null;
+}
+
 export interface APIError {
 	error: string | APIErrorBody;
 }
