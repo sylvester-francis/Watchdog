@@ -465,12 +465,6 @@
 						<p class="text-xs text-muted-foreground">Collecting data... charts will appear after ~20s of history.</p>
 					</div>
 				{/if}
-			{:else}
-				<!-- Loading spinner while metrics load -->
-				<div class="bg-card border border-border rounded-lg p-8 flex flex-col items-center justify-center">
-					<div class="h-5 w-5 border-2 border-muted-foreground/20 border-t-muted-foreground rounded-full animate-spin mb-3"></div>
-					<p class="text-xs text-muted-foreground">Loading hub metrics...</p>
-				</div>
 			{/if}
 		</div>
 
