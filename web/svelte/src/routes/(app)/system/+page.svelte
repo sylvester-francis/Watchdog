@@ -281,8 +281,8 @@
 					// Non-admin users won't have access — silently skip
 				}
 			}
-			// Start metrics polling
-			refreshMetrics();
+			// Load metrics before showing page, then poll
+			await refreshMetrics();
 			metricsInterval = setInterval(refreshMetrics, 10000);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load system info';
