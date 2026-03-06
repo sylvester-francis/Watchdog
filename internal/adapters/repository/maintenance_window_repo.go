@@ -204,8 +204,8 @@ func (r *MaintenanceWindowRepository) GetExpiredWithOfflineAgents(ctx context.Co
 	return windows, rows.Err()
 }
 
-// GetExpiredRecurring returns recurring maintenance windows that expired in the last 10 minutes.
-// Used by the background job to create the next occurrence.
+// GetExpiredRecurring returns recurring maintenance windows that have expired.
+// Used by the background job to advance them to their next occurrence.
 func (r *MaintenanceWindowRepository) GetExpiredRecurring(ctx context.Context) ([]*domain.MaintenanceWindow, error) {
 	q := r.db.Querier(ctx)
 
@@ -213,8 +213,7 @@ func (r *MaintenanceWindowRepository) GetExpiredRecurring(ctx context.Context) (
 		SELECT id, agent_id, user_id, name, starts_at, ends_at, recurrence, created_at, tenant_id
 		FROM maintenance_windows
 		WHERE recurrence != 'once'
-		  AND ends_at <= NOW()
-		  AND ends_at > NOW() - INTERVAL '10 minutes'`
+		  AND ends_at <= NOW()`
 
 	rows, err := q.Query(ctx, query)
 	if err != nil {
@@ -235,6 +234,23 @@ func (r *MaintenanceWindowRepository) GetExpiredRecurring(ctx context.Context) (
 	}
 
 	return windows, rows.Err()
+}
+
+// AdvanceRecurringWindow updates a recurring window in-place, shifting it forward
+// until its next occurrence is in the future. Handles missed occurrences (e.g., server downtime).
+func (r *MaintenanceWindowRepository) AdvanceRecurringWindow(ctx context.Context, window *domain.MaintenanceWindow) error {
+	q := r.db.Querier(ctx)
+
+	query := `
+		UPDATE maintenance_windows
+		SET starts_at = $1, ends_at = $2
+		WHERE id = $3`
+
+	_, err := q.Exec(ctx, query, window.StartsAt, window.EndsAt, window.ID)
+	if err != nil {
+		return fmt.Errorf("maintenanceWindowRepo.AdvanceRecurringWindow: %w", err)
+	}
+	return nil
 }
 
 // DeleteExpired removes maintenance windows that ended before the given time.
