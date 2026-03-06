@@ -70,34 +70,29 @@ func (mw *MaintenanceWindow) Validate() error {
 	return nil
 }
 
-// NextOccurrence returns a new MaintenanceWindow shifted forward by one recurrence interval.
-// Returns nil for non-recurring windows.
-func (mw *MaintenanceWindow) NextOccurrence() *MaintenanceWindow {
+// AdvanceToNext shifts this window forward to the next occurrence.
+// If multiple occurrences were missed (e.g., server was down), it keeps
+// advancing until the window's end time is in the future.
+// Returns false for non-recurring windows.
+func (mw *MaintenanceWindow) AdvanceToNext() bool {
 	duration := mw.EndsAt.Sub(mw.StartsAt)
-	var nextStart time.Time
+	now := time.Now()
 
-	switch mw.Recurrence {
-	case RecurrenceDaily:
-		nextStart = mw.StartsAt.AddDate(0, 0, 1)
-	case RecurrenceWeekly:
-		nextStart = mw.StartsAt.AddDate(0, 0, 7)
-	case RecurrenceMonthly:
-		nextStart = mw.StartsAt.AddDate(0, 1, 0)
-	default:
-		return nil
+	for mw.EndsAt.Before(now) || mw.EndsAt.Equal(now) {
+		switch mw.Recurrence {
+		case RecurrenceDaily:
+			mw.StartsAt = mw.StartsAt.AddDate(0, 0, 1)
+		case RecurrenceWeekly:
+			mw.StartsAt = mw.StartsAt.AddDate(0, 0, 7)
+		case RecurrenceMonthly:
+			mw.StartsAt = mw.StartsAt.AddDate(0, 1, 0)
+		default:
+			return false
+		}
+		mw.EndsAt = mw.StartsAt.Add(duration)
 	}
 
-	return &MaintenanceWindow{
-		ID:         uuid.New(),
-		AgentID:    mw.AgentID,
-		UserID:     mw.UserID,
-		Name:       mw.Name,
-		StartsAt:   nextStart,
-		EndsAt:     nextStart.Add(duration),
-		Recurrence: mw.Recurrence,
-		TenantID:   mw.TenantID,
-		CreatedAt:  time.Now(),
-	}
+	return true
 }
 
 // IsActive returns true if the window is currently active.
