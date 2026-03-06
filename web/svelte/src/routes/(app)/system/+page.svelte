@@ -384,17 +384,18 @@
 		</div>
 
 		<!-- Hub Metrics (Prometheus) -->
-		{#if metrics}
-			{@const cur = metrics.current}
-			<div class="mb-6">
-				<div class="flex items-center space-x-2 mb-3">
-					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-						<Activity class="w-3 h-3 text-muted-foreground" />
-					</div>
-					<h2 class="text-sm font-medium text-foreground">Hub Metrics</h2>
-					<span class="text-[10px] text-muted-foreground">Auto-refreshes every 10s</span>
+		<div class="mb-6">
+			<div class="flex items-center space-x-2 mb-1">
+				<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
+					<Activity class="w-3 h-3 text-muted-foreground" />
 				</div>
+				<h2 class="text-sm font-medium text-foreground">Hub Metrics</h2>
+				<span class="text-[10px] text-muted-foreground">Auto-refreshes every 10s</span>
+			</div>
+			<p class="text-[10px] text-muted-foreground mb-3 ml-8">Live performance data from the hub server. Use these to spot bottlenecks before they become outages.</p>
 
+			{#if metrics}
+				{@const cur = metrics.current}
 				<!-- Live Gauges -->
 				<div class="grid grid-cols-3 gap-3 mb-4">
 					<div class="bg-card border border-border rounded-lg px-4 py-3">
@@ -403,6 +404,7 @@
 							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">WS Connections</span>
 						</div>
 						<span class="text-xl font-semibold font-mono text-foreground">{cur.ws_connections}</span>
+						<p class="text-[9px] text-muted-foreground/60 mt-0.5">Agents connected right now</p>
 					</div>
 					<div class="bg-card border border-border rounded-lg px-4 py-3">
 						<div class="flex items-center space-x-2 mb-1">
@@ -410,6 +412,7 @@
 							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">DB Pool Active</span>
 						</div>
 						<span class="text-xl font-semibold font-mono text-foreground">{cur.db_pool_active}</span>
+						<p class="text-[9px] text-muted-foreground/60 mt-0.5">Database connections in use</p>
 					</div>
 					<div class="bg-card border border-border rounded-lg px-4 py-3">
 						<div class="flex items-center space-x-2 mb-1">
@@ -422,6 +425,7 @@
 								<span class="text-xs text-muted-foreground font-mono">+{cur.incidents_acked} ack'd</span>
 							{/if}
 						</div>
+						<p class="text-[9px] text-muted-foreground/60 mt-0.5">Unresolved problems</p>
 					</div>
 				</div>
 
@@ -431,6 +435,7 @@
 						<div class="bg-card border border-border rounded-lg">
 							<div class="px-4 py-2.5 border-b border-border">
 								<span class="text-xs font-medium text-foreground">HTTP Latency</span>
+								<p class="text-[10px] text-muted-foreground mt-0.5">How fast the hub responds to API requests. Lower is better.</p>
 							</div>
 							<div class="px-4 py-3 h-[200px]">
 								<canvas bind:this={httpLatencyCanvas}></canvas>
@@ -439,6 +444,7 @@
 						<div class="bg-card border border-border rounded-lg">
 							<div class="px-4 py-2.5 border-b border-border">
 								<span class="text-xs font-medium text-foreground">Heartbeat Processing</span>
+								<p class="text-[10px] text-muted-foreground mt-0.5">Time to process each health check from agents. Spikes mean the hub is overloaded.</p>
 							</div>
 							<div class="px-4 py-3 h-[200px]">
 								<canvas bind:this={heartbeatCanvas}></canvas>
@@ -447,6 +453,7 @@
 						<div class="bg-card border border-border rounded-lg lg:col-span-2">
 							<div class="px-4 py-2.5 border-b border-border">
 								<span class="text-xs font-medium text-foreground">Request Rate</span>
+								<p class="text-[10px] text-muted-foreground mt-0.5">Total API requests per second hitting the hub. Helps size capacity and spot traffic anomalies.</p>
 							</div>
 							<div class="px-4 py-3 h-[180px]">
 								<canvas bind:this={requestRateCanvas}></canvas>
@@ -458,8 +465,19 @@
 						<p class="text-xs text-muted-foreground">Collecting data... charts will appear after ~20s of history.</p>
 					</div>
 				{/if}
-			</div>
-		{/if}
+			{:else}
+				<!-- Skeleton while metrics load -->
+				<div class="grid grid-cols-3 gap-3 mb-4">
+					{#each Array(3) as _}
+						<div class="bg-card border border-border rounded-lg px-4 py-3 h-[76px] animate-pulse"></div>
+					{/each}
+				</div>
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+					<div class="bg-card border border-border rounded-lg h-[248px] animate-pulse"></div>
+					<div class="bg-card border border-border rounded-lg h-[248px] animate-pulse"></div>
+				</div>
+			{/if}
+		</div>
 
 		<!-- Operational Metrics -->
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
