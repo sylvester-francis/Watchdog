@@ -218,9 +218,12 @@
 <div class="bg-card border border-border rounded-lg">
 	<!-- Header -->
 	<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
-		<div class="flex items-center space-x-2">
-			<Timer class="w-4 h-4 text-muted-foreground" />
-			<h3 class="text-sm font-medium text-foreground">Response Time</h3>
+		<div>
+			<div class="flex items-center space-x-2">
+				<Timer class="w-4 h-4 text-muted-foreground" />
+				<h3 class="text-sm font-medium text-foreground">Response Time</h3>
+			</div>
+			<p class="text-[10px] text-muted-foreground mt-0.5 ml-6">How fast this target responds. Spikes mean slowdowns; flat lines are healthy.</p>
 		</div>
 		<div class="flex items-center space-x-1">
 			{#each periods as p}

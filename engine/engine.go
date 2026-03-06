@@ -191,7 +191,18 @@ func New(ctx context.Context) (*Engine, error) {
 	// Prometheus metrics
 	prom := prommetrics.New(hub, db.Pool)
 	e.Use(prom.HTTPMiddleware())
-	e.GET("/metrics", prommetrics.Handler())
+	// /metrics requires admin session — protects Prometheus scrape data from public access
+	e.GET("/metrics", func(c echo.Context) error {
+		userID, ok := middleware.GetUserID(c)
+		if !ok {
+			return c.JSON(401, map[string]string{"error": "unauthorized"})
+		}
+		caller, err := userRepo.GetByID(c.Request().Context(), userID)
+		if err != nil || caller == nil || !caller.IsAdmin {
+			return c.JSON(403, map[string]string{"error": "admin access required"})
+		}
+		return prommetrics.Handler()(c)
+	})
 
 	// Maintenance windows — create and wire into monitor service
 	mwRepo := repository.NewMaintenanceWindowRepository(db)
