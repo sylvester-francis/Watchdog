@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 
 	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle, Trash2, Activity, Wifi, CircleDot } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
@@ -21,19 +21,17 @@
 
 	Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend);
 
-	let { data: pageData } = $props();
-
 	const auth = getAuth();
 	const toast = getToasts();
 	const isAdmin = $derived(auth.user?.is_admin === true);
 
-	let data = $state<SystemInfo | null>(pageData.data);
-	let users = $state<AdminUser[]>(pageData.users);
-	let loading = $state(false);
-	let error = $state(pageData.error);
+	let data = $state<SystemInfo | null>(null);
+	let users = $state<AdminUser[]>([]);
+	let loading = $state(true);
+	let error = $state('');
 
 	// Hub Metrics state
-	let metrics = $state<MetricsResponse | null>(pageData.metrics);
+	let metrics = $state<MetricsResponse | null>(null);
 	let metricsInterval: ReturnType<typeof setInterval> | null = null;
 	let httpLatencyCanvas = $state<HTMLCanvasElement>(undefined as unknown as HTMLCanvasElement);
 	let heartbeatCanvas = $state<HTMLCanvasElement>(undefined as unknown as HTMLCanvasElement);
@@ -272,11 +270,26 @@
 		return 'bg-muted text-muted-foreground';
 	}
 
-	onMount(() => {
-		if (metrics) {
+	onMount(async () => {
+		try {
+			data = await systemApi.getSystemInfo();
+			if (isAdmin) {
+				try {
+					const usersRes = await systemApi.listUsers();
+					users = usersRes.data ?? [];
+				} catch {
+					// Non-admin users won't have access
+				}
+			}
+			await refreshMetrics();
+			metricsInterval = setInterval(refreshMetrics, 10000);
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to load system info';
+		} finally {
+			loading = false;
+			await tick();
 			buildMetricsCharts();
 		}
-		metricsInterval = setInterval(refreshMetrics, 10000);
 	});
 
 	onDestroy(() => {
@@ -289,7 +302,22 @@
 	<title>System - WatchDog</title>
 </svelte:head>
 
-{#if error}
+{#if loading}
+	<div class="animate-fade-in-up space-y-4">
+		<div class="h-7 w-24 bg-muted/50 rounded animate-pulse"></div>
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+			{#each Array(4) as _}
+				<div class="bg-card border border-border rounded-lg h-24 animate-pulse"></div>
+			{/each}
+		</div>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+			{#each Array(2) as _}
+				<div class="bg-card border border-border rounded-lg h-48 animate-pulse"></div>
+			{/each}
+		</div>
+		<div class="bg-card border border-border rounded-lg h-64 animate-pulse"></div>
+	</div>
+{:else if error}
 	<div class="animate-fade-in-up">
 		<div class="bg-card border border-border rounded-lg p-8 text-center">
 			<p class="text-sm text-foreground font-medium mb-1">Failed to load system info</p>
