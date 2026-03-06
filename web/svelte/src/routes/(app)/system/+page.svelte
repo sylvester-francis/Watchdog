@@ -466,15 +466,10 @@
 					</div>
 				{/if}
 			{:else}
-				<!-- Skeleton while metrics load -->
-				<div class="grid grid-cols-3 gap-3 mb-4">
-					{#each Array(3) as _}
-						<div class="bg-card border border-border rounded-lg px-4 py-3 h-[76px] animate-pulse"></div>
-					{/each}
-				</div>
-				<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-					<div class="bg-card border border-border rounded-lg h-[248px] animate-pulse"></div>
-					<div class="bg-card border border-border rounded-lg h-[248px] animate-pulse"></div>
+				<!-- Loading spinner while metrics load -->
+				<div class="bg-card border border-border rounded-lg p-8 flex flex-col items-center justify-center">
+					<div class="h-5 w-5 border-2 border-muted-foreground/20 border-t-muted-foreground rounded-full animate-spin mb-3"></div>
+					<p class="text-xs text-muted-foreground">Loading hub metrics...</p>
 				</div>
 			{/if}
 		</div>
