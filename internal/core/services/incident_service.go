@@ -165,7 +165,7 @@ func (s *IncidentService) ResolveIncident(ctx context.Context, id uuid.UUID) err
 // Returns the existing incident if one is already open, or the newly created incident.
 func (s *IncidentService) CreateIncidentIfNeeded(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error) {
 	// Check if there's already an open incident
-	existing, err := s.incidentRepo.GetOpenByMonitorID(ctx, monitorID)
+	existing, err := s.incidentRepo.GetActiveByMonitorID(ctx, monitorID)
 	if err != nil {
 		return nil, fmt.Errorf("incidentService.CreateIncidentIfNeeded: check existing: %w", err)
 	}
