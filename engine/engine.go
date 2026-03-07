@@ -292,6 +292,7 @@ func (e *Engine) AuditService() ports.AuditService { return e.auditSvc }
 func (e *Engine) NewMaintenanceWindowRepo() ports.MaintenanceWindowRepository {
 	repo := repository.NewMaintenanceWindowRepository(e.db)
 	e.concreteMonitorSvc.SetMaintenanceWindowRepo(repo)
+	e.concreteMonitorSvc.SetAuditService(e.auditSvc)
 	return repo
 }
 

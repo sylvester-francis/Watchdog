@@ -126,6 +126,28 @@ func (p *PagerDutyNotifier) NotifyAgentOnline(ctx context.Context, agent *domain
 	return p.send(ctx, payload)
 }
 
+// NotifyAgentMaintenance sends an info event to PagerDuty when an agent enters maintenance mode.
+func (p *PagerDutyNotifier) NotifyAgentMaintenance(ctx context.Context, agent *domain.Agent, windowName string) error {
+	payload := pagerdutyEvent{
+		RoutingKey:  p.routingKey,
+		EventAction: "trigger",
+		DedupKey:    fmt.Sprintf("agent-maintenance-%s", agent.ID.String()),
+		Payload: pagerdutyPayload{
+			Summary:   fmt.Sprintf("Agent %s entered maintenance mode (window: %s)", agent.Name, windowName),
+			Source:    BrandName,
+			Severity:  "info",
+			Timestamp: time.Now().Format(time.RFC3339),
+			CustomDetails: map[string]string{
+				"agent_name":  agent.Name,
+				"agent_id":    agent.ID.String(),
+				"window_name": windowName,
+			},
+		},
+	}
+
+	return p.send(ctx, payload)
+}
+
 func (p *PagerDutyNotifier) send(ctx context.Context, event pagerdutyEvent) error {
 	body, err := json.Marshal(event)
 	if err != nil {
