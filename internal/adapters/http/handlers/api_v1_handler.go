@@ -1071,7 +1071,40 @@ func (h *APIV1Handler) GetIncidentInvestigation(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
 	}
 
+	// Map previous incidents to snake_case response format (Incident struct has no JSON tags)
+	var prevIncidents []incidentResponse
+	for _, inc := range investigation.PreviousIncidents {
+		resp := incidentResponse{
+			ID:         inc.ID.String(),
+			MonitorID:  inc.MonitorID.String(),
+			Status:     string(inc.Status),
+			StartedAt:  inc.StartedAt.Format(time.RFC3339),
+			TTRSeconds: inc.TTRSeconds,
+		}
+		if inc.ResolvedAt != nil {
+			t := inc.ResolvedAt.Format(time.RFC3339)
+			resp.ResolvedAt = &t
+		}
+		if inc.AcknowledgedAt != nil {
+			t := inc.AcknowledgedAt.Format(time.RFC3339)
+			resp.AcknowledgedAt = &t
+		}
+		prevIncidents = append(prevIncidents, resp)
+	}
+	if prevIncidents == nil {
+		prevIncidents = []incidentResponse{}
+	}
+
 	return c.JSON(http.StatusOK, map[string]any{
-		"data": investigation,
+		"data": map[string]any{
+			"agent_summary":      investigation.AgentSummary,
+			"recurrence_pattern": investigation.RecurrencePattern,
+			"mttr_seconds":       investigation.MTTRSeconds,
+			"sibling_monitors":   investigation.SiblingMonitors,
+			"previous_incidents": prevIncidents,
+			"system_metrics":     investigation.SystemMetrics,
+			"cert_details":       investigation.CertDetails,
+			"timeline":           investigation.Timeline,
+		},
 	})
 }
