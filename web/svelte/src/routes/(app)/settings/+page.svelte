@@ -19,15 +19,18 @@
 		PhoneCall,
 		Webhook,
 		Lock,
-		AlertTriangle
+		AlertTriangle,
+		Wrench,
+		Calendar
 	} from 'lucide-svelte';
-	import { settings as settingsApi } from '$lib/api';
+	import { settings as settingsApi, maintenance as maintenanceApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { page } from '$app/state';
-	import type { APIToken, AlertChannel, AlertChannelType } from '$lib/types';
+	import type { APIToken, AlertChannel, AlertChannelType, MaintenanceWindow } from '$lib/types';
 	import CreateChannelModal from '$lib/components/settings/CreateChannelModal.svelte';
 	import CreateTokenModal from '$lib/components/settings/CreateTokenModal.svelte';
+	import CreateMaintenanceModal from '$lib/components/settings/CreateMaintenanceModal.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
 	const toast = getToasts();
@@ -40,6 +43,7 @@
 	// Data
 	let tokens = $state<APIToken[]>([]);
 	let channels = $state<AlertChannel[]>([]);
+	let maintenanceWindows = $state<MaintenanceWindow[]>([]);
 	let loading = $state(true);
 
 	// Username form
@@ -59,6 +63,7 @@
 	// Modals
 	let showChannelModal = $state(false);
 	let showTokenModal = $state(false);
+	let showMaintenanceModal = $state(false);
 
 	// Token plaintext display (after create or regenerate)
 	let plaintextToken = $state('');
@@ -299,6 +304,45 @@
 		toast.success('Channel created.');
 	}
 
+	// Maintenance window actions
+	function handleDeleteMaintenance(id: string) {
+		const mw = maintenanceWindows.find(w => w.id === id);
+		confirmModal = {
+			open: true,
+			title: 'Delete Maintenance Window',
+			message: `Are you sure you want to delete "${mw?.name ?? 'this window'}"? This cannot be undone.`,
+			confirmLabel: 'Delete',
+			variant: 'danger',
+			loading: false,
+			action: async () => {
+				confirmModal.loading = true;
+				try {
+					await maintenanceApi.deleteWindow(id);
+					maintenanceWindows = maintenanceWindows.filter(w => w.id !== id);
+					closeConfirmModal();
+					toast.success('Maintenance window deleted.');
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : 'Failed to delete maintenance window.');
+					confirmModal.loading = false;
+				}
+			}
+		};
+	}
+
+	function handleMaintenanceCreated() {
+		loadMaintenance();
+		toast.success('Maintenance window scheduled.');
+	}
+
+	async function loadMaintenance() {
+		try {
+			const res = await maintenanceApi.listWindows();
+			maintenanceWindows = res.data ?? [];
+		} catch {
+			// silent
+		}
+	}
+
 	async function loadTokens() {
 		try {
 			const res = await settingsApi.listTokens();
@@ -319,12 +363,14 @@
 
 	async function loadData() {
 		try {
-			const [tokenRes, channelRes] = await Promise.all([
+			const [tokenRes, channelRes, mwRes] = await Promise.all([
 				settingsApi.listTokens(),
-				settingsApi.listChannels()
+				settingsApi.listChannels(),
+				maintenanceApi.listWindows().catch(() => ({ data: [] as MaintenanceWindow[] }))
 			]);
 			tokens = tokenRes.data ?? [];
 			channels = channelRes.data ?? [];
+			maintenanceWindows = mwRes.data ?? [];
 		} catch {
 			// Keep defaults on error
 		} finally {
@@ -726,6 +772,86 @@
 			</div>
 		</div>
 
+		<!-- ==================== MAINTENANCE WINDOWS SECTION ==================== -->
+		<div class="bg-card border border-border rounded-lg overflow-hidden">
+			<!-- Header -->
+			<div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+				<div class="flex items-center space-x-3">
+					<div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+						<Wrench class="w-4 h-4 text-orange-400" />
+					</div>
+					<div>
+						<div class="flex items-center space-x-2">
+							<h2 class="text-sm font-medium text-foreground">Maintenance Windows</h2>
+							{#if maintenanceWindows.length > 0}
+								<span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{maintenanceWindows.length}</span>
+							{/if}
+						</div>
+						<p class="text-[11px] text-muted-foreground mt-0.5">Schedule downtime to suppress alerts during planned maintenance.</p>
+					</div>
+				</div>
+				<button
+					onclick={() => { showMaintenanceModal = true; }}
+					class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5 w-fit"
+				>
+					<Plus class="w-3.5 h-3.5" />
+					<span>Schedule</span>
+				</button>
+			</div>
+
+			<!-- Window list -->
+			{#if maintenanceWindows.length === 0}
+				<div class="p-4">
+					<div class="text-center py-10">
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+							<Calendar class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+						<p class="text-sm text-muted-foreground font-medium">No maintenance windows</p>
+						<p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Schedule maintenance to suppress alerts during planned downtime.</p>
+					</div>
+				</div>
+			{:else}
+				<div class="p-4">
+					<div class="space-y-2">
+					{#each maintenanceWindows as mw (mw.id)}
+						<div class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
+							<div class="flex items-center justify-between p-3 gap-3">
+								<div class="flex items-center space-x-3 min-w-0">
+									<div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
+										{mw.status === 'active' ? 'bg-green-500/10' : mw.status === 'expired' ? 'bg-muted/50' : 'bg-orange-500/10'}">
+										<Wrench class="w-4 h-4 {mw.status === 'active' ? 'text-green-400' : mw.status === 'expired' ? 'text-muted-foreground/50' : 'text-orange-400'}" />
+									</div>
+									<div class="min-w-0">
+										<div class="flex items-center space-x-2">
+											<span class="text-sm text-foreground truncate">{mw.name}</span>
+											<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded
+												{mw.status === 'active' ? 'bg-green-500/15 text-green-400' : mw.status === 'expired' ? 'bg-muted text-muted-foreground' : 'bg-orange-500/15 text-orange-400'}">
+												{mw.status}
+											</span>
+										</div>
+										<div class="flex items-center space-x-2 mt-0.5 flex-wrap">
+											<span class="text-[10px] text-muted-foreground">{mw.agent_name}</span>
+											<span class="text-[10px] text-muted-foreground/50">|</span>
+											<span class="text-[10px] text-muted-foreground/60">{new Date(mw.starts_at).toLocaleString()} &mdash; {new Date(mw.ends_at).toLocaleString()}</span>
+										</div>
+									</div>
+								</div>
+
+								<button
+									onclick={() => handleDeleteMaintenance(mw.id)}
+									class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors flex-shrink-0"
+									aria-label="Delete maintenance window"
+								>
+									<Trash2 class="w-3.5 h-3.5" />
+								</button>
+							</div>
+						</div>
+					{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+
 		<!-- ==================== API TOKENS SECTION ==================== -->
 		<div class="bg-card border border-border rounded-lg overflow-hidden">
 			<!-- Header -->
@@ -840,6 +966,12 @@
 		bind:open={showTokenModal}
 		onClose={() => { showTokenModal = false; plaintextToken = ''; }}
 		onCreated={handleTokenCreated}
+	/>
+
+	<CreateMaintenanceModal
+		bind:open={showMaintenanceModal}
+		onClose={() => { showMaintenanceModal = false; }}
+		onCreated={handleMaintenanceCreated}
 	/>
 
 	<ConfirmModal

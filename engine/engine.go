@@ -42,15 +42,16 @@ type Engine struct {
 	cfg    *config.Config
 
 	// Exposed for extensions via accessor methods.
-	agentRepo       ports.AgentRepository
-	monitorRepo     ports.MonitorRepository
-	heartbeatRepo   ports.HeartbeatRepository
-	certDetailsRepo ports.CertDetailsRepository
-	statusPageRepo  ports.StatusPageRepository
-	incidentSvc     ports.IncidentService
-	monitorSvc      ports.MonitorService
-	agentAuthSvc    ports.AgentAuthService
-	auditSvc        ports.AuditService
+	agentRepo          ports.AgentRepository
+	monitorRepo        ports.MonitorRepository
+	heartbeatRepo      ports.HeartbeatRepository
+	certDetailsRepo    ports.CertDetailsRepository
+	statusPageRepo     ports.StatusPageRepository
+	incidentSvc        ports.IncidentService
+	monitorSvc         ports.MonitorService
+	concreteMonitorSvc *services.MonitorService
+	agentAuthSvc       ports.AgentAuthService
+	auditSvc           ports.AuditService
 }
 
 // New creates a new Engine, loading config, connecting to the database,
@@ -211,15 +212,16 @@ func New(ctx context.Context) (*Engine, error) {
 		hub:    hub,
 		cfg:    cfg,
 
-		agentRepo:       agentRepo,
-		monitorRepo:     monitorRepo,
-		heartbeatRepo:   heartbeatRepo,
-		certDetailsRepo: certDetailsRepo,
-		statusPageRepo:  statusPageRepo,
-		incidentSvc:     incidentSvc,
-		monitorSvc:      monitorSvc,
-		agentAuthSvc:    authSvc,
-		auditSvc:        auditSvc,
+		agentRepo:          agentRepo,
+		monitorRepo:        monitorRepo,
+		heartbeatRepo:      heartbeatRepo,
+		certDetailsRepo:    certDetailsRepo,
+		statusPageRepo:     statusPageRepo,
+		incidentSvc:        incidentSvc,
+		monitorSvc:         monitorSvc,
+		concreteMonitorSvc: monitorSvc,
+		agentAuthSvc:       authSvc,
+		auditSvc:           auditSvc,
 	}, nil
 }
 
@@ -284,6 +286,14 @@ func (e *Engine) AgentAuthService() ports.AgentAuthService { return e.agentAuthS
 
 // AuditService returns the audit service for extensions.
 func (e *Engine) AuditService() ports.AuditService { return e.auditSvc }
+
+// NewMaintenanceWindowRepo creates and returns a new MaintenanceWindowRepository.
+// Also wires it into the MonitorService for suppression during active windows.
+func (e *Engine) NewMaintenanceWindowRepo() ports.MaintenanceWindowRepository {
+	repo := repository.NewMaintenanceWindowRepository(e.db)
+	e.concreteMonitorSvc.SetMaintenanceWindowRepo(repo)
+	return repo
+}
 
 // AgentMessenger returns the WebSocket hub as an AgentMessenger for extensions.
 func (e *Engine) AgentMessenger() ports.AgentMessenger { return e.hub }

@@ -13,13 +13,14 @@ import (
 
 // MonitorService implements ports.MonitorService for monitor orchestration.
 type MonitorService struct {
-	monitorRepo    ports.MonitorRepository
-	heartbeatRepo  ports.HeartbeatRepository
-	incidentRepo   ports.IncidentRepository
-	incidentSvc    ports.IncidentService
-	userRepo       ports.UserRepository
-	usageEventRepo ports.UsageEventRepository
-	logger         *slog.Logger
+	monitorRepo     ports.MonitorRepository
+	heartbeatRepo   ports.HeartbeatRepository
+	incidentRepo    ports.IncidentRepository
+	incidentSvc     ports.IncidentService
+	userRepo        ports.UserRepository
+	usageEventRepo  ports.UsageEventRepository
+	maintenanceRepo ports.MaintenanceWindowRepository // optional, set by EE
+	logger          *slog.Logger
 }
 
 // NewMonitorService creates a new MonitorService.
@@ -44,6 +45,12 @@ func NewMonitorService(
 		usageEventRepo: usageEventRepo,
 		logger:         logger,
 	}
+}
+
+// SetMaintenanceWindowRepo sets the optional maintenance window repository.
+// When set, MarkAgentMonitorsDown will check for active windows and suppress alerts.
+func (s *MonitorService) SetMaintenanceWindowRepo(repo ports.MaintenanceWindowRepository) {
+	s.maintenanceRepo = repo
 }
 
 // CreateMonitor creates a new monitor for an agent, enforcing plan limits.
@@ -254,7 +261,28 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 
 // MarkAgentMonitorsDown marks all enabled, healthy monitors for a disconnected agent as down.
 // Creates incidents silently (no per-monitor alerts) and sends a single agent-offline notification.
+// If a maintenance window is active for the agent, alerts are suppressed (fail-open on error).
 func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error {
+	// Check for active maintenance window (optional feature, optional).
+	if s.maintenanceRepo != nil {
+		window, err := s.maintenanceRepo.GetActiveByAgentID(ctx, agentID)
+		if err != nil {
+			// Fail-open: log and proceed with normal alerting.
+			s.logger.Warn("failed to check maintenance window, proceeding with alerts",
+				"agent_id", agentID,
+				"error", err,
+			)
+		} else if window != nil {
+			s.logger.Info("agent offline during maintenance window, suppressing alerts",
+				"agent_id", agentID,
+				"window_id", window.ID,
+				"window_name", window.Name,
+				"ends_at", window.EndsAt,
+			)
+			return nil
+		}
+	}
+
 	monitors, err := s.monitorRepo.GetByAgentID(ctx, agentID)
 	if err != nil {
 		return fmt.Errorf("monitorService.MarkAgentMonitorsDown: get monitors: %w", err)
