@@ -245,3 +245,70 @@ export interface PublicIncidentData {
 	status: string;
 	is_active: boolean;
 }
+
+// Incident investigation types
+export interface IncidentInvestigation {
+	incident: Incident;
+	monitor: Monitor;
+	agent: Agent | null;
+	agent_summary: AgentSummary;
+	heartbeats: HeartbeatPoint[] | null;
+	sibling_monitors: MonitorWithStatus[];
+	previous_incidents: Incident[];
+	recurrence_pattern: string;
+	mttr_seconds: number | null;
+	system_metrics: SystemMetricSnapshot[];
+	cert_details: CertDetails | null;
+	timeline: TimelineEvent[];
+}
+
+export interface AgentSummary {
+	id: string;
+	name: string;
+	status: string;
+}
+
+export interface MonitorWithStatus {
+	id: string;
+	name: string;
+	type: string;
+	target: string;
+	status: string;
+	has_incident: boolean;
+}
+
+export interface SystemMetricSnapshot {
+	monitor_name: string;
+	target: string;
+	value: string;
+	status: string;
+	time: string;
+}
+
+export interface TimelineEvent {
+	time: string;
+	type: string;
+	description: string;
+	severity: string;
+}
+
+// Audit log types
+export interface AuditLogParams {
+	page: number;
+	per_page: number;
+	action?: string;
+	from?: string;
+	to?: string;
+}
+
+export interface PaginatedAuditResponse {
+	data: AuditLogEntry[];
+	meta: PaginationMeta;
+}
+
+export interface PaginationMeta {
+	page: number;
+	per_page: number;
+	total: number;
+	pages: number;
+}

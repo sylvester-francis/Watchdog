@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Loader2, AlertTriangle, Eye, CheckCircle2 } from 'lucide-svelte';
+	import { Loader2, AlertTriangle, Eye, CheckCircle2, Search } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
 	import type { Incident, MonitorSummary } from '$lib/types';
 
@@ -8,9 +8,10 @@
 		monitor: MonitorSummary | undefined;
 		onAcknowledge: (id: string) => Promise<void>;
 		onResolve: (id: string) => Promise<void>;
+		onInvestigate?: (id: string) => void;
 	}
 
-	let { incident, monitor, onAcknowledge, onResolve }: Props = $props();
+	let { incident, monitor, onAcknowledge, onResolve, onInvestigate }: Props = $props();
 
 	let ackLoading = $state(false);
 	let resolveLoading = $state(false);
@@ -119,8 +120,17 @@
 
 	<!-- Actions -->
 	<td class="px-4 py-3.5">
-		{#if incident.status !== 'resolved'}
-			<div class="flex items-center space-x-1.5">
+		<div class="flex items-center justify-end space-x-1.5">
+			{#if onInvestigate}
+				<button
+					onclick={() => onInvestigate(incident.id)}
+					class="px-2 py-1 bg-accent/10 text-accent hover:bg-accent/20 rounded text-xs font-medium transition-colors"
+				>
+					<Search class="w-3 h-3 inline mr-0.5" />
+					Investigate
+				</button>
+			{/if}
+			{#if incident.status !== 'resolved'}
 				{#if incident.status === 'open'}
 					<button
 						onclick={handleAcknowledge}
@@ -143,7 +153,7 @@
 					{/if}
 					Resolve
 				</button>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	</td>
 </tr>
