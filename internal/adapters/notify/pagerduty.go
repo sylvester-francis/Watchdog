@@ -82,6 +82,50 @@ func (p *PagerDutyNotifier) NotifyIncidentResolved(ctx context.Context, incident
 	return p.send(ctx, payload)
 }
 
+// NotifyAgentOffline sends a trigger event to PagerDuty when an agent goes offline.
+func (p *PagerDutyNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error {
+	payload := pagerdutyEvent{
+		RoutingKey:  p.routingKey,
+		EventAction: "trigger",
+		DedupKey:    fmt.Sprintf("agent-offline-%s", agent.ID.String()),
+		Payload: pagerdutyPayload{
+			Summary:   fmt.Sprintf("Agent %s is offline (%d monitors affected)", agent.Name, affectedMonitors),
+			Source:    BrandName,
+			Severity:  "warning",
+			Timestamp: time.Now().Format(time.RFC3339),
+			CustomDetails: map[string]string{
+				"agent_name":        agent.Name,
+				"agent_id":          agent.ID.String(),
+				"affected_monitors": fmt.Sprintf("%d", affectedMonitors),
+			},
+		},
+	}
+
+	return p.send(ctx, payload)
+}
+
+// NotifyAgentOnline sends a resolve event to PagerDuty when an agent comes back online.
+func (p *PagerDutyNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	payload := pagerdutyEvent{
+		RoutingKey:  p.routingKey,
+		EventAction: "resolve",
+		DedupKey:    fmt.Sprintf("agent-offline-%s", agent.ID.String()),
+		Payload: pagerdutyPayload{
+			Summary:   fmt.Sprintf("Agent %s is back online (%d incidents resolved)", agent.Name, resolvedIncidents),
+			Source:    BrandName,
+			Severity:  "info",
+			Timestamp: time.Now().Format(time.RFC3339),
+			CustomDetails: map[string]string{
+				"agent_name":         agent.Name,
+				"agent_id":           agent.ID.String(),
+				"resolved_incidents": fmt.Sprintf("%d", resolvedIncidents),
+			},
+		},
+	}
+
+	return p.send(ctx, payload)
+}
+
 func (p *PagerDutyNotifier) send(ctx context.Context, event pagerdutyEvent) error {
 	body, err := json.Marshal(event)
 	if err != nil {

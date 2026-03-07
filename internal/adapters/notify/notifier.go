@@ -12,6 +12,8 @@ import (
 type Notifier interface {
 	NotifyIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
 	NotifyIncidentResolved(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) error
+	NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error
+	NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error
 }
 
 // MultiNotifier sends notifications to multiple notifiers.
@@ -58,6 +60,28 @@ func (m *MultiNotifier) NotifyIncidentResolved(ctx context.Context, incident *do
 	return combineErrors(errs)
 }
 
+// NotifyAgentOffline sends agent offline notifications to all notifiers.
+func (m *MultiNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error {
+	var errs []error
+	for _, n := range m.notifiers {
+		if err := n.NotifyAgentOffline(ctx, agent, affectedMonitors); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return combineErrors(errs)
+}
+
+// NotifyAgentOnline sends agent online notifications to all notifiers.
+func (m *MultiNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	var errs []error
+	for _, n := range m.notifiers {
+		if err := n.NotifyAgentOnline(ctx, agent, resolvedIncidents); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return combineErrors(errs)
+}
+
 // NoOpNotifier is a notifier that does nothing.
 // Useful as a default or for testing.
 type NoOpNotifier struct{}
@@ -74,6 +98,16 @@ func (n *NoOpNotifier) NotifyIncidentOpened(_ context.Context, _ *domain.Inciden
 
 // NotifyIncidentResolved does nothing.
 func (n *NoOpNotifier) NotifyIncidentResolved(_ context.Context, _ *domain.Incident, _ *domain.Monitor) error {
+	return nil
+}
+
+// NotifyAgentOffline does nothing.
+func (n *NoOpNotifier) NotifyAgentOffline(_ context.Context, _ *domain.Agent, _ int) error {
+	return nil
+}
+
+// NotifyAgentOnline does nothing.
+func (n *NoOpNotifier) NotifyAgentOnline(_ context.Context, _ *domain.Agent, _ int) error {
 	return nil
 }
 
