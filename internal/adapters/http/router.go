@@ -132,15 +132,20 @@ func (r *Router) RegisterRoutes() {
 	// Auth rate limiter: stricter limits for login/register/token-create endpoints.
 	//   - Rate=5/s, Burst=10: login is a high-value target for credential stuffing.
 	//     5 req/s per IP is generous for legitimate use but limits brute-force.
-	r.authRateLimiter = middleware.NewRateLimiter(middleware.RateLimiterConfig{
-		Rate:            5,
-		Burst:           10,
-		CleanupInterval: 5 * time.Minute,
-	})
+	if os.Getenv("DISABLE_RATE_LIMITS") != "true" {
+		r.authRateLimiter = middleware.NewRateLimiter(middleware.RateLimiterConfig{
+			Rate:            5,
+			Burst:           10,
+			CleanupInterval: 5 * time.Minute,
+		})
+	}
 	// General API rate limiter: see DefaultRateLimiterConfig() for rationale.
 	// SSE and WebSocket upgrade paths are excluded in the middleware itself.
-	r.generalRateLimiter = middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
-	e.Use(r.generalRateLimiter.Middleware())
+	// DISABLE_RATE_LIMITS=true skips rate limiting (for E2E/integration tests).
+	if os.Getenv("DISABLE_RATE_LIMITS") != "true" {
+		r.generalRateLimiter = middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
+		e.Use(r.generalRateLimiter.Middleware())
+	}
 
 	// H-001: Reject request bodies larger than 1 MB to prevent DoS via oversized payloads.
 	e.Use(echomw.BodyLimit("1M"))
@@ -150,7 +155,13 @@ func (r *Router) RegisterRoutes() {
 
 	// --- Go-handled routes (API, SSE, WS, health, install) ---
 
-	authRL := r.authRateLimiter.Middleware()
+	// Auth rate limiter middleware — pass-through when rate limits are disabled.
+	var authRL echo.MiddlewareFunc
+	if r.authRateLimiter != nil {
+		authRL = r.authRateLimiter.Middleware()
+	} else {
+		authRL = func(next echo.HandlerFunc) echo.HandlerFunc { return next }
+	}
 
 	// Health check (public)
 	e.GET("/health", r.healthCheck)
