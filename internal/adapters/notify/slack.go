@@ -73,6 +73,48 @@ func (s *SlackNotifier) NotifyIncidentResolved(ctx context.Context, incident *do
 	return s.send(ctx, payload)
 }
 
+// NotifyAgentOffline sends a notification when an agent goes offline.
+func (s *SlackNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error {
+	payload := slackPayload{
+		Attachments: []slackAttachment{
+			{
+				Color: "#FF0000",
+				Title: fmt.Sprintf("Agent Offline: %s", agent.Name),
+				Text:  fmt.Sprintf("Agent *%s* has disconnected", agent.Name),
+				Fields: []slackField{
+					{Title: "Agent", Value: agent.Name, Short: true},
+					{Title: "Affected Monitors", Value: fmt.Sprintf("%d", affectedMonitors), Short: true},
+				},
+				Footer: BrandName,
+				Ts:     time.Now().Unix(),
+			},
+		},
+	}
+
+	return s.send(ctx, payload)
+}
+
+// NotifyAgentOnline sends a notification when an agent comes back online.
+func (s *SlackNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	payload := slackPayload{
+		Attachments: []slackAttachment{
+			{
+				Color: "#00FF00",
+				Title: fmt.Sprintf("Agent Online: %s", agent.Name),
+				Text:  fmt.Sprintf("Agent *%s* has reconnected", agent.Name),
+				Fields: []slackField{
+					{Title: "Agent", Value: agent.Name, Short: true},
+					{Title: "Resolved Incidents", Value: fmt.Sprintf("%d", resolvedIncidents), Short: true},
+				},
+				Footer: BrandName,
+				Ts:     time.Now().Unix(),
+			},
+		},
+	}
+
+	return s.send(ctx, payload)
+}
+
 func (s *SlackNotifier) send(ctx context.Context, payload slackPayload) error {
 	body, err := json.Marshal(payload)
 	if err != nil {

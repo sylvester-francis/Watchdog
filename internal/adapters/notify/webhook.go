@@ -70,6 +70,57 @@ func (w *WebhookNotifier) NotifyIncidentResolved(ctx context.Context, incident *
 	return w.send(ctx, payload)
 }
 
+// NotifyAgentOffline sends a notification when an agent goes offline.
+func (w *WebhookNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.Agent, affectedMonitors int) error {
+	payload := webhookAgentPayload{
+		Event:            "agent.offline",
+		Timestamp:        time.Now(),
+		AgentID:          agent.ID.String(),
+		AgentName:        agent.Name,
+		AffectedMonitors: affectedMonitors,
+	}
+
+	return w.sendAgent(ctx, payload)
+}
+
+// NotifyAgentOnline sends a notification when an agent comes back online.
+func (w *WebhookNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.Agent, resolvedIncidents int) error {
+	payload := webhookAgentPayload{
+		Event:             "agent.online",
+		Timestamp:         time.Now(),
+		AgentID:           agent.ID.String(),
+		AgentName:         agent.Name,
+		ResolvedIncidents: resolvedIncidents,
+	}
+
+	return w.sendAgent(ctx, payload)
+}
+
+func (w *WebhookNotifier) sendAgent(ctx context.Context, payload webhookAgentPayload) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("marshal payload: %w", err)}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.url, bytes.NewReader(body))
+	if err != nil {
+		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("create request: %w", err)}
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := w.httpClient.Do(req)
+	if err != nil {
+		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("send request: %w", err)}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("unexpected status code: %d", resp.StatusCode)}
+	}
+
+	return nil
+}
+
 func (w *WebhookNotifier) send(ctx context.Context, payload webhookPayload) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -115,4 +166,13 @@ type webhookMonitor struct {
 	Name   string `json:"name"`
 	Type   string `json:"type"`
 	Target string `json:"target"`
+}
+
+type webhookAgentPayload struct {
+	Event             string    `json:"event_type"`
+	Timestamp         time.Time `json:"timestamp"`
+	AgentID           string    `json:"agent_id"`
+	AgentName         string    `json:"agent_name"`
+	AffectedMonitors  int       `json:"affected_monitors,omitempty"`
+	ResolvedIncidents int       `json:"resolved_incidents,omitempty"`
 }
