@@ -30,6 +30,7 @@ type WSHandler struct {
 	agentAuthSvc    ports.AgentAuthService
 	monitorSvc      ports.MonitorService
 	agentRepo       ports.AgentRepository
+	monitorRepo     ports.MonitorRepository
 	certDetailsRepo ports.CertDetailsRepository
 	hub             *realtime.Hub
 	logger          *slog.Logger
@@ -45,6 +46,7 @@ func NewWSHandler(
 	agentAuthSvc ports.AgentAuthService,
 	monitorSvc ports.MonitorService,
 	agentRepo ports.AgentRepository,
+	monitorRepo ports.MonitorRepository,
 	certDetailsRepo ports.CertDetailsRepository,
 	hub *realtime.Hub,
 	logger *slog.Logger,
@@ -54,6 +56,7 @@ func NewWSHandler(
 		agentAuthSvc:    agentAuthSvc,
 		monitorSvc:      monitorSvc,
 		agentRepo:       agentRepo,
+		monitorRepo:     monitorRepo,
 		certDetailsRepo: certDetailsRepo,
 		hub:             hub,
 		logger:          logger,
@@ -340,6 +343,18 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 					slog.String("monitor_id", payload.MonitorID),
 					slog.String("error", err.Error()),
 				)
+			}
+		}
+
+		// Persist port scan results to monitor metadata
+		if payload.Metadata["open_ports"] != "" || payload.Metadata["scanned_count"] != "" {
+			if h.monitorRepo != nil {
+				if err := h.monitorRepo.UpdateMetadata(ctx, monitorID, payload.Metadata); err != nil {
+					h.logger.Error("failed to update port scan metadata",
+						slog.String("monitor_id", payload.MonitorID),
+						slog.String("error", err.Error()),
+					)
+				}
 			}
 		}
 

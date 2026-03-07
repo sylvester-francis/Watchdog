@@ -45,10 +45,12 @@ type Engine struct {
 	agentRepo          ports.AgentRepository
 	monitorRepo        ports.MonitorRepository
 	heartbeatRepo      ports.HeartbeatRepository
+	incidentRepo       ports.IncidentRepository
 	certDetailsRepo    ports.CertDetailsRepository
 	statusPageRepo     ports.StatusPageRepository
 	incidentSvc        ports.IncidentService
 	monitorSvc         ports.MonitorService
+	investigationSvc   ports.InvestigationService
 	concreteMonitorSvc *services.MonitorService
 	agentAuthSvc       ports.AgentAuthService
 	auditSvc           ports.AuditService
@@ -103,6 +105,7 @@ func New(ctx context.Context) (*Engine, error) {
 	notifierFactory := notify.NewChannelNotifierFactory()
 	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
+	investigationSvc := services.NewInvestigationService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, certDetailsRepo, logger)
 
 	// Module registry with defaults
 	reg := registry.New(logger)
@@ -170,7 +173,7 @@ func New(ctx context.Context) (*Engine, error) {
 	e.Use(middleware.SecureHeaders(cfg.Server.SecureCookies))
 
 	// Router
-	router, err := internalhttp.NewRouter(e, internalhttp.Dependencies{
+	routerDeps := internalhttp.Dependencies{
 		UserAuthService:  authSvc,
 		AgentAuthService: authSvc,
 		MonitorService:   monitorSvc,
@@ -197,11 +200,15 @@ func New(ctx context.Context) (*Engine, error) {
 		SecureCookies:    cfg.Server.SecureCookies,
 		AllowedOrigins:   cfg.Server.AllowedOrigins,
 		Registry:         reg,
-	})
+	}
+	router, err := internalhttp.NewRouter(e, routerDeps)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("initialize router: %w", err)
 	}
+
+	// Wire investigation service into the API handler
+	router.APIV1Handler().SetInvestigationService(investigationSvc)
 
 	return &Engine{
 		reg:    reg,
@@ -215,10 +222,12 @@ func New(ctx context.Context) (*Engine, error) {
 		agentRepo:          agentRepo,
 		monitorRepo:        monitorRepo,
 		heartbeatRepo:      heartbeatRepo,
+		incidentRepo:       incidentRepo,
 		certDetailsRepo:    certDetailsRepo,
 		statusPageRepo:     statusPageRepo,
 		incidentSvc:        incidentSvc,
 		monitorSvc:         monitorSvc,
+		investigationSvc:   investigationSvc,
 		concreteMonitorSvc: monitorSvc,
 		agentAuthSvc:       authSvc,
 		auditSvc:           auditSvc,
@@ -286,6 +295,12 @@ func (e *Engine) AgentAuthService() ports.AgentAuthService { return e.agentAuthS
 
 // AuditService returns the audit service for extensions.
 func (e *Engine) AuditService() ports.AuditService { return e.auditSvc }
+
+// InvestigationService returns the investigation service for extensions.
+func (e *Engine) InvestigationService() ports.InvestigationService { return e.investigationSvc }
+
+// IncidentRepo returns the incident repository for extensions.
+func (e *Engine) IncidentRepo() ports.IncidentRepository { return e.incidentRepo }
 
 // NewMaintenanceWindowRepo creates and returns a new MaintenanceWindowRepository.
 // Also wires it into the MonitorService for suppression during active windows.

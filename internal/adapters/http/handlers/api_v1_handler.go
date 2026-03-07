@@ -19,15 +19,16 @@ import (
 
 // APIV1Handler serves the public JSON API endpoints (token-authenticated).
 type APIV1Handler struct {
-	agentRepo       ports.AgentRepository
-	monitorRepo     ports.MonitorRepository
-	heartbeatRepo   ports.HeartbeatRepository
-	certDetailsRepo ports.CertDetailsRepository
-	incidentSvc     ports.IncidentService
-	monitorSvc      ports.MonitorService
-	agentAuthSvc    ports.AgentAuthService
-	hub             *realtime.Hub
-	auditSvc        ports.AuditService
+	agentRepo        ports.AgentRepository
+	monitorRepo      ports.MonitorRepository
+	heartbeatRepo    ports.HeartbeatRepository
+	certDetailsRepo  ports.CertDetailsRepository
+	incidentSvc      ports.IncidentService
+	monitorSvc       ports.MonitorService
+	agentAuthSvc     ports.AgentAuthService
+	hub              *realtime.Hub
+	auditSvc         ports.AuditService
+	investigationSvc ports.InvestigationService
 }
 
 // NewAPIV1Handler creates a new APIV1Handler.
@@ -1027,5 +1028,50 @@ func (h *APIV1Handler) GetMonitorSLA(c echo.Context) error {
 			"margin":         margin,
 			"period":         periodLabel,
 		},
+	})
+}
+
+// SetInvestigationService sets the investigation service (wired after construction).
+func (h *APIV1Handler) SetInvestigationService(svc ports.InvestigationService) {
+	h.investigationSvc = svc
+}
+
+// GetIncidentInvestigation returns aggregated investigation data for an incident.
+// GET /api/v1/incidents/:id/investigation
+func (h *APIV1Handler) GetIncidentInvestigation(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+
+	incidentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
+	}
+
+	// Verify ownership
+	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, incidentID, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incident"})
+	}
+	if incident == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+	}
+
+	if h.investigationSvc == nil {
+		return c.JSON(http.StatusNotImplemented, map[string]string{"error": "investigation service not available"})
+	}
+
+	investigation, err := h.investigationSvc.Investigate(ctx, incidentID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to investigate incident"})
+	}
+	if investigation == nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"data": investigation,
 	})
 }

@@ -237,6 +237,7 @@ type MockMonitorRepository struct {
 	DeleteFn              func(ctx context.Context, id uuid.UUID) error
 	UpdateStatusFn        func(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error
 	CountByUserIDFn       func(ctx context.Context, userID uuid.UUID) (int, error)
+	UpdateMetadataFn      func(ctx context.Context, id uuid.UUID, metadata map[string]string) error
 }
 
 func (m *MockMonitorRepository) Create(ctx context.Context, monitor *domain.Monitor) error {
@@ -300,6 +301,13 @@ func (m *MockMonitorRepository) CountByUserID(ctx context.Context, userID uuid.U
 		return m.CountByUserIDFn(ctx, userID)
 	}
 	return 0, nil
+}
+
+func (m *MockMonitorRepository) UpdateMetadata(ctx context.Context, id uuid.UUID, metadata map[string]string) error {
+	if m.UpdateMetadataFn != nil {
+		return m.UpdateMetadataFn(ctx, id, metadata)
+	}
+	return nil
 }
 
 // MockIncidentRepository is a mock implementation of ports.IncidentRepository.

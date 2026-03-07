@@ -227,6 +227,30 @@ func (r *MonitorRepository) CountByUserID(ctx context.Context, userID uuid.UUID)
 	return count, nil
 }
 
+// UpdateMetadata updates only the metadata JSONB column of a monitor.
+func (r *MonitorRepository) UpdateMetadata(ctx context.Context, id uuid.UUID, metadata map[string]string) error {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("monitorRepo.UpdateMetadata(%s): marshal: %w", id, err)
+	}
+
+	query := `UPDATE monitors SET metadata = $2 WHERE id = $1 AND tenant_id = $3`
+
+	result, err := q.Exec(ctx, query, id, metadataJSON, tenantID)
+	if err != nil {
+		return fmt.Errorf("monitorRepo.UpdateMetadata(%s): %w", id, err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("monitorRepo.UpdateMetadata(%s): monitor not found", id)
+	}
+
+	return nil
+}
+
 // UpdateStatus updates only the status of a monitor.
 func (r *MonitorRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error {
 	q := r.db.Querier(ctx)
