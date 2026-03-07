@@ -176,6 +176,57 @@ func (r *AgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]
 	return agents, nil
 }
 
+// GetAllInTenant retrieves all agents in the current tenant.
+func (r *AgentRepository) GetAllInTenant(ctx context.Context) ([]*domain.Agent, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	// H-020: hard limit prevents unbounded result sets.
+	query := `
+		SELECT id, user_id, name, api_key_encrypted, api_key_expires_at, last_seen_at, status, fingerprint, fingerprint_verified_at, created_at
+		FROM agents
+		WHERE tenant_id = $1
+		ORDER BY created_at DESC
+		LIMIT 1000`
+
+	rows, err := q.Query(ctx, query, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("agentRepo.GetAllInTenant: %w", err)
+	}
+	defer rows.Close()
+
+	var agents []*domain.Agent
+	for rows.Next() {
+		agent := &domain.Agent{}
+		var fingerprintJSON []byte
+		err := rows.Scan(
+			&agent.ID,
+			&agent.UserID,
+			&agent.Name,
+			&agent.APIKeyEncrypted,
+			&agent.APIKeyExpiresAt,
+			&agent.LastSeenAt,
+			&agent.Status,
+			&fingerprintJSON,
+			&agent.FingerprintVerifiedAt,
+			&agent.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("agentRepo.GetAllInTenant: scan: %w", err)
+		}
+		if fingerprintJSON != nil {
+			_ = json.Unmarshal(fingerprintJSON, &agent.Fingerprint)
+		}
+		agents = append(agents, agent)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("agentRepo.GetAllInTenant: rows: %w", err)
+	}
+
+	return agents, nil
+}
+
 // Update updates an existing agent in the database.
 func (r *AgentRepository) Update(ctx context.Context, agent *domain.Agent) error {
 	q := r.db.Querier(ctx)

@@ -140,6 +140,7 @@ type MockAgentRepository struct {
 	GetByIDFn           func(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
 	GetByIDGlobalFn     func(ctx context.Context, id uuid.UUID) (*domain.Agent, error)
 	GetByUserIDFn       func(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error)
+	GetAllInTenantFn    func(ctx context.Context) ([]*domain.Agent, error)
 	UpdateFn            func(ctx context.Context, agent *domain.Agent) error
 	DeleteFn            func(ctx context.Context, id uuid.UUID) error
 	UpdateStatusFn      func(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
@@ -172,6 +173,13 @@ func (m *MockAgentRepository) GetByIDGlobal(ctx context.Context, id uuid.UUID) (
 func (m *MockAgentRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Agent, error) {
 	if m.GetByUserIDFn != nil {
 		return m.GetByUserIDFn(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *MockAgentRepository) GetAllInTenant(ctx context.Context) ([]*domain.Agent, error) {
+	if m.GetAllInTenantFn != nil {
+		return m.GetAllInTenantFn(ctx)
 	}
 	return nil, nil
 }
@@ -224,6 +232,7 @@ type MockMonitorRepository struct {
 	GetByIDFn             func(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetByAgentIDFn        func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	GetEnabledByAgentIDFn func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
+	GetAllInTenantFn      func(ctx context.Context) ([]*domain.Monitor, error)
 	UpdateFn              func(ctx context.Context, monitor *domain.Monitor) error
 	DeleteFn              func(ctx context.Context, id uuid.UUID) error
 	UpdateStatusFn        func(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error
@@ -254,6 +263,13 @@ func (m *MockMonitorRepository) GetByAgentID(ctx context.Context, agentID uuid.U
 func (m *MockMonitorRepository) GetEnabledByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error) {
 	if m.GetEnabledByAgentIDFn != nil {
 		return m.GetEnabledByAgentIDFn(ctx, agentID)
+	}
+	return nil, nil
+}
+
+func (m *MockMonitorRepository) GetAllInTenant(ctx context.Context) ([]*domain.Monitor, error) {
+	if m.GetAllInTenantFn != nil {
+		return m.GetAllInTenantFn(ctx)
 	}
 	return nil, nil
 }
@@ -608,15 +624,17 @@ func (m *MockAlertChannelRepository) Delete(ctx context.Context, id uuid.UUID) e
 
 // MockStatusPageRepository is a mock implementation of ports.StatusPageRepository.
 type MockStatusPageRepository struct {
-	CreateFn            func(ctx context.Context, page *domain.StatusPage) error
-	GetByIDFn           func(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error)
-	GetByUserAndSlugFn  func(ctx context.Context, username, slug string) (*domain.StatusPage, error)
-	GetByUserIDFn       func(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error)
-	UpdateFn            func(ctx context.Context, page *domain.StatusPage) error
-	DeleteFn            func(ctx context.Context, id uuid.UUID) error
-	SetMonitorsFn       func(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
-	GetMonitorIDsFn     func(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
-	SlugExistsForUserFn func(ctx context.Context, userID uuid.UUID, slug string) (bool, error)
+	CreateFn               func(ctx context.Context, page *domain.StatusPage) error
+	GetByIDFn              func(ctx context.Context, id uuid.UUID) (*domain.StatusPage, error)
+	GetByUserAndSlugFn     func(ctx context.Context, username, slug string) (*domain.StatusPage, error)
+	GetByUserIDFn          func(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error)
+	GetAllInTenantFn       func(ctx context.Context) ([]*domain.StatusPage, error)
+	UpdateFn               func(ctx context.Context, page *domain.StatusPage) error
+	DeleteFn               func(ctx context.Context, id uuid.UUID) error
+	SetMonitorsFn          func(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
+	SetMonitorsInTenantFn  func(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
+	GetMonitorIDsFn        func(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
+	SlugExistsForUserFn    func(ctx context.Context, userID uuid.UUID, slug string) (bool, error)
 }
 
 func (m *MockStatusPageRepository) Create(ctx context.Context, page *domain.StatusPage) error {
@@ -647,6 +665,13 @@ func (m *MockStatusPageRepository) GetByUserID(ctx context.Context, userID uuid.
 	return nil, nil
 }
 
+func (m *MockStatusPageRepository) GetAllInTenant(ctx context.Context) ([]*domain.StatusPage, error) {
+	if m.GetAllInTenantFn != nil {
+		return m.GetAllInTenantFn(ctx)
+	}
+	return nil, nil
+}
+
 func (m *MockStatusPageRepository) Update(ctx context.Context, page *domain.StatusPage) error {
 	if m.UpdateFn != nil {
 		return m.UpdateFn(ctx, page)
@@ -664,6 +689,13 @@ func (m *MockStatusPageRepository) Delete(ctx context.Context, id uuid.UUID) err
 func (m *MockStatusPageRepository) SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error {
 	if m.SetMonitorsFn != nil {
 		return m.SetMonitorsFn(ctx, pageID, monitorIDs)
+	}
+	return nil
+}
+
+func (m *MockStatusPageRepository) SetMonitorsInTenant(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error {
+	if m.SetMonitorsInTenantFn != nil {
+		return m.SetMonitorsInTenantFn(ctx, pageID, monitorIDs)
 	}
 	return nil
 }
