@@ -346,14 +346,24 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 			}
 		}
 
-		// Persist port scan results to monitor metadata
+		// Persist port scan results to monitor metadata (merge, preserving config keys)
 		if payload.Metadata["open_ports"] != "" || payload.Metadata["scanned_count"] != "" {
 			if h.monitorRepo != nil {
-				if err := h.monitorRepo.UpdateMetadata(ctx, monitorID, payload.Metadata); err != nil {
-					h.logger.Error("failed to update port scan metadata",
-						slog.String("monitor_id", payload.MonitorID),
-						slog.String("error", err.Error()),
-					)
+				existing, err := h.monitorRepo.GetByID(ctx, monitorID)
+				if err == nil && existing != nil {
+					merged := make(map[string]string)
+					for k, v := range existing.Metadata {
+						merged[k] = v
+					}
+					for k, v := range payload.Metadata {
+						merged[k] = v
+					}
+					if err := h.monitorRepo.UpdateMetadata(ctx, monitorID, merged); err != nil {
+						h.logger.Error("failed to update port scan metadata",
+							slog.String("monitor_id", payload.MonitorID),
+							slog.String("error", err.Error()),
+						)
+					}
 				}
 			}
 		}
