@@ -28,8 +28,8 @@ func (r *MaintenanceWindowRepository) Create(ctx context.Context, window *domain
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		INSERT INTO maintenance_windows (id, agent_id, user_id, name, starts_at, ends_at, created_at, tenant_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		INSERT INTO maintenance_windows (id, agent_id, user_id, name, starts_at, ends_at, recurrence, created_at, tenant_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := q.Exec(ctx, query,
 		window.ID,
@@ -38,6 +38,7 @@ func (r *MaintenanceWindowRepository) Create(ctx context.Context, window *domain
 		window.Name,
 		window.StartsAt,
 		window.EndsAt,
+		window.Recurrence,
 		window.CreatedAt,
 		tenantID,
 	)
@@ -54,14 +55,14 @@ func (r *MaintenanceWindowRepository) GetByID(ctx context.Context, id uuid.UUID)
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, agent_id, user_id, name, starts_at, ends_at, created_at, tenant_id
+		SELECT id, agent_id, user_id, name, starts_at, ends_at, recurrence, created_at, tenant_id
 		FROM maintenance_windows
 		WHERE id = $1 AND tenant_id = $2`
 
 	var mw domain.MaintenanceWindow
 	err := q.QueryRow(ctx, query, id, tenantID).Scan(
 		&mw.ID, &mw.AgentID, &mw.UserID, &mw.Name,
-		&mw.StartsAt, &mw.EndsAt, &mw.CreatedAt, &mw.TenantID,
+		&mw.StartsAt, &mw.EndsAt, &mw.Recurrence, &mw.CreatedAt, &mw.TenantID,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -79,7 +80,7 @@ func (r *MaintenanceWindowRepository) GetByTenant(ctx context.Context) ([]*domai
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, agent_id, user_id, name, starts_at, ends_at, created_at, tenant_id
+		SELECT id, agent_id, user_id, name, starts_at, ends_at, recurrence, created_at, tenant_id
 		FROM maintenance_windows
 		WHERE tenant_id = $1
 		ORDER BY starts_at DESC
@@ -112,7 +113,7 @@ func (r *MaintenanceWindowRepository) GetActiveByAgentID(ctx context.Context, ag
 	tenantID := TenantIDFromContext(ctx)
 
 	query := `
-		SELECT id, agent_id, user_id, name, starts_at, ends_at, created_at, tenant_id
+		SELECT id, agent_id, user_id, name, starts_at, ends_at, recurrence, created_at, tenant_id
 		FROM maintenance_windows
 		WHERE agent_id = $1 AND tenant_id = $2 AND starts_at <= NOW() AND ends_at > NOW()
 		LIMIT 1`
@@ -120,7 +121,7 @@ func (r *MaintenanceWindowRepository) GetActiveByAgentID(ctx context.Context, ag
 	var mw domain.MaintenanceWindow
 	err := q.QueryRow(ctx, query, agentID, tenantID).Scan(
 		&mw.ID, &mw.AgentID, &mw.UserID, &mw.Name,
-		&mw.StartsAt, &mw.EndsAt, &mw.CreatedAt, &mw.TenantID,
+		&mw.StartsAt, &mw.EndsAt, &mw.Recurrence, &mw.CreatedAt, &mw.TenantID,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -139,10 +140,10 @@ func (r *MaintenanceWindowRepository) Update(ctx context.Context, window *domain
 
 	query := `
 		UPDATE maintenance_windows
-		SET name = $1, starts_at = $2, ends_at = $3
-		WHERE id = $4 AND tenant_id = $5`
+		SET name = $1, starts_at = $2, ends_at = $3, recurrence = $4
+		WHERE id = $5 AND tenant_id = $6`
 
-	result, err := q.Exec(ctx, query, window.Name, window.StartsAt, window.EndsAt, window.ID, tenantID)
+	result, err := q.Exec(ctx, query, window.Name, window.StartsAt, window.EndsAt, window.Recurrence, window.ID, tenantID)
 	if err != nil {
 		return fmt.Errorf("maintenanceWindowRepo.Update: %w", err)
 	}
@@ -175,7 +176,7 @@ func (r *MaintenanceWindowRepository) GetExpiredWithOfflineAgents(ctx context.Co
 	q := r.db.Querier(ctx)
 
 	query := `
-		SELECT mw.id, mw.agent_id, mw.user_id, mw.name, mw.starts_at, mw.ends_at, mw.created_at, mw.tenant_id
+		SELECT mw.id, mw.agent_id, mw.user_id, mw.name, mw.starts_at, mw.ends_at, mw.recurrence, mw.created_at, mw.tenant_id
 		FROM maintenance_windows mw
 		JOIN agents a ON a.id = mw.agent_id
 		WHERE mw.ends_at <= NOW()
@@ -196,6 +197,39 @@ func (r *MaintenanceWindowRepository) GetExpiredWithOfflineAgents(ctx context.Co
 			&mw.StartsAt, &mw.EndsAt, &mw.CreatedAt, &mw.TenantID,
 		); err != nil {
 			return nil, fmt.Errorf("maintenanceWindowRepo.GetExpiredWithOfflineAgents: scan: %w", err)
+		}
+		windows = append(windows, &mw)
+	}
+
+	return windows, rows.Err()
+}
+
+// GetExpiredRecurring returns recurring maintenance windows that expired in the last 10 minutes.
+// Used by the background job to create the next occurrence.
+func (r *MaintenanceWindowRepository) GetExpiredRecurring(ctx context.Context) ([]*domain.MaintenanceWindow, error) {
+	q := r.db.Querier(ctx)
+
+	query := `
+		SELECT id, agent_id, user_id, name, starts_at, ends_at, recurrence, created_at, tenant_id
+		FROM maintenance_windows
+		WHERE recurrence != 'once'
+		  AND ends_at <= NOW()
+		  AND ends_at > NOW() - INTERVAL '10 minutes'`
+
+	rows, err := q.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("maintenanceWindowRepo.GetExpiredRecurring: %w", err)
+	}
+	defer rows.Close()
+
+	var windows []*domain.MaintenanceWindow
+	for rows.Next() {
+		var mw domain.MaintenanceWindow
+		if err := rows.Scan(
+			&mw.ID, &mw.AgentID, &mw.UserID, &mw.Name,
+			&mw.StartsAt, &mw.EndsAt, &mw.Recurrence, &mw.CreatedAt, &mw.TenantID,
+		); err != nil {
+			return nil, fmt.Errorf("maintenanceWindowRepo.GetExpiredRecurring: scan: %w", err)
 		}
 		windows = append(windows, &mw)
 	}
