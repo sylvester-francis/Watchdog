@@ -38,6 +38,15 @@ const (
 	AuditMaintenanceWindowExpired    AuditAction = "maintenance_window_expired"
 )
 
+// AuditQueryOpts defines filters for paginated audit log queries.
+type AuditQueryOpts struct {
+	Page    int
+	PerPage int
+	Action  string    // filter by action type
+	From    time.Time // filter from date (inclusive)
+	To      time.Time // filter to date (exclusive)
+}
+
 // AuditLog represents a security audit event.
 type AuditLog struct {
 	ID        uuid.UUID

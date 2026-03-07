@@ -129,6 +129,7 @@ type AuditLogRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*domain.AuditLog, error)
 	GetRecent(ctx context.Context, limit int) ([]*domain.AuditLog, error)
 	GetRecentByActions(ctx context.Context, actions []domain.AuditAction, limit int) ([]*domain.AuditLog, error)
+	GetPaginated(ctx context.Context, userID uuid.UUID, opts domain.AuditQueryOpts) ([]*domain.AuditLog, int, error)
 }
 
 // StatusPageRepository defines the interface for status page persistence.
