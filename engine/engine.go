@@ -11,10 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 
+	"github.com/sylvester-francis/watchdog-proto/protocol"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/core/registry"
 	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
@@ -29,6 +31,16 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/defaults"
 	"github.com/sylvester-francis/watchdog/internal/workflows"
 )
+
+// HeartbeatHook is called after each heartbeat is processed.
+// Extensions use this to store port scan results and detect service changes.
+type HeartbeatHook func(ctx context.Context, agentID, monitorID uuid.UUID, payload *protocol.HeartbeatPayload)
+
+// TenantIDFromContext extracts the tenant ID from a request context.
+// Returns "default" if no tenant ID is set.
+func TenantIDFromContext(ctx context.Context) string {
+	return repository.TenantIDFromContext(ctx)
+}
 
 // Engine wraps all application components and manages the lifecycle.
 // Usage: New() -> (optional Registry().Register overrides) -> Init() -> Run()
@@ -330,6 +342,12 @@ func (e *Engine) SetTenantValidator(v handlers.TenantValidator) {
 // SetPostRegisterHook sets the Extension hook for post-registration actions.
 func (e *Engine) SetPostRegisterHook(hook handlers.PostRegisterHook) {
 	e.router.AuthAPIHandler().SetPostRegisterHook(hook)
+}
+
+// AddHeartbeatHook registers a hook to be called after each heartbeat is processed.
+// Extensions use this for port scan storage and service change detection.
+func (e *Engine) AddHeartbeatHook(hook HeartbeatHook) {
+	e.router.WSHandler().AddHeartbeatHook(handlers.HeartbeatHook(hook))
 }
 
 // Init initializes all registered modules and registers HTTP routes.

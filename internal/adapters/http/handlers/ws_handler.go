@@ -25,6 +25,10 @@ import (
 // maxWSConnsPerIP limits concurrent WebSocket connections per IP (H-005).
 const maxWSConnsPerIP = 10
 
+// HeartbeatHook is called after each heartbeat is processed.
+// Extensions use this to store port scan results and detect service changes.
+type HeartbeatHook func(ctx context.Context, agentID, monitorID uuid.UUID, payload *protocol.HeartbeatPayload)
+
 // WSHandler handles WebSocket connections from agents.
 type WSHandler struct {
 	agentAuthSvc    ports.AgentAuthService
@@ -39,6 +43,13 @@ type WSHandler struct {
 	// H-005: per-IP concurrent connection tracker.
 	connMu    sync.Mutex
 	connCount map[string]int
+
+	heartbeatHooks []HeartbeatHook
+}
+
+// AddHeartbeatHook registers a hook to be called after heartbeat processing.
+func (h *WSHandler) AddHeartbeatHook(hook HeartbeatHook) {
+	h.heartbeatHooks = append(h.heartbeatHooks, hook)
 }
 
 // NewWSHandler creates a new WSHandler.
@@ -366,6 +377,11 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 					}
 				}
 			}
+		}
+
+		// Invoke heartbeat hooks (port scan storage, service change detection, etc.)
+		for _, hook := range h.heartbeatHooks {
+			hook(ctx, agentID, monitorID, payload)
 		}
 
 		// Update agent last seen
