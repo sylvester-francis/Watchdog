@@ -162,7 +162,7 @@ func (r *Router) RegisterRoutes() {
 	e.GET("/ws/agent", r.wsHandler.HandleConnection)
 
 	// Tenant scope middleware — resolve tenant ID into request context
-	tenantMW := r.tenantMiddleware()
+	tenantMW := r.TenantMiddleware()
 
 	// SSE for real-time updates (auth required)
 	sseGroup := e.Group("")
@@ -281,10 +281,10 @@ func (r *Router) RegisterRoutes() {
 	r.registerSvelteRoutes()
 }
 
-// tenantMiddleware returns the tenant scope middleware.
+// TenantMiddleware returns the tenant scope middleware.
 // If a TenantResolver is registered in the module registry, it is used.
 // Otherwise, a default middleware that injects "default" is used.
-func (r *Router) tenantMiddleware() echo.MiddlewareFunc {
+func (r *Router) TenantMiddleware() echo.MiddlewareFunc {
 	if r.deps.Registry != nil {
 		if mod, ok := r.deps.Registry.Get("tenant_resolver"); ok {
 			if resolver, ok := mod.(ports.TenantResolver); ok {

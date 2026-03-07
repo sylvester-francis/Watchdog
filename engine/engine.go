@@ -251,6 +251,13 @@ func (e *Engine) AuthMiddleware() echo.MiddlewareFunc {
 	return middleware.AuthRequiredAPI
 }
 
+// TenantMiddleware returns the tenant-scoping middleware that injects
+// tenant_id into the request context. EE route groups need this to ensure
+// repository queries are correctly scoped by tenant.
+func (e *Engine) TenantMiddleware() echo.MiddlewareFunc {
+	return e.router.TenantMiddleware()
+}
+
 // AgentRepo returns the agent repository for extensions.
 func (e *Engine) AgentRepo() ports.AgentRepository { return e.agentRepo }
 
