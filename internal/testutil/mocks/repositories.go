@@ -307,7 +307,7 @@ type MockIncidentRepository struct {
 	CreateFn               func(ctx context.Context, incident *domain.Incident) error
 	GetByIDFn              func(ctx context.Context, id uuid.UUID) (*domain.Incident, error)
 	GetByMonitorIDFn       func(ctx context.Context, monitorID uuid.UUID) ([]*domain.Incident, error)
-	GetOpenByMonitorIDFn   func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
+	GetActiveByMonitorIDFn   func(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error)
 	GetActiveIncidentsFn   func(ctx context.Context) ([]*domain.Incident, error)
 	GetResolvedIncidentsFn func(ctx context.Context) ([]*domain.Incident, error)
 	GetAllIncidentsFn      func(ctx context.Context) ([]*domain.Incident, error)
@@ -337,9 +337,9 @@ func (m *MockIncidentRepository) GetByMonitorID(ctx context.Context, monitorID u
 	return nil, nil
 }
 
-func (m *MockIncidentRepository) GetOpenByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error) {
-	if m.GetOpenByMonitorIDFn != nil {
-		return m.GetOpenByMonitorIDFn(ctx, monitorID)
+func (m *MockIncidentRepository) GetActiveByMonitorID(ctx context.Context, monitorID uuid.UUID) (*domain.Incident, error) {
+	if m.GetActiveByMonitorIDFn != nil {
+		return m.GetActiveByMonitorIDFn(ctx, monitorID)
 	}
 	return nil, nil
 }
