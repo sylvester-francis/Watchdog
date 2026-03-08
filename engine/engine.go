@@ -251,6 +251,9 @@ func New(ctx context.Context) (*Engine, error) {
 	// Wire Prometheus heartbeat latency observer
 	router.WSHandler().SetHeartbeatTimer(prom.ObserveHeartbeat)
 
+	// Wire metrics history for in-app dashboard
+	router.SystemAPIHandler().SetMetricsHistory(prom.History())
+
 	return &Engine{
 		reg:     reg,
 		db:      db,
@@ -388,6 +391,10 @@ func (e *Engine) Init(ctx context.Context) error {
 	}
 
 	go e.hub.Run()
+
+	// Start metrics history snapshots.
+	e.metrics.History().Start(ctx)
+
 	e.router.RegisterRoutes()
 
 	// Background maintenance window processor (60s tick).
