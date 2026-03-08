@@ -372,6 +372,12 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name, type, target, and agent_id are required"})
 	}
 
+	if !domain.MonitorType(req.Type).IsValid() {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": fmt.Sprintf("invalid monitor type: %s", req.Type),
+		})
+	}
+
 	agentID, err := uuid.Parse(req.AgentID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})

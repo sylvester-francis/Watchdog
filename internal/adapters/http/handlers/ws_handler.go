@@ -26,7 +26,7 @@ import (
 const maxWSConnsPerIP = 10
 
 // HeartbeatHook is called after each heartbeat is processed.
-// Extensions use this to store port scan results and detect service changes.
+// Extensions can use this for post-processing.
 type HeartbeatHook func(ctx context.Context, agentID, monitorID uuid.UUID, payload *protocol.HeartbeatPayload)
 
 // WSHandler handles WebSocket connections from agents.

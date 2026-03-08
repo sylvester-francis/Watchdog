@@ -33,7 +33,7 @@ import (
 )
 
 // HeartbeatHook is called after each heartbeat is processed.
-// Extensions use this to store port scan results and detect service changes.
+// Extensions can use this to add custom post-processing.
 type HeartbeatHook func(ctx context.Context, agentID, monitorID uuid.UUID, payload *protocol.HeartbeatPayload)
 
 // TenantIDFromContext extracts the tenant ID from a request context.
@@ -116,7 +116,7 @@ func New(ctx context.Context) (*Engine, error) {
 	auditSvc := services.NewAuditService(auditLogRepo, logger)
 	authSvc := services.NewAuthService(userRepo, agentRepo, usageEventRepo, hasher, encryptor, logger)
 	notifierFactory := notify.NewChannelNotifierFactory()
-	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
+	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 	investigationSvc := services.NewInvestigationService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, certDetailsRepo, logger)
 
@@ -139,7 +139,7 @@ func New(ctx context.Context) (*Engine, error) {
 	if wfEngine := reg.WorkflowEngine(); wfEngine != nil {
 		workflows.RegisterAlertHandlers(
 			wfEngine, notifier, notifierFactory,
-			agentRepo, alertChannelRepo, incidentRepo, monitorRepo, logger,
+			agentRepo, heartbeatRepo, alertChannelRepo, incidentRepo, monitorRepo, logger,
 		)
 		incidentSvc.SetWorkflowEngine(wfEngine)
 		logger.Info("durable alert dispatch enabled")
@@ -283,7 +283,7 @@ func (e *Engine) AuthMiddleware() echo.MiddlewareFunc {
 }
 
 // TenantMiddleware returns the tenant-scoping middleware that injects
-// tenant_id into the request context. EE route groups need this to ensure
+// tenant_id into the request context. External route groups need this to ensure
 // repository queries are correctly scoped by tenant.
 func (e *Engine) TenantMiddleware() echo.MiddlewareFunc {
 	return e.router.TenantMiddleware()
@@ -332,20 +332,20 @@ func (e *Engine) NewMaintenanceWindowRepo() ports.MaintenanceWindowRepository {
 // AgentMessenger returns the WebSocket hub as an AgentMessenger for extensions.
 func (e *Engine) AgentMessenger() ports.AgentMessenger { return e.hub }
 
-// SetTenantValidator sets the Extension hook for tenant-scoped registration.
+// SetTenantValidator sets the hook for tenant-scoped registration.
 // When set, registration requires a valid tenant_slug and creates users in
 // the specified tenant rather than the default.
 func (e *Engine) SetTenantValidator(v handlers.TenantValidator) {
 	e.router.AuthAPIHandler().SetTenantValidator(v)
 }
 
-// SetPostRegisterHook sets the Extension hook for post-registration actions.
+// SetPostRegisterHook sets the hook for post-registration actions.
 func (e *Engine) SetPostRegisterHook(hook handlers.PostRegisterHook) {
 	e.router.AuthAPIHandler().SetPostRegisterHook(hook)
 }
 
 // AddHeartbeatHook registers a hook to be called after each heartbeat is processed.
-// Extensions use this for port scan storage and service change detection.
+// Extensions can use this for post-processing heartbeat data.
 func (e *Engine) AddHeartbeatHook(hook HeartbeatHook) {
 	e.router.WSHandler().AddHeartbeatHook(handlers.HeartbeatHook(hook))
 }

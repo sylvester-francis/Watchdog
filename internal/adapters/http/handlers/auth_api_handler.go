@@ -20,11 +20,11 @@ const maxEmailLength = 254
 
 // TenantValidator validates a tenant slug during registration and returns the tenant ID.
 // If the slug is invalid or blocked, it returns an error.
-// Extensions set this hook; CE leaves it nil (all users go to "default" tenant).
+// Extensions set this hook; default is nil (all users go to "default" tenant).
 type TenantValidator func(ctx context.Context, slug string) (tenantID string, err error)
 
 // PostRegisterHook runs after a user is successfully registered.
-// Extensions use this to promote the first user in a tenant to super_admin.
+// Extensions use this to run post-registration logic.
 type PostRegisterHook func(ctx context.Context, user *domain.User, tenantSlug string) error
 
 // AuthAPIHandler handles JSON authentication endpoints for the SvelteKit SPA.
@@ -54,12 +54,12 @@ func NewAuthAPIHandler(authSvc ports.UserAuthService, userRepo ports.UserReposit
 	return h
 }
 
-// SetTenantValidator sets the Extension hook for tenant-scoped registration.
+// SetTenantValidator sets the hook for tenant-scoped registration.
 func (h *AuthAPIHandler) SetTenantValidator(v TenantValidator) {
 	h.tenantValidator = v
 }
 
-// SetPostRegisterHook sets the Extension hook for post-registration actions.
+// SetPostRegisterHook sets the hook for post-registration actions.
 func (h *AuthAPIHandler) SetPostRegisterHook(hook PostRegisterHook) {
 	h.postRegisterHook = hook
 }
