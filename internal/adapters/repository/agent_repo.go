@@ -335,6 +335,25 @@ func (r *AgentRepository) UpdateFingerprint(ctx context.Context, id uuid.UUID, f
 	return nil
 }
 
+// UpdateVersion updates only the version of an agent.
+func (r *AgentRepository) UpdateVersion(ctx context.Context, id uuid.UUID, version string) error {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `UPDATE agents SET version = $2 WHERE id = $1 AND tenant_id = $3`
+
+	result, err := q.Exec(ctx, query, id, version, tenantID)
+	if err != nil {
+		return fmt.Errorf("agentRepo.UpdateVersion(%s): %w", id, err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("agentRepo.UpdateVersion(%s): agent not found", id)
+	}
+
+	return nil
+}
+
 // UpdateLastSeen updates only the last_seen_at timestamp of an agent.
 func (r *AgentRepository) UpdateLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error {
 	q := r.db.Querier(ctx)

@@ -108,14 +108,14 @@ func toUserResponse(u *domain.User) userResponse {
 func (h *AuthAPIHandler) Login(c echo.Context) error {
 	var req loginRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.Email == "" || req.Password == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email and password are required"})
+		return errJSON(c, http.StatusBadRequest, "email and password are required")
 	}
 	if !isValidEmail(req.Email) {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email format"})
+		return errJSON(c, http.StatusBadRequest, "invalid email format")
 	}
 
 	user, err := h.authSvc.Login(c.Request().Context(), req.Email, req.Password)
@@ -124,7 +124,7 @@ func (h *AuthAPIHandler) Login(c echo.Context) error {
 		if h.auditSvc != nil {
 			h.auditSvc.LogEvent(c.Request().Context(), nil, domain.AuditLoginFailed, c.RealIP(), map[string]string{"email": req.Email})
 		}
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid email or password"})
+		return errJSON(c, http.StatusUnauthorized, "invalid email or password")
 	}
 
 	if h.auditSvc != nil {
@@ -132,7 +132,7 @@ func (h *AuthAPIHandler) Login(c echo.Context) error {
 	}
 
 	if err := middleware.SetUserID(c, user.ID, h.sessionTracker); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create session"})
+		return errJSON(c, http.StatusInternalServerError, "failed to create session")
 	}
 
 	resp := map[string]any{
@@ -150,7 +150,7 @@ func (h *AuthAPIHandler) Login(c echo.Context) error {
 func (h *AuthAPIHandler) Register(c echo.Context) error {
 	var req registerRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	ip := c.RealIP()
@@ -170,10 +170,10 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 	}
 
 	if req.Email == "" || req.Password == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email and password are required"})
+		return errJSON(c, http.StatusBadRequest, "email and password are required")
 	}
 	if !isValidEmail(req.Email) {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email format"})
+		return errJSON(c, http.StatusBadRequest, "invalid email format")
 	}
 
 	// Layer 2: Blocked disposable email domains.
@@ -184,18 +184,18 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 				"reason": "blocked_domain",
 			})
 		}
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "please use a non-disposable email address"})
+		return errJSON(c, http.StatusBadRequest, "please use a non-disposable email address")
 	}
 
 	if len(req.Password) < 8 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
+		return errJSON(c, http.StatusBadRequest, "password must be at least 8 characters")
 	}
 	if len(req.Password) > 128 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at most 128 characters"})
+		return errJSON(c, http.StatusBadRequest, "password must be at most 128 characters")
 	}
 
 	if req.Password != req.ConfirmPassword {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "passwords do not match"})
+		return errJSON(c, http.StatusBadRequest, "passwords do not match")
 	}
 
 	// Record attempt regardless of outcome to prevent brute-force enumeration.
@@ -209,12 +209,12 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		tenantID, err := h.tenantValidator(ctx, req.TenantSlug)
 		if err != nil {
 			slog.Info("registration: tenant validation failed", "slug", req.TenantSlug, "error", err)
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
+			return errJSON(c, http.StatusBadRequest, "registration failed")
 		}
 		ctx = repository.WithTenantID(ctx, tenantID)
 	} else if h.tenantValidator != nil && req.TenantSlug == "" {
 		// Multi-tenant mode: tenant_slug is required for registration.
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
+		return errJSON(c, http.StatusBadRequest, "registration failed")
 	}
 
 	user, err := h.authSvc.Register(ctx, req.Email, req.Password)
@@ -226,7 +226,7 @@ func (h *AuthAPIHandler) Register(c echo.Context) error {
 		} else {
 			slog.Error("registration failed", "email", req.Email, "error", err)
 		}
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "registration failed"})
+		return errJSON(c, http.StatusBadRequest, "registration failed")
 	}
 
 	// Post-registration hook (e.g., promote first user to super_admin).
@@ -262,7 +262,7 @@ func (h *AuthAPIHandler) Logout(c echo.Context) error {
 	}
 
 	if err := middleware.ClearSession(c, h.sessionTracker); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to clear session"})
+		return errJSON(c, http.StatusInternalServerError, "failed to clear session")
 	}
 	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -272,12 +272,12 @@ func (h *AuthAPIHandler) Logout(c echo.Context) error {
 func (h *AuthAPIHandler) Me(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	user, err := h.userRepo.GetByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "user not found"})
+		return errJSON(c, http.StatusUnauthorized, "user not found")
 	}
 
 	resp := map[string]any{
@@ -298,39 +298,39 @@ func (h *AuthAPIHandler) Setup(c echo.Context) error {
 	count, err := h.userRepo.Count(ctx)
 	if err != nil {
 		slog.Error("setup: failed to count users", "error", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return errJSON(c, http.StatusInternalServerError, "internal error")
 	}
 	if count > 0 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "setup already completed"})
+		return errJSON(c, http.StatusBadRequest, "setup already completed")
 	}
 
 	var req registerRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.Email == "" || req.Password == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "email and password are required"})
+		return errJSON(c, http.StatusBadRequest, "email and password are required")
 	}
 	if !isValidEmail(req.Email) {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email format"})
+		return errJSON(c, http.StatusBadRequest, "invalid email format")
 	}
 
 	if len(req.Password) < 8 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at least 8 characters"})
+		return errJSON(c, http.StatusBadRequest, "password must be at least 8 characters")
 	}
 	if len(req.Password) > 128 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "password must be at most 128 characters"})
+		return errJSON(c, http.StatusBadRequest, "password must be at most 128 characters")
 	}
 
 	if req.Password != req.ConfirmPassword {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "passwords do not match"})
+		return errJSON(c, http.StatusBadRequest, "passwords do not match")
 	}
 
 	user, err := h.authSvc.Register(ctx, req.Email, req.Password)
 	if err != nil {
 		slog.Error("setup: registration failed", "email", req.Email, "error", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create account"})
+		return errJSON(c, http.StatusBadRequest, "failed to create account")
 	}
 
 	user.IsAdmin = true
@@ -350,7 +350,7 @@ func (h *AuthAPIHandler) Setup(c echo.Context) error {
 func (h *AuthAPIHandler) NeedsSetup(c echo.Context) error {
 	count, err := h.userRepo.Count(c.Request().Context())
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return errJSON(c, http.StatusInternalServerError, "internal error")
 	}
 	return c.JSON(http.StatusOK, map[string]bool{
 		"needs_setup": count == 0,

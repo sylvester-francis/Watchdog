@@ -15,6 +15,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/core/services"
 )
 
 // APIV1Handler serves the public JSON API endpoints (token-authenticated).
@@ -29,6 +30,7 @@ type APIV1Handler struct {
 	hub              *realtime.Hub
 	auditSvc         ports.AuditService
 	investigationSvc ports.InvestigationService
+	updateSvc        *services.UpdateService
 }
 
 // NewAPIV1Handler creates a new APIV1Handler.
@@ -96,12 +98,12 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch agents"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch agents")
 	}
 
 	var monitors []monitorResponse
@@ -143,23 +145,23 @@ func (h *APIV1Handler) GetMonitor(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	monitorID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid monitor ID")
 	}
 
 	monitor, err := h.monitorRepo.GetByID(ctx, monitorID)
 	if err != nil || monitor == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	// Verify ownership: monitor's agent must belong to user
 	agent, err := h.agentRepo.GetByID(ctx, monitor.AgentID)
 	if err != nil || agent == nil || agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	// Fetch recent heartbeats
@@ -225,12 +227,12 @@ func (h *APIV1Handler) ListAgents(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch agents"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch agents")
 	}
 
 	var result []agentResponse
@@ -262,7 +264,7 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	status := c.QueryParam("status")
@@ -287,14 +289,14 @@ func (h *APIV1Handler) ListIncidents(c echo.Context) error {
 		rawIncidents, err = h.incidentSvc.GetActiveIncidents(ctx)
 	}
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch incidents")
 	}
 
 	// Filter incidents to only those belonging to the user's monitors.
 	// Build a monitor name map while iterating.
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incidents"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch incidents")
 	}
 	monitorNames := make(map[uuid.UUID]string)
 	for _, agent := range agents {
@@ -360,41 +362,39 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req createMonitorRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.Name == "" || req.Type == "" || req.Target == "" || req.AgentID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name, type, target, and agent_id are required"})
+		return errJSON(c, http.StatusBadRequest, "name, type, target, and agent_id are required")
 	}
 
 	if !domain.MonitorType(req.Type).IsValid() {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": fmt.Sprintf("invalid monitor type: %s", req.Type),
-		})
+		return errJSON(c, http.StatusBadRequest, fmt.Sprintf("invalid monitor type: %s", req.Type))
 	}
 
 	agentID, err := uuid.Parse(req.AgentID)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+		return errJSON(c, http.StatusBadRequest, "invalid agent_id")
 	}
 
 	// Verify agent ownership
 	agent, err := h.agentRepo.GetByID(ctx, agentID)
 	if err != nil || agent == nil || agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "agent not found"})
+		return errJSON(c, http.StatusNotFound, "agent not found")
 	}
 
 	monitor, err := h.monitorSvc.CreateMonitor(ctx, userID, agentID, req.Name, domain.MonitorType(req.Type), req.Target, req.Metadata)
 	if err != nil {
 		if errors.Is(err, domain.ErrMonitorLimitReached) {
-			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+			return errJSONCode(c, http.StatusForbidden, CodeLimitReached, err.Error())
 		}
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create monitor"})
+		return errJSON(c, http.StatusBadRequest, "failed to create monitor")
 	}
 
 	// Apply optional interval/timeout/failure_threshold
@@ -407,20 +407,20 @@ func (h *APIV1Handler) CreateMonitor(c echo.Context) error {
 	if req.FailureThreshold != nil {
 		ft := *req.FailureThreshold
 		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold)})
+			return errJSON(c, http.StatusBadRequest, fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold))
 		}
 		monitor.FailureThreshold = ft
 	}
 	if req.SLATargetPercent != nil {
 		sla := *req.SLATargetPercent
 		if sla < 0 || sla > 100 {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "sla_target_percent must be between 0 and 100"})
+			return errJSON(c, http.StatusBadRequest, "sla_target_percent must be between 0 and 100")
 		}
 		monitor.SLATargetPercent = req.SLATargetPercent
 	}
 	if req.Interval > 0 || req.Timeout > 0 || req.FailureThreshold != nil || req.SLATargetPercent != nil {
 		if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "monitor created but failed to apply settings"})
+			return errJSON(c, http.StatusInternalServerError, "monitor created but failed to apply settings")
 		}
 	}
 
@@ -473,28 +473,28 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	monitorID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid monitor ID")
 	}
 
 	monitor, err := h.monitorRepo.GetByID(ctx, monitorID)
 	if err != nil || monitor == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	// Verify ownership
 	agent, err := h.agentRepo.GetByID(ctx, monitor.AgentID)
 	if err != nil || agent == nil || agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	var req updateMonitorRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.Name != nil {
@@ -519,14 +519,14 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 	if req.FailureThreshold != nil {
 		ft := *req.FailureThreshold
 		if ft < domain.MinFailureThreshold || ft > domain.MaxFailureThreshold {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold)})
+			return errJSON(c, http.StatusBadRequest, fmt.Sprintf("failure_threshold must be between %d and %d", domain.MinFailureThreshold, domain.MaxFailureThreshold))
 		}
 		monitor.FailureThreshold = ft
 	}
 	if req.SLATargetPercent != nil {
 		sla := *req.SLATargetPercent
 		if sla < 0 || sla > 100 {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "sla_target_percent must be between 0 and 100"})
+			return errJSON(c, http.StatusBadRequest, "sla_target_percent must be between 0 and 100")
 		}
 		monitor.SLATargetPercent = req.SLATargetPercent
 	}
@@ -534,20 +534,20 @@ func (h *APIV1Handler) UpdateMonitor(c echo.Context) error {
 	if req.AgentID != nil {
 		newAgentID, err := uuid.Parse(*req.AgentID)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+			return errJSON(c, http.StatusBadRequest, "invalid agent_id")
 		}
 		// Only validate and reassign if the agent is actually changing
 		if newAgentID != oldAgentID {
 			newAgent, err := h.agentRepo.GetByID(ctx, newAgentID)
 			if err != nil || newAgent == nil || newAgent.UserID != userID {
-				return c.JSON(http.StatusBadRequest, map[string]string{"error": "agent not found or not owned by you"})
+				return errJSON(c, http.StatusBadRequest, "agent not found or not owned by you")
 			}
 			monitor.AgentID = newAgentID
 		}
 	}
 
 	if err := h.monitorSvc.UpdateMonitor(ctx, monitor); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update monitor"})
+		return errJSON(c, http.StatusInternalServerError, "failed to update monitor")
 	}
 
 	// H-011: audit monitor update.
@@ -605,27 +605,27 @@ func (h *APIV1Handler) DeleteMonitor(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	monitorID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid monitor ID")
 	}
 
 	monitor, err := h.monitorRepo.GetByID(ctx, monitorID)
 	if err != nil || monitor == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	// Verify ownership
 	agent, err := h.agentRepo.GetByID(ctx, monitor.AgentID)
 	if err != nil || agent == nil || agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	if err := h.monitorSvc.DeleteMonitor(ctx, monitorID); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete monitor"})
+		return errJSON(c, http.StatusInternalServerError, "failed to delete monitor")
 	}
 
 	// H-011: audit monitor deletion.
@@ -652,24 +652,24 @@ func (h *APIV1Handler) CreateAgent(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req createAgentRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.Name == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name is required"})
+		return errJSON(c, http.StatusBadRequest, "name is required")
 	}
 
 	agent, apiKey, err := h.agentAuthSvc.CreateAgent(ctx, userID.String(), req.Name)
 	if err != nil {
 		if errors.Is(err, domain.ErrAgentLimitReached) {
-			return c.JSON(http.StatusForbidden, map[string]string{"error": err.Error()})
+			return errJSONCode(c, http.StatusForbidden, CodeLimitReached, err.Error())
 		}
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "failed to create agent"})
+		return errJSON(c, http.StatusBadRequest, "failed to create agent")
 	}
 
 	// H-023: allow client to override the default key expiry.
@@ -710,21 +710,21 @@ func (h *APIV1Handler) DeleteAgent(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	agentID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid agent ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid agent ID")
 	}
 
 	agent, err := h.agentRepo.GetByID(ctx, agentID)
 	if err != nil || agent == nil || agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "agent not found"})
+		return errJSON(c, http.StatusNotFound, "agent not found")
 	}
 
 	if err := h.agentRepo.Delete(ctx, agentID); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete agent"})
+		return errJSON(c, http.StatusInternalServerError, "failed to delete agent")
 	}
 
 	// H-011: audit agent deletion.
@@ -743,24 +743,24 @@ func (h *APIV1Handler) AcknowledgeIncident(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	incidentID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid incident ID")
 	}
 
 	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, incidentID, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to acknowledge incident"})
+		return errJSON(c, http.StatusInternalServerError, "failed to acknowledge incident")
 	}
 	if incident == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+		return errJSON(c, http.StatusNotFound, "incident not found")
 	}
 
 	if err := h.incidentSvc.AcknowledgeIncident(ctx, incidentID, userID); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to acknowledge incident"})
+		return errJSON(c, http.StatusInternalServerError, "failed to acknowledge incident")
 	}
 
 	if h.auditSvc != nil {
@@ -778,24 +778,24 @@ func (h *APIV1Handler) ResolveIncident(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	incidentID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid incident ID")
 	}
 
 	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, incidentID, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resolve incident"})
+		return errJSON(c, http.StatusInternalServerError, "failed to resolve incident")
 	}
 	if incident == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+		return errJSON(c, http.StatusNotFound, "incident not found")
 	}
 
 	if err := h.incidentSvc.ResolveIncident(ctx, incidentID); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resolve incident"})
+		return errJSON(c, http.StatusInternalServerError, "failed to resolve incident")
 	}
 
 	if h.auditSvc != nil {
@@ -813,12 +813,12 @@ func (h *APIV1Handler) DashboardStats(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch stats"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch stats")
 	}
 
 	totalAgents := len(agents)
@@ -885,32 +885,32 @@ func (h *APIV1Handler) GetMonitorCertificate(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	monitorID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid monitor ID")
 	}
 
 	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch monitor"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch monitor")
 	}
 	if monitor == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	if h.certDetailsRepo == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "certificate tracking not available"})
+		return errJSON(c, http.StatusNotFound, "certificate tracking not available")
 	}
 
 	details, err := h.certDetailsRepo.GetByMonitorID(ctx, monitorID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch certificate details"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch certificate details")
 	}
 	if details == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "no certificate data available"})
+		return errJSON(c, http.StatusNotFound, "no certificate data available")
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
@@ -934,14 +934,14 @@ func (h *APIV1Handler) GetExpiringCertificates(c echo.Context) error {
 	ctx := c.Request().Context()
 	_, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	days := 30
 	if d := c.QueryParam("days"); d != "" {
 		parsed, err := strconv.Atoi(d)
 		if err != nil || parsed < 1 || parsed > 365 {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "days must be between 1 and 365"})
+			return errJSON(c, http.StatusBadRequest, "days must be between 1 and 365")
 		}
 		days = parsed
 	}
@@ -952,7 +952,7 @@ func (h *APIV1Handler) GetExpiringCertificates(c echo.Context) error {
 
 	results, err := h.certDetailsRepo.GetExpiring(ctx, days)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch expiring certificates"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch expiring certificates")
 	}
 
 	var resp []certDetailsResponse
@@ -982,20 +982,20 @@ func (h *APIV1Handler) GetMonitorSLA(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	monitorID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid monitor ID")
 	}
 
 	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch monitor"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch monitor")
 	}
 	if monitor == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	// Parse period
@@ -1015,7 +1015,7 @@ func (h *APIV1Handler) GetMonitorSLA(c echo.Context) error {
 
 	uptimePercent, err := h.heartbeatRepo.GetUptimePercent(ctx, monitorID, since)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to calculate uptime"})
+		return errJSON(c, http.StatusInternalServerError, "failed to calculate uptime")
 	}
 
 	slaTarget := 99.9 // default
@@ -1042,39 +1042,44 @@ func (h *APIV1Handler) SetInvestigationService(svc ports.InvestigationService) {
 	h.investigationSvc = svc
 }
 
+// SetUpdateService sets the update service for agent auto-update.
+func (h *APIV1Handler) SetUpdateService(svc *services.UpdateService) {
+	h.updateSvc = svc
+}
+
 // GetIncidentInvestigation returns aggregated investigation data for an incident.
 // GET /api/v1/incidents/:id/investigation
 func (h *APIV1Handler) GetIncidentInvestigation(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	incidentID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid incident ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid incident ID")
 	}
 
 	// Verify ownership
 	incident, err := verifyIncidentOwnership(ctx, h.incidentSvc, h.monitorRepo, h.agentRepo, incidentID, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch incident"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch incident")
 	}
 	if incident == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+		return errJSON(c, http.StatusNotFound, "incident not found")
 	}
 
 	if h.investigationSvc == nil {
-		return c.JSON(http.StatusNotImplemented, map[string]string{"error": "investigation service not available"})
+		return errJSON(c, http.StatusNotImplemented, "investigation service not available")
 	}
 
 	investigation, err := h.investigationSvc.Investigate(ctx, incidentID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to investigate incident"})
+		return errJSON(c, http.StatusInternalServerError, "failed to investigate incident")
 	}
 	if investigation == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "incident not found"})
+		return errJSON(c, http.StatusNotFound, "incident not found")
 	}
 
 	// Map previous incidents to snake_case response format (Incident struct has no JSON tags)
@@ -1125,5 +1130,64 @@ func (h *APIV1Handler) GetIncidentInvestigation(c echo.Context) error {
 			"cert_details":       certDetails,
 			"timeline":           investigation.Timeline,
 		},
+	})
+}
+
+// PushAgentUpdate manually triggers an update push to a specific connected agent.
+// POST /api/v1/agents/:id/update
+func (h *APIV1Handler) PushAgentUpdate(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
+	}
+
+	if h.updateSvc == nil {
+		return errJSON(c, http.StatusNotImplemented, "update service not configured")
+	}
+
+	agentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return errJSON(c, http.StatusBadRequest, "invalid agent ID")
+	}
+
+	// Verify ownership
+	agent, err := h.agentRepo.GetByID(ctx, agentID)
+	if err != nil || agent == nil || agent.UserID != userID {
+		return errJSON(c, http.StatusNotFound, "agent not found")
+	}
+
+	// Check if agent is connected
+	if !h.hub.IsConnected(agentID) {
+		return errJSON(c, http.StatusNotFound, "agent not connected")
+	}
+
+	// Determine agent's current version and platform from DB
+	agentVersion := agent.Version
+	if agentVersion == "" {
+		return errJSON(c, http.StatusBadRequest, "agent version unknown")
+	}
+
+	agentOS := ""
+	agentArch := ""
+	if agent.Fingerprint != nil {
+		agentOS = agent.Fingerprint["os"]
+		agentArch = agent.Fingerprint["arch"]
+	}
+
+	// Check manifest for an update
+	updateMsg := h.updateSvc.GetUpdateForAgent(agentVersion, agentOS, agentArch)
+	if updateMsg == nil {
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "already up to date",
+		})
+	}
+
+	// Push the update message to the agent
+	h.hub.SendToAgent(agentID, updateMsg)
+
+	payload := h.updateSvc.GetUpdatePayloadForAgent(agentVersion, agentOS, agentArch)
+	return c.JSON(http.StatusOK, map[string]any{
+		"data": payload,
 	})
 }

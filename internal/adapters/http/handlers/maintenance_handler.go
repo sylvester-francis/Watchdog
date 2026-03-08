@@ -77,12 +77,12 @@ func (h *MaintenanceHandler) List(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	windows, err := h.mwRepo.GetByTenant(ctx)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch maintenance windows"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch maintenance windows")
 	}
 
 	// Build agent name map scoped to user's agents.
@@ -112,40 +112,40 @@ func (h *MaintenanceHandler) Create(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	var req createMaintenanceWindowRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.Name == "" || req.AgentID == "" || req.StartsAt == "" || req.EndsAt == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "name, agent_id, starts_at, and ends_at are required"})
+		return errJSON(c, http.StatusBadRequest, "name, agent_id, starts_at, and ends_at are required")
 	}
 
 	agentID, err := uuid.Parse(req.AgentID)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+		return errJSON(c, http.StatusBadRequest, "invalid agent_id")
 	}
 
 	startsAt, err := time.Parse(time.RFC3339, req.StartsAt)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid starts_at format, use RFC3339"})
+		return errJSON(c, http.StatusBadRequest, "invalid starts_at format, use RFC3339")
 	}
 
 	endsAt, err := time.Parse(time.RFC3339, req.EndsAt)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid ends_at format, use RFC3339"})
+		return errJSON(c, http.StatusBadRequest, "invalid ends_at format, use RFC3339")
 	}
 
 	// Verify agent exists and belongs to the user.
 	agent, err := h.agentRepo.GetByID(ctx, agentID)
 	if err != nil || agent == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "agent not found"})
+		return errJSON(c, http.StatusNotFound, "agent not found")
 	}
 	if agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "agent not found"})
+		return errJSON(c, http.StatusNotFound, "agent not found")
 	}
 
 	mw := domain.NewMaintenanceWindow(agentID, userID, req.Name, startsAt, endsAt)
@@ -153,15 +153,15 @@ func (h *MaintenanceHandler) Create(c echo.Context) error {
 		mw.Recurrence = req.Recurrence
 	}
 	if err := mw.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return errJSON(c, http.StatusBadRequest, err.Error())
 	}
 
 	if endsAt.Sub(startsAt) > 30*24*time.Hour {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "maintenance window cannot exceed 30 days"})
+		return errJSON(c, http.StatusBadRequest, "maintenance window cannot exceed 30 days")
 	}
 
 	if err := h.mwRepo.Create(ctx, mw); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create maintenance window"})
+		return errJSON(c, http.StatusInternalServerError, "failed to create maintenance window")
 	}
 
 	if h.auditSvc != nil {
@@ -183,28 +183,28 @@ func (h *MaintenanceHandler) Update(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid window ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid window ID")
 	}
 
 	mw, err := h.mwRepo.GetByID(ctx, id)
 	if err != nil || mw == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "maintenance window not found"})
+		return errJSON(c, http.StatusNotFound, "maintenance window not found")
 	}
 
 	// Verify ownership via agent.
 	agent, err := h.agentRepo.GetByID(ctx, mw.AgentID)
 	if err != nil || agent == nil || agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "maintenance window not found"})
+		return errJSON(c, http.StatusNotFound, "maintenance window not found")
 	}
 
 	var req updateMaintenanceWindowRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return errJSON(c, http.StatusBadRequest, "invalid request body")
 	}
 
 	if req.Name != nil {
@@ -216,28 +216,28 @@ func (h *MaintenanceHandler) Update(c echo.Context) error {
 	if req.StartsAt != nil {
 		t, err := time.Parse(time.RFC3339, *req.StartsAt)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid starts_at format"})
+			return errJSON(c, http.StatusBadRequest, "invalid starts_at format")
 		}
 		mw.StartsAt = t
 	}
 	if req.EndsAt != nil {
 		t, err := time.Parse(time.RFC3339, *req.EndsAt)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid ends_at format"})
+			return errJSON(c, http.StatusBadRequest, "invalid ends_at format")
 		}
 		mw.EndsAt = t
 	}
 
 	if err := mw.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return errJSON(c, http.StatusBadRequest, err.Error())
 	}
 
 	if mw.EndsAt.Sub(mw.StartsAt) > 30*24*time.Hour {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "maintenance window cannot exceed 30 days"})
+		return errJSON(c, http.StatusBadRequest, "maintenance window cannot exceed 30 days")
 	}
 
 	if err := h.mwRepo.Update(ctx, mw); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update maintenance window"})
+		return errJSON(c, http.StatusInternalServerError, "failed to update maintenance window")
 	}
 
 	if h.auditSvc != nil {
@@ -257,26 +257,26 @@ func (h *MaintenanceHandler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid window ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid window ID")
 	}
 
 	// Verify ownership before deleting.
 	mw, err := h.mwRepo.GetByID(ctx, id)
 	if err != nil || mw == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "maintenance window not found"})
+		return errJSON(c, http.StatusNotFound, "maintenance window not found")
 	}
 	agent, err := h.agentRepo.GetByID(ctx, mw.AgentID)
 	if err != nil || agent == nil || agent.UserID != userID {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "maintenance window not found"})
+		return errJSON(c, http.StatusNotFound, "maintenance window not found")
 	}
 
 	if err := h.mwRepo.Delete(ctx, id); err != nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "maintenance window not found"})
+		return errJSON(c, http.StatusNotFound, "maintenance window not found")
 	}
 
 	if h.auditSvc != nil {

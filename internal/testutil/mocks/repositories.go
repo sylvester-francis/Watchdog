@@ -146,6 +146,7 @@ type MockAgentRepository struct {
 	UpdateStatusFn      func(ctx context.Context, id uuid.UUID, status domain.AgentStatus) error
 	UpdateLastSeenFn    func(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
 	UpdateFingerprintFn func(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error
+	UpdateVersionFn     func(ctx context.Context, id uuid.UUID, version string) error
 	CountByUserIDFn     func(ctx context.Context, userID uuid.UUID) (int, error)
 }
 
@@ -215,6 +216,13 @@ func (m *MockAgentRepository) UpdateLastSeen(ctx context.Context, id uuid.UUID, 
 func (m *MockAgentRepository) UpdateFingerprint(ctx context.Context, id uuid.UUID, fingerprint map[string]string) error {
 	if m.UpdateFingerprintFn != nil {
 		return m.UpdateFingerprintFn(ctx, id, fingerprint)
+	}
+	return nil
+}
+
+func (m *MockAgentRepository) UpdateVersion(ctx context.Context, id uuid.UUID, version string) error {
+	if m.UpdateVersionFn != nil {
+		return m.UpdateVersionFn(ctx, id, version)
 	}
 	return nil
 }

@@ -51,22 +51,22 @@ func (h *APIHandler) MonitorHeartbeats(c echo.Context) error {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	idStr := c.Param("id")
 	monitorID, err := uuid.Parse(idStr)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid monitor ID")
 	}
 
 	// Verify ownership: monitor's agent must belong to user
 	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch heartbeats"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch heartbeats")
 	}
 	if monitor == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	period := c.QueryParam("period")
@@ -87,7 +87,7 @@ func (h *APIHandler) MonitorHeartbeats(c echo.Context) error {
 
 	heartbeats, err := h.heartbeatRepo.GetByMonitorIDInRange(ctx, monitorID, from, now)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch heartbeats"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch heartbeats")
 	}
 
 	points := make([]HeartbeatPoint, 0, len(heartbeats))
@@ -120,20 +120,20 @@ func (h *APIHandler) MonitorLatencyHistory(c echo.Context) error {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	monitorID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid monitor ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid monitor ID")
 	}
 
 	monitor, err := verifyMonitorOwnership(ctx, h.monitorRepo, h.agentRepo, monitorID, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to verify ownership"})
+		return errJSON(c, http.StatusInternalServerError, "failed to verify ownership")
 	}
 	if monitor == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "monitor not found"})
+		return errJSON(c, http.StatusNotFound, "monitor not found")
 	}
 
 	// Map period to duration and bucket interval
@@ -157,7 +157,7 @@ func (h *APIHandler) MonitorLatencyHistory(c echo.Context) error {
 	since := time.Now().Add(-duration)
 	points, err := h.heartbeatRepo.GetLatencyHistory(ctx, monitorID, since, bucket)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch latency history"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch latency history")
 	}
 
 	result := make([]LatencyHistoryPoint, 0, len(points))
@@ -180,12 +180,12 @@ func (h *APIHandler) DashboardStats(c echo.Context) error {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch agents"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch agents")
 	}
 
 	totalAgents := len(agents)
@@ -241,12 +241,12 @@ func (h *APIHandler) MonitorsSummary(c echo.Context) error {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	agents, err := h.agentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch agents"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch agents")
 	}
 
 	type MonitorSummary struct {

@@ -136,7 +136,7 @@ func (h *SystemAPIHandler) GetSystemInfo(c echo.Context) error {
 	// Auth check (in CE all authenticated users can view system info)
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	// Build user's monitor ID set for scoping heartbeat queries
@@ -297,7 +297,7 @@ func (h *SystemAPIHandler) GetSecurityEvents(c echo.Context) error {
 
 	logs, err := h.auditLogRepo.GetRecentByActions(ctx, actions, 100)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch security events"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch security events")
 	}
 
 	entries := make([]auditLogEntry, 0, len(logs))
@@ -337,30 +337,30 @@ func (h *SystemAPIHandler) DeleteUser(c echo.Context) error {
 
 	adminID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 	caller, err := h.userRepo.GetByID(ctx, adminID)
 	if err != nil || caller == nil || !caller.IsAdmin {
-		return c.JSON(http.StatusForbidden, map[string]string{"error": "admin access required"})
+		return errJSON(c, http.StatusForbidden, "admin access required")
 	}
 
 	targetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid user ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid user ID")
 	}
 
 	if targetID == adminID {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "cannot delete your own account"})
+		return errJSON(c, http.StatusBadRequest, "cannot delete your own account")
 	}
 
 	targetUser, err := h.userRepo.GetByID(ctx, targetID)
 	if err != nil || targetUser == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
+		return errJSON(c, http.StatusNotFound, "user not found")
 	}
 
 	if err := h.userRepo.Delete(ctx, targetID); err != nil {
 		slog.Error("admin: failed to delete user", "target_id", targetID, "error", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete user"})
+		return errJSON(c, http.StatusInternalServerError, "failed to delete user")
 	}
 
 	if h.auditSvc != nil {
@@ -402,16 +402,16 @@ func (h *SystemAPIHandler) ListUsers(c echo.Context) error {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 	caller, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil || caller == nil || !caller.IsAdmin {
-		return c.JSON(http.StatusForbidden, map[string]string{"error": "admin access required"})
+		return errJSON(c, http.StatusForbidden, "admin access required")
 	}
 
 	users, err := h.userRepo.GetAllWithUsage(ctx)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch users"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch users")
 	}
 
 	result := make([]adminUserResponse, 0, len(users))
@@ -438,36 +438,36 @@ func (h *SystemAPIHandler) ResetUserPassword(c echo.Context) error {
 
 	adminID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 	caller, err := h.userRepo.GetByID(ctx, adminID)
 	if err != nil || caller == nil || !caller.IsAdmin {
-		return c.JSON(http.StatusForbidden, map[string]string{"error": "admin access required"})
+		return errJSON(c, http.StatusForbidden, "admin access required")
 	}
 
 	targetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid user ID"})
+		return errJSON(c, http.StatusBadRequest, "invalid user ID")
 	}
 
 	// Cannot reset own password via admin endpoint
 	if targetID == adminID {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "use the self-service password change to update your own password"})
+		return errJSON(c, http.StatusBadRequest, "use the self-service password change to update your own password")
 	}
 
 	targetUser, err := h.userRepo.GetByID(ctx, targetID)
 	if err != nil || targetUser == nil {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "user not found"})
+		return errJSON(c, http.StatusNotFound, "user not found")
 	}
 
 	plaintext, err := crypto.GenerateRandomPassword(16)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate password"})
+		return errJSON(c, http.StatusInternalServerError, "failed to generate password")
 	}
 
 	hash, err := h.hasher.Hash(plaintext)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+		return errJSON(c, http.StatusInternalServerError, "failed to hash password")
 	}
 
 	targetUser.PasswordHash = hash
@@ -475,7 +475,7 @@ func (h *SystemAPIHandler) ResetUserPassword(c echo.Context) error {
 	targetUser.UpdatedAt = time.Now()
 
 	if err := h.userRepo.Update(ctx, targetUser); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update user"})
+		return errJSON(c, http.StatusInternalServerError, "failed to update user")
 	}
 
 	if h.auditSvc != nil {
@@ -494,7 +494,7 @@ func (h *SystemAPIHandler) GetAuditLogs(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return errJSON(c, http.StatusUnauthorized, "unauthorized")
 	}
 
 	page, _ := strconv.Atoi(c.QueryParam("page"))
@@ -527,7 +527,7 @@ func (h *SystemAPIHandler) GetAuditLogs(c echo.Context) error {
 
 	logs, total, err := h.auditLogRepo.GetPaginated(ctx, userID, opts)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch audit logs"})
+		return errJSON(c, http.StatusInternalServerError, "failed to fetch audit logs")
 	}
 
 	// Map to response format
