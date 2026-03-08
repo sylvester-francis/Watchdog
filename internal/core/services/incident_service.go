@@ -269,6 +269,11 @@ func (s *IncidentService) CreateIncidentSilently(ctx context.Context, monitorID 
 
 // NotifyAgentOffline sends a single agent-offline notification.
 func (s *IncidentService) NotifyAgentOffline(ctx context.Context, agentID uuid.UUID, affectedMonitors int) {
+	s.logger.Info("dispatching agent offline notification",
+		"agent_id", agentID,
+		"affected_monitors", affectedMonitors,
+	)
+
 	agent, err := s.agentRepo.GetByID(ctx, agentID)
 	if err != nil || agent == nil {
 		s.logger.Error("failed to get agent for offline notification", "agent_id", agentID, "error", err)
@@ -276,27 +281,40 @@ func (s *IncidentService) NotifyAgentOffline(ctx context.Context, agentID uuid.U
 	}
 
 	if err := s.notifier.NotifyAgentOffline(ctx, agent, affectedMonitors); err != nil {
-		s.logger.Error("agent offline notification failed", "agent_id", agentID, "error", err)
+		s.logger.Error("global agent offline notification failed", "agent_id", agentID, "error", err)
 	}
 
 	// Per-user channels
 	channels, err := s.alertChannelRepo.GetEnabledByUserID(ctx, agent.UserID)
-	if err != nil || len(channels) == 0 {
+	if err != nil {
+		s.logger.Error("failed to get alert channels for agent offline", "user_id", agent.UserID, "error", err)
+		return
+	}
+	if len(channels) == 0 {
+		s.logger.Warn("no enabled alert channels for agent offline", "user_id", agent.UserID, "agent_id", agentID)
 		return
 	}
 	for _, ch := range channels {
 		n, err := s.notifierFactory.BuildFromChannel(ch)
 		if err != nil {
+			s.logger.Error("failed to build notifier for agent offline", "channel_id", ch.ID, "error", err)
 			continue
 		}
 		if err := n.NotifyAgentOffline(ctx, agent, affectedMonitors); err != nil {
 			s.logger.Error("per-user agent offline notification failed", "channel_id", ch.ID, "error", err)
+		} else {
+			s.logger.Info("per-user agent offline notification sent", "channel_id", ch.ID, "channel_name", ch.Name, "agent_name", agent.Name)
 		}
 	}
 }
 
 // NotifyAgentOnline sends a single agent-online notification.
 func (s *IncidentService) NotifyAgentOnline(ctx context.Context, agentID uuid.UUID, resolvedIncidents int) {
+	s.logger.Info("dispatching agent online notification",
+		"agent_id", agentID,
+		"resolved_incidents", resolvedIncidents,
+	)
+
 	agent, err := s.agentRepo.GetByID(ctx, agentID)
 	if err != nil || agent == nil {
 		s.logger.Error("failed to get agent for online notification", "agent_id", agentID, "error", err)
@@ -304,21 +322,29 @@ func (s *IncidentService) NotifyAgentOnline(ctx context.Context, agentID uuid.UU
 	}
 
 	if err := s.notifier.NotifyAgentOnline(ctx, agent, resolvedIncidents); err != nil {
-		s.logger.Error("agent online notification failed", "agent_id", agentID, "error", err)
+		s.logger.Error("global agent online notification failed", "agent_id", agentID, "error", err)
 	}
 
 	// Per-user channels
 	channels, err := s.alertChannelRepo.GetEnabledByUserID(ctx, agent.UserID)
-	if err != nil || len(channels) == 0 {
+	if err != nil {
+		s.logger.Error("failed to get alert channels for agent online", "user_id", agent.UserID, "error", err)
+		return
+	}
+	if len(channels) == 0 {
+		s.logger.Warn("no enabled alert channels for agent online", "user_id", agent.UserID, "agent_id", agentID)
 		return
 	}
 	for _, ch := range channels {
 		n, err := s.notifierFactory.BuildFromChannel(ch)
 		if err != nil {
+			s.logger.Error("failed to build notifier for agent online", "channel_id", ch.ID, "error", err)
 			continue
 		}
 		if err := n.NotifyAgentOnline(ctx, agent, resolvedIncidents); err != nil {
 			s.logger.Error("per-user agent online notification failed", "channel_id", ch.ID, "error", err)
+		} else {
+			s.logger.Info("per-user agent online notification sent", "channel_id", ch.ID, "channel_name", ch.Name, "agent_name", agent.Name)
 		}
 	}
 }
@@ -400,6 +426,18 @@ func (s *IncidentService) submitAlertWorkflow(ctx context.Context, incident *dom
 
 // notifyAll sends notifications via the global notifier and all per-user alert channels.
 func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
+	alertType := "resolved"
+	if opened {
+		alertType = "opened"
+	}
+
+	s.logger.Info("dispatching incident notification",
+		"incident_id", incident.ID,
+		"monitor_id", monitor.ID,
+		"monitor_name", monitor.Name,
+		"alert_type", alertType,
+	)
+
 	// 1. Global notifier (env-based, server admin)
 	var globalErr error
 	if opened {
@@ -434,6 +472,15 @@ func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incide
 		return
 	}
 
+	if len(channels) == 0 {
+		s.logger.Warn("no enabled alert channels found for user",
+			"user_id", agent.UserID,
+			"incident_id", incident.ID,
+			"alert_type", alertType,
+		)
+		return
+	}
+
 	for _, ch := range channels {
 		notifier, err := s.notifierFactory.BuildFromChannel(ch)
 		if err != nil {
@@ -457,6 +504,14 @@ func (s *IncidentService) notifyAll(ctx context.Context, incident *domain.Incide
 				"channel_name", ch.Name,
 				"channel_type", ch.Type,
 				"error", notifyErr,
+			)
+		} else {
+			s.logger.Info("per-user notification sent",
+				"channel_id", ch.ID,
+				"channel_name", ch.Name,
+				"channel_type", ch.Type,
+				"alert_type", alertType,
+				"monitor_name", monitor.Name,
 			)
 		}
 	}
