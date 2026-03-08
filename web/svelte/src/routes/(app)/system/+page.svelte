@@ -1,12 +1,25 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 
-	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle, Trash2 } from 'lucide-svelte';
+	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle, Trash2, Activity, Wifi, CircleDot } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
-	import type { SystemInfo, AdminUser } from '$lib/types';
+	import type { SystemInfo, AdminUser, MetricsResponse, MetricsSnapshot } from '$lib/types';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import {
+		Chart,
+		LineController,
+		LineElement,
+		PointElement,
+		LinearScale,
+		CategoryScale,
+		Filler,
+		Tooltip,
+		Legend
+	} from 'chart.js';
+
+	Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip, Legend);
 
 	const auth = getAuth();
 	const toast = getToasts();
@@ -16,6 +29,142 @@
 	let users = $state<AdminUser[]>([]);
 	let loading = $state(true);
 	let error = $state('');
+
+	// Hub Metrics state
+	let metrics = $state<MetricsResponse | null>(null);
+	let metricsInterval: ReturnType<typeof setInterval> | null = null;
+	let httpLatencyCanvas = $state<HTMLCanvasElement>(undefined as unknown as HTMLCanvasElement);
+	let heartbeatCanvas = $state<HTMLCanvasElement>(undefined as unknown as HTMLCanvasElement);
+	let requestRateCanvas = $state<HTMLCanvasElement>(undefined as unknown as HTMLCanvasElement);
+	let httpLatencyChart: Chart | null = null;
+	let heartbeatChart: Chart | null = null;
+	let requestRateChart: Chart | null = null;
+
+	const chartTooltip = {
+		backgroundColor: '#18181b',
+		borderColor: '#27272a',
+		borderWidth: 1,
+		titleFont: { family: "'Inter', system-ui, sans-serif" as const, size: 11 },
+		bodyFont: { family: "'JetBrains Mono', ui-monospace, monospace" as const, size: 12 },
+		padding: 10,
+		cornerRadius: 6,
+		displayColors: true,
+		boxWidth: 8,
+		boxPadding: 4
+	};
+
+	const chartScaleDefaults = {
+		x: {
+			grid: { color: '#27272a', lineWidth: 0.5 },
+			ticks: { maxTicksLimit: 8, maxRotation: 0, color: '#71717a', font: { size: 10, family: "'JetBrains Mono', ui-monospace, monospace" as const } },
+			border: { color: '#27272a' }
+		},
+		y: {
+			grid: { color: '#27272a', lineWidth: 0.5 },
+			ticks: { color: '#71717a', font: { size: 10, family: "'JetBrains Mono', ui-monospace, monospace" as const } },
+			beginAtZero: true,
+			border: { color: '#27272a' }
+		}
+	};
+
+	function formatChartTime(ts: number): string {
+		const d = new Date(ts * 1000);
+		return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	}
+
+	function buildMetricsCharts() {
+		const history = metrics?.history;
+		if (!history || history.length < 2) return;
+
+		const labels = history.map(s => formatChartTime(s.timestamp));
+
+		if (httpLatencyCanvas) {
+			if (httpLatencyChart) httpLatencyChart.destroy();
+			httpLatencyChart = new Chart(httpLatencyCanvas, {
+				type: 'line',
+				data: {
+					labels,
+					datasets: [
+						{ label: 'p50', data: history.map(s => s.http_latency_p50), borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0, pointHoverRadius: 3, tension: 0.3, fill: false },
+						{ label: 'p95', data: history.map(s => s.http_latency_p95), borderColor: '#fbbf24', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, tension: 0.3, fill: false },
+						{ label: 'p99', data: history.map(s => s.http_latency_p99), borderColor: '#f87171', borderWidth: 1, borderDash: [3, 3], pointRadius: 0, pointHoverRadius: 3, tension: 0.3, fill: false }
+					]
+				},
+				options: {
+					responsive: true, maintainAspectRatio: false,
+					interaction: { mode: 'index', intersect: false },
+					plugins: {
+						legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 12, padding: 10, font: { size: 10 }, color: '#a1a1aa', usePointStyle: true, pointStyle: 'line' } },
+						tooltip: { ...chartTooltip, callbacks: { label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y}ms` } }
+					},
+					scales: { ...chartScaleDefaults, y: { ...chartScaleDefaults.y, ticks: { ...chartScaleDefaults.y.ticks, callback: (v: any) => `${v}ms` } } },
+					animation: { duration: 0 }
+				}
+			});
+		}
+
+		if (heartbeatCanvas) {
+			if (heartbeatChart) heartbeatChart.destroy();
+			heartbeatChart = new Chart(heartbeatCanvas, {
+				type: 'line',
+				data: {
+					labels,
+					datasets: [
+						{ label: 'p50', data: history.map(s => s.heartbeat_p50), borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0, pointHoverRadius: 3, tension: 0.3, fill: false },
+						{ label: 'p95', data: history.map(s => s.heartbeat_p95), borderColor: '#fbbf24', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, tension: 0.3, fill: false }
+					]
+				},
+				options: {
+					responsive: true, maintainAspectRatio: false,
+					interaction: { mode: 'index', intersect: false },
+					plugins: {
+						legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 12, padding: 10, font: { size: 10 }, color: '#a1a1aa', usePointStyle: true, pointStyle: 'line' } },
+						tooltip: { ...chartTooltip, callbacks: { label: (ctx: any) => ` ${ctx.dataset.label}: ${ctx.parsed.y}ms` } }
+					},
+					scales: { ...chartScaleDefaults, y: { ...chartScaleDefaults.y, ticks: { ...chartScaleDefaults.y.ticks, callback: (v: any) => `${v}ms` } } },
+					animation: { duration: 0 }
+				}
+			});
+		}
+
+		if (requestRateCanvas) {
+			if (requestRateChart) requestRateChart.destroy();
+			requestRateChart = new Chart(requestRateCanvas, {
+				type: 'line',
+				data: {
+					labels,
+					datasets: [
+						{ label: 'req/s', data: history.map(s => s.http_request_rate), borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.08)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 3, tension: 0.3, fill: true }
+					]
+				},
+				options: {
+					responsive: true, maintainAspectRatio: false,
+					interaction: { mode: 'index', intersect: false },
+					plugins: {
+						legend: { display: false },
+						tooltip: { ...chartTooltip, callbacks: { label: (ctx: any) => ` ${ctx.parsed.y} req/s` } }
+					},
+					scales: { ...chartScaleDefaults, y: { ...chartScaleDefaults.y, ticks: { ...chartScaleDefaults.y.ticks, callback: (v: any) => `${v}/s` } } },
+					animation: { duration: 0 }
+				}
+			});
+		}
+	}
+
+	async function refreshMetrics() {
+		try {
+			metrics = await systemApi.getMetrics();
+			buildMetricsCharts();
+		} catch {
+			// Silently fail — metrics are supplemental
+		}
+	}
+
+	function destroyCharts() {
+		httpLatencyChart?.destroy(); httpLatencyChart = null;
+		heartbeatChart?.destroy(); heartbeatChart = null;
+		requestRateChart?.destroy(); requestRateChart = null;
+	}
 
 	// Password reset state
 	let resetPassword = $state('');
@@ -132,11 +281,19 @@
 					// Non-admin users won't have access — silently skip
 				}
 			}
+			// Start metrics polling
+			refreshMetrics();
+			metricsInterval = setInterval(refreshMetrics, 10000);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load system info';
 		} finally {
 			loading = false;
 		}
+	});
+
+	onDestroy(() => {
+		if (metricsInterval) clearInterval(metricsInterval);
+		destroyCharts();
 	});
 </script>
 
@@ -225,6 +382,84 @@
 				<p class="text-xs text-muted-foreground mt-1">Time since server was started</p>
 			</div>
 		</div>
+
+		<!-- Hub Metrics (Prometheus) -->
+		{#if metrics}
+			{@const cur = metrics.current}
+			<div class="mb-6">
+				<div class="flex items-center space-x-2 mb-3">
+					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
+						<Activity class="w-3 h-3 text-muted-foreground" />
+					</div>
+					<h2 class="text-sm font-medium text-foreground">Hub Metrics</h2>
+					<span class="text-[10px] text-muted-foreground">Auto-refreshes every 10s</span>
+				</div>
+
+				<!-- Live Gauges -->
+				<div class="grid grid-cols-3 gap-3 mb-4">
+					<div class="bg-card border border-border rounded-lg px-4 py-3">
+						<div class="flex items-center space-x-2 mb-1">
+							<Wifi class="w-3 h-3 text-muted-foreground" />
+							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">WS Connections</span>
+						</div>
+						<span class="text-xl font-semibold font-mono text-foreground">{cur.ws_connections}</span>
+					</div>
+					<div class="bg-card border border-border rounded-lg px-4 py-3">
+						<div class="flex items-center space-x-2 mb-1">
+							<Database class="w-3 h-3 text-muted-foreground" />
+							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">DB Pool Active</span>
+						</div>
+						<span class="text-xl font-semibold font-mono text-foreground">{cur.db_pool_active}</span>
+					</div>
+					<div class="bg-card border border-border rounded-lg px-4 py-3">
+						<div class="flex items-center space-x-2 mb-1">
+							<CircleDot class="w-3 h-3 text-muted-foreground" />
+							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">Active Incidents</span>
+						</div>
+						<div class="flex items-baseline space-x-2">
+							<span class="text-xl font-semibold font-mono {cur.incidents_open > 0 ? 'text-red-400' : 'text-foreground'}">{cur.incidents_open}</span>
+							{#if cur.incidents_acked > 0}
+								<span class="text-xs text-muted-foreground font-mono">+{cur.incidents_acked} ack'd</span>
+							{/if}
+						</div>
+					</div>
+				</div>
+
+				<!-- Time-series Charts -->
+				{#if metrics.history && metrics.history.length >= 2}
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+						<div class="bg-card border border-border rounded-lg">
+							<div class="px-4 py-2.5 border-b border-border">
+								<span class="text-xs font-medium text-foreground">HTTP Latency</span>
+							</div>
+							<div class="px-4 py-3 h-[200px]">
+								<canvas bind:this={httpLatencyCanvas}></canvas>
+							</div>
+						</div>
+						<div class="bg-card border border-border rounded-lg">
+							<div class="px-4 py-2.5 border-b border-border">
+								<span class="text-xs font-medium text-foreground">Heartbeat Processing</span>
+							</div>
+							<div class="px-4 py-3 h-[200px]">
+								<canvas bind:this={heartbeatCanvas}></canvas>
+							</div>
+						</div>
+						<div class="bg-card border border-border rounded-lg lg:col-span-2">
+							<div class="px-4 py-2.5 border-b border-border">
+								<span class="text-xs font-medium text-foreground">Request Rate</span>
+							</div>
+							<div class="px-4 py-3 h-[180px]">
+								<canvas bind:this={requestRateCanvas}></canvas>
+							</div>
+						</div>
+					</div>
+				{:else}
+					<div class="bg-card border border-border rounded-lg p-6 text-center">
+						<p class="text-xs text-muted-foreground">Collecting data... charts will appear after ~20s of history.</p>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Operational Metrics -->
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
