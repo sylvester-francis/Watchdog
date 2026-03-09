@@ -250,6 +250,26 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 		return nil
 	}
 
+	// Check if agent is in a maintenance window — suppress incident creation if so.
+	if s.maintenanceRepo != nil {
+		window, mwErr := s.maintenanceRepo.GetActiveByAgentID(ctx, monitor.AgentID)
+		if mwErr != nil {
+			s.logger.Warn("failed to check maintenance window, proceeding with incident",
+				"monitor_id", monitorID,
+				"agent_id", monitor.AgentID,
+				"error", mwErr,
+			)
+		} else if window != nil {
+			s.logger.Info("suppressing incident during maintenance window",
+				"monitor_id", monitorID,
+				"agent_id", monitor.AgentID,
+				"window_id", window.ID,
+				"window_name", window.Name,
+			)
+			return nil
+		}
+	}
+
 	// We've hit the threshold - create an incident
 	incident, err := s.incidentSvc.CreateIncidentIfNeeded(ctx, monitorID)
 	if err != nil {

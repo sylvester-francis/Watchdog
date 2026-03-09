@@ -446,14 +446,13 @@ func (e *Engine) processMaintenanceWindows(ctx context.Context) {
 		}
 	}
 
-	// 2. Expired recurring windows — create next occurrence.
+	// 2. Expired recurring windows — advance to next occurrence in-place.
 	recurring, err := e.mwRepo.GetExpiredRecurring(ctx)
 	if err == nil {
 		for _, mw := range recurring {
-			next := mw.NextOccurrence()
-			if next != nil {
-				if err := e.mwRepo.Create(ctx, next); err != nil {
-					e.logger.Error("maintenance: failed to create next occurrence",
+			if mw.AdvanceToNext() {
+				if err := e.mwRepo.AdvanceRecurringWindow(ctx, mw); err != nil {
+					e.logger.Error("maintenance: failed to advance recurring window",
 						slog.String("window_id", mw.ID.String()),
 						slog.String("error", err.Error()),
 					)
