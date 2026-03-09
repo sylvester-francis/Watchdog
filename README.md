@@ -50,9 +50,11 @@ graph LR
 ## Features
 
 - **Private Agent Architecture** — Monitor internal databases, APIs, and services without exposing them to the internet
-- **8 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), and System metrics (CPU, memory, disk)
+- **10 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), System metrics (CPU, memory, disk), Service monitoring (systemd/Windows services), and Port Scanning with service detection
 - **TLS Certificate Monitoring** — Track certificate expiry, get alerted before certs expire
 - **Infrastructure Monitoring** — Docker container health, database connectivity, system resource thresholds
+- **Service Monitoring** — Track systemd (Linux) and Windows service state
+- **Port Scanning** — Multi-port scanning with banner grabbing and service detection
 - **Configurable Failure Threshold** — Default 3 consecutive failures before alerting (configurable 1-10 per monitor), eliminating false positives from transient network issues
 - **Incident Lifecycle** — Automatic incident creation, acknowledgment workflow, and resolution with TTR tracking
 - **Real-Time Dashboard** — Live status updates via SSE and HTMX, no page refresh needed
@@ -76,11 +78,11 @@ graph LR
 | Architecture | Distributed agents | Single server | Single server | SaaS |
 | Monitor private networks | Yes (agent runs locally) | Requires VPN/tunnels | Requires VPN/tunnels | No |
 | Inbound firewall rules | None needed | Needed for targets | Needed for targets | N/A |
-| Check types | 8 (HTTP, TCP, Ping, DNS, TLS, Docker, DB, System) | HTTP, TCP, Ping, DNS, and more | HTTP, TCP, DNS, SSH, and more | HTTP, Ping, Port |
+| Check types | 10 (HTTP, TCP, Ping, DNS, TLS, Docker, DB, System, Service, Port Scan) | HTTP, TCP, Ping, DNS, and more | HTTP, TCP, DNS, SSH, and more | HTTP, Ping, Port |
 | Agent configuration | Zero-config (hub pushes tasks) | N/A | Config file | N/A |
 | Public status pages | Yes | Yes | Yes | Paid |
 | REST API | Yes | Yes | No | Paid |
-| Alert channels | 6 (Slack, Discord, Email, Telegram, PagerDuty, Webhook) | 90+ | 14+ | Email, SMS, Webhook |
+| Alert channels | 6+ (Slack, Discord, Email, Telegram, PagerDuty, Webhook) | 90+ | 14+ | Email, SMS, Webhook |
 | Self-hosted | Yes (AGPL-3.0) | Yes (MIT) | Yes (Apache-2.0) | No |
 | Real-time dashboard | Yes (SSE) | Yes (WebSocket) | No | No |
 
@@ -92,7 +94,7 @@ graph TB
         subgraph Hub["Hub Server"]
             API["REST API v1"]
             WS["WebSocket"]
-            Dash["Dashboard<br/>(Go Templates + HTMX)"]
+            Dash["Dashboard<br/>(SvelteKit)"]
             DB[("PostgreSQL +<br/>TimescaleDB")]
         end
     end
@@ -107,6 +109,8 @@ graph TB
             Docker["Docker"]
             DBCheck["Database"]
             Sys["System"]
+            Svc["Service"]
+            PScan["Port Scan"]
         end
         T1["Database"]
         T2["Internal API"]
@@ -344,7 +348,7 @@ WatchDog is in active development. All features are available to all users:
 
 - Up to 10 agents per account
 - Unlimited monitors and status pages
-- All check types: HTTP, TCP, Ping, DNS, TLS, Docker, Database, System
+- All check types: HTTP, TCP, Ping, DNS, TLS, Docker, Database, System, Service, Port Scan
 - All 6 alert channels
 - Full REST API access with scoped tokens
 - Security audit logging with System dashboard viewer
@@ -357,7 +361,7 @@ WatchDog is in active development. All features are available to all users:
 | Language | Go 1.25 |
 | Web Framework | Echo v4 |
 | Database | PostgreSQL 16 + TimescaleDB |
-| Frontend | Go Templates + HTMX + Alpine.js + TailwindCSS |
+| Frontend | SvelteKit + Tailwind CSS + Chart.js + Lucide Icons |
 | Real-Time | WebSockets (agents) + SSE (dashboard) |
 | Auth | Argon2id passwords + AES-256-GCM encryption + gorilla/sessions |
 | API Auth | SHA-256 hashed Bearer tokens (`wd_` prefix) |
