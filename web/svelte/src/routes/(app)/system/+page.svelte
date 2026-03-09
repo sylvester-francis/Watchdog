@@ -272,16 +272,26 @@
 
 	onMount(async () => {
 		try {
-			data = await systemApi.getSystemInfo();
-			if (isAdmin) {
-				try {
-					const usersRes = await systemApi.listUsers();
-					users = usersRes.data ?? [];
-				} catch {
-					// Non-admin users won't have access
-				}
+			const [sysResult, usersResult, metricsResult] = await Promise.allSettled([
+				systemApi.getSystemInfo(),
+				systemApi.listUsers(),
+				systemApi.getMetrics()
+			]);
+
+			if (sysResult.status === 'fulfilled') {
+				data = sysResult.value;
+			} else {
+				throw sysResult.reason;
 			}
-			await refreshMetrics();
+
+			if (usersResult.status === 'fulfilled') {
+				users = usersResult.value.data ?? [];
+			}
+
+			if (metricsResult.status === 'fulfilled') {
+				metrics = metricsResult.value;
+			}
+
 			metricsInterval = setInterval(refreshMetrics, 10000);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load system info';
