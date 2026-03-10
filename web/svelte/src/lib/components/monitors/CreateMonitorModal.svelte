@@ -39,6 +39,21 @@
 	let portScanExpectedOpen = $state('');
 	let bannerGrab = $state(true);
 
+	// SNMP-specific
+	let snmpVersion = $state<'2c' | '3'>('2c');
+	let snmpCommunity = $state('public');
+	let snmpOid = $state('');
+	let snmpOids = $state('');
+	let snmpOperation = $state<'get' | 'walk' | 'bulk'>('get');
+	let snmpPort = $state(161);
+	// SNMPv3
+	let snmpSecurityLevel = $state<'noAuthNoPriv' | 'authNoPriv' | 'authPriv'>('authNoPriv');
+	let snmpUsername = $state('');
+	let snmpAuthProtocol = $state('SHA');
+	let snmpAuthPassword = $state('');
+	let snmpPrivacyProtocol = $state('AES');
+	let snmpPrivacyPassword = $state('');
+
 	let loading = $state(false);
 	let error = $state('');
 
@@ -52,7 +67,8 @@
 		{ value: 'database', label: 'Database' },
 		{ value: 'system', label: 'System' },
 		{ value: 'service', label: 'Service' },
-		{ value: 'port_scan', label: 'Port Scan' }
+		{ value: 'port_scan', label: 'Port Scan' },
+		{ value: 'snmp', label: 'SNMP' }
 	];
 
 	const targetPlaceholders: Record<MonitorType, string> = {
@@ -65,7 +81,8 @@
 		database: 'localhost:5432',
 		system: 'localhost',
 		service: 'nginx',
-		port_scan: '192.168.1.1 or hostname'
+		port_scan: '192.168.1.1 or hostname',
+		snmp: '192.168.1.1 or switch.local'
 	};
 
 	function buildMetadata(): Record<string, string> | undefined {
@@ -95,6 +112,29 @@
 			if (bannerGrab) meta.banner_grab = 'true';
 		}
 
+		if (type === 'snmp') {
+			meta.version = snmpVersion;
+			if (snmpOid.trim()) meta.oid = snmpOid.trim();
+			if (snmpOids.trim()) meta.oids = snmpOids.trim();
+			if (snmpOperation !== 'get') meta.operation = snmpOperation;
+			if (snmpPort !== 161) meta.port = String(snmpPort);
+
+			if (snmpVersion === '2c') {
+				meta.community = snmpCommunity || 'public';
+			} else {
+				meta.username = snmpUsername;
+				meta.security_level = snmpSecurityLevel;
+				if (snmpSecurityLevel !== 'noAuthNoPriv') {
+					meta.auth_protocol = snmpAuthProtocol;
+					meta.auth_password = snmpAuthPassword;
+				}
+				if (snmpSecurityLevel === 'authPriv') {
+					meta.privacy_protocol = snmpPrivacyProtocol;
+					meta.privacy_password = snmpPrivacyPassword;
+				}
+			}
+		}
+
 		return Object.keys(meta).length > 0 ? meta : undefined;
 	}
 
@@ -116,6 +156,18 @@
 		portScanRange = '';
 		portScanExpectedOpen = '';
 		bannerGrab = true;
+		snmpVersion = '2c';
+		snmpCommunity = 'public';
+		snmpOid = '';
+		snmpOids = '';
+		snmpOperation = 'get';
+		snmpPort = 161;
+		snmpSecurityLevel = 'authNoPriv';
+		snmpUsername = '';
+		snmpAuthProtocol = 'SHA';
+		snmpAuthPassword = '';
+		snmpPrivacyProtocol = 'AES';
+		snmpPrivacyPassword = '';
 		error = '';
 		loading = false;
 	}
@@ -153,6 +205,30 @@
 			}
 			if (!portScanPorts.trim() && !portScanRange.trim()) {
 				error = 'Please specify ports or a port range';
+				return;
+			}
+		}
+
+		if (type === 'snmp') {
+			if (!snmpOid.trim() && !snmpOids.trim()) {
+				error = 'At least one OID is required';
+				return;
+			}
+			const oidPattern = /^\d+(\.\d+)+$/;
+			if (snmpOid.trim() && !oidPattern.test(snmpOid.trim())) {
+				error = 'OID must be dotted-decimal format (e.g. 1.3.6.1.2.1.1.1.0)';
+				return;
+			}
+			if (snmpVersion === '3' && !snmpUsername.trim()) {
+				error = 'SNMPv3 requires a username';
+				return;
+			}
+			if (snmpVersion === '3' && snmpSecurityLevel !== 'noAuthNoPriv' && !snmpAuthPassword) {
+				error = 'Auth password is required for this security level';
+				return;
+			}
+			if (snmpVersion === '3' && snmpSecurityLevel === 'authPriv' && !snmpPrivacyPassword) {
+				error = 'Privacy password is required for authPriv security level';
 				return;
 			}
 		}
@@ -452,6 +528,178 @@
 									<div class="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-accent transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
 								</label>
 							</div>
+						</div>
+					{/if}
+
+					{#if type === 'snmp'}
+						<div class="space-y-3 pt-1">
+							<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">SNMP Settings</div>
+
+							<!-- Version + Operation row -->
+							<div class="grid grid-cols-3 gap-3">
+								<div>
+									<label for="monitor-snmp-version" class={labelClass}>Version</label>
+									<select
+										id="monitor-snmp-version"
+										bind:value={snmpVersion}
+										class={inputClass}
+									>
+										<option value="2c">v2c</option>
+										<option value="3">v3</option>
+									</select>
+								</div>
+								<div>
+									<label for="monitor-snmp-operation" class={labelClass}>Operation</label>
+									<select
+										id="monitor-snmp-operation"
+										bind:value={snmpOperation}
+										class={inputClass}
+									>
+										<option value="get">GET</option>
+										<option value="walk">Walk</option>
+										<option value="bulk">Bulk GET</option>
+									</select>
+								</div>
+								<div>
+									<label for="monitor-snmp-port" class={labelClass}>Port</label>
+									<input
+										id="monitor-snmp-port"
+										type="number"
+										bind:value={snmpPort}
+										min="1"
+										max="65535"
+										class={inputClass}
+									/>
+								</div>
+							</div>
+
+							<!-- OID -->
+							<div>
+								<label for="monitor-snmp-oid" class={labelClass}>OID</label>
+								<input
+									id="monitor-snmp-oid"
+									type="text"
+									bind:value={snmpOid}
+									placeholder="1.3.6.1.2.1.1.1.0 (sysDescr)"
+									class={inputClass}
+								/>
+							</div>
+
+							<!-- Multiple OIDs (optional) -->
+							<div>
+								<label for="monitor-snmp-oids" class={labelClass}>Additional OIDs (optional, comma-separated)</label>
+								<input
+									id="monitor-snmp-oids"
+									type="text"
+									bind:value={snmpOids}
+									placeholder="1.3.6.1.2.1.1.3.0, 1.3.6.1.2.1.1.5.0"
+									class={inputClass}
+								/>
+							</div>
+
+							<!-- v2c: Community string -->
+							{#if snmpVersion === '2c'}
+								<div>
+									<label for="monitor-snmp-community" class={labelClass}>Community String</label>
+									<input
+										id="monitor-snmp-community"
+										type="text"
+										bind:value={snmpCommunity}
+										placeholder="public"
+										class={inputClass}
+									/>
+								</div>
+							{/if}
+
+							<!-- v3: Auth settings -->
+							{#if snmpVersion === '3'}
+								<div class="space-y-3 pt-1 border-t border-border/50">
+									<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium pt-2">SNMPv3 Authentication</div>
+
+									<div class="grid grid-cols-2 gap-3">
+										<div>
+											<label for="monitor-snmp-username" class={labelClass}>Username</label>
+											<input
+												id="monitor-snmp-username"
+												type="text"
+												bind:value={snmpUsername}
+												placeholder="snmpuser"
+												class={inputClass}
+											/>
+										</div>
+										<div>
+											<label for="monitor-snmp-seclevel" class={labelClass}>Security Level</label>
+											<select
+												id="monitor-snmp-seclevel"
+												bind:value={snmpSecurityLevel}
+												class={inputClass}
+											>
+												<option value="noAuthNoPriv">No Auth, No Privacy</option>
+												<option value="authNoPriv">Auth, No Privacy</option>
+												<option value="authPriv">Auth + Privacy</option>
+											</select>
+										</div>
+									</div>
+
+									{#if snmpSecurityLevel !== 'noAuthNoPriv'}
+										<div class="grid grid-cols-2 gap-3">
+											<div>
+												<label for="monitor-snmp-authproto" class={labelClass}>Auth Protocol</label>
+												<select
+													id="monitor-snmp-authproto"
+													bind:value={snmpAuthProtocol}
+													class={inputClass}
+												>
+													<option value="MD5">MD5</option>
+													<option value="SHA">SHA</option>
+													<option value="SHA224">SHA-224</option>
+													<option value="SHA256">SHA-256</option>
+													<option value="SHA384">SHA-384</option>
+													<option value="SHA512">SHA-512</option>
+												</select>
+											</div>
+											<div>
+												<label for="monitor-snmp-authpass" class={labelClass}>Auth Password</label>
+												<input
+													id="monitor-snmp-authpass"
+													type="password"
+													bind:value={snmpAuthPassword}
+													placeholder="Auth passphrase"
+													class={inputClass}
+												/>
+											</div>
+										</div>
+									{/if}
+
+									{#if snmpSecurityLevel === 'authPriv'}
+										<div class="grid grid-cols-2 gap-3">
+											<div>
+												<label for="monitor-snmp-privproto" class={labelClass}>Privacy Protocol</label>
+												<select
+													id="monitor-snmp-privproto"
+													bind:value={snmpPrivacyProtocol}
+													class={inputClass}
+												>
+													<option value="DES">DES</option>
+													<option value="AES">AES</option>
+													<option value="AES192">AES-192</option>
+													<option value="AES256">AES-256</option>
+												</select>
+											</div>
+											<div>
+												<label for="monitor-snmp-privpass" class={labelClass}>Privacy Password</label>
+												<input
+													id="monitor-snmp-privpass"
+													type="password"
+													bind:value={snmpPrivacyPassword}
+													placeholder="Privacy passphrase"
+													class={inputClass}
+												/>
+											</div>
+										</div>
+									{/if}
+								</div>
+							{/if}
 						</div>
 					{/if}
 				</div>

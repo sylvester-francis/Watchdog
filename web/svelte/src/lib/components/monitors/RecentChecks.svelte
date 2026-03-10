@@ -38,6 +38,7 @@
 	const isNonLatency = $derived(isSystem || isDocker || isService);
 	const isTLS = $derived(monitorType === 'tls');
 	const isPortScan = $derived(monitorType === 'port_scan');
+	const isSNMP = $derived(monitorType === 'snmp');
 
 	let heartbeats = $state<HeartbeatPoint[]>([]);
 	let loading = $state(true);
@@ -123,10 +124,10 @@
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isPortScan ? 'Ports' : isSystem ? 'Value' : isTLS ? 'Handshake' : isDocker || isService ? 'Detail' : 'Latency'}
+							{isPortScan ? 'Ports' : isSNMP ? 'Response' : isSystem ? 'Value' : isTLS ? 'Handshake' : isDocker || isService ? 'Detail' : 'Latency'}
 						</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isPortScan ? 'Drift' : isTLS ? 'Cert Expiry' : isSystem ? 'Threshold' : isDocker ? 'Container' : isService ? 'Service' : 'Result'}
+							{isPortScan ? 'Drift' : isSNMP ? 'Value' : isTLS ? 'Cert Expiry' : isSystem ? 'Threshold' : isDocker ? 'Container' : isService ? 'Service' : 'Result'}
 						</th>
 					</tr>
 				</thead>
@@ -143,7 +144,9 @@
 								</div>
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isPortScan}
+								{#if isSNMP}
+									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
+								{:else if isPortScan}
 									<span class="text-xs text-foreground font-mono">{parsePortScanSummary(hb.error_message)}</span>
 								{:else if isSystem}
 									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message, hb.status)}</span>
@@ -158,7 +161,11 @@
 								{/if}
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isPortScan && hb.error_message}
+								{#if isSNMP && hb.status === 'up'}
+									<span class="text-xs text-emerald-400 font-mono">OK</span>
+								{:else if isSNMP && hb.error_message}
+									<span class="text-xs text-red-400 font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
+								{:else if isPortScan && hb.error_message}
 									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
 								{:else if isPortScan && hb.status === 'up'}
 									<span class="text-xs text-emerald-400 font-mono">No drift</span>
