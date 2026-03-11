@@ -161,7 +161,9 @@
 								{/if}
 							</td>
 							<td class="px-5 py-2.5">
-								{#if isSNMP && hb.status === 'up'}
+								{#if isSNMP && hb.status === 'up' && hb.error_message}
+									<span class="text-xs text-emerald-400 font-mono truncate max-w-[250px] inline-block" title={hb.error_message}>{hb.error_message}</span>
+								{:else if isSNMP && hb.status === 'up'}
 									<span class="text-xs text-emerald-400 font-mono">OK</span>
 								{:else if isSNMP && hb.error_message}
 									<span class="text-xs text-red-400 font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>

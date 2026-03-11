@@ -54,6 +54,38 @@
 	let snmpPrivacyProtocol = $state('AES');
 	let snmpPrivacyPassword = $state('');
 
+	// SNMP OID presets for quick setup
+	const snmpPresets: { label: string; group: string; oid: string; op: 'get' | 'walk' }[] = [
+		{ label: 'System Description', group: 'System', oid: '1.3.6.1.2.1.1.1.0', op: 'get' },
+		{ label: 'System Uptime', group: 'System', oid: '1.3.6.1.2.1.1.3.0', op: 'get' },
+		{ label: 'Hostname', group: 'System', oid: '1.3.6.1.2.1.1.5.0', op: 'get' },
+		{ label: 'CPU User %', group: 'CPU', oid: '1.3.6.1.4.1.2021.11.9.0', op: 'get' },
+		{ label: 'CPU System %', group: 'CPU', oid: '1.3.6.1.4.1.2021.11.10.0', op: 'get' },
+		{ label: 'CPU Idle %', group: 'CPU', oid: '1.3.6.1.4.1.2021.11.11.0', op: 'get' },
+		{ label: 'Total RAM (KB)', group: 'Memory', oid: '1.3.6.1.4.1.2021.4.5.0', op: 'get' },
+		{ label: 'Available RAM (KB)', group: 'Memory', oid: '1.3.6.1.4.1.2021.4.6.0', op: 'get' },
+		{ label: 'Total Free Memory', group: 'Memory', oid: '1.3.6.1.4.1.2021.4.11.0', op: 'get' },
+		{ label: 'Load Avg (1m)', group: 'Load', oid: '1.3.6.1.4.1.2021.10.1.3.1', op: 'get' },
+		{ label: 'Load Avg (5m)', group: 'Load', oid: '1.3.6.1.4.1.2021.10.1.3.2', op: 'get' },
+		{ label: 'Load Avg (15m)', group: 'Load', oid: '1.3.6.1.4.1.2021.10.1.3.3', op: 'get' },
+		{ label: 'Interface Count', group: 'Network', oid: '1.3.6.1.2.1.2.1.0', op: 'get' },
+		{ label: 'All Interfaces', group: 'Network', oid: '1.3.6.1.2.1.2.2', op: 'walk' },
+		{ label: 'All Storage', group: 'Disk', oid: '1.3.6.1.2.1.25.2', op: 'walk' },
+		{ label: 'All System Info', group: 'System', oid: '1.3.6.1.2.1.1', op: 'walk' },
+	];
+
+	function applyPreset(preset: typeof snmpPresets[0]) {
+		snmpOperation = preset.op;
+		if (preset.op === 'get') {
+			snmpOid = preset.oid;
+		} else {
+			snmpOid = preset.oid;
+		}
+		if (!name) {
+			name = preset.label;
+		}
+	}
+
 	let loading = $state(false);
 	let error = $state('');
 
@@ -534,6 +566,31 @@
 					{#if type === 'snmp'}
 						<div class="space-y-3 pt-1">
 							<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">SNMP Settings</div>
+
+							<!-- OID Preset -->
+							<div>
+								<label for="monitor-snmp-preset" class={labelClass}>Quick Setup (Preset)</label>
+								<select
+									id="monitor-snmp-preset"
+									onchange={(e) => {
+										const idx = parseInt((e.target as HTMLSelectElement).value);
+										if (idx >= 0) applyPreset(snmpPresets[idx]);
+										(e.target as HTMLSelectElement).value = '-1';
+									}}
+									class={inputClass}
+								>
+									<option value="-1">Select a common OID...</option>
+									{#each ['System', 'CPU', 'Memory', 'Load', 'Network', 'Disk'] as group}
+										<optgroup label={group}>
+											{#each snmpPresets as preset, i}
+												{#if preset.group === group}
+													<option value={i}>{preset.label} ({preset.op})</option>
+												{/if}
+											{/each}
+										</optgroup>
+									{/each}
+								</select>
+							</div>
 
 							<!-- Version + Operation row -->
 							<div class="grid grid-cols-3 gap-3">
