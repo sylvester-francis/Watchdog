@@ -406,6 +406,28 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 			}
 		}
 
+		// Persist SNMP results to monitor metadata (merge, preserving config keys)
+		if payload.Metadata["snmp_value"] != "" || payload.Metadata["snmp_results"] != "" {
+			if h.monitorRepo != nil {
+				existing, err := h.monitorRepo.GetByID(ctx, monitorID)
+				if err == nil && existing != nil {
+					merged := make(map[string]string)
+					for k, v := range existing.Metadata {
+						merged[k] = v
+					}
+					for k, v := range payload.Metadata {
+						merged[k] = v
+					}
+					if err := h.monitorRepo.UpdateMetadata(ctx, monitorID, merged); err != nil {
+						h.logger.Error("failed to update SNMP metadata",
+							slog.String("monitor_id", payload.MonitorID),
+							slog.String("error", err.Error()),
+						)
+					}
+				}
+			}
+		}
+
 		// Invoke heartbeat hooks (port scan storage, service change detection, etc.)
 		for _, hook := range h.heartbeatHooks {
 			hook(ctx, agentID, monitorID, payload)
