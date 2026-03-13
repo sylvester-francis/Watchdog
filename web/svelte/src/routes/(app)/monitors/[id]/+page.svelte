@@ -10,6 +10,7 @@
 	import LatencyChart from '$lib/components/monitors/LatencyChart.svelte';
 	import MetricChart from '$lib/components/monitors/MetricChart.svelte';
 	import StatusChart from '$lib/components/monitors/StatusChart.svelte';
+	import CertExpiryChart from '$lib/components/monitors/CertExpiryChart.svelte';
 	import PortScanResults from '$lib/components/monitors/PortScanResults.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
@@ -137,8 +138,14 @@
 		<MonitorStats {monitor} {uptimePercent} {agentName} />
 
 		<!-- Charts: type-specific primary chart + StatusChart for all types -->
-		{#if monitor.type === 'system'}
+		{#if monitor.type === 'tls'}
+			<CertExpiryChart {monitorId} />
+			<CertDetailsCard {monitorId} />
+			<LatencyChart {monitorId} />
+			<StatusChart {monitorId} />
+		{:else if monitor.type === 'system'}
 			<MetricChart {monitorId} target={monitor.target} />
+			<StatusChart {monitorId} />
 		{:else if monitor.type === 'port_scan'}
 			<PortScanResults metadata={monitor.metadata} />
 			<StatusChart {monitorId} />
@@ -147,11 +154,6 @@
 		{:else}
 			<LatencyChart {monitorId} />
 			<StatusChart {monitorId} />
-		{/if}
-
-		<!-- TLS Certificate Details -->
-		{#if monitor.type === 'tls'}
-			<CertDetailsCard {monitorId} />
 		{/if}
 
 		<!-- SLA Compliance -->

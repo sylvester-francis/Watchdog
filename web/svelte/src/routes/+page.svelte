@@ -109,9 +109,9 @@
 
 	const features = [
 		{ icon: Server, title: 'Agent-based monitoring', desc: "The agent runs inside your network, so it can reach things that external monitoring tools can't \u2014 internal databases, Docker containers, private APIs, services behind a firewall or NAT." },
-		{ icon: Activity, title: 'Live dashboard', desc: 'Real-time status via SSE. Latency sparklines, uptime bars, system metric charts, and incident timeline. No page refresh.' },
+		{ icon: Activity, title: 'Live dashboard', desc: 'Real-time status via WebSocket. Latency sparklines, uptime bars, system metric charts, and incident timeline. No page refresh.' },
 		{ icon: BellRing, title: 'Smart alerts', desc: 'Configurable failure threshold before firing. Supports Discord, Slack, Email, Telegram, PagerDuty, and webhooks.' },
-		{ icon: Terminal, title: 'Eight check types', desc: 'HTTP with content validation, TCP, Ping, DNS, TLS certificate expiry tracking, Docker containers, database connectivity (PostgreSQL, MySQL, Redis), and system metrics with threshold alerts.',
+		{ icon: Terminal, title: 'Ten check types', desc: 'HTTP with content validation, TCP, Ping, DNS, TLS certificate expiry tracking, Docker containers, database connectivity (PostgreSQL, MySQL, Redis), system metrics with threshold alerts, service monitoring, and port scanning with drift detection.',
 			pre: '<span class="text-emerald-400">[OK]</span>   api.internal/health <span class="text-muted-foreground/40">···</span> <span class="text-muted-foreground/60">12ms</span>\n<span class="text-emerald-400">[OK]</span>   postgres:5432 <span class="text-muted-foreground/40">·······</span> <span class="text-muted-foreground/60">2ms</span>\n<span class="text-emerald-400">[OK]</span>   redis:6379 <span class="text-muted-foreground/40">··········</span> <span class="text-muted-foreground/60">1ms</span>\n<span class="text-red-400">[FAIL]</span> vault:8200 <span class="text-muted-foreground/40">·········</span> <span class="text-red-400">timeout</span>'
 		},
 		{ icon: Zap, title: 'Zero config agent', desc: "The agent takes a hub URL and an API key. That's it. Monitor configs are pushed from the hub over WebSocket \u2014 no config files, no restarts.",
@@ -360,7 +360,7 @@
 						<Radar class="w-5 h-5 text-muted-foreground" />
 					</div>
 					<h3 class="text-sm font-semibold text-foreground mb-1.5">2. Agent runs checks</h3>
-					<p class="text-sm text-muted-foreground leading-relaxed">HTTP, TCP, DNS, TLS, Docker, database, and system metrics. The hub pushes monitor configs to the agent over WebSocket. The agent reports back.</p>
+					<p class="text-sm text-muted-foreground leading-relaxed">HTTP, TCP, Ping, DNS, TLS, Docker, database, system metrics, service, and port scan. The hub pushes monitor configs to the agent over WebSocket. The agent reports back.</p>
 				</div>
 				<div class="text-center relative">
 					<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">
@@ -469,7 +469,7 @@
 						<LayoutDashboard class="w-5 h-5 text-muted-foreground" />
 					</div>
 					<h3 class="text-sm font-semibold text-foreground mb-1.5">Dashboard</h3>
-					<p class="text-sm text-muted-foreground leading-relaxed">Real-time web UI served by the hub. Live updates via SSE. Public status pages. SvelteKit SPA.</p>
+					<p class="text-sm text-muted-foreground leading-relaxed">Real-time web UI served by the hub. Live updates via WebSocket. Public status pages. SvelteKit SPA.</p>
 				</div>
 			</div>
 
