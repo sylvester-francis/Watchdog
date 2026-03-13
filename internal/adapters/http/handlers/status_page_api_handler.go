@@ -332,10 +332,9 @@ type publicIncidentResponse struct {
 	IsActive        bool    `json:"is_active"`
 }
 
-// PublicView handles GET /api/v1/public/status/:tenant/:username/:slug (no auth required).
+// PublicView handles GET /api/v1/public/status/:username/:slug (no auth required).
 func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
-	tenantSlug := c.Param("tenant")
-	ctx := repository.WithTenantID(c.Request().Context(), tenantSlug)
+	ctx := repository.WithTenantID(c.Request().Context(), "default")
 	username := c.Param("username")
 	slug := c.Param("slug")
 
