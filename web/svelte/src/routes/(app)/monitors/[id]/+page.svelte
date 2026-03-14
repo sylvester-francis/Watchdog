@@ -13,6 +13,7 @@
 	import CertExpiryChart from '$lib/components/monitors/CertExpiryChart.svelte';
 	import PortScanResults from '$lib/components/monitors/PortScanResults.svelte';
 	import SNMPResults from '$lib/components/monitors/SNMPResults.svelte';
+	import SNMPValueChart from '$lib/components/monitors/SNMPValueChart.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
 	import CertDetailsCard from '$lib/components/monitors/CertDetailsCard.svelte';
@@ -152,6 +153,7 @@
 			<StatusChart {monitorId} />
 		{:else if monitor.type === 'snmp'}
 			<SNMPResults metadata={monitor.metadata} />
+			<SNMPValueChart {monitorId} />
 			<LatencyChart {monitorId} />
 			<StatusChart {monitorId} />
 		{:else if monitor.type === 'service' || monitor.type === 'docker'}
