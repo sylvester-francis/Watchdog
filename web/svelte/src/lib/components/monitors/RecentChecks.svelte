@@ -32,7 +32,10 @@
 	let { monitorId, monitorType = '' }: Props = $props();
 
 	const toast = getToasts();
-	const isNonLatency = $derived(monitorType === 'system' || monitorType === 'docker' || monitorType === 'service');
+	const isSystem = $derived(monitorType === 'system');
+	const isDocker = $derived(monitorType === 'docker');
+	const isService = $derived(monitorType === 'service');
+	const isNonLatency = $derived(isSystem || isDocker || isService);
 	const isTLS = $derived(monitorType === 'tls');
 	const isPortScan = $derived(monitorType === 'port_scan');
 
@@ -120,10 +123,10 @@
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isPortScan ? 'Ports' : isNonLatency ? 'Value' : 'Latency'}
+							{isPortScan ? 'Ports' : isSystem ? 'Value' : isTLS ? 'Handshake' : isDocker || isService ? 'Detail' : 'Latency'}
 						</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isPortScan ? 'Detail' : isNonLatency ? 'Detail' : isTLS ? 'Certificate' : 'Status'}
+							{isPortScan ? 'Drift' : isTLS ? 'Cert Expiry' : isSystem ? 'Threshold' : isDocker ? 'Container' : isService ? 'Service' : 'Result'}
 						</th>
 					</tr>
 				</thead>
@@ -142,8 +145,12 @@
 							<td class="px-5 py-2.5">
 								{#if isPortScan}
 									<span class="text-xs text-foreground font-mono">{parsePortScanSummary(hb.error_message)}</span>
-								{:else if isNonLatency}
+								{:else if isSystem}
 									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message, hb.status)}</span>
+								{:else if isDocker || isService}
+									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">
+										{hb.error_message || (hb.status === 'up' ? 'Healthy' : 'Unreachable')}
+									</span>
 								{:else if hb.latency_ms != null}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
 								{:else}
@@ -154,18 +161,23 @@
 								{#if isPortScan && hb.error_message}
 									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
 								{:else if isPortScan && hb.status === 'up'}
-									<span class="text-xs text-emerald-400 font-mono">Scan OK</span>
+									<span class="text-xs text-emerald-400 font-mono">No drift</span>
 								{:else if isTLS && hb.cert_expiry_days != null}
 									{@const days = hb.cert_expiry_days}
 									<span class="text-xs font-mono {days < 14 ? 'text-red-400' : days < 30 ? 'text-amber-400' : 'text-emerald-400'}">
-										Expires in {days}d
+										{days}d remaining
 									</span>
-								{:else if isNonLatency && hb.error_message}
-									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
-								{:else if isNonLatency && hb.status === 'up'}
-									<span class="text-xs text-emerald-400 font-mono">OK</span>
+								{:else if isSystem && hb.error_message}
+									{@const hasThreshold = hb.error_message.includes('exceeds')}
+									<span class="text-xs font-mono {hasThreshold ? 'text-red-400' : 'text-emerald-400'}">
+										{hasThreshold ? 'Exceeded' : 'Within limit'}
+									</span>
+								{:else if (isDocker || isService) && hb.status === 'up'}
+									<span class="text-xs text-emerald-400 font-mono">Running</span>
+								{:else if (isDocker || isService) && hb.status === 'down'}
+									<span class="text-xs text-red-400 font-mono">Stopped</span>
 								{:else if hb.status === 'down' || hb.status === 'error'}
-									<span class="text-xs text-red-400 font-mono">Check failed</span>
+									<span class="text-xs text-red-400 font-mono">Failed</span>
 								{:else if hb.status === 'timeout'}
 									<span class="text-xs text-amber-400 font-mono">Timeout</span>
 								{:else if hb.status === 'up'}
