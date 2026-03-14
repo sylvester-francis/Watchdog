@@ -39,6 +39,9 @@ const (
 // HeartbeatCallback is called when a heartbeat is received from an agent.
 type HeartbeatCallback func(agentID uuid.UUID, payload *protocol.HeartbeatPayload)
 
+// DiscoveryResultCallback is called when a discovery result is received from an agent.
+type DiscoveryResultCallback func(agentID uuid.UUID, payload *protocol.DiscoveryResultPayload)
+
 // Client represents a connected agent.
 type Client struct {
 	AgentID     uuid.UUID
@@ -49,7 +52,8 @@ type Client struct {
 	logger      *slog.Logger
 	closeOnce   sync.Once
 	closeCh     chan struct{}
-	onHeartbeat HeartbeatCallback
+	onHeartbeat       HeartbeatCallback
+	onDiscoveryResult DiscoveryResultCallback
 	hbCount     atomic.Int64 // heartbeats in current window (H-009)
 	msgCount    atomic.Int64 // total messages in current window
 	badMsgCount atomic.Int64 // consecutive bad messages
@@ -71,6 +75,11 @@ func NewClient(hub *Hub, conn *websocket.Conn, agentID uuid.UUID, agentName stri
 // SetHeartbeatCallback sets the callback for heartbeat processing.
 func (c *Client) SetHeartbeatCallback(cb HeartbeatCallback) {
 	c.onHeartbeat = cb
+}
+
+// SetDiscoveryResultCallback sets the callback for discovery result processing.
+func (c *Client) SetDiscoveryResultCallback(cb DiscoveryResultCallback) {
+	c.onDiscoveryResult = cb
 }
 
 // Start begins the read and write pumps for this client.
@@ -238,6 +247,8 @@ func (c *Client) handleMessage(msg *protocol.Message) {
 	switch msg.Type {
 	case protocol.MsgTypeHeartbeat:
 		c.handleHeartbeat(msg)
+	case protocol.MsgTypeDiscoveryResult:
+		c.handleDiscoveryResult(msg)
 	case protocol.MsgTypePong:
 		// Pong received, connection is alive
 		c.logger.Debug("pong received", slog.String("agent_id", c.AgentID.String()))
@@ -283,6 +294,29 @@ func (c *Client) handleHeartbeat(msg *protocol.Message) {
 
 	if c.onHeartbeat != nil {
 		c.onHeartbeat(c.AgentID, &payload)
+	}
+}
+
+// handleDiscoveryResult processes discovery result messages from the agent.
+func (c *Client) handleDiscoveryResult(msg *protocol.Message) {
+	var payload protocol.DiscoveryResultPayload
+	if err := msg.ParsePayload(&payload); err != nil {
+		c.logger.Warn("failed to parse discovery result payload",
+			slog.String("agent_id", c.AgentID.String()),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	c.logger.Debug("discovery result received",
+		slog.String("agent_id", c.AgentID.String()),
+		slog.String("task_id", payload.TaskID),
+		slog.String("status", payload.Status),
+		slog.Int("devices", len(payload.Devices)),
+	)
+
+	if c.onDiscoveryResult != nil {
+		c.onDiscoveryResult(c.AgentID, &payload)
 	}
 }
 
