@@ -229,6 +229,7 @@
 	});
 </script>
 
+{#if loading || hasNumericValues || heartbeats.length === 0}
 <div class="bg-card border border-border rounded-lg">
 	<!-- Header -->
 	<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
@@ -263,10 +264,6 @@
 			<div class="flex items-center justify-center h-[220px]">
 				<p class="text-xs text-muted-foreground">No SNMP data for this period</p>
 			</div>
-		{:else if !hasNumericValues}
-			<div class="flex items-center justify-center h-[220px]">
-				<p class="text-xs text-muted-foreground">Non-numeric SNMP value — chart unavailable</p>
-			</div>
 		{:else}
 			<div class="h-[220px]">
 				<canvas bind:this={canvasEl}></canvas>
@@ -274,3 +271,4 @@
 		{/if}
 	</div>
 </div>
+{/if}
