@@ -46,8 +46,12 @@
 	let activePeriod = $state<Period>('24h');
 	let heartbeats = $state<HeartbeatPoint[]>([]);
 	let loading = $state(true);
-	let hasNumericValues = $state(false);
 	let canvasEl = $state<HTMLCanvasElement>(undefined as unknown as HTMLCanvasElement);
+
+	// Derive numeric status from heartbeat data (not from chart building)
+	let hasNumericValues = $derived(
+		heartbeats.some((hb) => hb.status === 'up' && parseNumericValue(hb.error_message) !== null)
+	);
 	let chart: Chart | null = null;
 	let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -80,8 +84,7 @@
 			}
 		}
 
-		hasNumericValues = points.length > 0;
-		if (!hasNumericValues) return;
+		if (points.length === 0) return;
 
 		if (chart) {
 			chart.destroy();
