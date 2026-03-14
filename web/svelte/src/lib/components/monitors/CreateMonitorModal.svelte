@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { X, AlertCircle } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
-	import type { Agent, MonitorType } from '$lib/types';
+	import type { Agent, MonitorType, DeviceTemplate } from '$lib/types';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		open: boolean;
@@ -53,6 +54,88 @@
 	let snmpAuthPassword = $state('');
 	let snmpPrivacyProtocol = $state('AES');
 	let snmpPrivacyPassword = $state('');
+
+	// Device templates (fetched from API)
+	let deviceTemplates = $state<DeviceTemplate[]>([]);
+	let selectedTemplateId = $state('');
+
+	onMount(async () => {
+		try {
+			const res = await monitorsApi.listDeviceTemplates();
+			deviceTemplates = res.data ?? [];
+		} catch {
+			// Templates are optional — fail silently
+		}
+	});
+
+	async function applyTemplate(templateId: string) {
+		if (!templateId) {
+			selectedTemplateId = '';
+			return;
+		}
+		try {
+			const res = await monitorsApi.getDeviceTemplate(templateId);
+			const t = res.data;
+			if (!t?.oids) return;
+
+			selectedTemplateId = templateId;
+
+			// Build OIDs CSV from template
+			const scalarOids = t.oids.filter(o => o.category === 'system' || o.category === 'cpu' || o.category === 'memory' || o.category === 'battery' || o.category === 'output' || o.category === 'input');
+			const walkOids = t.oids.filter(o => o.category === 'interface' || o.category === 'storage');
+
+			if (walkOids.length > 0 && scalarOids.length > 0) {
+				// Mix of scalars and walk OIDs: use bulk for efficiency
+				snmpOperation = 'bulk';
+				const allOids = t.oids.map(o => o.oid);
+				// Deduplicate OID prefixes for walk categories
+				const seen = new Set<string>();
+				const deduped: string[] = [];
+				for (const oid of allOids) {
+					// For walk-type OIDs, only keep the prefix (strip instance suffix)
+					const parts = oid.split('.');
+					if (parts.length > 8) {
+						const prefix = parts.slice(0, 8).join('.');
+						if (!seen.has(prefix)) {
+							seen.add(prefix);
+							deduped.push(oid);
+						}
+					} else {
+						deduped.push(oid);
+					}
+				}
+				snmpOids = deduped.join(',');
+				snmpOid = '';
+			} else if (scalarOids.length > 0) {
+				snmpOperation = 'get';
+				if (scalarOids.length === 1) {
+					snmpOid = scalarOids[0].oid;
+					snmpOids = '';
+				} else {
+					snmpOid = scalarOids[0].oid;
+					snmpOids = scalarOids.slice(1).map(o => o.oid).join(',');
+				}
+			}
+
+			// Build rate_oids from counter OIDs
+			const counterOids = t.oids.filter(o => o.is_counter).map(o => o.oid);
+
+			// Auto-fill name and interval
+			if (!name || name === deviceTemplates.find(d => d.id === selectedTemplateId)?.model) {
+				name = `${t.vendor} ${t.model}`;
+			}
+			intervalSeconds = t.default_interval;
+
+			// Store template info for metadata
+			snmpTemplateId = templateId;
+			snmpRateOids = counterOids.join(',');
+		} catch {
+			// Ignore template fetch errors
+		}
+	}
+
+	let snmpTemplateId = $state('');
+	let snmpRateOids = $state('');
 
 	// SNMP OID presets for quick setup
 	const snmpPresets: { label: string; group: string; oid: string; op: 'get' | 'walk' }[] = [
@@ -150,6 +233,8 @@
 			if (snmpOids.trim()) meta.oids = snmpOids.trim();
 			if (snmpOperation !== 'get') meta.operation = snmpOperation;
 			if (snmpPort !== 161) meta.port = String(snmpPort);
+			if (snmpTemplateId) meta.template_id = snmpTemplateId;
+			if (snmpRateOids) meta.rate_oids = snmpRateOids;
 
 			if (snmpVersion === '2c') {
 				meta.community = snmpCommunity || 'public';
@@ -200,6 +285,9 @@
 		snmpAuthPassword = '';
 		snmpPrivacyProtocol = 'AES';
 		snmpPrivacyPassword = '';
+		snmpTemplateId = '';
+		snmpRateOids = '';
+		selectedTemplateId = '';
 		error = '';
 		loading = false;
 	}
@@ -566,6 +654,27 @@
 					{#if type === 'snmp'}
 						<div class="space-y-3 pt-1">
 							<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">SNMP Settings</div>
+
+							<!-- Device Template -->
+							{#if deviceTemplates.length > 0}
+								<div>
+									<label for="monitor-snmp-template" class={labelClass}>Device Template</label>
+									<select
+										id="monitor-snmp-template"
+										bind:value={selectedTemplateId}
+										onchange={(e) => applyTemplate((e.target as HTMLSelectElement).value)}
+										class={inputClass}
+									>
+										<option value="">Custom (manual OID entry)</option>
+										{#each deviceTemplates as tmpl}
+											<option value={tmpl.id}>{tmpl.vendor} {tmpl.model} ({tmpl.oid_count} OIDs)</option>
+										{/each}
+									</select>
+									{#if selectedTemplateId}
+										<p class="text-[10px] text-muted-foreground mt-1">OIDs auto-filled from template. You can still edit them below.</p>
+									{/if}
+								</div>
+							{/if}
 
 							<!-- OID Preset -->
 							<div>

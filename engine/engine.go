@@ -248,6 +248,18 @@ func New(ctx context.Context) (*Engine, error) {
 	// Wire investigation service into the API handler
 	router.APIV1Handler().SetInvestigationService(investigationSvc)
 
+	// Wire discovery service
+	discoveryRepo := repository.NewDiscoveryRepository(db)
+	discoverySvc := services.NewDiscoveryService(discoveryRepo, agentRepo, monitorSvc, hub, logger)
+	discoveryHandler := handlers.NewDiscoveryHandler(discoverySvc, agentRepo)
+	router.SetDiscoveryHandler(discoveryHandler)
+
+	router.WSHandler().SetDiscoveryHook(func(ctx context.Context, payload *protocol.DiscoveryResultPayload) {
+		if err := discoverySvc.ProcessResult(ctx, payload); err != nil {
+			logger.Error("failed to process discovery result", slog.String("error", err.Error()))
+		}
+	})
+
 	// Wire agent auto-update service if manifest URL is configured.
 	if cfg.Feature.AgentUpdateManifestURL != "" {
 		updateSvc := services.NewUpdateService(cfg.Feature.AgentUpdateManifestURL, logger)

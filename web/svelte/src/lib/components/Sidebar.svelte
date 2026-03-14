@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { getAuth } from '$lib/stores/auth.svelte';
-	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, ShieldAlert, ScrollText, MessageCircle, X, Search } from 'lucide-svelte';
+	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, ShieldAlert, ScrollText, MessageCircle, X, Search, Radar } from 'lucide-svelte';
 
 	const auth = getAuth();
 	let mobileOpen = $state(false);
@@ -23,11 +23,15 @@
 		return () => window.removeEventListener('toggle-sidebar', handleToggle);
 	});
 
-	const navItems = [
-		{ href: `/dashboard`, label: 'Dashboard', icon: LayoutDashboard, group: 'Monitoring', shortcut: 'G D' },
-		{ href: `/monitors`, label: 'Monitors', icon: Activity, group: 'Monitoring', shortcut: 'G M' },
-		{ href: `/incidents`, label: 'Incidents', icon: AlertTriangle, group: 'Monitoring', shortcut: 'G I' },
-		{ href: `/status-pages`, label: 'Status Pages', icon: Globe, group: 'Monitoring', shortcut: 'G P' },
+	const monitoringItems = [
+		{ href: `/dashboard`, label: 'Dashboard', icon: LayoutDashboard, shortcut: 'G D' },
+		{ href: `/monitors`, label: 'Monitors', icon: Activity, shortcut: 'G M' },
+		{ href: `/incidents`, label: 'Incidents', icon: AlertTriangle, shortcut: 'G I' },
+		{ href: `/status-pages`, label: 'Status Pages', icon: Globe, shortcut: 'G P' },
+	];
+
+	const networkItems = [
+		{ href: `/discovery`, label: 'Discovery', icon: Radar, shortcut: 'G N' },
 	];
 
 	const systemItems = [
@@ -84,7 +88,25 @@
 	<nav class="flex-1 px-3 py-4 space-y-0.5" aria-label="Main navigation">
 		<p class="text-[9px] uppercase tracking-wider text-muted-foreground/40 px-3 mb-1">Monitoring</p>
 
-		{#each navItems as item}
+		{#each monitoringItems as item}
+			<a
+				href={item.href}
+				onclick={closeMobile}
+				class="group flex items-center space-x-3 px-3 py-2 rounded-md text-sm sidebar-link
+					{isActive(item.href) ? 'bg-foreground/[0.08] text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
+			>
+				<item.icon class="w-4 h-4" />
+				<span class="flex-1">{item.label}</span>
+				{#if item.shortcut}
+					<kbd class="hidden lg:inline-flex px-1 py-0.5 rounded bg-muted/50 text-[9px] font-mono text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">{item.shortcut}</kbd>
+				{/if}
+			</a>
+		{/each}
+
+		<div class="pt-4 mt-2 border-t border-border/50"></div>
+		<p class="text-[9px] uppercase tracking-wider text-muted-foreground/40 px-3 mb-1 mt-2">Network</p>
+
+		{#each networkItems as item}
 			<a
 				href={item.href}
 				onclick={closeMobile}

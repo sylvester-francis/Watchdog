@@ -186,6 +186,18 @@ type MaintenanceWindowRepository interface {
 	DeleteExpired(ctx context.Context, before time.Time) error
 }
 
+// DiscoveryRepository defines the interface for network discovery persistence.
+type DiscoveryRepository interface {
+	CreateScan(ctx context.Context, scan *domain.DiscoveryScan) error
+	GetScanByID(ctx context.Context, id uuid.UUID) (*domain.DiscoveryScan, error)
+	GetScansByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.DiscoveryScan, error)
+	UpdateScan(ctx context.Context, scan *domain.DiscoveryScan) error
+	CreateDevice(ctx context.Context, device *domain.DiscoveredDevice) error
+	GetDevicesByScanID(ctx context.Context, scanID uuid.UUID) ([]*domain.DiscoveredDevice, error)
+	GetDeviceByID(ctx context.Context, id uuid.UUID) (*domain.DiscoveredDevice, error)
+	MarkDeviceMonitorCreated(ctx context.Context, deviceID uuid.UUID) error
+}
+
 // Transactor defines the interface for database transactions.
 type Transactor interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error

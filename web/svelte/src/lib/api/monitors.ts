@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Monitor, MonitorSummary, HeartbeatPoint, LatencyPoint, DashboardStats, CertDetails, SLAResponse } from '$lib/types';
+import type { Monitor, MonitorSummary, HeartbeatPoint, LatencyPoint, DashboardStats, CertDetails, SLAResponse, DeviceTemplate } from '$lib/types';
 
 interface MonitorListResponse {
 	data: Monitor[];
@@ -85,4 +85,12 @@ export function getExpiringCertificates(days = 30): Promise<{ data: CertDetails[
 
 export function getMonitorSLA(monitorId: string, period = '30d'): Promise<{ data: SLAResponse }> {
 	return api.get<{ data: SLAResponse }>(`/api/v1/monitors/${monitorId}/sla?period=${period}`);
+}
+
+export function listDeviceTemplates(): Promise<{ data: DeviceTemplate[] }> {
+	return api.get<{ data: DeviceTemplate[] }>('/api/v1/snmp/templates');
+}
+
+export function getDeviceTemplate(id: string): Promise<{ data: DeviceTemplate }> {
+	return api.get<{ data: DeviceTemplate }>(`/api/v1/snmp/templates/${id}`);
 }

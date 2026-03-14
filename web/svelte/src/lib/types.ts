@@ -330,6 +330,55 @@ export interface TimelineEvent {
 	severity: string;
 }
 
+// SNMP Device Template types
+export interface OIDEntry {
+	oid: string;
+	name: string;
+	unit?: string;
+	category: string;
+	is_counter?: boolean;
+}
+
+export interface DeviceTemplate {
+	id: string;
+	vendor: string;
+	model: string;
+	description: string;
+	sys_object_ids?: string[];
+	oids?: OIDEntry[];
+	oid_count?: number;
+	default_interval: number;
+}
+
+// Discovery types
+export interface DiscoveryScan {
+	id: string;
+	agent_id: string;
+	subnet: string;
+	status: 'pending' | 'running' | 'complete' | 'error';
+	started_at: string | null;
+	completed_at: string | null;
+	host_count: number;
+	error_message: string | null;
+	created_at: string;
+}
+
+export interface DiscoveredDevice {
+	id: string;
+	scan_id: string;
+	ip: string;
+	hostname: string | null;
+	sys_descr: string | null;
+	sys_object_id: string | null;
+	sys_name: string | null;
+	snmp_reachable: boolean;
+	ping_reachable: boolean;
+	suggested_template_id: string | null;
+	monitor_created: boolean;
+	discovered_at: string;
+}
+
+
 // Audit log types
 export interface AuditLogParams {
 	page: number;

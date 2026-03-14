@@ -45,9 +45,10 @@ type WSHandler struct {
 	connMu    sync.Mutex
 	connCount map[string]int
 
-	heartbeatHooks []HeartbeatHook
-	heartbeatTimer func(time.Duration) // optional: records heartbeat processing latency
-	updateSvc      *services.UpdateService
+	heartbeatHooks  []HeartbeatHook
+	heartbeatTimer  func(time.Duration) // optional: records heartbeat processing latency
+	updateSvc       *services.UpdateService
+	discoveryHook   func(ctx context.Context, payload *protocol.DiscoveryResultPayload)
 }
 
 // SetHeartbeatTimer sets a function to record heartbeat processing latency.
@@ -63,6 +64,11 @@ func (h *WSHandler) SetUpdateService(svc *services.UpdateService) {
 // AddHeartbeatHook registers a hook to be called after heartbeat processing.
 func (h *WSHandler) AddHeartbeatHook(hook HeartbeatHook) {
 	h.heartbeatHooks = append(h.heartbeatHooks, hook)
+}
+
+// SetDiscoveryHook registers a callback for processing discovery results from agents.
+func (h *WSHandler) SetDiscoveryHook(hook func(ctx context.Context, payload *protocol.DiscoveryResultPayload)) {
+	h.discoveryHook = hook
 }
 
 // NewWSHandler creates a new WSHandler.
@@ -436,6 +442,13 @@ func (h *WSHandler) HandleConnection(c echo.Context) error {
 		// Update agent last seen
 		_ = h.agentRepo.UpdateLastSeen(ctx, agentID, time.Now())
 	})
+
+	// Wire discovery result processing
+	if h.discoveryHook != nil {
+		client.SetDiscoveryResultCallback(func(agentID uuid.UUID, payload *protocol.DiscoveryResultPayload) {
+			h.discoveryHook(ctx, payload)
+		})
+	}
 
 	h.hub.Register(client)
 	client.Start()
