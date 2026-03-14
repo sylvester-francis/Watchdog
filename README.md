@@ -50,7 +50,9 @@ graph LR
 ## Features
 
 - **Private Agent Architecture** — Monitor internal databases, APIs, and services without exposing them to the internet
-- **10 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), System metrics (CPU, memory, disk), Service monitoring (systemd/Windows services), and Port Scanning with service detection
+- **12 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), System metrics (CPU, memory, disk), Service monitoring (systemd/Windows services), Port Scanning with service detection, and SNMP device monitoring (v2c/v3)
+- **SNMP Device Monitoring** — Monitor network devices with built-in templates for Cisco IOS, HP ProCurve, MikroTik, Ubiquiti, APC UPS, and generic SNMP devices
+- **Network Discovery** — Scan IP ranges to discover SNMP-enabled devices with automatic device type detection
 - **TLS Certificate Monitoring** — Track certificate expiry, get alerted before certs expire
 - **Infrastructure Monitoring** — Docker container health, database connectivity, system resource thresholds
 - **Service Monitoring** — Track systemd (Linux) and Windows service state
@@ -78,7 +80,7 @@ graph LR
 | Architecture | Distributed agents | Single server | Single server | SaaS |
 | Monitor private networks | Yes (agent runs locally) | Requires VPN/tunnels | Requires VPN/tunnels | No |
 | Inbound firewall rules | None needed | Needed for targets | Needed for targets | N/A |
-| Check types | 10 (HTTP, TCP, Ping, DNS, TLS, Docker, DB, System, Service, Port Scan) | HTTP, TCP, Ping, DNS, and more | HTTP, TCP, DNS, SSH, and more | HTTP, Ping, Port |
+| Check types | 12 (HTTP, TCP, Ping, DNS, TLS, Docker, DB, System, Service, Port Scan, SNMP, Discovery) | HTTP, TCP, Ping, DNS, and more | HTTP, TCP, DNS, SSH, and more | HTTP, Ping, Port |
 | Agent configuration | Zero-config (hub pushes tasks) | N/A | Config file | N/A |
 | Public status pages | Yes | Yes | Yes | Paid |
 | REST API | Yes | Yes | No | Paid |
@@ -111,6 +113,7 @@ graph TB
             Sys["System"]
             Svc["Service"]
             PScan["Port Scan"]
+            SNMP["SNMP"]
         end
         T1["Database"]
         T2["Internal API"]
@@ -348,7 +351,7 @@ WatchDog is in active development. All features are available to all users:
 
 - Up to 10 agents per account
 - Unlimited monitors and status pages
-- All check types: HTTP, TCP, Ping, DNS, TLS, Docker, Database, System, Service, Port Scan
+- All check types: HTTP, TCP, Ping, DNS, TLS, Docker, Database, System, Service, Port Scan, SNMP, Network Discovery
 - All 6 alert channels
 - Full REST API access with scoped tokens
 - Security audit logging with System dashboard viewer
