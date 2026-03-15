@@ -13,6 +13,7 @@
 	import CertExpiryChart from '$lib/components/monitors/CertExpiryChart.svelte';
 	import PortScanResults from '$lib/components/monitors/PortScanResults.svelte';
 	import SNMPResults from '$lib/components/monitors/SNMPResults.svelte';
+	import DeviceHealthCard from '$lib/components/monitors/DeviceHealthCard.svelte';
 	import SNMPValueChart from '$lib/components/monitors/SNMPValueChart.svelte';
 	import RecentChecks from '$lib/components/monitors/RecentChecks.svelte';
 	import DangerZone from '$lib/components/monitors/DangerZone.svelte';
@@ -152,6 +153,9 @@
 			<PortScanResults metadata={monitor.metadata} />
 			<StatusChart {monitorId} />
 		{:else if monitor.type === 'snmp'}
+			{#if monitor.metadata?.template_id}
+				<DeviceHealthCard metadata={monitor.metadata} templateId={monitor.metadata.template_id} />
+			{/if}
 			<SNMPResults metadata={monitor.metadata} />
 			<SNMPValueChart {monitorId} />
 			<LatencyChart {monitorId} />

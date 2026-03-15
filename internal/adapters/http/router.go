@@ -68,6 +68,7 @@ type Router struct {
 	statusPageAPIHandler *handlers.StatusPageAPIHandler
 	systemAPIHandler     *handlers.SystemAPIHandler
 	maintenanceHandler   *handlers.MaintenanceHandler
+	discoveryHandler     *handlers.DiscoveryHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -243,6 +244,10 @@ func (r *Router) RegisterRoutes() {
 	v1.GET("/monitors/:id/sla", r.apiV1Handler.GetMonitorSLA)
 	v1.GET("/certificates/expiring", r.apiV1Handler.GetExpiringCertificates)
 
+	// SNMP device templates (read-only)
+	v1.GET("/snmp/templates", r.apiV1Handler.ListDeviceTemplates)
+	v1.GET("/snmp/templates/:id", r.apiV1Handler.GetDeviceTemplate)
+
 	// Agents
 	v1.GET("/agents", r.apiV1Handler.ListAgents)
 	v1.POST("/agents", r.apiV1Handler.CreateAgent)
@@ -288,6 +293,13 @@ func (r *Router) RegisterRoutes() {
 		v1.POST("/maintenance-windows", r.maintenanceHandler.Create)
 		v1.PUT("/maintenance-windows/:id", r.maintenanceHandler.Update)
 		v1.DELETE("/maintenance-windows/:id", r.maintenanceHandler.Delete)
+	}
+
+	// Discovery
+	if r.discoveryHandler != nil {
+		v1.POST("/discovery", r.discoveryHandler.StartScan)
+		v1.GET("/discovery", r.discoveryHandler.ListScans)
+		v1.GET("/discovery/:id", r.discoveryHandler.GetScan)
 	}
 
 	// Audit logs (user-scoped)
@@ -351,6 +363,11 @@ func (r *Router) WSHandler() *handlers.WSHandler {
 // SystemAPIHandler returns the system API handler for extension wiring.
 func (r *Router) SystemAPIHandler() *handlers.SystemAPIHandler {
 	return r.systemAPIHandler
+}
+
+// SetDiscoveryHandler sets the discovery handler (wired from engine after construction).
+func (r *Router) SetDiscoveryHandler(h *handlers.DiscoveryHandler) {
+	r.discoveryHandler = h
 }
 
 // Stop cleans up router resources (rate limiters, session tracker).
