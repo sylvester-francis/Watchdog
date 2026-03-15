@@ -133,6 +133,12 @@ func (s *DiscoveryService) ProcessResult(ctx context.Context, result *protocol.D
 		scan.Status = domain.DiscoveryStatusError
 		scan.CompletedAt = &now
 		scan.ErrorMessage = result.Error
+
+	default:
+		s.logger.Warn("unknown discovery result status",
+			slog.String("status", result.Status),
+			slog.String("scan_id", scan.ID.String()),
+		)
 	}
 
 	if err := s.discoveryRepo.UpdateScan(ctx, scan); err != nil {
