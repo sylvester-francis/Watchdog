@@ -27,6 +27,7 @@ const (
 	StepStatusCompleted StepStatus = "completed"
 	StepStatusFailed    StepStatus = "failed"
 	StepStatusSkipped   StepStatus = "skipped"
+	StepStatusWaiting   StepStatus = "waiting"
 )
 
 // FailurePolicy defines how a step failure is handled.
@@ -59,18 +60,19 @@ type Workflow struct {
 
 // WorkflowStep represents a single step in a workflow.
 type WorkflowStep struct {
-	ID          uuid.UUID       `json:"id"`
-	WorkflowID  uuid.UUID       `json:"workflow_id"`
-	StepIndex   int             `json:"step_index"`
-	Name        string          `json:"name"`
-	Handler     string          `json:"handler"`
-	Status      StepStatus      `json:"status"`
-	Input       json.RawMessage `json:"input,omitempty"`
-	Output      json.RawMessage `json:"output,omitempty"`
-	Error       string          `json:"error,omitempty"`
-	RetryCount  int             `json:"retry_count"`
-	MaxRetries  int             `json:"max_retries"`
-	DurationMs  *int            `json:"duration_ms,omitempty"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+	ID             uuid.UUID       `json:"id"`
+	WorkflowID     uuid.UUID       `json:"workflow_id"`
+	StepIndex      int             `json:"step_index"`
+	Name           string          `json:"name"`
+	Handler        string          `json:"handler"`
+	Status         StepStatus      `json:"status"`
+	Input          json.RawMessage `json:"input,omitempty"`
+	Output         json.RawMessage `json:"output,omitempty"`
+	Error          string          `json:"error,omitempty"`
+	RetryCount     int             `json:"retry_count"`
+	MaxRetries     int             `json:"max_retries"`
+	DurationMs     *int            `json:"duration_ms,omitempty"`
+	CorrelationKey string          `json:"correlation_key,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
 }

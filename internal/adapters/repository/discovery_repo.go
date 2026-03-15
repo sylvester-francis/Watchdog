@@ -68,6 +68,29 @@ func (r *DiscoveryRepository) GetScansByUserID(ctx context.Context, userID uuid.
 	return scans, rows.Err()
 }
 
+// GetActiveScansByAgentID returns pending/running scans for a given agent.
+func (r *DiscoveryRepository) GetActiveScansByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.DiscoveryScan, error) {
+	q := r.db.Querier(ctx)
+	rows, err := q.Query(ctx,
+		`SELECT id, user_id, agent_id, subnet, status, started_at, completed_at, host_count, error_message, created_at
+		 FROM discovery_scans WHERE agent_id = $1 AND status IN ('pending', 'running') ORDER BY created_at DESC`, agentID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var scans []*domain.DiscoveryScan
+	for rows.Next() {
+		s, err := scanDiscoveryScan(rows)
+		if err != nil {
+			return nil, err
+		}
+		scans = append(scans, s)
+	}
+	return scans, rows.Err()
+}
+
 // UpdateScan updates scan fields.
 func (r *DiscoveryRepository) UpdateScan(ctx context.Context, scan *domain.DiscoveryScan) error {
 	q := r.db.Querier(ctx)

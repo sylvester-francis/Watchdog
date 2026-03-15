@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -14,15 +15,17 @@ import (
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 	"github.com/sylvester-francis/watchdog/internal/snmp"
+	"github.com/sylvester-francis/watchdog/internal/workflows"
 )
 
 // DiscoveryService orchestrates network discovery operations.
 type DiscoveryService struct {
-	discoveryRepo ports.DiscoveryRepository
-	agentRepo     ports.AgentRepository
-	monitorSvc    ports.MonitorService
-	hub           *realtime.Hub
-	logger        *slog.Logger
+	discoveryRepo  ports.DiscoveryRepository
+	agentRepo      ports.AgentRepository
+	monitorSvc     ports.MonitorService
+	hub            *realtime.Hub
+	logger         *slog.Logger
+	workflowEngine ports.WorkflowEngine
 }
 
 // NewDiscoveryService creates a new DiscoveryService.
@@ -40,6 +43,11 @@ func NewDiscoveryService(
 		hub:           hub,
 		logger:        logger,
 	}
+}
+
+// SetWorkflowEngine enables durable discovery scans via the workflow engine.
+func (s *DiscoveryService) SetWorkflowEngine(engine ports.WorkflowEngine) {
+	s.workflowEngine = engine
 }
 
 // StartScan validates input, creates a scan record, and dispatches to an agent.
@@ -88,7 +96,33 @@ func (s *DiscoveryService) StartScan(ctx context.Context, userID, agentID uuid.U
 		return nil, fmt.Errorf("failed to create scan: %w", err)
 	}
 
-	// Send discovery task to agent
+	// Use workflow engine for durable dispatch if available
+	if s.workflowEngine != nil {
+		input, _ := json.Marshal(workflows.DiscoveryScanInput{
+			ScanID:      scan.ID,
+			AgentID:     agentID,
+			UserID:      userID,
+			Subnet:      subnet,
+			Community:   community,
+			SNMPVersion: snmpVersion,
+		})
+		wfDef := workflows.DiscoveryScanDef(scan.ID)
+		wfID, wfErr := s.workflowEngine.Submit(ctx, wfDef, input)
+		if wfErr != nil {
+			s.logger.Error("failed to submit discovery workflow, falling back to direct dispatch",
+				slog.String("error", wfErr.Error()),
+			)
+		} else {
+			s.logger.Info("discovery scan submitted via workflow",
+				slog.String("scan_id", scan.ID.String()),
+				slog.String("workflow_id", wfID.String()),
+				slog.String("subnet", subnet),
+			)
+			return scan, nil
+		}
+	}
+
+	// Direct dispatch (fallback or workflow engine not available)
 	taskMsg := protocol.NewDiscoveryTaskMessage(scan.ID.String(), subnet, community, snmpVersion, 300)
 	s.hub.SendToAgent(agentID, taskMsg)
 
@@ -115,24 +149,64 @@ func (s *DiscoveryService) ProcessResult(ctx context.Context, result *protocol.D
 
 	switch result.Status {
 	case "running":
+		// Progress updates bypass the workflow — update scan row directly.
 		now := time.Now()
 		scan.Status = domain.DiscoveryStatusRunning
 		if scan.StartedAt == nil {
 			scan.StartedAt = &now
 		}
 		scan.HostCount = len(result.Devices)
+		if updateErr := s.discoveryRepo.UpdateScan(ctx, scan); updateErr != nil {
+			s.logger.Error("failed to update scan progress", slog.String("error", updateErr.Error()))
+		}
+		return nil
 
-	case "complete":
-		now := time.Now()
-		scan.Status = domain.DiscoveryStatusComplete
-		scan.CompletedAt = &now
-		scan.HostCount = len(result.Devices)
+	case "complete", "error":
+		// Terminal states: update scan row, then resume the workflow if active.
+		if result.Status == "complete" {
+			now := time.Now()
+			scan.Status = domain.DiscoveryStatusComplete
+			scan.CompletedAt = &now
+			scan.HostCount = len(result.Devices)
+		} else {
+			now := time.Now()
+			scan.Status = domain.DiscoveryStatusError
+			scan.CompletedAt = &now
+			scan.ErrorMessage = result.Error
+		}
 
-	case "error":
-		now := time.Now()
-		scan.Status = domain.DiscoveryStatusError
-		scan.CompletedAt = &now
-		scan.ErrorMessage = result.Error
+		if updateErr := s.discoveryRepo.UpdateScan(ctx, scan); updateErr != nil {
+			s.logger.Error("failed to update scan", slog.String("error", updateErr.Error()))
+		}
+
+		// Store discovered devices
+		s.storeDiscoveredDevices(ctx, scanID, scan.UserID, result.Devices)
+
+		// Resume workflow if engine is available
+		if s.workflowEngine != nil {
+			corrKey := workflows.CorrelationKeyForScan(scanID)
+			var stepErr error
+			var output json.RawMessage
+			if result.Status == "error" {
+				stepErr = fmt.Errorf("agent reported error: %s", result.Error)
+			} else {
+				output, _ = json.Marshal(workflows.DiscoveryResultOutput{
+					DiscoveryScanInput: workflows.DiscoveryScanInput{
+						ScanID:  scanID,
+						AgentID: scan.AgentID,
+						UserID:  scan.UserID,
+					},
+					Result: result,
+				})
+			}
+			if resumeErr := s.workflowEngine.ResumeStep(ctx, corrKey, output, stepErr); resumeErr != nil {
+				s.logger.Warn("failed to resume discovery workflow (may be direct dispatch)",
+					slog.String("scan_id", scanID.String()),
+					slog.String("error", resumeErr.Error()),
+				)
+			}
+		}
+		return nil
 
 	default:
 		s.logger.Warn("unknown discovery result status",
@@ -141,13 +215,12 @@ func (s *DiscoveryService) ProcessResult(ctx context.Context, result *protocol.D
 		)
 	}
 
-	if err := s.discoveryRepo.UpdateScan(ctx, scan); err != nil {
-		s.logger.Error("failed to update scan", slog.String("error", err.Error()))
-	}
+	return nil
+}
 
-	// Store discovered devices
-	for _, d := range result.Devices {
-		// Match template by sysObjectID
+// storeDiscoveredDevices saves discovered devices to the database.
+func (s *DiscoveryService) storeDiscoveredDevices(ctx context.Context, scanID, userID uuid.UUID, devices []protocol.DiscoveredDevice) {
+	for _, d := range devices {
 		templateID := d.TemplateID
 		if templateID == "" && d.SysObjectID != "" {
 			if t := snmp.MatchBySysObjectID(d.SysObjectID); t != nil {
@@ -157,7 +230,7 @@ func (s *DiscoveryService) ProcessResult(ctx context.Context, result *protocol.D
 
 		device := &domain.DiscoveredDevice{
 			ScanID:              scanID,
-			UserID:              scan.UserID,
+			UserID:              userID,
 			IP:                  d.IP,
 			Hostname:            d.Hostname,
 			SysDescr:            d.SysDescr,
@@ -174,8 +247,6 @@ func (s *DiscoveryService) ProcessResult(ctx context.Context, result *protocol.D
 			)
 		}
 	}
-
-	return nil
 }
 
 // GetScan returns a scan with its discovered devices.

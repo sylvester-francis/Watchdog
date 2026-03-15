@@ -3,11 +3,18 @@ package ports
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/google/uuid"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
 )
+
+// ErrStepAwaiting is returned by a step handler to indicate it has dispatched
+// an async operation and is waiting for an external event (e.g. agent response).
+// The engine will mark the step as "waiting" and park the workflow until
+// ResumeStep is called with the matching correlation key.
+var ErrStepAwaiting = errors.New("step awaiting external event")
 
 // WorkflowEngine manages durable workflow execution.
 type WorkflowEngine interface {
@@ -28,6 +35,10 @@ type WorkflowEngine interface {
 
 	// RegisterHandler registers a step handler by name.
 	RegisterHandler(name string, handler StepHandler)
+
+	// ResumeStep completes an awaiting step identified by its correlation key.
+	// Pass stepErr != nil to fail the step; otherwise it completes with output.
+	ResumeStep(ctx context.Context, correlationKey string, output json.RawMessage, stepErr error) error
 }
 
 // StepHandler executes a single step in a workflow.
@@ -53,8 +64,9 @@ type WorkflowDefinition struct {
 
 // StepDefinition describes a step within a workflow.
 type StepDefinition struct {
-	Name       string
-	Handler    string
-	OnFailure  domain.FailurePolicy
-	MaxRetries int
+	Name           string
+	Handler        string
+	OnFailure      domain.FailurePolicy
+	MaxRetries     int
+	CorrelationKey string // Optional: set for steps that will return ErrStepAwaiting
 }
