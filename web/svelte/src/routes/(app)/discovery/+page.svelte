@@ -80,8 +80,8 @@
 		try {
 			const res = await discoveryApi.startScan({
 				agent_id: selectedAgentId,
-				subnet,
-				community,
+				subnet: subnet.trim(),
+				community: community.trim(),
 				snmp_version: snmpVersion
 			});
 			activeScan = { id: res.data.id, status: 'pending', subnet: res.data.subnet } as DiscoveryScan;
