@@ -16,6 +16,7 @@ import (
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 	"github.com/sylvester-francis/watchdog/internal/core/services"
+	"github.com/sylvester-francis/watchdog/internal/snmp"
 )
 
 // APIV1Handler serves the public JSON API endpoints (token-authenticated).
@@ -1131,6 +1132,46 @@ func (h *APIV1Handler) GetIncidentInvestigation(c echo.Context) error {
 			"timeline":           investigation.Timeline,
 		},
 	})
+}
+
+// ListDeviceTemplates returns all SNMP device templates (read-only, no auth scoping needed).
+// GET /api/v1/snmp/templates
+func (h *APIV1Handler) ListDeviceTemplates(c echo.Context) error {
+	templates := snmp.GetAllTemplates()
+
+	type templateSummary struct {
+		ID       string `json:"id"`
+		Vendor   string `json:"vendor"`
+		Model    string `json:"model"`
+		Desc     string `json:"description"`
+		OIDCount int    `json:"oid_count"`
+		Interval int    `json:"default_interval"`
+	}
+
+	result := make([]templateSummary, 0, len(templates))
+	for _, t := range templates {
+		result = append(result, templateSummary{
+			ID:       t.ID,
+			Vendor:   t.Vendor,
+			Model:    t.Model,
+			Desc:     t.Description,
+			OIDCount: len(t.OIDs),
+			Interval: t.DefaultInterval,
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{"data": result})
+}
+
+// GetDeviceTemplate returns a single SNMP device template with full OID list.
+// GET /api/v1/snmp/templates/:id
+func (h *APIV1Handler) GetDeviceTemplate(c echo.Context) error {
+	id := c.Param("id")
+	t := snmp.GetByID(id)
+	if t == nil {
+		return errJSON(c, http.StatusNotFound, "template not found")
+	}
+	return c.JSON(http.StatusOK, map[string]any{"data": t})
 }
 
 // PushAgentUpdate manually triggers an update push to a specific connected agent.
