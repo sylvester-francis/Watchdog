@@ -191,6 +191,7 @@ type DiscoveryRepository interface {
 	CreateScan(ctx context.Context, scan *domain.DiscoveryScan) error
 	GetScanByID(ctx context.Context, id uuid.UUID) (*domain.DiscoveryScan, error)
 	GetScansByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.DiscoveryScan, error)
+	GetActiveScansByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.DiscoveryScan, error)
 	UpdateScan(ctx context.Context, scan *domain.DiscoveryScan) error
 	CreateDevice(ctx context.Context, device *domain.DiscoveredDevice) error
 	GetDevicesByScanID(ctx context.Context, scanID uuid.UUID) ([]*domain.DiscoveredDevice, error)

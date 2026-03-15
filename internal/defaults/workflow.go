@@ -3,6 +3,7 @@ package defaults
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -23,7 +24,13 @@ const (
 	moduleWorkflowEngine = "workflow_engine"
 	lockExpiry           = 5 * time.Minute
 	pollInterval         = 1 * time.Second
+	lockedByAwaiting     = "__awaiting__"
 )
+
+// errStepAwaitingSentinel is an internal sentinel returned by executeStep
+// to signal that the step is awaiting an external event. The executeWorkflow
+// loop must stop processing without failing the workflow.
+var errStepAwaitingSentinel = errors.New("step awaiting")
 
 var (
 	_ registry.Module    = (*workflowModule)(nil)
@@ -126,10 +133,14 @@ func (m *workflowModule) Submit(ctx context.Context, def ports.WorkflowDefinitio
 		if stepMaxRetries == 0 {
 			stepMaxRetries = 3
 		}
+		var corrKey *string
+		if step.CorrelationKey != "" {
+			corrKey = &step.CorrelationKey
+		}
 		_, err = tx.Exec(ctx, `
-			INSERT INTO workflow_steps (id, workflow_id, step_index, name, handler, status, max_retries, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)`,
-			uuid.New(), wfID, i, step.Name, step.Handler, domain.StepStatusPending, stepMaxRetries, now,
+			INSERT INTO workflow_steps (id, workflow_id, step_index, name, handler, status, max_retries, correlation_key, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)`,
+			uuid.New(), wfID, i, step.Name, step.Handler, domain.StepStatusPending, stepMaxRetries, corrKey, now,
 		)
 		if err != nil {
 			return uuid.Nil, fmt.Errorf("workflow.Submit: insert step %d: %w", i, err)
@@ -350,6 +361,11 @@ func (m *workflowModule) executeWorkflow(ctx context.Context, wf *domain.Workflo
 
 		result, stepErr := m.executeStep(ctx, step, stepInput)
 
+		if errors.Is(stepErr, errStepAwaitingSentinel) {
+			// Step is waiting for an external event — stop processing without failing.
+			return
+		}
+
 		if stepErr != nil {
 			// Determine failure policy from step handler name prefix
 			policy := m.getFailurePolicy(step.Handler)
@@ -412,6 +428,41 @@ func (m *workflowModule) executeStep(ctx context.Context, step *domain.WorkflowS
 	output, err := handler.Execute(ctx, input)
 	durationMs := int(time.Since(start).Milliseconds())
 
+	if errors.Is(err, ports.ErrStepAwaiting) {
+		// Step dispatched async work and needs to wait for an external event.
+		// Mark step as waiting with its correlation key.
+		if _, execErr := m.pool.Exec(ctx, `
+			UPDATE workflow_steps SET status = $1, input = $2, duration_ms = $3, updated_at = NOW()
+			WHERE id = $4`,
+			domain.StepStatusWaiting, input, durationMs, step.ID,
+		); execErr != nil {
+			m.logger.Error("workflow: failed to mark step waiting", slog.String("error", execErr.Error()))
+		}
+
+		// Park the workflow: set locked_by to awaiting sentinel so poll loop won't pick it up.
+		// Set locked_at to timeout_at so stale lock recovery won't reclaim it prematurely.
+		lockedAt := time.Now().Add(lockExpiry) // default: lock for lockExpiry
+		wf, wfErr := m.getWorkflowByStepID(ctx, step.ID)
+		if wfErr == nil && wf != nil && wf.TimeoutAt != nil {
+			lockedAt = *wf.TimeoutAt
+		}
+		if _, execErr := m.pool.Exec(ctx, `
+			UPDATE workflows SET locked_by = $1, locked_at = $2, updated_at = NOW()
+			WHERE id = $3`,
+			lockedByAwaiting, lockedAt, step.WorkflowID,
+		); execErr != nil {
+			m.logger.Error("workflow: failed to park workflow for awaiting step", slog.String("error", execErr.Error()))
+		}
+
+		m.logger.Info("workflow step awaiting external event",
+			slog.String("workflow_id", step.WorkflowID.String()),
+			slog.String("step", step.Name),
+			slog.String("correlation_key", step.CorrelationKey),
+		)
+
+		return nil, errStepAwaitingSentinel
+	}
+
 	if err != nil {
 		m.markStepFailed(ctx, step.ID, err.Error())
 		if _, execErr := m.pool.Exec(ctx, `
@@ -446,6 +497,10 @@ func (m *workflowModule) getFailurePolicy(handler string) domain.FailurePolicy {
 	// Record dispatch is also skip-safe
 	if handler == "alert.record_dispatch" {
 		return domain.FailurePolicySkip
+	}
+	// Discovery process_result retries on failure
+	if handler == "discovery.process_result" {
+		return domain.FailurePolicyRetry
 	}
 	return domain.FailurePolicyAbort
 }
@@ -529,7 +584,7 @@ func (m *workflowModule) getWorkflow(ctx context.Context, id uuid.UUID) (*domain
 func (m *workflowModule) getSteps(ctx context.Context, workflowID uuid.UUID) ([]*domain.WorkflowStep, error) {
 	rows, err := m.pool.Query(ctx, `
 		SELECT id, workflow_id, step_index, name, handler, status, input, output, error,
-			retry_count, max_retries, duration_ms, created_at, updated_at
+			retry_count, max_retries, duration_ms, correlation_key, created_at, updated_at
 		FROM workflow_steps WHERE workflow_id = $1 ORDER BY step_index ASC`, workflowID,
 	)
 	if err != nil {
@@ -540,24 +595,96 @@ func (m *workflowModule) getSteps(ctx context.Context, workflowID uuid.UUID) ([]
 	var steps []*domain.WorkflowStep
 	for rows.Next() {
 		s := &domain.WorkflowStep{}
+		var corrKey *string
 		if err := rows.Scan(
 			&s.ID, &s.WorkflowID, &s.StepIndex, &s.Name, &s.Handler, &s.Status,
 			&s.Input, &s.Output, &s.Error,
-			&s.RetryCount, &s.MaxRetries, &s.DurationMs, &s.CreatedAt, &s.UpdatedAt,
+			&s.RetryCount, &s.MaxRetries, &s.DurationMs, &corrKey, &s.CreatedAt, &s.UpdatedAt,
 		); err != nil {
 			return nil, err
+		}
+		if corrKey != nil {
+			s.CorrelationKey = *corrKey
 		}
 		steps = append(steps, s)
 	}
 	return steps, rows.Err()
 }
 
+func (m *workflowModule) getWorkflowByStepID(ctx context.Context, stepID uuid.UUID) (*domain.Workflow, error) {
+	var wfID uuid.UUID
+	err := m.pool.QueryRow(ctx, `SELECT workflow_id FROM workflow_steps WHERE id = $1`, stepID).Scan(&wfID)
+	if err != nil {
+		return nil, err
+	}
+	return m.getWorkflow(ctx, wfID)
+}
+
+// ResumeStep completes (or fails) an awaiting step identified by correlation key,
+// then unlocks the workflow so the poll loop can continue from the next step.
+func (m *workflowModule) ResumeStep(ctx context.Context, correlationKey string, output json.RawMessage, stepErr error) error {
+	// Find the waiting step
+	var stepID, workflowID uuid.UUID
+	var stepIndex int
+	err := m.pool.QueryRow(ctx, `
+		SELECT id, workflow_id, step_index
+		FROM workflow_steps
+		WHERE correlation_key = $1 AND status = $2
+		LIMIT 1`,
+		correlationKey, domain.StepStatusWaiting,
+	).Scan(&stepID, &workflowID, &stepIndex)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return fmt.Errorf("workflow.ResumeStep: no waiting step with correlation_key %q", correlationKey)
+		}
+		return fmt.Errorf("workflow.ResumeStep: query: %w", err)
+	}
+
+	if stepErr != nil {
+		// Mark step as failed
+		m.markStepFailed(ctx, stepID, stepErr.Error())
+		m.logger.Info("awaiting step resumed with error",
+			slog.String("correlation_key", correlationKey),
+			slog.String("error", stepErr.Error()),
+		)
+	} else {
+		// Mark step as completed with the output
+		if _, execErr := m.pool.Exec(ctx, `
+			UPDATE workflow_steps SET status = $1, output = $2, updated_at = NOW()
+			WHERE id = $3`,
+			domain.StepStatusCompleted, output, stepID,
+		); execErr != nil {
+			return fmt.Errorf("workflow.ResumeStep: mark step completed: %w", execErr)
+		}
+		m.logger.Info("awaiting step resumed successfully",
+			slog.String("correlation_key", correlationKey),
+			slog.String("workflow_id", workflowID.String()),
+		)
+	}
+
+	// Advance current_step so the workflow continues from the next step
+	// and clear the lock so the poll loop picks it up.
+	if _, execErr := m.pool.Exec(ctx, `
+		UPDATE workflows
+		SET current_step = $1, status = $2, locked_by = NULL, locked_at = NULL, updated_at = NOW()
+		WHERE id = $3`,
+		stepIndex+1, domain.WorkflowStatusRunning, workflowID,
+	); execErr != nil {
+		return fmt.Errorf("workflow.ResumeStep: unlock workflow: %w", execErr)
+	}
+
+	return nil
+}
+
 // recoverStaleLocks releases workflows locked by crashed nodes.
+// Awaiting workflows are excluded — they use locked_by = '__awaiting__' and
+// are handled by checkTimeouts when the deadline passes.
 func (m *workflowModule) recoverStaleLocks(ctx context.Context) {
 	result, err := m.pool.Exec(ctx, `
 		UPDATE workflows SET locked_by = NULL, locked_at = NULL, updated_at = NOW()
-		WHERE locked_at IS NOT NULL AND locked_at < $1 AND status = $2`,
-		time.Now().Add(-lockExpiry), domain.WorkflowStatusRunning,
+		WHERE locked_at IS NOT NULL AND locked_at < $1 AND status = $2
+		AND (locked_by IS NULL OR locked_by != $3)`,
+		time.Now().Add(-lockExpiry), domain.WorkflowStatusRunning, lockedByAwaiting,
 	)
 	if err != nil {
 		m.logger.Error("workflow: recover stale locks", slog.String("error", err.Error()))
