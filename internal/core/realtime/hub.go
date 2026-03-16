@@ -10,14 +10,15 @@ import (
 
 // Hub maintains the set of active agent connections and broadcasts messages.
 type Hub struct {
-	clients    map[uuid.UUID]*Client
-	register   chan *Client
-	unregister chan *Client
-	broadcast  chan *protocol.Message
-	mu         sync.RWMutex
-	logger     *slog.Logger
-	stopCh     chan struct{}
-	wg         sync.WaitGroup
+	clients      map[uuid.UUID]*Client
+	register     chan *Client
+	unregister   chan *Client
+	broadcast    chan *protocol.Message
+	mu           sync.RWMutex
+	logger       *slog.Logger
+	stopCh       chan struct{}
+	wg           sync.WaitGroup
+	onDisconnect []func(agentID uuid.UUID)
 }
 
 // NewHub creates a new Hub instance.
@@ -148,9 +149,18 @@ func (h *Hub) registerClient(client *Client) {
 	)
 }
 
-func (h *Hub) unregisterClient(client *Client) {
+// OnDisconnect registers a callback to be called when an agent disconnects.
+func (h *Hub) OnDisconnect(cb func(agentID uuid.UUID)) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	h.onDisconnect = append(h.onDisconnect, cb)
+}
+
+func (h *Hub) unregisterClient(client *Client) {
+	h.mu.Lock()
+	// Copy callbacks under lock
+	callbacks := make([]func(uuid.UUID), len(h.onDisconnect))
+	copy(callbacks, h.onDisconnect)
 
 	if existing, ok := h.clients[client.AgentID]; ok && existing == client {
 		delete(h.clients, client.AgentID)
@@ -159,7 +169,15 @@ func (h *Hub) unregisterClient(client *Client) {
 			slog.String("agent_id", client.AgentID.String()),
 			slog.Int("total_clients", len(h.clients)),
 		)
+		h.mu.Unlock()
+
+		// Fire disconnect callbacks outside the lock
+		for _, cb := range callbacks {
+			cb(client.AgentID)
+		}
+		return
 	}
+	h.mu.Unlock()
 }
 
 func (h *Hub) broadcastMessage(message *protocol.Message) {

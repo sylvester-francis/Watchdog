@@ -138,7 +138,10 @@ func New(ctx context.Context) (*Engine, error) {
 		Logger:         logger,
 	})
 
-	// Wire workflow engine for durable alert dispatch
+	// WebSocket hub (created before workflow wiring so discovery handlers can reference it)
+	hub := realtime.NewHub(logger)
+
+	// Wire workflow engine for durable alert dispatch + discovery
 	if wfEngine := reg.WorkflowEngine(); wfEngine != nil {
 		workflows.RegisterAlertHandlers(
 			wfEngine, notifier, notifierFactory,
@@ -147,9 +150,6 @@ func New(ctx context.Context) (*Engine, error) {
 		incidentSvc.SetWorkflowEngine(wfEngine)
 		logger.Info("durable alert dispatch enabled")
 	}
-
-	// WebSocket hub
-	hub := realtime.NewHub(logger)
 
 	// Echo + middleware
 	e := echo.New()
@@ -251,6 +251,41 @@ func New(ctx context.Context) (*Engine, error) {
 	// Wire discovery service
 	discoveryRepo := repository.NewDiscoveryRepository(db)
 	discoverySvc := services.NewDiscoveryService(discoveryRepo, agentRepo, monitorSvc, hub, logger)
+
+	// Wire workflow engine for durable discovery scans
+	if wfEngine := reg.WorkflowEngine(); wfEngine != nil {
+		workflows.RegisterDiscoveryHandlers(wfEngine, hub, discoveryRepo, logger)
+		discoverySvc.SetWorkflowEngine(wfEngine)
+
+		// On agent disconnect, fail any waiting discovery workflows for that agent
+		hub.OnDisconnect(func(agentID uuid.UUID) {
+			scans, scanErr := discoveryRepo.GetActiveScansByAgentID(context.Background(), agentID)
+			if scanErr != nil {
+				logger.Error("disconnect: failed to query scans", slog.String("error", scanErr.Error()))
+				return
+			}
+			for _, scan := range scans {
+				corrKey := workflows.CorrelationKeyForScan(scan.ID)
+				resumeErr := wfEngine.ResumeStep(
+					context.Background(), corrKey, nil,
+					fmt.Errorf("agent %s disconnected", agentID),
+				)
+				if resumeErr != nil {
+					// Not an error if the scan wasn't using the workflow engine
+					logger.Debug("disconnect: no waiting workflow for scan",
+						slog.String("scan_id", scan.ID.String()),
+					)
+				} else {
+					logger.Info("disconnect: failed waiting discovery workflow",
+						slog.String("scan_id", scan.ID.String()),
+						slog.String("agent_id", agentID.String()),
+					)
+				}
+			}
+		})
+		logger.Info("durable discovery scans enabled")
+	}
+
 	discoveryHandler := handlers.NewDiscoveryHandler(discoverySvc, agentRepo)
 	router.SetDiscoveryHandler(discoveryHandler)
 

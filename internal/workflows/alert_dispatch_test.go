@@ -242,3 +242,7 @@ func (m *mockWorkflowEngine) List(_ context.Context, _ *domain.WorkflowStatus, _
 func (m *mockWorkflowEngine) RegisterHandler(name string, handler ports.StepHandler) {
 	m.handlers[name] = handler
 }
+
+func (m *mockWorkflowEngine) ResumeStep(_ context.Context, _ string, _ json.RawMessage, _ error) error {
+	return nil
+}
