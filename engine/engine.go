@@ -17,6 +17,7 @@ import (
 	echomw "github.com/labstack/echo/v4/middleware"
 
 	"github.com/sylvester-francis/watchdog-proto/protocol"
+	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/core/registry"
 	internalhttp "github.com/sylvester-francis/watchdog/internal/adapters/http"
@@ -36,6 +37,15 @@ import (
 // HeartbeatHook is called after each heartbeat is processed.
 // Extensions can use this to add custom post-processing.
 type HeartbeatHook func(ctx context.Context, agentID, monitorID uuid.UUID, payload *protocol.HeartbeatPayload)
+
+// MaintenanceExpiredHook is called when a maintenance window expires with an offline agent.
+// Extensions (e.g. EE) can use this for audit logging.
+type MaintenanceExpiredHook func(ctx context.Context, mw *domain.MaintenanceWindow)
+
+// MaintenanceTenantProvider returns all tenant IDs that have maintenance windows.
+// Used by the background ticker to iterate over tenants for RLS-safe queries.
+// If nil, only the "default" tenant is processed.
+type MaintenanceTenantProvider func(ctx context.Context) []string
 
 // TenantIDFromContext extracts the tenant ID from a request context.
 // Returns "default" if no tenant ID is set.
@@ -70,6 +80,10 @@ type Engine struct {
 	agentAuthSvc       ports.AgentAuthService
 	auditSvc           ports.AuditService
 	mwRepo             ports.MaintenanceWindowRepository
+
+	// Maintenance window background processing hooks.
+	mwExpiredHooks    []MaintenanceExpiredHook
+	mwTenantProvider  MaintenanceTenantProvider
 }
 
 // New creates a new Engine, loading config, connecting to the database,
@@ -208,6 +222,7 @@ func New(ctx context.Context) (*Engine, error) {
 	mwRepo := repository.NewMaintenanceWindowRepository(db)
 	monitorSvc.SetMaintenanceWindowRepo(mwRepo)
 	monitorSvc.SetAuditService(auditSvc)
+	monitorSvc.SetTransactor(db) // RLS-safe maintenance window checks
 
 	// Router
 	routerDeps := internalhttp.Dependencies{
@@ -441,6 +456,19 @@ func (e *Engine) AddHeartbeatHook(hook HeartbeatHook) {
 	e.router.WSHandler().AddHeartbeatHook(handlers.HeartbeatHook(hook))
 }
 
+// OnMaintenanceExpired registers a hook called when a maintenance window expires
+// with an offline agent. EE uses this for audit logging.
+func (e *Engine) OnMaintenanceExpired(hook MaintenanceExpiredHook) {
+	e.mwExpiredHooks = append(e.mwExpiredHooks, hook)
+}
+
+// SetMaintenanceTenantProvider sets the provider for listing tenant IDs.
+// When set, the background maintenance ticker iterates over all tenants
+// instead of only the "default" tenant. EE sets this from the tenants table.
+func (e *Engine) SetMaintenanceTenantProvider(p MaintenanceTenantProvider) {
+	e.mwTenantProvider = p
+}
+
 // Init initializes all registered modules and registers HTTP routes.
 // Call this after registering any module overrides.
 func (e *Engine) Init(ctx context.Context) error {
@@ -479,38 +507,79 @@ func (e *Engine) runMaintenanceTicker(ctx context.Context) {
 }
 
 // processMaintenanceWindows handles expired windows, recurring regeneration, and cleanup.
+// Iterates over all tenants (via provider if set, otherwise just "default") so that
+// RLS-protected queries return the correct data for each tenant.
 func (e *Engine) processMaintenanceWindows(ctx context.Context) {
+	tenants := []string{"default"}
+	if e.mwTenantProvider != nil {
+		tenants = e.mwTenantProvider(ctx)
+	}
+
+	for _, tenantID := range tenants {
+		tCtx := repository.WithTenantID(ctx, tenantID)
+		e.processMaintenanceWindowsForTenant(tCtx)
+	}
+}
+
+// processMaintenanceWindowsForTenant runs maintenance window processing for a single tenant.
+func (e *Engine) processMaintenanceWindowsForTenant(ctx context.Context) {
 	// 1. Expired windows with offline agents — mark monitors down.
-	expired, err := e.mwRepo.GetExpiredWithOfflineAgents(ctx)
-	if err == nil {
-		for _, mw := range expired {
-			if err := e.monitorSvc.MarkAgentMonitorsDown(ctx, mw.AgentID); err != nil {
-				e.logger.Error("maintenance: failed to mark monitors down",
-					slog.String("agent_id", mw.AgentID.String()),
+	var expired []*domain.MaintenanceWindow
+	if txErr := e.db.WithTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		expired, err = e.mwRepo.GetExpiredWithOfflineAgents(txCtx)
+		return err
+	}); txErr != nil {
+		e.logger.Error("maintenance: failed to query expired windows",
+			slog.String("error", txErr.Error()),
+		)
+	}
+
+	for _, mw := range expired {
+		// Use the window's own tenant context for downstream operations.
+		mwCtx := repository.WithTenantID(ctx, mw.TenantID)
+		if err := e.monitorSvc.MarkAgentMonitorsDown(mwCtx, mw.AgentID); err != nil {
+			e.logger.Error("maintenance: failed to mark monitors down",
+				slog.String("agent_id", mw.AgentID.String()),
+				slog.String("error", err.Error()),
+			)
+		}
+		// Fire expired hooks (e.g. EE audit logging).
+		for _, hook := range e.mwExpiredHooks {
+			hook(mwCtx, mw)
+		}
+	}
+
+	// 2. Expired recurring windows — advance to next occurrence in-place.
+	var recurring []*domain.MaintenanceWindow
+	if txErr := e.db.WithTransaction(ctx, func(txCtx context.Context) error {
+		var err error
+		recurring, err = e.mwRepo.GetExpiredRecurring(txCtx)
+		return err
+	}); txErr != nil {
+		e.logger.Error("maintenance: failed to query expired recurring windows",
+			slog.String("error", txErr.Error()),
+		)
+	}
+
+	for _, mw := range recurring {
+		if mw.AdvanceToNext() {
+			if err := e.db.WithTransaction(ctx, func(txCtx context.Context) error {
+				return e.mwRepo.AdvanceRecurringWindow(txCtx, mw)
+			}); err != nil {
+				e.logger.Error("maintenance: failed to advance recurring window",
+					slog.String("window_id", mw.ID.String()),
 					slog.String("error", err.Error()),
 				)
 			}
 		}
 	}
 
-	// 2. Expired recurring windows — advance to next occurrence in-place.
-	recurring, err := e.mwRepo.GetExpiredRecurring(ctx)
-	if err == nil {
-		for _, mw := range recurring {
-			if mw.AdvanceToNext() {
-				if err := e.mwRepo.AdvanceRecurringWindow(ctx, mw); err != nil {
-					e.logger.Error("maintenance: failed to advance recurring window",
-						slog.String("window_id", mw.ID.String()),
-						slog.String("error", err.Error()),
-					)
-				}
-			}
-		}
-	}
-
 	// 3. Cleanup windows older than 30 days.
 	cutoff := time.Now().Add(-30 * 24 * time.Hour)
-	if err := e.mwRepo.DeleteExpired(ctx, cutoff); err != nil {
+	if err := e.db.WithTransaction(ctx, func(txCtx context.Context) error {
+		return e.mwRepo.DeleteExpired(txCtx, cutoff)
+	}); err != nil {
 		e.logger.Error("maintenance: failed to cleanup old windows",
 			slog.String("error", err.Error()),
 		)

@@ -21,6 +21,7 @@ type MonitorService struct {
 	usageEventRepo  ports.UsageEventRepository
 	maintenanceRepo ports.MaintenanceWindowRepository // optional, set by extensions
 	auditSvc        ports.AuditService               // optional, set by extensions
+	transactor      ports.Transactor                  // optional, needed for RLS-safe maintenance checks
 	logger          *slog.Logger
 }
 
@@ -57,6 +58,13 @@ func (s *MonitorService) SetMaintenanceWindowRepo(repo ports.MaintenanceWindowRe
 // SetAuditService sets the optional audit service for logging maintenance events.
 func (s *MonitorService) SetAuditService(svc ports.AuditService) {
 	s.auditSvc = svc
+}
+
+// SetTransactor sets the optional transactor for RLS-safe maintenance window queries.
+// When set, maintenance window checks run inside a transaction so that SET LOCAL
+// app.tenant_id is applied, allowing the query to pass Row Level Security policies.
+func (s *MonitorService) SetTransactor(t ports.Transactor) {
+	s.transactor = t
 }
 
 // CreateMonitor creates a new monitor for an agent, enforcing plan limits.
@@ -251,8 +259,20 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 	}
 
 	// Check if agent is in a maintenance window — suppress incident creation if so.
+	// Must run inside a transaction so SET LOCAL app.tenant_id is applied for RLS.
 	if s.maintenanceRepo != nil {
-		window, mwErr := s.maintenanceRepo.GetActiveByAgentID(ctx, monitor.AgentID)
+		var window *domain.MaintenanceWindow
+		var mwErr error
+		if s.transactor != nil {
+			if txErr := s.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+				window, mwErr = s.maintenanceRepo.GetActiveByAgentID(txCtx, monitor.AgentID)
+				return mwErr
+			}); txErr != nil {
+				mwErr = txErr
+			}
+		} else {
+			window, mwErr = s.maintenanceRepo.GetActiveByAgentID(ctx, monitor.AgentID)
+		}
 		if mwErr != nil {
 			s.logger.Warn("failed to check maintenance window, proceeding with incident",
 				"monitor_id", monitorID,
@@ -290,13 +310,25 @@ func (s *MonitorService) handleFailure(ctx context.Context, monitorID uuid.UUID)
 // If a maintenance window is active for the agent, alerts are suppressed (fail-open on error).
 func (s *MonitorService) MarkAgentMonitorsDown(ctx context.Context, agentID uuid.UUID) error {
 	// Check for active maintenance window (optional).
+	// Must run inside a transaction so SET LOCAL app.tenant_id is applied for RLS.
 	if s.maintenanceRepo != nil {
-		window, err := s.maintenanceRepo.GetActiveByAgentID(ctx, agentID)
-		if err != nil {
+		var window *domain.MaintenanceWindow
+		var mwErr error
+		if s.transactor != nil {
+			if txErr := s.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+				window, mwErr = s.maintenanceRepo.GetActiveByAgentID(txCtx, agentID)
+				return mwErr
+			}); txErr != nil {
+				mwErr = txErr
+			}
+		} else {
+			window, mwErr = s.maintenanceRepo.GetActiveByAgentID(ctx, agentID)
+		}
+		if mwErr != nil {
 			// Fail-open: log and proceed with normal alerting.
 			s.logger.Warn("failed to check maintenance window, proceeding with alerts",
 				"agent_id", agentID,
-				"error", err,
+				"error", mwErr,
 			)
 		} else if window != nil {
 			s.logger.Info("agent offline during maintenance window, suppressing alerts",
