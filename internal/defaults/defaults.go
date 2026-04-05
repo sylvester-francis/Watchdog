@@ -30,11 +30,7 @@ func RegisterAll(reg *registry.Registry, deps Deps) {
 	reg.Register(newAuthModule(deps.AuthService))
 	reg.Register(newAgentModule(deps.AgentAuth, deps.AgentRepo))
 	reg.Register(newAlertModule(deps.Notifier))
-	reg.Register(newMetricsModule())
 	reg.Register(newAuditModule(deps.AuditService))
-	reg.Register(newClusterModule())
-	reg.Register(newDashboardModule())
-	reg.Register(newReportModule())
 	reg.Register(newStatusModule(deps.StatusPageRepo))
 	if deps.Pool != nil && deps.DurableAlerts {
 		reg.Register(newWorkflowModule(deps.Pool, deps.Logger))

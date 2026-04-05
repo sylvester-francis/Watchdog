@@ -9,13 +9,8 @@ const (
 	ModuleAgentManager       = "agent_manager"
 	ModuleAlertRouter        = "alert_router"
 	ModuleStorageBackend     = "storage_backend"
-	ModuleMetricsExporter    = "metrics_exporter"
-	ModuleDashboardRenderer  = "dashboard_renderer"
-	ModuleReportGenerator    = "report_generator"
-	ModuleAuditLogger        = "audit_logger"
-	ModuleClusterCoordinator = "cluster_coordinator"
-	ModuleStatusPageProvider = "status_page_provider"
-	ModuleWorkflowEngine    = "workflow_engine"
+	ModuleAuditLogger    = "audit_logger"
+	ModuleWorkflowEngine = "workflow_engine"
 )
 
 // TenantResolver returns the registered TenantResolver module.
@@ -43,34 +38,9 @@ func (r *Registry) StorageBackend() ports.StorageBackend {
 	return r.MustGet(ModuleStorageBackend).(ports.StorageBackend)
 }
 
-// MetricsExporter returns the registered MetricsExporter module.
-func (r *Registry) MetricsExporter() ports.MetricsExporter {
-	return r.MustGet(ModuleMetricsExporter).(ports.MetricsExporter)
-}
-
-// DashboardRenderer returns the registered DashboardRenderer module.
-func (r *Registry) DashboardRenderer() ports.DashboardRenderer {
-	return r.MustGet(ModuleDashboardRenderer).(ports.DashboardRenderer)
-}
-
-// ReportGenerator returns the registered ReportGenerator module.
-func (r *Registry) ReportGenerator() ports.ReportGenerator {
-	return r.MustGet(ModuleReportGenerator).(ports.ReportGenerator)
-}
-
 // AuditLogger returns the registered AuditLogger module.
 func (r *Registry) AuditLogger() ports.AuditLogger {
 	return r.MustGet(ModuleAuditLogger).(ports.AuditLogger)
-}
-
-// ClusterCoordinator returns the registered ClusterCoordinator module.
-func (r *Registry) ClusterCoordinator() ports.ClusterCoordinator {
-	return r.MustGet(ModuleClusterCoordinator).(ports.ClusterCoordinator)
-}
-
-// StatusPageProvider returns the registered StatusPageProvider module.
-func (r *Registry) StatusPageProvider() ports.StatusPageProvider {
-	return r.MustGet(ModuleStatusPageProvider).(ports.StatusPageProvider)
 }
 
 // WorkflowEngine returns the registered WorkflowEngine module, or nil if not registered.
