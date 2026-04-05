@@ -2,7 +2,6 @@ package ports
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -66,50 +65,8 @@ type StorageBackend interface {
 	Health(ctx context.Context) error
 }
 
-// Metric represents a single metric data point for external export.
-type Metric struct {
-	Name      string
-	Value     float64
-	Tags      map[string]string
-	Timestamp time.Time
-}
-
-// MetricsExporter allows exporting metrics to external systems.
-type MetricsExporter interface {
-	Export(ctx context.Context, metrics []Metric) error
-}
-
-// DashboardRenderer provides pluggable dashboard rendering for custom themes.
-type DashboardRenderer interface {
-	RenderPage(ctx context.Context, name string, data any) ([]byte, error)
-	RegisterTemplates(dir string) error
-}
-
-// ReportConfig defines parameters for generating operational reports.
-type ReportConfig struct {
-	Type   string
-	From   time.Time
-	To     time.Time
-	Format string
-}
-
-// ReportGenerator generates operational reports.
-type ReportGenerator interface {
-	Generate(ctx context.Context, config ReportConfig) ([]byte, error)
-}
-
 // AuditLogger logs operational actions.
 type AuditLogger interface {
 	AuditService
 }
 
-// ClusterCoordinator supports clustered deployment.
-type ClusterCoordinator interface {
-	IsLeader() bool
-	NodeID() string
-}
-
-// StatusPageProvider manages public status pages.
-type StatusPageProvider interface {
-	StatusPageRepository
-}

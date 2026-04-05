@@ -10,8 +10,8 @@ import (
 const moduleStatusPageProvider = "status_page_provider"
 
 var (
-	_ registry.Module          = (*statusModule)(nil)
-	_ ports.StatusPageProvider = (*statusModule)(nil)
+	_ registry.Module              = (*statusModule)(nil)
+	_ ports.StatusPageRepository   = (*statusModule)(nil)
 )
 
 // statusModule wraps the existing StatusPageRepository.
