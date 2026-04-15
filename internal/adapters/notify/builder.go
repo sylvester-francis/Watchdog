@@ -44,7 +44,8 @@ func BuildFromChannel(channel *domain.AlertChannel) (Notifier, error) {
 		if url == "" {
 			return nil, fmt.Errorf("webhook: url is required")
 		}
-		return NewWebhookNotifier(url), nil
+		signingSecret := channel.Config["signing_secret"] // optional; empty means unsigned
+		return NewWebhookNotifier(url, signingSecret), nil
 
 	case domain.AlertChannelEmail:
 		port := 587
