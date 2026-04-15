@@ -37,6 +37,7 @@
 
 	// Webhook
 	let webhookCustomUrl = $state('');
+	let webhookSigningSecret = $state('');
 
 	const typeOptions: { value: AlertChannelType; label: string }[] = [
 		{ value: 'discord', label: 'Discord' },
@@ -70,7 +71,9 @@
 			case 'pagerduty':
 				return { routing_key: pagerdutyRoutingKey };
 			case 'webhook':
-				return { url: webhookCustomUrl };
+				return webhookSigningSecret
+					? { url: webhookCustomUrl, signing_secret: webhookSigningSecret }
+					: { url: webhookCustomUrl };
 			default:
 				return {};
 		}
@@ -92,6 +95,16 @@
 		telegramChatId = '';
 		pagerdutyRoutingKey = '';
 		webhookCustomUrl = '';
+		webhookSigningSecret = '';
+	}
+
+	function generateSigningSecret() {
+		// 32 random bytes → 64 hex chars. Secure, readable, easy to copy.
+		const bytes = new Uint8Array(32);
+		crypto.getRandomValues(bytes);
+		webhookSigningSecret = Array.from(bytes)
+			.map((b) => b.toString(16).padStart(2, '0'))
+			.join('');
 	}
 
 	function handleClose() {
@@ -341,6 +354,33 @@
 								placeholder="https://api.example.com/webhooks/alerts"
 								class={inputClass}
 							/>
+						</div>
+						<div class="mt-4">
+							<label for="channel-webhook-signing-secret" class={labelClass}>
+								Signing Secret <span class="font-normal text-muted-foreground">(optional)</span>
+							</label>
+							<div class="flex gap-2">
+								<input
+									id="channel-webhook-signing-secret"
+									type="text"
+									bind:value={webhookSigningSecret}
+									placeholder="Leave blank to send unsigned"
+									class={inputClass}
+									autocomplete="off"
+									spellcheck="false"
+								/>
+								<button
+									type="button"
+									onclick={generateSigningSecret}
+									class="shrink-0 px-3 py-2 border border-border rounded-md text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+								>
+									Generate
+								</button>
+							</div>
+							<p class="mt-1 text-xs text-muted-foreground">
+								When set, outbound requests include HMAC-SHA256 signature headers. See
+								<a href="/docs/webhooks" class="underline">webhook documentation</a> for verification.
+							</p>
 						</div>
 					{/if}
 				</div>
