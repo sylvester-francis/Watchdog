@@ -6,22 +6,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
 )
 
 // WebhookNotifier sends notifications to a generic webhook URL.
+// When signingSecret is non-empty, each request includes
+// X-Watchdog-Signature-256, X-Watchdog-Timestamp, and X-Watchdog-Nonce
+// headers for integrity verification and replay protection.
+// See docs/webhooks.md for the verification recipe.
 type WebhookNotifier struct {
-	url        string
-	httpClient *http.Client
+	url           string
+	signingSecret string
+	httpClient    *http.Client
 }
 
 // NewWebhookNotifier creates a new generic webhook notifier.
-func NewWebhookNotifier(url string) *WebhookNotifier {
+// Pass an empty signingSecret to send unsigned webhooks (backward compat).
+func NewWebhookNotifier(url, signingSecret string) *WebhookNotifier {
 	return &WebhookNotifier{
-		url: url,
-		httpClient: NewHTTPClient(10 * time.Second),
+		url:           url,
+		signingSecret: signingSecret,
+		httpClient:    NewHTTPClient(10 * time.Second),
 	}
 }
 
@@ -81,7 +89,6 @@ func (w *WebhookNotifier) NotifyAgentOffline(ctx context.Context, agent *domain.
 		AgentName:        agent.Name,
 		AffectedMonitors: affectedMonitors,
 	}
-
 	return w.sendAgent(ctx, payload)
 }
 
@@ -94,7 +101,6 @@ func (w *WebhookNotifier) NotifyAgentOnline(ctx context.Context, agent *domain.A
 		AgentName:         agent.Name,
 		ResolvedIncidents: resolvedIncidents,
 	}
-
 	return w.sendAgent(ctx, payload)
 }
 
@@ -107,7 +113,6 @@ func (w *WebhookNotifier) NotifyAgentMaintenance(ctx context.Context, agent *dom
 		AgentName:  agent.Name,
 		WindowName: windowName,
 	}
-
 	return w.sendAgent(ctx, payload)
 }
 
@@ -116,24 +121,7 @@ func (w *WebhookNotifier) sendAgent(ctx context.Context, payload webhookAgentPay
 	if err != nil {
 		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("marshal payload: %w", err)}
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.url, bytes.NewReader(body))
-	if err != nil {
-		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("create request: %w", err)}
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := w.httpClient.Do(req)
-	if err != nil {
-		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("send request: %w", err)}
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("unexpected status code: %d", resp.StatusCode)}
-	}
-
-	return nil
+	return w.post(ctx, body)
 }
 
 func (w *WebhookNotifier) send(ctx context.Context, payload webhookPayload) error {
@@ -141,12 +129,26 @@ func (w *WebhookNotifier) send(ctx context.Context, payload webhookPayload) erro
 	if err != nil {
 		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("marshal payload: %w", err)}
 	}
+	return w.post(ctx, body)
+}
 
+// post handles the shared HTTP logic for both incident and agent payloads,
+// including signing when a secret is configured.
+func (w *WebhookNotifier) post(ctx context.Context, body []byte) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, w.url, bytes.NewReader(body))
 	if err != nil {
 		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("create request: %w", err)}
 	}
 	req.Header.Set("Content-Type", "application/json")
+
+	if w.signingSecret != "" {
+		ts := time.Now()
+		nonce := GenerateNonce()
+		sig := SignWebhookPayload(w.signingSecret, ts, nonce, body)
+		req.Header.Set("X-Watchdog-Signature-256", "sha256="+sig)
+		req.Header.Set("X-Watchdog-Timestamp", strconv.FormatInt(ts.Unix(), 10))
+		req.Header.Set("X-Watchdog-Nonce", nonce)
+	}
 
 	resp, err := w.httpClient.Do(req)
 	if err != nil {
@@ -157,7 +159,6 @@ func (w *WebhookNotifier) send(ctx context.Context, payload webhookPayload) erro
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return &NotifierError{Notifier: "webhook", Err: fmt.Errorf("unexpected status code: %d", resp.StatusCode)}
 	}
-
 	return nil
 }
 

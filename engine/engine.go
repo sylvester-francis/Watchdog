@@ -646,7 +646,7 @@ func buildNotifier(cfg config.NotifyConfig, logger *slog.Logger) notify.Notifier
 		count++
 	}
 	if cfg.WebhookURL != "" {
-		multi.AddNotifier(notify.NewWebhookNotifier(cfg.WebhookURL))
+		multi.AddNotifier(notify.NewWebhookNotifier(cfg.WebhookURL, ""))
 		logger.Info("webhook notifier enabled")
 		count++
 	}
