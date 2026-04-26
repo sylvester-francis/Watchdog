@@ -86,6 +86,7 @@ type Engine struct {
 	auditSvc           ports.AuditService
 	mwRepo             ports.MaintenanceWindowRepository
 	traceRetentionSvc  *services.TraceRetention
+	logRetentionSvc    *services.LogRetention
 
 	// Maintenance window background processing hooks.
 	mwExpiredHooks    []MaintenanceExpiredHook
@@ -192,6 +193,7 @@ func New(ctx context.Context) (*Engine, error) {
 	alertChannelRepo := repository.NewAlertChannelRepository(db, encryptor)
 	certDetailsRepo := repository.NewCertDetailsRepository(db)
 	spanRepo := repository.NewSpanRepository(db)
+	logRecordRepo := repository.NewLogRecordRepository(db)
 	systemSettingsRepo := repository.NewSystemSettingsRepository(db)
 
 	// Notifiers
@@ -205,6 +207,7 @@ func New(ctx context.Context) (*Engine, error) {
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 	investigationSvc := services.NewInvestigationService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, certDetailsRepo, logger)
 	traceRetentionSvc := services.NewTraceRetention(spanRepo, systemSettingsRepo, logger)
+	logRetentionSvc := services.NewLogRetention(logRecordRepo, systemSettingsRepo, logger)
 
 	// Module registry with defaults
 	reg := registry.New(logger)
@@ -321,6 +324,7 @@ func New(ctx context.Context) (*Engine, error) {
 		StatusPageRepo:   statusPageRepo,
 		AlertChannelRepo: alertChannelRepo,
 		SpanRepo:         spanRepo,
+		LogRecordRepo:    logRecordRepo,
 		CertDetailsRepo:       certDetailsRepo,
 		MaintenanceWindowRepo: mwRepo,
 		Hub:                   hub,
@@ -433,6 +437,7 @@ func New(ctx context.Context) (*Engine, error) {
 		auditSvc:           auditSvc,
 		mwRepo:             mwRepo,
 		traceRetentionSvc:  traceRetentionSvc,
+		logRetentionSvc:    logRetentionSvc,
 
 		telemetryShutdown: telemetryShutdown,
 	}, nil
@@ -580,6 +585,10 @@ func (e *Engine) Init(ctx context.Context) error {
 	// Background trace retention worker (hourly tick) — prunes old
 	// spans according to system_settings.trace_retention_days.
 	e.traceRetentionSvc.Start(ctx)
+
+	// Background log retention worker (hourly tick) — prunes old
+	// log records according to system_settings.log_retention_days.
+	e.logRetentionSvc.Start(ctx)
 
 	return nil
 }

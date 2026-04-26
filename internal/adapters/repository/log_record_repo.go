@@ -31,14 +31,14 @@ func (r *LogRecordRepository) InsertBatch(ctx context.Context, records []*domain
 	_, err := r.db.CopyFrom(ctx,
 		pgx.Identifier{"log_records"},
 		[]string{
-			"timestamp", "observed_timestamp", "trace_id", "span_id", "trace_flags",
+			"timestamp", "observed_timestamp", "trace_id", "span_id",
 			"severity_number", "severity_text", "body", "service_name",
 			"resource", "attributes", "dropped_attributes_count", "flags",
 		},
 		pgx.CopyFromSlice(len(records), func(i int) ([]any, error) {
 			r := records[i]
 			return []any{
-				r.Timestamp, r.ObservedTimestamp, r.TraceID, r.SpanID, r.TraceFlags,
+				r.Timestamp, r.ObservedTimestamp, r.TraceID, r.SpanID,
 				int16(r.SeverityNumber), r.SeverityText, r.Body, r.ServiceName,
 				r.Resource, r.Attributes, r.DroppedAttributesCount, r.Flags,
 			}, nil
@@ -57,7 +57,7 @@ func (r *LogRecordRepository) ListRecent(ctx context.Context, since time.Time, s
 	q := r.db.Querier(ctx)
 
 	rows, err := q.Query(ctx, `
-		SELECT timestamp, observed_timestamp, trace_id, span_id, trace_flags,
+		SELECT timestamp, observed_timestamp, trace_id, span_id,
 		       severity_number, severity_text, body, service_name,
 		       resource, attributes, dropped_attributes_count, flags
 		FROM log_records
@@ -76,7 +76,7 @@ func (r *LogRecordRepository) ListRecent(ctx context.Context, since time.Time, s
 		rec := &domain.LogRecord{}
 		var sev int16
 		if err := rows.Scan(
-			&rec.Timestamp, &rec.ObservedTimestamp, &rec.TraceID, &rec.SpanID, &rec.TraceFlags,
+			&rec.Timestamp, &rec.ObservedTimestamp, &rec.TraceID, &rec.SpanID,
 			&sev, &rec.SeverityText, &rec.Body, &rec.ServiceName,
 			&rec.Resource, &rec.Attributes, &rec.DroppedAttributesCount, &rec.Flags,
 		); err != nil {

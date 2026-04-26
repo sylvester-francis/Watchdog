@@ -7,7 +7,6 @@ CREATE TABLE log_records (
     observed_timestamp TIMESTAMPTZ NOT NULL,
     trace_id BYTEA,
     span_id BYTEA,
-    trace_flags INT NOT NULL DEFAULT 0,
     severity_number SMALLINT NOT NULL DEFAULT 0,
     severity_text TEXT,
     body TEXT,
