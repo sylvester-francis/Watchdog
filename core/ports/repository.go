@@ -73,6 +73,7 @@ type MonitorRepository interface {
 	GetByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	GetEnabledByAgentID(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	GetAllInTenant(ctx context.Context) ([]*domain.Monitor, error)
+	GetByUserIDWithTags(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error)
 	Update(ctx context.Context, monitor *domain.Monitor) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error
