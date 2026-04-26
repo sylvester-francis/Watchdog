@@ -84,6 +84,24 @@ type Engine struct {
 	// Maintenance window background processing hooks.
 	mwExpiredHooks    []MaintenanceExpiredHook
 	mwTenantProvider  MaintenanceTenantProvider
+
+	// rateLimitOnReject is forwarded to the router during Init() so the
+	// general rate limiter can invoke it whenever a request is denied.
+	rateLimitOnReject func(ip string)
+}
+
+// SetRateLimitOnReject sets the callback that the general rate limiter will
+// invoke whenever a request is denied for exceeding the burst limit.
+// The callback receives the client IP string. Pass nil to clear.
+//
+// Must be called before Init() — the router constructs the limiter during
+// Init and the callback value is captured at that point.
+//
+// Use case: extension modules wire this to persistent block-list trackers
+// (e.g. write to a blocked_ips table) without modifying the rate-limiter
+// or middleware code paths.
+func (e *Engine) SetRateLimitOnReject(fn func(ip string)) {
+	e.rateLimitOnReject = fn
 }
 
 // New creates a new Engine, loading config, connecting to the database,
@@ -480,6 +498,10 @@ func (e *Engine) Init(ctx context.Context) error {
 
 	// Start metrics history snapshots.
 	e.metrics.History().Start(ctx)
+
+	// Forward any rate-limit OnReject callback set via SetRateLimitOnReject
+	// before the router constructs its limiters in RegisterRoutes.
+	e.router.SetRateLimitOnReject(e.rateLimitOnReject)
 
 	e.router.RegisterRoutes()
 
