@@ -72,6 +72,7 @@ type Router struct {
 	maintenanceHandler   *handlers.MaintenanceHandler
 	discoveryHandler     *handlers.DiscoveryHandler
 	tracesHandler        *handlers.TracesHandler
+	tracesAPIHandler     *handlers.TracesAPIHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -133,6 +134,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	if deps.SpanRepo != nil {
 		r.tracesHandler = handlers.NewTracesHandler(deps.SpanRepo, logger)
+		r.tracesAPIHandler = handlers.NewTracesAPIHandler(deps.SpanRepo)
 	}
 
 	return r, nil
@@ -281,6 +283,12 @@ func (r *Router) RegisterRoutes() {
 	// SNMP device templates (read-only)
 	v1.GET("/snmp/templates", r.apiV1Handler.ListDeviceTemplates)
 	v1.GET("/snmp/templates/:id", r.apiV1Handler.GetDeviceTemplate)
+
+	// Traces (read-only). Mounted only when SpanRepo is wired.
+	if r.tracesAPIHandler != nil {
+		v1.GET("/traces", r.tracesAPIHandler.ListTraces)
+		v1.GET("/traces/:trace_id", r.tracesAPIHandler.GetTrace)
+	}
 
 	// Agents
 	v1.GET("/agents", r.apiV1Handler.ListAgents)

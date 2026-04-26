@@ -25,6 +25,17 @@ const (
 	SpanStatusError SpanStatusCode = 2
 )
 
+// TraceSummary is a per-trace digest aggregated from many spans.
+// Used by the list endpoint to render the trace list without
+// shipping every span over the wire.
+type TraceSummary struct {
+	TraceID    []byte
+	StartTime  time.Time
+	DurationNS int64
+	SpanCount  int
+	HasError   bool
+}
+
 // Span is one node of a trace, persisted to the spans hypertable.
 //
 // TraceID is 16 bytes, SpanID and ParentSpanID are 8 bytes; an empty
