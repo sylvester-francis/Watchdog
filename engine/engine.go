@@ -144,13 +144,23 @@ func New(ctx context.Context) (*Engine, error) {
 	logger = slog.New(telemetry.NewSlogHandler(logger.Handler(), loggerProvider, cfg.Telemetry.ServiceName))
 	slog.SetDefault(logger)
 
+	meterProvider, meterShutdown, err := telemetry.NewMeterProvider(ctx, cfg.Telemetry)
+	if err != nil {
+		return nil, fmt.Errorf("initialize meter provider: %w", err)
+	}
+	otel.SetMeterProvider(meterProvider)
+
 	telemetryShutdown := func(ctx context.Context) error {
 		traceErr := traceShutdown(ctx)
 		logErr := logShutdown(ctx)
+		meterErr := meterShutdown(ctx)
 		if traceErr != nil {
 			return traceErr
 		}
-		return logErr
+		if logErr != nil {
+			return logErr
+		}
+		return meterErr
 	}
 
 	db, err := repository.NewDB(ctx, cfg.Database)
@@ -262,8 +272,15 @@ func New(ctx context.Context) (*Engine, error) {
 	// picks it up automatically.
 	e.Use(otelecho.Middleware(cfg.Telemetry.ServiceName))
 
-	// Prometheus metrics
-	prom := prommetrics.New(hub, db.Pool)
+	// Prometheus metrics. The OTel meter is the single source of truth;
+	// values flow out via the otelprom reader (default Prom registerer)
+	// to /metrics, plus the OTLP push reader when telemetry is enabled.
+	meter := otel.Meter(cfg.Telemetry.ServiceName)
+	prom, err := prommetrics.New(meter, hub, db.Pool)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("initialize metrics: %w", err)
+	}
 	e.Use(prom.HTTPMiddleware())
 	// /metrics requires admin session — protects Prometheus scrape data from public access
 	e.GET("/metrics", func(c echo.Context) error {
