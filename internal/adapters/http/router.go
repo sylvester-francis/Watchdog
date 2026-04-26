@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 
+	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
@@ -37,6 +38,7 @@ type Dependencies struct {
 	APITokenRepo     ports.APITokenRepository
 	StatusPageRepo   ports.StatusPageRepository
 	AlertChannelRepo ports.AlertChannelRepository
+	SpanRepo         ports.SpanRepository
 	CertDetailsRepo        ports.CertDetailsRepository
 	MaintenanceWindowRepo  ports.MaintenanceWindowRepository
 	Hub                    *realtime.Hub
@@ -69,6 +71,7 @@ type Router struct {
 	systemAPIHandler     *handlers.SystemAPIHandler
 	maintenanceHandler   *handlers.MaintenanceHandler
 	discoveryHandler     *handlers.DiscoveryHandler
+	tracesHandler        *handlers.TracesHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -126,6 +129,10 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	if deps.MaintenanceWindowRepo != nil {
 		r.maintenanceHandler = handlers.NewMaintenanceHandler(deps.MaintenanceWindowRepo, deps.AgentRepo, deps.AuditService)
+	}
+
+	if deps.SpanRepo != nil {
+		r.tracesHandler = handlers.NewTracesHandler(deps.SpanRepo, logger)
 	}
 
 	return r, nil
@@ -228,6 +235,16 @@ func (r *Router) RegisterRoutes() {
 
 	// Public status page API (no auth required)
 	v1Public.GET("/public/status/:username/:slug", r.statusPageAPIHandler.PublicView)
+
+	// OTLP HTTP receivers (/v1/*). Bearer-token auth with the
+	// telemetry_ingest scope; no session cookie path. Mounted only when
+	// SpanRepo is wired so the route 404s when traces aren't enabled.
+	if r.tracesHandler != nil {
+		otlp := e.Group("/v1")
+		otlp.Use(middleware.APITokenAuth(r.deps.APITokenRepo))
+		otlp.Use(middleware.RequireScope(domain.TokenScopeTelemetryIngest))
+		otlp.POST("/traces", r.tracesHandler.Handle)
+	}
 
 	// API v1 (hybrid auth: Bearer token OR session cookie)
 	v1 := e.Group("/api/v1")
