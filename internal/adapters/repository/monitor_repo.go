@@ -161,6 +161,38 @@ func (r *MonitorRepository) GetAllInTenant(ctx context.Context) ([]*domain.Monit
 	return monitors, nil
 }
 
+// GetAllInTenantWithTags returns every monitor in the tenant whose metadata
+// contains all supplied key=value tags. Use this for tenant-shared list
+// views; for user-isolated views call GetByUserIDWithTags. Empty tags
+// degenerates to "every monitor in tenant" — callers SHOULD only invoke
+// when they actually have a filter, since the plain GetAllInTenant path
+// is cheaper.
+func (r *MonitorRepository) GetAllInTenantWithTags(ctx context.Context, tags map[string]string) ([]*domain.Monitor, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	tagsJSON, err := json.Marshal(tags)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetAllInTenantWithTags: marshal tags: %w", err)
+	}
+
+	query := `SELECT ` + monitorColumns + ` FROM monitors
+		WHERE tenant_id = $1 AND metadata @> $2::jsonb
+		ORDER BY created_at DESC LIMIT 10000`
+
+	rows, err := q.Query(ctx, query, tenantID, tagsJSON)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetAllInTenantWithTags: %w", err)
+	}
+
+	monitors, err := scanMonitors(rows)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetAllInTenantWithTags: %w", err)
+	}
+
+	return monitors, nil
+}
+
 // GetByUserIDWithTags returns monitors owned by the user that match every
 // supplied key=value tag. Tag matching uses Postgres' JSONB containment
 // operator (@>), which is satisfied iff every (key, value) in tags is

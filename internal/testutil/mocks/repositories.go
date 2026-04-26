@@ -240,8 +240,9 @@ type MockMonitorRepository struct {
 	GetByIDFn             func(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetByAgentIDFn        func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
 	GetEnabledByAgentIDFn func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
-	GetAllInTenantFn      func(ctx context.Context) ([]*domain.Monitor, error)
-	GetByUserIDWithTagsFn func(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error)
+	GetAllInTenantFn         func(ctx context.Context) ([]*domain.Monitor, error)
+	GetAllInTenantWithTagsFn func(ctx context.Context, tags map[string]string) ([]*domain.Monitor, error)
+	GetByUserIDWithTagsFn    func(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error)
 	UpdateFn              func(ctx context.Context, monitor *domain.Monitor) error
 	DeleteFn              func(ctx context.Context, id uuid.UUID) error
 	UpdateStatusFn        func(ctx context.Context, id uuid.UUID, status domain.MonitorStatus) error
@@ -280,6 +281,13 @@ func (m *MockMonitorRepository) GetEnabledByAgentID(ctx context.Context, agentID
 func (m *MockMonitorRepository) GetAllInTenant(ctx context.Context) ([]*domain.Monitor, error) {
 	if m.GetAllInTenantFn != nil {
 		return m.GetAllInTenantFn(ctx)
+	}
+	return nil, nil
+}
+
+func (m *MockMonitorRepository) GetAllInTenantWithTags(ctx context.Context, tags map[string]string) ([]*domain.Monitor, error) {
+	if m.GetAllInTenantWithTagsFn != nil {
+		return m.GetAllInTenantWithTagsFn(ctx, tags)
 	}
 	return nil, nil
 }
