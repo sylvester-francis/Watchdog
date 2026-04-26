@@ -9,11 +9,24 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Crypto   CryptoConfig
-	Notify   NotifyConfig
-	Feature  FeatureConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	Crypto    CryptoConfig
+	Notify    NotifyConfig
+	Feature   FeatureConfig
+	Telemetry TelemetryConfig
+}
+
+// TelemetryConfig gates OpenTelemetry SDK initialization.
+//
+// All endpoint, header, and sampler details flow through standard
+// OTEL_* environment variables read by the SDK directly
+// (OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
+// OTEL_TRACES_SAMPLER, etc. — see the OpenTelemetry spec). This struct
+// only owns the on/off switch and the service.name resource attribute.
+type TelemetryConfig struct {
+	Enabled     bool   `envconfig:"WATCHDOG_OTEL_ENABLED" default:"false"`
+	ServiceName string `envconfig:"WATCHDOG_OTEL_SERVICE_NAME" default:"watchdog-hub"`
 }
 
 // FeatureConfig holds feature flags.
