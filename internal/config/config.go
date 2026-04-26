@@ -19,13 +19,21 @@ type Config struct {
 
 // TelemetryConfig gates OpenTelemetry SDK initialization.
 //
+// Telemetry is enabled by default but only activates the SDK when an
+// OTLP endpoint is configured via the standard OTEL_EXPORTER_OTLP_*
+// environment variables. With no endpoint set, a no-op tracer is
+// installed — no exporter, no network egress, no log spam from
+// failed export retries. Set WATCHDOG_OTEL_ENABLED=false to force-disable
+// the SDK even when an endpoint is configured (useful in CI / local dev
+// that shares prod env files).
+//
 // All endpoint, header, and sampler details flow through standard
 // OTEL_* environment variables read by the SDK directly
 // (OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
 // OTEL_TRACES_SAMPLER, etc. — see the OpenTelemetry spec). This struct
 // only owns the on/off switch and the service.name resource attribute.
 type TelemetryConfig struct {
-	Enabled     bool   `envconfig:"WATCHDOG_OTEL_ENABLED" default:"false"`
+	Enabled     bool   `envconfig:"WATCHDOG_OTEL_ENABLED" default:"true"`
 	ServiceName string `envconfig:"WATCHDOG_OTEL_SERVICE_NAME" default:"watchdog-hub"`
 }
 

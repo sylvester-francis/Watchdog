@@ -10,6 +10,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -23,16 +24,23 @@ import (
 
 // NewTracerProvider returns a TracerProvider and a shutdown function.
 //
-//   - cfg.Enabled == false: a no-op provider is returned; shutdown is a
-//     no-op returning nil; no exporter is created.
-//   - cfg.Enabled == true: the OTel SDK is initialized with an OTLP HTTP
-//     exporter. Endpoint, headers, sampler, and other transport details
-//     come from standard OTEL_* env vars read by the SDK directly.
+// The SDK is initialized only when both:
+//   - cfg.Enabled is true (default; set WATCHDOG_OTEL_ENABLED=false to
+//     force-disable when an endpoint happens to be configured)
+//   - an OTLP traces endpoint is configured via OTEL_EXPORTER_OTLP_ENDPOINT
+//     or OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+//
+// Otherwise a no-op provider is returned with a no-op shutdown — no
+// exporter is created, no network egress, no log spam from failed
+// export retries against the SDK's localhost:4318 fallback.
+//
+// Endpoint, headers, sampler, and other transport details come from
+// standard OTEL_* env vars read by the SDK directly.
 //
 // Callers SHOULD defer the returned shutdown during graceful termination
 // so any batched spans flush before exit.
 func NewTracerProvider(ctx context.Context, cfg config.TelemetryConfig) (trace.TracerProvider, func(context.Context) error, error) {
-	if !cfg.Enabled {
+	if !cfg.Enabled || !hasOTLPTracesEndpoint() {
 		return tracenoop.NewTracerProvider(), noopShutdown, nil
 	}
 
@@ -56,6 +64,14 @@ func NewTracerProvider(ctx context.Context, cfg config.TelemetryConfig) (trace.T
 		sdktrace.WithResource(res),
 	)
 	return tp, tp.Shutdown, nil
+}
+
+// hasOTLPTracesEndpoint reports whether the OTel SDK will find a
+// configured OTLP traces endpoint. Either the generic OTEL_EXPORTER_OTLP_ENDPOINT
+// or the signal-specific OTEL_EXPORTER_OTLP_TRACES_ENDPOINT counts.
+func hasOTLPTracesEndpoint() bool {
+	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" ||
+		os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") != ""
 }
 
 func noopShutdown(context.Context) error { return nil }

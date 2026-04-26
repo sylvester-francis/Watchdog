@@ -14,6 +14,7 @@ import (
 )
 
 func TestNewTracerProvider_DisabledReturnsNoop(t *testing.T) {
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://does-not-matter.example.com")
 	cfg := config.TelemetryConfig{Enabled: false}
 
 	tp, shutdown, err := telemetry.NewTracerProvider(context.Background(), cfg)
@@ -21,11 +22,10 @@ func TestNewTracerProvider_DisabledReturnsNoop(t *testing.T) {
 	require.NotNil(t, tp)
 	require.NotNil(t, shutdown)
 
-	// Disabled must NOT instantiate an SDK provider.
+	// Force-disable wins over a configured endpoint.
 	_, isSDK := tp.(*sdktrace.TracerProvider)
-	assert.False(t, isSDK, "disabled config must return no-op provider, not SDK provider")
+	assert.False(t, isSDK, "Enabled=false must return no-op even with endpoint set")
 
-	// Shutdown returns nil and is safe to call.
 	require.NoError(t, shutdown(context.Background()))
 
 	// Tracer must be usable without panic; satisfies the interface contract.
@@ -34,7 +34,26 @@ func TestNewTracerProvider_DisabledReturnsNoop(t *testing.T) {
 	span.End()
 }
 
-func TestNewTracerProvider_EnabledReturnsSDKProvider(t *testing.T) {
+func TestNewTracerProvider_EnabledWithoutEndpointReturnsNoop(t *testing.T) {
+	// Make sure no inherited endpoint env from the parent shell leaks into the test.
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")
+	cfg := config.TelemetryConfig{Enabled: true, ServiceName: "test-svc"}
+
+	tp, shutdown, err := telemetry.NewTracerProvider(context.Background(), cfg)
+	require.NoError(t, err)
+	require.NotNil(t, tp)
+	t.Cleanup(func() { _ = shutdown(context.Background()) })
+
+	// Default-on must still produce a no-op when no OTLP endpoint is
+	// configured — the alternative would be the SDK retrying against
+	// localhost:4318 and spamming logs.
+	_, isSDK := tp.(*sdktrace.TracerProvider)
+	assert.False(t, isSDK, "Enabled=true with no endpoint must return no-op (no log spam)")
+}
+
+func TestNewTracerProvider_EnabledWithEndpointReturnsSDKProvider(t *testing.T) {
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otlp.example.com")
 	cfg := config.TelemetryConfig{Enabled: true, ServiceName: "test-svc"}
 
 	tp, shutdown, err := telemetry.NewTracerProvider(context.Background(), cfg)
@@ -43,5 +62,5 @@ func TestNewTracerProvider_EnabledReturnsSDKProvider(t *testing.T) {
 	t.Cleanup(func() { _ = shutdown(context.Background()) })
 
 	_, isSDK := tp.(*sdktrace.TracerProvider)
-	require.True(t, isSDK, "enabled config must produce an SDK provider")
+	require.True(t, isSDK, "Enabled=true with endpoint must produce an SDK provider")
 }
