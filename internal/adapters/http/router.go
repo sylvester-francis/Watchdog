@@ -76,8 +76,23 @@ type Router struct {
 	loginLimiter       *middleware.LoginLimiter
 	registerLimiter    *middleware.RegisterLimiter
 
+	// rateLimitOnReject is an optional callback invoked when the general
+	// rate limiter denies a request. Set via SetRateLimitOnReject before
+	// RegisterRoutes runs; nil means the limiter behaves as before.
+	rateLimitOnReject func(ip string)
+
 	// H-017: concurrent session tracker
 	sessionTracker *middleware.SessionTracker
+}
+
+// SetRateLimitOnReject sets the OnReject callback that the general rate
+// limiter will invoke whenever a request is denied for exceeding the burst
+// limit. The callback receives the client IP. Pass nil to clear.
+//
+// Must be called before RegisterRoutes() — the limiter is constructed
+// during RegisterRoutes and the callback value is captured at that point.
+func (r *Router) SetRateLimitOnReject(fn func(ip string)) {
+	r.rateLimitOnReject = fn
 }
 
 // NewRouter creates a new Router instance.
@@ -150,7 +165,9 @@ func (r *Router) RegisterRoutes() {
 	// SSE and WebSocket upgrade paths are excluded in the middleware itself.
 	// DISABLE_RATE_LIMITS=true skips rate limiting (for E2E/integration tests).
 	if os.Getenv("DISABLE_RATE_LIMITS") != "true" {
-		r.generalRateLimiter = middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
+		generalCfg := middleware.DefaultRateLimiterConfig()
+		generalCfg.OnReject = r.rateLimitOnReject
+		r.generalRateLimiter = middleware.NewRateLimiter(generalCfg)
 		e.Use(r.generalRateLimiter.Middleware())
 	}
 
