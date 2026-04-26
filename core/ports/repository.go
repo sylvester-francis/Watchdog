@@ -205,3 +205,23 @@ type DiscoveryRepository interface {
 type Transactor interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
+
+// SpanRepository defines persistence for OTLP spans received at /v1/traces.
+//
+// InsertBatch is the hot write path; expects bulk inserts via the most
+// efficient driver primitive available. GetByTraceID powers per-trace
+// reads for the explorer UI. DeleteOlderThan is called by the retention
+// worker that reads trace_retention_days from system_settings.
+type SpanRepository interface {
+	InsertBatch(ctx context.Context, spans []*domain.Span) error
+	GetByTraceID(ctx context.Context, traceID []byte) ([]*domain.Span, error)
+	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
+}
+
+// SystemSettingsRepository defines persistence for the small key/value
+// app-settings table used to hold runtime-tunable values (e.g. trace
+// retention) without requiring a redeploy.
+type SystemSettingsRepository interface {
+	Get(ctx context.Context, key string) ([]byte, error)
+	Set(ctx context.Context, key string, value []byte, updatedBy uuid.UUID) error
+}
