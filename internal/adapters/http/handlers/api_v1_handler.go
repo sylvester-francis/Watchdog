@@ -95,6 +95,10 @@ type incidentResponse struct {
 
 // ListMonitors returns all monitors for the authenticated user.
 // GET /api/v1/monitors
+//
+// Optional query: repeated `tag=key:value` filters the result to monitors
+// whose metadata contains every supplied (key, value) pair. With no tag
+// param the response is identical to the previous behavior.
 func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 	ctx := c.Request().Context()
 	userID, ok := middleware.GetUserID(c)
@@ -106,33 +110,44 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 	if err != nil {
 		return errJSON(c, http.StatusInternalServerError, "failed to fetch agents")
 	}
+	agentNames := make(map[uuid.UUID]string, len(agents))
+	for _, a := range agents {
+		agentNames[a.ID] = a.Name
+	}
 
-	var monitors []monitorResponse
-	for _, agent := range agents {
-		agentMonitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
+	var sourceMonitors []*domain.Monitor
+	if tags := parseTagsQuery(c.QueryParams()["tag"]); len(tags) > 0 {
+		sourceMonitors, err = h.monitorSvc.ListMonitorsByTags(ctx, userID, tags)
 		if err != nil {
-			continue
+			return errJSON(c, http.StatusInternalServerError, "failed to fetch monitors")
 		}
-		for _, m := range agentMonitors {
-			monitors = append(monitors, monitorResponse{
-				ID:               m.ID.String(),
-				AgentID:          m.AgentID.String(),
-				AgentName:        agent.Name,
-				Name:             m.Name,
-				Type:             string(m.Type),
-				Target:           m.Target,
-				Status:           string(m.Status),
-				Enabled:          m.Enabled,
-				Interval:         m.IntervalSeconds,
-				Timeout:          m.TimeoutSeconds,
-				FailureThreshold: m.FailureThreshold,
-				SLATargetPercent: m.SLATargetPercent,
-			})
+	} else {
+		for _, agent := range agents {
+			agentMonitors, err := h.monitorRepo.GetByAgentID(ctx, agent.ID)
+			if err != nil {
+				continue
+			}
+			sourceMonitors = append(sourceMonitors, agentMonitors...)
 		}
 	}
 
-	if monitors == nil {
-		monitors = []monitorResponse{}
+	monitors := make([]monitorResponse, 0, len(sourceMonitors))
+	for _, m := range sourceMonitors {
+		monitors = append(monitors, monitorResponse{
+			ID:               m.ID.String(),
+			AgentID:          m.AgentID.String(),
+			AgentName:        agentNames[m.AgentID],
+			Name:             m.Name,
+			Type:             string(m.Type),
+			Target:           m.Target,
+			Status:           string(m.Status),
+			Enabled:          m.Enabled,
+			Interval:         m.IntervalSeconds,
+			Timeout:          m.TimeoutSeconds,
+			FailureThreshold: m.FailureThreshold,
+			Metadata:         m.Metadata,
+			SLATargetPercent: m.SLATargetPercent,
+		})
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
