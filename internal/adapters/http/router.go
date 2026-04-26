@@ -75,6 +75,7 @@ type Router struct {
 	tracesHandler        *handlers.TracesHandler
 	tracesAPIHandler     *handlers.TracesAPIHandler
 	logsHandler          *handlers.LogsHandler
+	logsAPIHandler       *handlers.LogsAPIHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -141,6 +142,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	if deps.LogRecordRepo != nil {
 		r.logsHandler = handlers.NewLogsHandler(deps.LogRecordRepo, logger)
+		r.logsAPIHandler = handlers.NewLogsAPIHandler(deps.LogRecordRepo)
 	}
 
 	return r, nil
@@ -300,6 +302,11 @@ func (r *Router) RegisterRoutes() {
 	if r.tracesAPIHandler != nil {
 		v1.GET("/traces", r.tracesAPIHandler.ListTraces)
 		v1.GET("/traces/:trace_id", r.tracesAPIHandler.GetTrace)
+	}
+
+	// Logs (read-only). Mounted only when LogRecordRepo is wired.
+	if r.logsAPIHandler != nil {
+		v1.GET("/logs", r.logsAPIHandler.ListLogs)
 	}
 
 	// Agents
