@@ -161,6 +161,44 @@ func (r *MonitorRepository) GetAllInTenant(ctx context.Context) ([]*domain.Monit
 	return monitors, nil
 }
 
+// GetByUserIDWithTags returns monitors owned by the user that match every
+// supplied key=value tag. Tag matching uses Postgres' JSONB containment
+// operator (@>), which is satisfied iff every (key, value) in tags is
+// present in the monitor's metadata. Passing an empty tags map returns
+// every user-owned monitor (containment against {} is always true) — but
+// callers SHOULD only invoke this when they actually have a filter, since
+// the unfiltered list path is cheaper.
+//
+// The agent_id IN (...) sub-query enforces the CE rule that users see
+// only their own resources, even within a shared tenant.
+func (r *MonitorRepository) GetByUserIDWithTags(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	tagsJSON, err := json.Marshal(tags)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetByUserIDWithTags(%s): marshal tags: %w", userID, err)
+	}
+
+	query := `SELECT ` + monitorColumns + ` FROM monitors
+		WHERE tenant_id = $1
+		  AND metadata @> $2::jsonb
+		  AND agent_id IN (SELECT id FROM agents WHERE user_id = $3 AND tenant_id = $1)
+		ORDER BY created_at DESC LIMIT 10000`
+
+	rows, err := q.Query(ctx, query, tenantID, tagsJSON, userID)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetByUserIDWithTags(%s): %w", userID, err)
+	}
+
+	monitors, err := scanMonitors(rows)
+	if err != nil {
+		return nil, fmt.Errorf("monitorRepo.GetByUserIDWithTags(%s): %w", userID, err)
+	}
+
+	return monitors, nil
+}
+
 // Update updates an existing monitor in the database.
 func (r *MonitorRepository) Update(ctx context.Context, monitor *domain.Monitor) error {
 	q := r.db.Querier(ctx)
