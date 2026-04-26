@@ -39,6 +39,7 @@ type Dependencies struct {
 	StatusPageRepo   ports.StatusPageRepository
 	AlertChannelRepo ports.AlertChannelRepository
 	SpanRepo         ports.SpanRepository
+	LogRecordRepo    ports.LogRecordRepository
 	CertDetailsRepo        ports.CertDetailsRepository
 	MaintenanceWindowRepo  ports.MaintenanceWindowRepository
 	Hub                    *realtime.Hub
@@ -73,6 +74,9 @@ type Router struct {
 	discoveryHandler     *handlers.DiscoveryHandler
 	tracesHandler        *handlers.TracesHandler
 	tracesAPIHandler     *handlers.TracesAPIHandler
+	logsHandler          *handlers.LogsHandler
+	logsAPIHandler       *handlers.LogsAPIHandler
+	logsNDJSONHandler    *handlers.LogsNDJSONHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -135,6 +139,12 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	if deps.SpanRepo != nil {
 		r.tracesHandler = handlers.NewTracesHandler(deps.SpanRepo, logger)
 		r.tracesAPIHandler = handlers.NewTracesAPIHandler(deps.SpanRepo)
+	}
+
+	if deps.LogRecordRepo != nil {
+		r.logsHandler = handlers.NewLogsHandler(deps.LogRecordRepo, logger)
+		r.logsAPIHandler = handlers.NewLogsAPIHandler(deps.LogRecordRepo)
+		r.logsNDJSONHandler = handlers.NewLogsNDJSONHandler(deps.LogRecordRepo, logger)
 	}
 
 	return r, nil
@@ -239,13 +249,22 @@ func (r *Router) RegisterRoutes() {
 	v1Public.GET("/public/status/:username/:slug", r.statusPageAPIHandler.PublicView)
 
 	// OTLP HTTP receivers (/v1/*). Bearer-token auth with the
-	// telemetry_ingest scope; no session cookie path. Mounted only when
-	// SpanRepo is wired so the route 404s when traces aren't enabled.
-	if r.tracesHandler != nil {
+	// telemetry_ingest scope; no session cookie path. The group is
+	// mounted whenever any OTLP handler is wired; per-route mounts gate
+	// individual signals so each one 404s when its repo isn't configured.
+	if r.tracesHandler != nil || r.logsHandler != nil {
 		otlp := e.Group("/v1")
 		otlp.Use(middleware.APITokenAuth(r.deps.APITokenRepo))
 		otlp.Use(middleware.RequireScope(domain.TokenScopeTelemetryIngest))
-		otlp.POST("/traces", r.tracesHandler.Handle)
+		if r.tracesHandler != nil {
+			otlp.POST("/traces", r.tracesHandler.Handle)
+		}
+		if r.logsHandler != nil {
+			otlp.POST("/logs", r.logsHandler.Handle)
+		}
+		if r.logsNDJSONHandler != nil {
+			otlp.POST("/logs/raw", r.logsNDJSONHandler.Handle)
+		}
 	}
 
 	// API v1 (hybrid auth: Bearer token OR session cookie)
@@ -288,6 +307,11 @@ func (r *Router) RegisterRoutes() {
 	if r.tracesAPIHandler != nil {
 		v1.GET("/traces", r.tracesAPIHandler.ListTraces)
 		v1.GET("/traces/:trace_id", r.tracesAPIHandler.GetTrace)
+	}
+
+	// Logs (read-only). Mounted only when LogRecordRepo is wired.
+	if r.logsAPIHandler != nil {
+		v1.GET("/logs", r.logsAPIHandler.ListLogs)
 	}
 
 	// Agents

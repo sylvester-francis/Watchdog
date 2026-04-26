@@ -22,13 +22,13 @@ const (
 // TraceID is 16 bytes when present, SpanID is 8 bytes; both are nil for
 // records emitted outside an active trace context. Body is the rendered
 // log message; structured fields live in Attributes (JSONB). Resource
-// captures process-level attributes (service.name, host, etc.).
+// captures process-level attributes (service.name, host, etc.). Flags
+// is the OTLP `flags` field — its lower 8 bits carry W3C trace flags.
 type LogRecord struct {
 	Timestamp              time.Time
 	ObservedTimestamp      time.Time
 	TraceID                []byte
 	SpanID                 []byte
-	TraceFlags             uint32
 	SeverityNumber         SeverityNumber
 	SeverityText           string
 	Body                   string
