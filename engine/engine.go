@@ -190,6 +190,7 @@ func New(ctx context.Context) (*Engine, error) {
 	statusPageRepo := repository.NewStatusPageRepository(db)
 	alertChannelRepo := repository.NewAlertChannelRepository(db, encryptor)
 	certDetailsRepo := repository.NewCertDetailsRepository(db)
+	spanRepo := repository.NewSpanRepository(db)
 
 	// Notifiers
 	notifier := buildNotifier(cfg.Notify, logger)
@@ -316,6 +317,7 @@ func New(ctx context.Context) (*Engine, error) {
 		APITokenRepo:     apiTokenRepo,
 		StatusPageRepo:   statusPageRepo,
 		AlertChannelRepo: alertChannelRepo,
+		SpanRepo:         spanRepo,
 		CertDetailsRepo:       certDetailsRepo,
 		MaintenanceWindowRepo: mwRepo,
 		Hub:                   hub,

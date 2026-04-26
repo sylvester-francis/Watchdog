@@ -14,14 +14,15 @@ import (
 type TokenScope string
 
 const (
-	TokenScopeAdmin    TokenScope = "admin"     // Full read/write access
-	TokenScopeReadOnly TokenScope = "read_only" // Read-only access
+	TokenScopeAdmin            TokenScope = "admin"            // Full read/write access
+	TokenScopeReadOnly         TokenScope = "read_only"        // Read-only access
+	TokenScopeTelemetryIngest  TokenScope = "telemetry_ingest" // Push-only access to OTLP receivers (/v1/traces, /v1/logs)
 )
 
 // IsValid checks if the scope is a valid TokenScope.
 func (s TokenScope) IsValid() bool {
 	switch s {
-	case TokenScopeAdmin, TokenScopeReadOnly:
+	case TokenScopeAdmin, TokenScopeReadOnly, TokenScopeTelemetryIngest:
 		return true
 	default:
 		return false
