@@ -65,6 +65,7 @@ type MockMonitorService struct {
 	CreateMonitorFn         func(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error)
 	GetMonitorFn            func(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetMonitorsByAgentFn    func(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
+	ListMonitorsByTagsFn    func(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error)
 	UpdateMonitorFn         func(ctx context.Context, monitor *domain.Monitor) error
 	DeleteMonitorFn         func(ctx context.Context, id uuid.UUID) error
 	ProcessHeartbeatFn      func(ctx context.Context, heartbeat *domain.Heartbeat) error
@@ -82,6 +83,13 @@ func (m *MockMonitorService) CreateMonitor(ctx context.Context, userID uuid.UUID
 func (m *MockMonitorService) GetMonitor(ctx context.Context, id uuid.UUID) (*domain.Monitor, error) {
 	if m.GetMonitorFn != nil {
 		return m.GetMonitorFn(ctx, id)
+	}
+	return nil, nil
+}
+
+func (m *MockMonitorService) ListMonitorsByTags(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error) {
+	if m.ListMonitorsByTagsFn != nil {
+		return m.ListMonitorsByTagsFn(ctx, userID, tags)
 	}
 	return nil, nil
 }

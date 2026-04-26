@@ -26,6 +26,7 @@ type MonitorService interface {
 	CreateMonitor(ctx context.Context, userID uuid.UUID, agentID uuid.UUID, name string, monitorType domain.MonitorType, target string, metadata map[string]string) (*domain.Monitor, error)
 	GetMonitor(ctx context.Context, id uuid.UUID) (*domain.Monitor, error)
 	GetMonitorsByAgent(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error)
+	ListMonitorsByTags(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error)
 	UpdateMonitor(ctx context.Context, monitor *domain.Monitor) error
 	DeleteMonitor(ctx context.Context, id uuid.UUID) error
 	ProcessHeartbeat(ctx context.Context, heartbeat *domain.Heartbeat) error

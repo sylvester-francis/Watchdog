@@ -121,6 +121,21 @@ func (s *MonitorService) GetMonitor(ctx context.Context, id uuid.UUID) (*domain.
 }
 
 // GetMonitorsByAgent retrieves all monitors for an agent.
+// ListMonitorsByTags returns monitors owned by the user that match every
+// supplied key=value tag. Empty tags would degenerate to "every monitor",
+// so callers MUST supply at least one tag — the cheaper unfiltered list
+// path goes through GetMonitorsByAgent + agentRepo iteration instead.
+func (s *MonitorService) ListMonitorsByTags(ctx context.Context, userID uuid.UUID, tags map[string]string) ([]*domain.Monitor, error) {
+	if len(tags) == 0 {
+		return nil, fmt.Errorf("monitorService.ListMonitorsByTags: at least one tag required")
+	}
+	monitors, err := s.monitorRepo.GetByUserIDWithTags(ctx, userID, tags)
+	if err != nil {
+		return nil, fmt.Errorf("monitorService.ListMonitorsByTags: %w", err)
+	}
+	return monitors, nil
+}
+
 func (s *MonitorService) GetMonitorsByAgent(ctx context.Context, agentID uuid.UUID) ([]*domain.Monitor, error) {
 	monitors, err := s.monitorRepo.GetByAgentID(ctx, agentID)
 	if err != nil {

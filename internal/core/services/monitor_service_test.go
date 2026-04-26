@@ -435,3 +435,52 @@ func TestProcessHeartbeat_StoreError_Propagates(t *testing.T) {
 
 	assert.ErrorIs(t, err, storeErr)
 }
+
+// --- ListMonitorsByTags ---
+
+func TestListMonitorsByTags_EmptyTagsReturnsError(t *testing.T) {
+	svc := newTestMonitorService(&mocks.MockMonitorRepository{}, nil, nil, nil)
+
+	monitors, err := svc.ListMonitorsByTags(context.Background(), uuid.New(), map[string]string{})
+	require.Error(t, err, "empty tags must be rejected so the cheaper unfiltered path is preferred")
+	assert.Nil(t, monitors)
+}
+
+func TestListMonitorsByTags_ForwardsToRepoWithUserAndTags(t *testing.T) {
+	userID := uuid.New()
+	wantTags := map[string]string{"env": "prod", "tier": "web"}
+
+	var seenUser uuid.UUID
+	var seenTags map[string]string
+
+	expected := []*domain.Monitor{{ID: uuid.New(), Name: "match-1"}, {ID: uuid.New(), Name: "match-2"}}
+	monitorRepo := &mocks.MockMonitorRepository{
+		GetByUserIDWithTagsFn: func(_ context.Context, u uuid.UUID, tags map[string]string) ([]*domain.Monitor, error) {
+			seenUser = u
+			seenTags = tags
+			return expected, nil
+		},
+	}
+	svc := newTestMonitorService(monitorRepo, nil, nil, nil)
+
+	got, err := svc.ListMonitorsByTags(context.Background(), userID, wantTags)
+	require.NoError(t, err)
+	assert.Equal(t, expected, got)
+	assert.Equal(t, userID, seenUser, "userID must reach the repo unchanged")
+	assert.Equal(t, wantTags, seenTags, "tags map must reach the repo unchanged")
+}
+
+func TestListMonitorsByTags_RepoErrorIsWrapped(t *testing.T) {
+	storeErr := errors.New("db down")
+	monitorRepo := &mocks.MockMonitorRepository{
+		GetByUserIDWithTagsFn: func(_ context.Context, _ uuid.UUID, _ map[string]string) ([]*domain.Monitor, error) {
+			return nil, storeErr
+		},
+	}
+	svc := newTestMonitorService(monitorRepo, nil, nil, nil)
+
+	monitors, err := svc.ListMonitorsByTags(context.Background(), uuid.New(), map[string]string{"k": "v"})
+	require.Error(t, err)
+	assert.Nil(t, monitors)
+	assert.ErrorIs(t, err, storeErr, "repo error must be wrapped, not swallowed")
+}
