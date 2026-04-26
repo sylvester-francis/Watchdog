@@ -17,6 +17,12 @@ type RateLimiterConfig struct {
 	Burst int
 	// Cleanup interval for expired entries
 	CleanupInterval time.Duration
+	// OnReject is an optional callback invoked when a request is denied
+	// by the limiter. Receives the client IP that triggered the denial.
+	// Useful for downstream concerns like persistent block-list tracking
+	// (e.g. EE writes to a blocked_ips table). Called outside the
+	// limiter's lock; nil means no-op (default backward-compat behavior).
+	OnReject func(ip string)
 }
 
 // DefaultRateLimiterConfig returns sensible defaults for the general API rate
@@ -94,6 +100,9 @@ func (rl *RateLimiter) Middleware() echo.MiddlewareFunc {
 			ip := c.RealIP()
 
 			if !rl.allow(ip) {
+				if rl.config.OnReject != nil {
+					rl.config.OnReject(ip)
+				}
 				return c.JSON(http.StatusTooManyRequests, map[string]string{
 					"error": "rate limit exceeded",
 				})
