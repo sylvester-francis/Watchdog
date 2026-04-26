@@ -26,6 +26,11 @@ import (
 	prommetrics "github.com/sylvester-francis/watchdog/internal/adapters/metrics"
 	"github.com/sylvester-francis/watchdog/internal/adapters/notify"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
+	"github.com/sylvester-francis/watchdog/internal/adapters/telemetry"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
 	"github.com/sylvester-francis/watchdog/internal/core/services"
@@ -88,6 +93,10 @@ type Engine struct {
 	// rateLimitOnReject is forwarded to the router during Init() so the
 	// general rate limiter can invoke it whenever a request is denied.
 	rateLimitOnReject func(ip string)
+
+	// telemetryShutdown flushes pending OTel spans during graceful
+	// shutdown. Always non-nil; a no-op when telemetry is disabled.
+	telemetryShutdown func(context.Context) error
 }
 
 // SetRateLimitOnReject sets the callback that the general rate limiter will
@@ -219,6 +228,18 @@ func New(ctx context.Context) (*Engine, error) {
 	e.Use(echomw.Recover())
 	e.Use(echomw.RequestID())
 	e.Use(middleware.SecureHeaders(cfg.Server.SecureCookies))
+
+	// OpenTelemetry tracer + Echo middleware. Disabled by default; opt
+	// in via WATCHDOG_OTEL_ENABLED=true. Endpoint, headers, sampler,
+	// and other transport details flow through standard OTEL_* env vars.
+	tracerProvider, telemetryShutdown, err := telemetry.NewTracerProvider(ctx, cfg.Telemetry)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("initialize telemetry: %w", err)
+	}
+	otel.SetTracerProvider(tracerProvider)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	e.Use(otelecho.Middleware(cfg.Telemetry.ServiceName))
 
 	// Prometheus metrics
 	prom := prommetrics.New(hub, db.Pool)
@@ -368,6 +389,8 @@ func New(ctx context.Context) (*Engine, error) {
 		agentAuthSvc:       authSvc,
 		auditSvc:           auditSvc,
 		mwRepo:             mwRepo,
+
+		telemetryShutdown: telemetryShutdown,
 	}, nil
 }
 
@@ -646,6 +669,12 @@ func (e *Engine) Shutdown(ctx context.Context) error {
 
 	if err := e.echo.Shutdown(ctx); err != nil {
 		return fmt.Errorf("echo shutdown: %w", err)
+	}
+
+	// Flush any batched OTel spans last so spans from the in-flight
+	// requests Echo just drained get exported before the process exits.
+	if err := e.telemetryShutdown(ctx); err != nil {
+		e.logger.Error("telemetry shutdown error", slog.String("error", err.Error()))
 	}
 	return nil
 }
