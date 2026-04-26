@@ -85,6 +85,7 @@ type Engine struct {
 	agentAuthSvc       ports.AgentAuthService
 	auditSvc           ports.AuditService
 	mwRepo             ports.MaintenanceWindowRepository
+	traceRetentionSvc  *services.TraceRetention
 
 	// Maintenance window background processing hooks.
 	mwExpiredHooks    []MaintenanceExpiredHook
@@ -191,6 +192,7 @@ func New(ctx context.Context) (*Engine, error) {
 	alertChannelRepo := repository.NewAlertChannelRepository(db, encryptor)
 	certDetailsRepo := repository.NewCertDetailsRepository(db)
 	spanRepo := repository.NewSpanRepository(db)
+	systemSettingsRepo := repository.NewSystemSettingsRepository(db)
 
 	// Notifiers
 	notifier := buildNotifier(cfg.Notify, logger)
@@ -202,6 +204,7 @@ func New(ctx context.Context) (*Engine, error) {
 	incidentSvc := services.NewIncidentService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, alertChannelRepo, notifier, notifierFactory, db, logger)
 	monitorSvc := services.NewMonitorService(monitorRepo, heartbeatRepo, incidentRepo, incidentSvc, userRepo, usageEventRepo, logger)
 	investigationSvc := services.NewInvestigationService(incidentRepo, monitorRepo, agentRepo, heartbeatRepo, certDetailsRepo, logger)
+	traceRetentionSvc := services.NewTraceRetention(spanRepo, systemSettingsRepo, logger)
 
 	// Module registry with defaults
 	reg := registry.New(logger)
@@ -429,6 +432,7 @@ func New(ctx context.Context) (*Engine, error) {
 		agentAuthSvc:       authSvc,
 		auditSvc:           auditSvc,
 		mwRepo:             mwRepo,
+		traceRetentionSvc:  traceRetentionSvc,
 
 		telemetryShutdown: telemetryShutdown,
 	}, nil
@@ -572,6 +576,10 @@ func (e *Engine) Init(ctx context.Context) error {
 	if e.mwRepo != nil {
 		go e.runMaintenanceTicker(ctx)
 	}
+
+	// Background trace retention worker (hourly tick) — prunes old
+	// spans according to system_settings.trace_retention_days.
+	e.traceRetentionSvc.Start(ctx)
 
 	return nil
 }
