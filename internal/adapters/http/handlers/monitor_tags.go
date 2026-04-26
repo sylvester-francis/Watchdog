@@ -2,7 +2,7 @@ package handlers
 
 import "strings"
 
-// parseTagsQuery turns repeated `tag=key:value` query string values into a
+// ParseTagsQuery turns repeated `tag=key:value` query string values into a
 // map. Empty input or malformed entries (no colon, empty key, empty value)
 // are silently dropped — handlers treat the result as an opt-in filter.
 //
@@ -12,7 +12,7 @@ import "strings"
 //	["env:prod","tier:web"]  -> {"env": "prod", "tier": "web"}
 //	["env:prod:eu"]          -> {"env": "prod:eu"}     // colons in values OK
 //	["malformed", ":val", "k:"] -> {}                  // all dropped
-func parseTagsQuery(values []string) map[string]string {
+func ParseTagsQuery(values []string) map[string]string {
 	tags := make(map[string]string, len(values))
 	for _, v := range values {
 		idx := strings.Index(v, ":")

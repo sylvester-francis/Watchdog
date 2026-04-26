@@ -116,7 +116,7 @@ func (h *APIV1Handler) ListMonitors(c echo.Context) error {
 	}
 
 	var sourceMonitors []*domain.Monitor
-	if tags := parseTagsQuery(c.QueryParams()["tag"]); len(tags) > 0 {
+	if tags := ParseTagsQuery(c.QueryParams()["tag"]); len(tags) > 0 {
 		sourceMonitors, err = h.monitorSvc.ListMonitorsByTags(ctx, userID, tags)
 		if err != nil {
 			return errJSON(c, http.StatusInternalServerError, "failed to fetch monitors")
