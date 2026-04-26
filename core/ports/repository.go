@@ -229,3 +229,16 @@ type SystemSettingsRepository interface {
 	Get(ctx context.Context, key string) ([]byte, error)
 	Set(ctx context.Context, key string, value []byte, updatedBy uuid.UUID) error
 }
+
+// LogRecordRepository defines persistence for OTLP log records received
+// at /v1/logs (and the legacy NDJSON endpoint).
+//
+// InsertBatch is the hot write path; expects bulk inserts via the most
+// efficient driver primitive available. ListRecent powers the read API
+// for the explorer UI. DeleteOlderThan is called by the retention
+// worker that reads log_retention_days from system_settings.
+type LogRecordRepository interface {
+	InsertBatch(ctx context.Context, records []*domain.LogRecord) error
+	ListRecent(ctx context.Context, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error)
+	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
+}
