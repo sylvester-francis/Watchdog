@@ -76,6 +76,7 @@ type Router struct {
 	tracesAPIHandler     *handlers.TracesAPIHandler
 	logsHandler          *handlers.LogsHandler
 	logsAPIHandler       *handlers.LogsAPIHandler
+	logsNDJSONHandler    *handlers.LogsNDJSONHandler
 
 	// Rate limiters (kept for graceful shutdown)
 	authRateLimiter    *middleware.RateLimiter
@@ -143,6 +144,7 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	if deps.LogRecordRepo != nil {
 		r.logsHandler = handlers.NewLogsHandler(deps.LogRecordRepo, logger)
 		r.logsAPIHandler = handlers.NewLogsAPIHandler(deps.LogRecordRepo)
+		r.logsNDJSONHandler = handlers.NewLogsNDJSONHandler(deps.LogRecordRepo, logger)
 	}
 
 	return r, nil
@@ -259,6 +261,9 @@ func (r *Router) RegisterRoutes() {
 		}
 		if r.logsHandler != nil {
 			otlp.POST("/logs", r.logsHandler.Handle)
+		}
+		if r.logsNDJSONHandler != nil {
+			otlp.POST("/logs/raw", r.logsNDJSONHandler.Handle)
 		}
 	}
 
