@@ -192,6 +192,7 @@ func New(ctx context.Context) (*Engine, error) {
 	alertChannelRepo := repository.NewAlertChannelRepository(db, encryptor)
 	certDetailsRepo := repository.NewCertDetailsRepository(db)
 	spanRepo := repository.NewSpanRepository(db)
+	logRecordRepo := repository.NewLogRecordRepository(db)
 	systemSettingsRepo := repository.NewSystemSettingsRepository(db)
 
 	// Notifiers
@@ -321,6 +322,7 @@ func New(ctx context.Context) (*Engine, error) {
 		StatusPageRepo:   statusPageRepo,
 		AlertChannelRepo: alertChannelRepo,
 		SpanRepo:         spanRepo,
+		LogRecordRepo:    logRecordRepo,
 		CertDetailsRepo:       certDetailsRepo,
 		MaintenanceWindowRepo: mwRepo,
 		Hub:                   hub,
