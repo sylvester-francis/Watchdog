@@ -94,8 +94,9 @@ type Engine struct {
 	// general rate limiter can invoke it whenever a request is denied.
 	rateLimitOnReject func(ip string)
 
-	// telemetryShutdown flushes pending OTel spans during graceful
-	// shutdown. Always non-nil; a no-op when telemetry is disabled.
+	// telemetryShutdown flushes pending OTel spans and log records
+	// during graceful shutdown. Always non-nil; a no-op when telemetry
+	// is disabled or no OTLP endpoint is configured.
 	telemetryShutdown func(context.Context) error
 }
 
@@ -123,6 +124,33 @@ func New(ctx context.Context) (*Engine, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
+	}
+
+	// OpenTelemetry SDK init runs BEFORE any subsystem captures `logger`
+	// so the slog tee handler covers the whole engine lifecycle. Both
+	// providers no-op when WATCHDOG_OTEL_ENABLED=false or when no OTLP
+	// endpoint is configured — see internal/adapters/telemetry.
+	tracerProvider, traceShutdown, err := telemetry.NewTracerProvider(ctx, cfg.Telemetry)
+	if err != nil {
+		return nil, fmt.Errorf("initialize tracer provider: %w", err)
+	}
+	otel.SetTracerProvider(tracerProvider)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+	loggerProvider, logShutdown, err := telemetry.NewLoggerProvider(ctx, cfg.Telemetry)
+	if err != nil {
+		return nil, fmt.Errorf("initialize logger provider: %w", err)
+	}
+	logger = slog.New(telemetry.NewSlogHandler(logger.Handler(), loggerProvider, cfg.Telemetry.ServiceName))
+	slog.SetDefault(logger)
+
+	telemetryShutdown := func(ctx context.Context) error {
+		traceErr := traceShutdown(ctx)
+		logErr := logShutdown(ctx)
+		if traceErr != nil {
+			return traceErr
+		}
+		return logErr
 	}
 
 	db, err := repository.NewDB(ctx, cfg.Database)
@@ -229,16 +257,9 @@ func New(ctx context.Context) (*Engine, error) {
 	e.Use(echomw.RequestID())
 	e.Use(middleware.SecureHeaders(cfg.Server.SecureCookies))
 
-	// OpenTelemetry tracer + Echo middleware. Disabled by default; opt
-	// in via WATCHDOG_OTEL_ENABLED=true. Endpoint, headers, sampler,
-	// and other transport details flow through standard OTEL_* env vars.
-	tracerProvider, telemetryShutdown, err := telemetry.NewTracerProvider(ctx, cfg.Telemetry)
-	if err != nil {
-		db.Close()
-		return nil, fmt.Errorf("initialize telemetry: %w", err)
-	}
-	otel.SetTracerProvider(tracerProvider)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	// OTel HTTP server-span middleware. The TracerProvider was set as
+	// the global earlier in New() (right after config load) so otelecho
+	// picks it up automatically.
 	e.Use(otelecho.Middleware(cfg.Telemetry.ServiceName))
 
 	// Prometheus metrics
