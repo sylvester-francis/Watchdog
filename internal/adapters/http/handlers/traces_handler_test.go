@@ -28,6 +28,9 @@ type fakeSpanRepo struct {
 	mu       sync.Mutex
 	inserted []*domain.Span
 	err      error
+
+	getByTraceID    func(ctx context.Context, traceID []byte) ([]*domain.Span, error)
+	listRecentFn    func(ctx context.Context, since time.Time, service string, limit int) ([]*domain.TraceSummary, error)
 }
 
 func (f *fakeSpanRepo) InsertBatch(_ context.Context, spans []*domain.Span) error {
@@ -40,11 +43,20 @@ func (f *fakeSpanRepo) InsertBatch(_ context.Context, spans []*domain.Span) erro
 	return nil
 }
 
-func (f *fakeSpanRepo) GetByTraceID(context.Context, []byte) ([]*domain.Span, error) {
+func (f *fakeSpanRepo) GetByTraceID(ctx context.Context, traceID []byte) ([]*domain.Span, error) {
+	if f.getByTraceID != nil {
+		return f.getByTraceID(ctx, traceID)
+	}
 	return nil, nil
 }
 func (f *fakeSpanRepo) DeleteOlderThan(context.Context, time.Time) error {
 	return nil
+}
+func (f *fakeSpanRepo) ListRecentTraces(ctx context.Context, since time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
+	if f.listRecentFn != nil {
+		return f.listRecentFn(ctx, since, service, limit)
+	}
+	return nil, nil
 }
 
 func newTracesTestServer(t *testing.T, repo *fakeSpanRepo) *echo.Echo {

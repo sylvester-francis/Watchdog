@@ -39,6 +39,9 @@ type stubSpans struct {
 
 func (s *stubSpans) InsertBatch(context.Context, []*domain.Span) error  { return nil }
 func (s *stubSpans) GetByTraceID(context.Context, []byte) ([]*domain.Span, error) { return nil, nil }
+func (s *stubSpans) ListRecentTraces(context.Context, time.Time, string, int) ([]*domain.TraceSummary, error) {
+	return nil, nil
+}
 func (s *stubSpans) DeleteOlderThan(_ context.Context, cutoff time.Time) error {
 	s.cutoffs = append(s.cutoffs, cutoff)
 	return s.err

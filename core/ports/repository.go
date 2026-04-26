@@ -216,6 +216,10 @@ type SpanRepository interface {
 	InsertBatch(ctx context.Context, spans []*domain.Span) error
 	GetByTraceID(ctx context.Context, traceID []byte) ([]*domain.Span, error)
 	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
+	// ListRecentTraces returns one TraceSummary per trace_id seen since
+	// `since`. An empty service filter matches all services. Results are
+	// ordered by trace start time, newest first, and capped at limit.
+	ListRecentTraces(ctx context.Context, since time.Time, service string, limit int) ([]*domain.TraceSummary, error)
 }
 
 // SystemSettingsRepository defines persistence for the small key/value
