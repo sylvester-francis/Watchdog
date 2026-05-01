@@ -22,9 +22,14 @@ func CSRFMiddleware(secureCookies bool) echo.MiddlewareFunc {
 		CookieSameSite: http.SameSiteLaxMode,
 		Skipper: func(c echo.Context) bool {
 			path := c.Request().URL.Path
-			// Skip CSRF for non-browser endpoints
+			// Skip CSRF for non-browser endpoints. /v1/* hosts the OTLP
+			// HTTP receivers (POST /v1/traces, /v1/logs, /v1/logs/raw),
+			// which are bearer-token authenticated and called by
+			// collectors that don't issue cookies and therefore can't
+			// participate in the double-submit cookie pattern.
 			if strings.HasPrefix(path, "/ws/") ||
 				strings.HasPrefix(path, "/api/") ||
+				strings.HasPrefix(path, "/v1/") ||
 				strings.HasPrefix(path, "/static/") ||
 				strings.HasPrefix(path, "/sse/") ||
 				path == "/health" {
