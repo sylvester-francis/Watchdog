@@ -24,13 +24,28 @@
 TRUNCATE spans;
 TRUNCATE log_records;
 
+-- TimescaleDB hypertables with columnstore enabled reject ADD COLUMN
+-- ... NOT NULL without a default, even when no rows exist, because the
+-- columnstore needs a defined value for any historical compressed
+-- chunks. We add user_id with a placeholder default, then drop the
+-- default so future inserts must stamp user_id explicitly (the OTLP
+-- receivers already do this from request context). TRUNCATE above
+-- ensures the placeholder never lands on any real row.
+--
+-- tenant_id keeps its 'default' default to match migration 018's
+-- pattern for the rest of the tenant-scoped tables: CE single-tenant
+-- deployments use 'default' for every row; EE deployments overwrite
+-- it with the resolved tenant_id at INSERT time.
+
 ALTER TABLE spans
-    ADD COLUMN user_id UUID NOT NULL,
+    ADD COLUMN user_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'::uuid,
     ADD COLUMN tenant_id VARCHAR(255) NOT NULL DEFAULT 'default';
+ALTER TABLE spans ALTER COLUMN user_id DROP DEFAULT;
 
 ALTER TABLE log_records
-    ADD COLUMN user_id UUID NOT NULL,
+    ADD COLUMN user_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'::uuid,
     ADD COLUMN tenant_id VARCHAR(255) NOT NULL DEFAULT 'default';
+ALTER TABLE log_records ALTER COLUMN user_id DROP DEFAULT;
 
 CREATE INDEX idx_spans_user_tenant_start
     ON spans (user_id, tenant_id, start_time DESC);
