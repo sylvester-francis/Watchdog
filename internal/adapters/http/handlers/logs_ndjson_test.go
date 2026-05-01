@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,13 @@ import (
 
 func newNDJSONServer(t *testing.T, repo *fakeLogRepo) *echo.Echo {
 	t.Helper()
+	return newScopedNDJSONServer(t, repo, defaultTestUserID.String(), "default")
+}
+
+func newScopedNDJSONServer(t *testing.T, repo *fakeLogRepo, userID, tenantID string) *echo.Echo {
+	t.Helper()
 	e := echo.New()
+	e.Use(withAuthCtx(userID, tenantID))
 	h := NewLogsNDJSONHandler(repo, slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil)))
 	e.POST("/v1/logs/raw", h.Handle)
 	return e
@@ -169,5 +176,45 @@ func TestLogsNDJSON_RepoFailureReturns500(t *testing.T) {
 	body := `{"timestamp":"2026-04-26T12:00:00Z","severity":"INFO","body":"x","service":"api"}` + "\n"
 	rec := postNDJSON(t, e, body, "application/x-ndjson")
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
+func TestLogsNDJSON_StampsUserIDFromContextOntoEveryRecord(t *testing.T) {
+	repo := &fakeLogRepo{}
+	userID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	e := newScopedNDJSONServer(t, repo, userID.String(), "default")
+
+	body := `{"timestamp":"2026-04-26T12:00:00Z","severity":"INFO","body":"a","service":"api"}` + "\n" +
+		`{"timestamp":"2026-04-26T12:00:01Z","severity":"INFO","body":"b","service":"api"}` + "\n"
+
+	rec := postNDJSON(t, e, body, "application/x-ndjson")
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Len(t, repo.inserted, 2)
+	for i, r := range repo.inserted {
+		assert.Equal(t, userID, r.UserID, "record %d should carry user_id from request context", i)
+	}
+}
+
+func TestLogsNDJSON_StampsTenantIDFromContextOntoEveryRecord(t *testing.T) {
+	repo := &fakeLogRepo{}
+	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+	const tenantID = "acme-corp"
+	e := newScopedNDJSONServer(t, repo, userID.String(), tenantID)
+
+	body := `{"timestamp":"2026-04-26T12:00:00Z","severity":"INFO","body":"hi","service":"api"}` + "\n"
+
+	rec := postNDJSON(t, e, body, "application/x-ndjson")
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Len(t, repo.inserted, 1)
+	assert.Equal(t, tenantID, repo.inserted[0].TenantID)
+}
+
+func TestLogsNDJSON_RejectsRequestWithoutUserID(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newScopedNDJSONServer(t, repo, "", "default")
+
+	body := `{"timestamp":"2026-04-26T12:00:00Z","severity":"INFO","body":"x","service":"api"}` + "\n"
+	rec := postNDJSON(t, e, body, "application/x-ndjson")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Empty(t, repo.inserted)
 }
 

@@ -12,6 +12,8 @@ import (
 	coltracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 // Per-span attribute+events JSONB cap. Spans exceeding this footprint
@@ -39,6 +41,12 @@ func NewTracesHandler(repo ports.SpanRepository, logger *slog.Logger) *TracesHan
 
 // Handle serves POST /v1/traces.
 func (h *TracesHandler) Handle(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+	}
+	tenantID := repository.TenantIDFromContext(c.Request().Context())
+
 	if ct := c.Request().Header.Get(echo.HeaderContentType); ct != "application/x-protobuf" {
 		return c.JSON(http.StatusUnsupportedMediaType, map[string]string{
 			"error": "Content-Type must be application/x-protobuf",
@@ -64,6 +72,11 @@ func (h *TracesHandler) Handle(c echo.Context) error {
 	if err != nil {
 		h.logger.Error("traces: decode failed", slog.String("error", err.Error()))
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "decode spans"})
+	}
+
+	for _, s := range spans {
+		s.UserID = userID
+		s.TenantID = tenantID
 	}
 
 	if err := h.repo.InsertBatch(c.Request().Context(), spans); err != nil {

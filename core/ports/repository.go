@@ -209,17 +209,22 @@ type Transactor interface {
 // SpanRepository defines persistence for OTLP spans received at /v1/traces.
 //
 // InsertBatch is the hot write path; expects bulk inserts via the most
-// efficient driver primitive available. GetByTraceID powers per-trace
-// reads for the explorer UI. DeleteOlderThan is called by the retention
-// worker that reads trace_retention_days from system_settings.
+// efficient driver primitive available. Each Span is expected to carry
+// UserID and TenantID, stamped by the OTLP receiver from request context.
+//
+// GetByTraceID and ListRecentTraces are scoped reads: userID is explicit
+// and tenant_id is read from context (matching the rest of the CE repo
+// layer). DeleteOlderThan is called by the retention worker that reads
+// trace_retention_days from system_settings.
 type SpanRepository interface {
 	InsertBatch(ctx context.Context, spans []*domain.Span) error
-	GetByTraceID(ctx context.Context, traceID []byte) ([]*domain.Span, error)
+	GetByTraceID(ctx context.Context, userID uuid.UUID, traceID []byte) ([]*domain.Span, error)
 	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
 	// ListRecentTraces returns one TraceSummary per trace_id seen since
-	// `since`. An empty service filter matches all services. Results are
-	// ordered by trace start time, newest first, and capped at limit.
-	ListRecentTraces(ctx context.Context, since time.Time, service string, limit int) ([]*domain.TraceSummary, error)
+	// `since`, scoped to (userID, tenant_id). An empty service filter
+	// matches all services. Results are ordered by trace start time,
+	// newest first, and capped at limit.
+	ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, limit int) ([]*domain.TraceSummary, error)
 }
 
 // SystemSettingsRepository defines persistence for the small key/value
@@ -234,11 +239,15 @@ type SystemSettingsRepository interface {
 // at /v1/logs (and the legacy NDJSON endpoint).
 //
 // InsertBatch is the hot write path; expects bulk inserts via the most
-// efficient driver primitive available. ListRecent powers the read API
-// for the explorer UI. DeleteOlderThan is called by the retention
-// worker that reads log_retention_days from system_settings.
+// efficient driver primitive available. Each LogRecord is expected to
+// carry UserID and TenantID, stamped by the receiver from request
+// context.
+//
+// ListRecent is a scoped read: userID is explicit and tenant_id is read
+// from context. DeleteOlderThan is called by the retention worker that
+// reads log_retention_days from system_settings.
 type LogRecordRepository interface {
 	InsertBatch(ctx context.Context, records []*domain.LogRecord) error
-	ListRecent(ctx context.Context, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error)
+	ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error)
 	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
 }

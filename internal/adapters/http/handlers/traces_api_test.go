@@ -10,15 +10,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 func newTracesAPIServer(repo *fakeSpanRepo) *echo.Echo {
+	return newScopedTracesAPIServer(repo, defaultTestUserID.String(), "default")
+}
+
+func newScopedTracesAPIServer(repo *fakeSpanRepo, userID, tenantID string) *echo.Echo {
 	e := echo.New()
+	e.Use(withAuthCtx(userID, tenantID))
 	h := NewTracesAPIHandler(repo)
 	e.GET("/api/v1/traces", h.ListTraces)
 	e.GET("/api/v1/traces/:trace_id", h.GetTrace)
@@ -43,7 +50,7 @@ func TestTracesAPI_ListTraces_EmptyResult(t *testing.T) {
 func TestTracesAPI_ListTraces_HexEncodesTraceID(t *testing.T) {
 	traceID := bytes16(0xAB)
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, _ string, _ int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, _ int) ([]*domain.TraceSummary, error) {
 			return []*domain.TraceSummary{{
 				TraceID:    traceID,
 				StartTime:  time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC),
@@ -75,7 +82,7 @@ func TestTracesAPI_ListTraces_PassesServiceAndLimit(t *testing.T) {
 		limit   int
 	}
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
 			captured.service = service
 			captured.limit = limit
 			return nil, nil
@@ -93,7 +100,7 @@ func TestTracesAPI_ListTraces_PassesServiceAndLimit(t *testing.T) {
 func TestTracesAPI_ListTraces_ClampsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, _ string, limit int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, limit int) ([]*domain.TraceSummary, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -109,7 +116,7 @@ func TestTracesAPI_ListTraces_ClampsLimit(t *testing.T) {
 func TestTracesAPI_ListTraces_DefaultsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, _ string, limit int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, limit int) ([]*domain.TraceSummary, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -163,7 +170,7 @@ func TestTracesAPI_GetTrace_ReturnsHexEncodedSpans(t *testing.T) {
 	spanID := bytes8(0x01)
 	parent := bytes8(0x02)
 	repo := &fakeSpanRepo{
-		getByTraceID: func(_ context.Context, _ []byte) ([]*domain.Span, error) {
+		getByTraceID: func(_ context.Context, _ uuid.UUID, _ []byte) ([]*domain.Span, error) {
 			return []*domain.Span{
 				{
 					TraceID:      traceID,
@@ -196,4 +203,71 @@ func TestTracesAPI_GetTrace_ReturnsHexEncodedSpans(t *testing.T) {
 	assert.Equal(t, "GET /healthz", body.Data[0].Name)
 	assert.Equal(t, "api", body.Data[0].ServiceName)
 	assert.JSONEq(t, `{"http.method":"GET"}`, string(body.Data[0].Attributes))
+}
+
+func TestTracesAPI_ListTraces_PassesUserAndTenantToRepo(t *testing.T) {
+	userID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+	const tenantID = "acme-corp"
+
+	var captured struct {
+		userID   uuid.UUID
+		tenantID string
+	}
+	repo := &fakeSpanRepo{
+		listRecentFn: func(ctx context.Context, uid uuid.UUID, _ time.Time, _ string, _ int) ([]*domain.TraceSummary, error) {
+			captured.userID = uid
+			captured.tenantID = repository.TenantIDFromContext(ctx)
+			return nil, nil
+		},
+	}
+	e := newScopedTracesAPIServer(repo, userID.String(), tenantID)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/traces", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, userID, captured.userID)
+	assert.Equal(t, tenantID, captured.tenantID)
+}
+
+func TestTracesAPI_ListTraces_RejectsRequestWithoutUserID(t *testing.T) {
+	repo := &fakeSpanRepo{}
+	e := newScopedTracesAPIServer(repo, "", "default")
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/traces", nil))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestTracesAPI_GetTrace_PassesUserAndTenantToRepo(t *testing.T) {
+	userID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+	const tenantID = "acme-corp"
+	traceID := bytes16(0xAB)
+
+	var captured struct {
+		userID   uuid.UUID
+		tenantID string
+	}
+	repo := &fakeSpanRepo{
+		getByTraceID: func(ctx context.Context, uid uuid.UUID, _ []byte) ([]*domain.Span, error) {
+			captured.userID = uid
+			captured.tenantID = repository.TenantIDFromContext(ctx)
+			return []*domain.Span{{TraceID: traceID, SpanID: bytes8(0x01), StartTime: time.Now(), EndTime: time.Now()}}, nil
+		},
+	}
+	e := newScopedTracesAPIServer(repo, userID.String(), tenantID)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/traces/"+hex.EncodeToString(traceID), nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, userID, captured.userID)
+	assert.Equal(t, tenantID, captured.tenantID)
+}
+
+func TestTracesAPI_GetTrace_RejectsRequestWithoutUserID(t *testing.T) {
+	repo := &fakeSpanRepo{}
+	e := newScopedTracesAPIServer(repo, "", "default")
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/traces/"+strings.Repeat("ab", 16), nil))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }

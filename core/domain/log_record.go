@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // SeverityNumber mirrors the OTLP LogRecord.SeverityNumber enum. Stored
 // as the raw int (matching the OTLP wire value) so we don't have to map
@@ -24,7 +28,13 @@ const (
 // log message; structured fields live in Attributes (JSONB). Resource
 // captures process-level attributes (service.name, host, etc.). Flags
 // is the OTLP `flags` field — its lower 8 bits carry W3C trace flags.
+//
+// UserID and TenantID are stamped by the OTLP / NDJSON receiver from the
+// authenticated request context and used at query time to scope reads
+// per the project's standard isolation model.
 type LogRecord struct {
+	UserID                 uuid.UUID
+	TenantID               string
 	Timestamp              time.Time
 	ObservedTimestamp      time.Time
 	TraceID                []byte

@@ -12,6 +12,7 @@ import (
 
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 )
 
 const (
@@ -50,9 +51,15 @@ type logRecordResponse struct {
 	Flags                  uint32          `json:"flags,omitempty"`
 }
 
-// ListLogs returns recent log records.
+// ListLogs returns recent log records scoped to the authenticated
+// user's tenant.
 // GET /api/v1/logs?service=&severity=&since=&limit=
 func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return errJSON(c, http.StatusUnauthorized, "authentication required")
+	}
+
 	limit, err := parseLogLimit(c.QueryParam("limit"))
 	if err != nil {
 		return errJSON(c, http.StatusBadRequest, err.Error())
@@ -63,7 +70,7 @@ func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
 		return errJSON(c, http.StatusBadRequest, err.Error())
 	}
 
-	records, err := h.repo.ListRecent(c.Request().Context(), since,
+	records, err := h.repo.ListRecent(c.Request().Context(), userID, since,
 		c.QueryParam("service"), c.QueryParam("severity"), limit)
 	if err != nil {
 		return errJSON(c, http.StatusInternalServerError, "failed to list log records")

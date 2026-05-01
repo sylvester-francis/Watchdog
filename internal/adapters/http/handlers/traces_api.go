@@ -12,6 +12,7 @@ import (
 
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 )
 
 const (
@@ -69,9 +70,15 @@ type spanResponse struct {
 	DroppedLinksCount      uint32          `json:"dropped_links_count,omitempty"`
 }
 
-// ListTraces returns recent trace summaries.
+// ListTraces returns recent trace summaries scoped to the authenticated
+// user's tenant.
 // GET /api/v1/traces?service=&since=&limit=
 func (h *TracesAPIHandler) ListTraces(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return errJSON(c, http.StatusUnauthorized, "authentication required")
+	}
+
 	limit, err := parseLimit(c.QueryParam("limit"))
 	if err != nil {
 		return errJSON(c, http.StatusBadRequest, err.Error())
@@ -84,7 +91,7 @@ func (h *TracesAPIHandler) ListTraces(c echo.Context) error {
 
 	service := c.QueryParam("service")
 
-	summaries, err := h.repo.ListRecentTraces(c.Request().Context(), since, service, limit)
+	summaries, err := h.repo.ListRecentTraces(c.Request().Context(), userID, since, service, limit)
 	if err != nil {
 		return errJSON(c, http.StatusInternalServerError, "failed to list traces")
 	}
@@ -102,9 +109,15 @@ func (h *TracesAPIHandler) ListTraces(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]any{"data": out})
 }
 
-// GetTrace returns every span for a given trace_id, ordered by start_time.
+// GetTrace returns every span for a given trace_id (scoped to the
+// authenticated user's tenant), ordered by start_time.
 // GET /api/v1/traces/:trace_id
 func (h *TracesAPIHandler) GetTrace(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return errJSON(c, http.StatusUnauthorized, "authentication required")
+	}
+
 	raw := c.Param("trace_id")
 	traceID, err := hex.DecodeString(raw)
 	if err != nil {
@@ -114,7 +127,7 @@ func (h *TracesAPIHandler) GetTrace(c echo.Context) error {
 		return errJSON(c, http.StatusBadRequest, "trace_id must decode to 16 bytes")
 	}
 
-	spans, err := h.repo.GetByTraceID(c.Request().Context(), traceID)
+	spans, err := h.repo.GetByTraceID(c.Request().Context(), userID, traceID)
 	if err != nil {
 		return errJSON(c, http.StatusInternalServerError, "failed to fetch trace")
 	}

@@ -9,15 +9,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 func newLogsAPIServer(repo *fakeLogRepo) *echo.Echo {
+	return newScopedLogsAPIServer(repo, defaultTestUserID.String(), "default")
+}
+
+func newScopedLogsAPIServer(repo *fakeLogRepo, userID, tenantID string) *echo.Echo {
 	e := echo.New()
+	e.Use(withAuthCtx(userID, tenantID))
 	h := NewLogsAPIHandler(repo)
 	e.GET("/api/v1/logs", h.ListLogs)
 	return e
@@ -42,7 +49,7 @@ func TestLogsAPI_ListLogs_HexEncodesTraceAndSpanIDs(t *testing.T) {
 	traceID := bytes16(0xAB)
 	spanID := bytes8(0xCD)
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
 			return []*domain.LogRecord{{
 				Timestamp:      time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC),
 				TraceID:        traceID,
@@ -75,7 +82,7 @@ func TestLogsAPI_ListLogs_HexEncodesTraceAndSpanIDs(t *testing.T) {
 
 func TestLogsAPI_ListLogs_OmitsEmptyTraceID(t *testing.T) {
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
 			return []*domain.LogRecord{{
 				Timestamp:   time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC),
 				Body:        "no-trace",
@@ -98,7 +105,7 @@ func TestLogsAPI_ListLogs_PassesServiceSeverityAndLimit(t *testing.T) {
 		limit             int
 	}
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, service, severity string, limit int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, service, severity string, limit int) ([]*domain.LogRecord, error) {
 			captured.service = service
 			captured.severity = severity
 			captured.limit = limit
@@ -118,7 +125,7 @@ func TestLogsAPI_ListLogs_PassesServiceSeverityAndLimit(t *testing.T) {
 func TestLogsAPI_ListLogs_ClampsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, _, _ string, limit int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, limit int) ([]*domain.LogRecord, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -134,7 +141,7 @@ func TestLogsAPI_ListLogs_ClampsLimit(t *testing.T) {
 func TestLogsAPI_ListLogs_DefaultsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ time.Time, _, _ string, limit int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, limit int) ([]*domain.LogRecord, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -167,7 +174,7 @@ func TestLogsAPI_ListLogs_RejectsBadSince(t *testing.T) {
 
 func TestLogsAPI_ListLogs_RepoErrorReturns500(t *testing.T) {
 	repo := &fakeLogRepo{
-		listRecentFn: func(context.Context, time.Time, string, string, int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(context.Context, uuid.UUID, time.Time, string, string, int) ([]*domain.LogRecord, error) {
 			return nil, assertErr{}
 		},
 	}
@@ -181,3 +188,36 @@ func TestLogsAPI_ListLogs_RepoErrorReturns500(t *testing.T) {
 type assertErr struct{}
 
 func (assertErr) Error() string { return "boom" }
+
+func TestLogsAPI_ListLogs_PassesUserAndTenantToRepo(t *testing.T) {
+	userID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
+	const tenantID = "acme-corp"
+
+	var captured struct {
+		userID   uuid.UUID
+		tenantID string
+	}
+	repo := &fakeLogRepo{
+		listRecentFn: func(ctx context.Context, uid uuid.UUID, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
+			captured.userID = uid
+			captured.tenantID = repository.TenantIDFromContext(ctx)
+			return nil, nil
+		},
+	}
+	e := newScopedLogsAPIServer(repo, userID.String(), tenantID)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, userID, captured.userID)
+	assert.Equal(t, tenantID, captured.tenantID)
+}
+
+func TestLogsAPI_ListLogs_RejectsRequestWithoutUserID(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newScopedLogsAPIServer(repo, "", "default")
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs", nil))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}

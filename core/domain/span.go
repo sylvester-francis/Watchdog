@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // SpanKind mirrors the OTLP Span.SpanKind enum. Stored as the raw int
 // (matching the OTLP wire value) so we don't have to map back when
@@ -42,7 +46,13 @@ type TraceSummary struct {
 // ParentSpanID indicates a root span. Attributes/Resource/Events are
 // stored as JSONB; we keep them as opaque JSON byte slices on the way
 // in and out of the database to avoid re-marshalling at every layer.
+//
+// UserID and TenantID are stamped by the OTLP receiver from the
+// authenticated request context and used at query time to scope reads
+// per the project's standard isolation model.
 type Span struct {
+	UserID                 uuid.UUID
+	TenantID               string
 	TraceID                []byte
 	SpanID                 []byte
 	ParentSpanID           []byte

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +30,7 @@ type fakeLogRepo struct {
 	inserted []*domain.LogRecord
 	err      error
 
-	listRecentFn func(ctx context.Context, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error)
+	listRecentFn func(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error)
 }
 
 func (f *fakeLogRepo) InsertBatch(_ context.Context, records []*domain.LogRecord) error {
@@ -42,9 +43,9 @@ func (f *fakeLogRepo) InsertBatch(_ context.Context, records []*domain.LogRecord
 	return nil
 }
 
-func (f *fakeLogRepo) ListRecent(ctx context.Context, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error) {
+func (f *fakeLogRepo) ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error) {
 	if f.listRecentFn != nil {
-		return f.listRecentFn(ctx, since, service, severity, limit)
+		return f.listRecentFn(ctx, userID, since, service, severity, limit)
 	}
 	return nil, nil
 }
@@ -55,7 +56,13 @@ func (f *fakeLogRepo) DeleteOlderThan(context.Context, time.Time) error {
 
 func newLogsTestServer(t *testing.T, repo *fakeLogRepo) *echo.Echo {
 	t.Helper()
+	return newScopedLogsTestServer(t, repo, defaultTestUserID.String(), "default")
+}
+
+func newScopedLogsTestServer(t *testing.T, repo *fakeLogRepo, userID, tenantID string) *echo.Echo {
+	t.Helper()
 	e := echo.New()
+	e.Use(withAuthCtx(userID, tenantID))
 	h := NewLogsHandler(repo, slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil)))
 	e.POST("/v1/logs", h.Handle)
 	return e
@@ -183,3 +190,62 @@ func TestLogsHandler_ReturnsServerErrorOnRepoFailure(t *testing.T) {
 
 // ensure commonpb import used
 var _ = commonpb.AnyValue{}
+
+func TestLogsHandler_StampsUserIDFromContextOntoEveryRecord(t *testing.T) {
+	repo := &fakeLogRepo{}
+	userID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	e := newScopedLogsTestServer(t, repo, userID.String(), "default")
+
+	req := &collogspb.ExportLogsServiceRequest{
+		ResourceLogs: []*logspb.ResourceLogs{{
+			Resource: resourceWithService("svc"),
+			ScopeLogs: []*logspb.ScopeLogs{{
+				LogRecords: []*logspb.LogRecord{
+					{TimeUnixNano: 1, ObservedTimeUnixNano: 1, Body: anyValueString("a")},
+					{TimeUnixNano: 2, ObservedTimeUnixNano: 2, Body: anyValueString("b")},
+				},
+			}},
+		}},
+	}
+	body, err := proto.Marshal(req)
+	require.NoError(t, err)
+
+	rec := postLogsOTLP(t, e, body, "application/x-protobuf")
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Len(t, repo.inserted, 2)
+	for i, r := range repo.inserted {
+		assert.Equal(t, userID, r.UserID, "record %d should carry user_id from request context", i)
+	}
+}
+
+func TestLogsHandler_StampsTenantIDFromContextOntoEveryRecord(t *testing.T) {
+	repo := &fakeLogRepo{}
+	userID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	const tenantID = "acme-corp"
+	e := newScopedLogsTestServer(t, repo, userID.String(), tenantID)
+
+	req := requestWithLog(&logspb.LogRecord{
+		TimeUnixNano: 1, ObservedTimeUnixNano: 1, Body: anyValueString("hi"),
+	}, "svc")
+	body, err := proto.Marshal(req)
+	require.NoError(t, err)
+
+	rec := postLogsOTLP(t, e, body, "application/x-protobuf")
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Len(t, repo.inserted, 1)
+	assert.Equal(t, tenantID, repo.inserted[0].TenantID)
+}
+
+func TestLogsHandler_RejectsRequestWithoutUserID(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newScopedLogsTestServer(t, repo, "", "default")
+
+	req := requestWithLog(&logspb.LogRecord{
+		TimeUnixNano: 1, ObservedTimeUnixNano: 1, Body: anyValueString("x"),
+	}, "svc")
+	body, _ := proto.Marshal(req)
+
+	rec := postLogsOTLP(t, e, body, "application/x-protobuf")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Empty(t, repo.inserted, "no records should be persisted without an authenticated user")
+}
