@@ -15,6 +15,8 @@ import (
 
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 // Max bytes for a single NDJSON line. Aligned with the OTLP per-record
@@ -57,6 +59,12 @@ type ndjsonResponse struct {
 
 // Handle serves POST /v1/logs/raw.
 func (h *LogsNDJSONHandler) Handle(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+	}
+	tenantID := repository.TenantIDFromContext(c.Request().Context())
+
 	if ct := c.Request().Header.Get(echo.HeaderContentType); ct != "application/x-ndjson" {
 		return c.JSON(http.StatusUnsupportedMediaType, map[string]string{
 			"error": "Content-Type must be application/x-ndjson",
@@ -74,6 +82,11 @@ func (h *LogsNDJSONHandler) Handle(c echo.Context) error {
 	}
 
 	records, errs := parseNDJSON(body)
+
+	for _, r := range records {
+		r.UserID = userID
+		r.TenantID = tenantID
+	}
 
 	if err := h.repo.InsertBatch(c.Request().Context(), records); err != nil {
 		h.logger.Error("logs/raw: insert failed", slog.String("error", err.Error()))

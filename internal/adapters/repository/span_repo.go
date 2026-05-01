@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
@@ -20,7 +21,9 @@ func NewSpanRepository(db *DB) *SpanRepository {
 	return &SpanRepository{db: db}
 }
 
-// InsertBatch bulk-inserts spans via COPY. Caller is responsible for any
+// InsertBatch bulk-inserts spans via COPY. Each span must already carry
+// UserID and TenantID — the OTLP receiver stamps both from request
+// context before calling this method. Caller is responsible for any
 // per-span filtering (size cap, validation) before reaching this layer.
 func (r *SpanRepository) InsertBatch(ctx context.Context, spans []*domain.Span) error {
 	if len(spans) == 0 {
@@ -30,6 +33,7 @@ func (r *SpanRepository) InsertBatch(ctx context.Context, spans []*domain.Span) 
 	_, err := r.db.CopyFrom(ctx,
 		pgx.Identifier{"spans"},
 		[]string{
+			"user_id", "tenant_id",
 			"start_time", "trace_id", "span_id", "parent_span_id",
 			"trace_state", "flags", "name", "kind", "service_name",
 			"end_time", "duration_ns", "status_code", "status_message",
@@ -39,6 +43,7 @@ func (r *SpanRepository) InsertBatch(ctx context.Context, spans []*domain.Span) 
 		pgx.CopyFromSlice(len(spans), func(i int) ([]any, error) {
 			s := spans[i]
 			return []any{
+				s.UserID, s.TenantID,
 				s.StartTime, s.TraceID, s.SpanID, s.ParentSpanID,
 				s.TraceState, s.Flags, s.Name, int16(s.Kind), s.ServiceName,
 				s.EndTime, s.DurationNS, int16(s.StatusCode), s.StatusMessage,
@@ -54,9 +59,11 @@ func (r *SpanRepository) InsertBatch(ctx context.Context, spans []*domain.Span) 
 }
 
 // GetByTraceID returns every span sharing the given 16-byte trace ID,
-// ordered by start_time so callers can render a waterfall directly.
-func (r *SpanRepository) GetByTraceID(ctx context.Context, traceID []byte) ([]*domain.Span, error) {
+// scoped to (userID, tenantID-from-context), ordered by start_time so
+// callers can render a waterfall directly.
+func (r *SpanRepository) GetByTraceID(ctx context.Context, userID uuid.UUID, traceID []byte) ([]*domain.Span, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	rows, err := q.Query(ctx, `
 		SELECT start_time, trace_id, span_id, parent_span_id,
@@ -66,7 +73,9 @@ func (r *SpanRepository) GetByTraceID(ctx context.Context, traceID []byte) ([]*d
 		       dropped_attributes_count, dropped_events_count, dropped_links_count
 		FROM spans
 		WHERE trace_id = $1
-		ORDER BY start_time ASC, span_id ASC`, traceID)
+		  AND user_id = $2
+		  AND tenant_id = $3
+		ORDER BY start_time ASC, span_id ASC`, traceID, userID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("spanRepo.GetByTraceID: %w", err)
 	}
@@ -106,14 +115,13 @@ func (r *SpanRepository) DeleteOlderThan(ctx context.Context, cutoff time.Time) 
 	return nil
 }
 
-// ListRecentTraces aggregates spans into one TraceSummary per trace_id.
-// Service filter is empty-string-or-match; limit is applied after the
-// per-trace aggregation. The query ranges over spans whose start_time
-// lies in [since, now], using the (service_name, start_time DESC) index
-// when a service is provided and the (trace_id, start_time) index
-// otherwise.
-func (r *SpanRepository) ListRecentTraces(ctx context.Context, since time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
+// ListRecentTraces aggregates spans into one TraceSummary per trace_id,
+// scoped to (userID, tenantID-from-context). Service filter is
+// empty-string-or-match; limit is applied after the per-trace
+// aggregation.
+func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
 	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
 
 	rows, err := q.Query(ctx, `
 		SELECT trace_id,
@@ -123,10 +131,12 @@ func (r *SpanRepository) ListRecentTraces(ctx context.Context, since time.Time, 
 		       BOOL_OR(status_code = 2) AS has_error
 		FROM spans
 		WHERE start_time >= $1
-		  AND ($2 = '' OR service_name = $2)
+		  AND user_id = $2
+		  AND tenant_id = $3
+		  AND ($4 = '' OR service_name = $4)
 		GROUP BY trace_id
 		ORDER BY MIN(start_time) DESC
-		LIMIT $3`, since, service, limit)
+		LIMIT $5`, since, userID, tenantID, service, limit)
 	if err != nil {
 		return nil, fmt.Errorf("spanRepo.ListRecentTraces: %w", err)
 	}

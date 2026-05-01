@@ -249,13 +249,16 @@ func (r *Router) RegisterRoutes() {
 	v1Public.GET("/public/status/:username/:slug", r.statusPageAPIHandler.PublicView)
 
 	// OTLP HTTP receivers (/v1/*). Bearer-token auth with the
-	// telemetry_ingest scope; no session cookie path. The group is
-	// mounted whenever any OTLP handler is wired; per-route mounts gate
-	// individual signals so each one 404s when its repo isn't configured.
+	// telemetry_ingest scope; no session cookie path. tenantMW resolves
+	// the token's user to a tenant_id so the receivers can stamp every
+	// span / log record with the owning (user_id, tenant_id) pair.
+	// Per-route mounts gate individual signals so each one 404s when its
+	// repo isn't configured.
 	if r.tracesHandler != nil || r.logsHandler != nil {
 		otlp := e.Group("/v1")
 		otlp.Use(middleware.APITokenAuth(r.deps.APITokenRepo))
 		otlp.Use(middleware.RequireScope(domain.TokenScopeTelemetryIngest))
+		otlp.Use(tenantMW)
 		if r.tracesHandler != nil {
 			otlp.POST("/traces", r.tracesHandler.Handle)
 		}

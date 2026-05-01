@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,7 +22,7 @@ type stubLogs struct {
 }
 
 func (s *stubLogs) InsertBatch(context.Context, []*domain.LogRecord) error { return nil }
-func (s *stubLogs) ListRecent(context.Context, time.Time, string, string, int) ([]*domain.LogRecord, error) {
+func (s *stubLogs) ListRecent(context.Context, uuid.UUID, time.Time, string, string, int) ([]*domain.LogRecord, error) {
 	return nil, nil
 }
 func (s *stubLogs) DeleteOlderThan(_ context.Context, cutoff time.Time) error {

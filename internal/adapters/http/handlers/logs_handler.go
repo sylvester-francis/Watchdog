@@ -12,6 +12,8 @@ import (
 	collogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 
 	"github.com/sylvester-francis/watchdog/core/ports"
+	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
+	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 // Per-record body+attributes JSONB cap. Records exceeding this footprint
@@ -38,6 +40,12 @@ func NewLogsHandler(repo ports.LogRecordRepository, logger *slog.Logger) *LogsHa
 
 // Handle serves POST /v1/logs.
 func (h *LogsHandler) Handle(c echo.Context) error {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+	}
+	tenantID := repository.TenantIDFromContext(c.Request().Context())
+
 	if ct := c.Request().Header.Get(echo.HeaderContentType); ct != "application/x-protobuf" {
 		return c.JSON(http.StatusUnsupportedMediaType, map[string]string{
 			"error": "Content-Type must be application/x-protobuf",
@@ -63,6 +71,11 @@ func (h *LogsHandler) Handle(c echo.Context) error {
 	if err != nil {
 		h.logger.Error("logs: decode failed", slog.String("error", err.Error()))
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "decode log records"})
+	}
+
+	for _, r := range records {
+		r.UserID = userID
+		r.TenantID = tenantID
 	}
 
 	if err := h.repo.InsertBatch(c.Request().Context(), records); err != nil {
