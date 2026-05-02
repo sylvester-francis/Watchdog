@@ -422,8 +422,8 @@ export type SpanStatusCode = 0 | 1 | 2;
 export interface Span {
 	trace_id: string;
 	span_id: string;
-	parent_span_id: string;
-	trace_state: string;
+	parent_span_id?: string;
+	trace_state?: string;
 	flags: number;
 	name: string;
 	kind: SpanKind;
@@ -432,11 +432,26 @@ export interface Span {
 	end_time: string;
 	duration_ns: number;
 	status_code: SpanStatusCode;
-	status_message: string;
-	attributes: unknown;
-	resource: unknown;
-	events: unknown;
-	dropped_attributes_count: number;
-	dropped_events_count: number;
-	dropped_links_count: number;
+	status_message?: string;
+	attributes?: unknown;
+	resource?: unknown;
+	events?: unknown;
+	dropped_attributes_count?: number;
+	dropped_events_count?: number;
+	dropped_links_count?: number;
+}
+
+export interface LogRecord {
+	timestamp: string;
+	observed_timestamp: string;
+	trace_id?: string;
+	span_id?: string;
+	severity_number: number;
+	severity_text?: string;
+	body: string;
+	service_name: string;
+	resource?: unknown;
+	attributes?: unknown;
+	dropped_attributes_count?: number;
+	flags?: number;
 }

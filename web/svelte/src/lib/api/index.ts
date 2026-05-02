@@ -9,3 +9,4 @@ export * as system from './system';
 export * as maintenance from './maintenance';
 export * as discovery from './discovery';
 export * as traces from './traces';
+export * as logs from './logs';
