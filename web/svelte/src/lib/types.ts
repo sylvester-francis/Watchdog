@@ -64,7 +64,7 @@ export interface APIToken {
 	id: string;
 	name: string;
 	prefix: string;
-	scope: 'admin' | 'read_only';
+	scope: 'admin' | 'read_only' | 'telemetry_ingest';
 	last_used_at: string | null;
 	last_used_ip: string | null;
 	expires_at: string | null;

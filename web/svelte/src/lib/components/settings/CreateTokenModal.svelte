@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, AlertCircle, Copy, Check, Key, ShieldCheck, Eye } from 'lucide-svelte';
+	import { X, AlertCircle, Copy, Check, Key, ShieldCheck, Eye, Send } from 'lucide-svelte';
 	import { settings as settingsApi } from '$lib/api';
 
 	interface Props {
@@ -12,7 +12,7 @@
 
 	// Form state
 	let name = $state('');
-	let scope = $state<'admin' | 'read_only'>('read_only');
+	let scope = $state<'admin' | 'read_only' | 'telemetry_ingest'>('read_only');
 	let expires = $state<'' | '30d' | '90d'>('');
 	let loading = $state(false);
 	let error = $state('');
@@ -134,7 +134,7 @@
 						<!-- Scope: radio cards -->
 						<div>
 							<span class={labelClass}>Scope</span>
-							<div class="grid grid-cols-2 gap-3 mt-1">
+							<div class="grid grid-cols-3 gap-3 mt-1">
 								<button
 									type="button"
 									onclick={() => { scope = 'admin'; }}
@@ -156,6 +156,18 @@
 									<Eye class="w-4 h-4 {scope === 'read_only' ? 'text-accent' : 'text-muted-foreground'} mb-1" />
 									<span class="text-xs font-medium {scope === 'read_only' ? 'text-foreground' : 'text-muted-foreground'}">Read Only</span>
 									<span class="text-[9px] text-muted-foreground mt-0.5">View data only</span>
+								</button>
+								<button
+									type="button"
+									onclick={() => { scope = 'telemetry_ingest'; }}
+									title="Push-only access for OTLP exporters at /v1/traces and /v1/logs. Use for collectors and SDKs sending telemetry."
+									class="flex flex-col items-center justify-center px-3 py-2.5 rounded-md border cursor-pointer transition-colors {scope === 'telemetry_ingest'
+										? 'border-accent bg-accent/5'
+										: 'border-border bg-card-elevated hover:bg-muted/50'}"
+								>
+									<Send class="w-4 h-4 {scope === 'telemetry_ingest' ? 'text-accent' : 'text-muted-foreground'} mb-1" />
+									<span class="text-xs font-medium {scope === 'telemetry_ingest' ? 'text-foreground' : 'text-muted-foreground'}">Telemetry</span>
+									<span class="text-[9px] text-muted-foreground mt-0.5">OTLP push only</span>
 								</button>
 							</div>
 						</div>

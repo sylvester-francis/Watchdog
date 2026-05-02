@@ -7,7 +7,7 @@ interface TokenListResponse {
 
 interface TokenCreateRequest {
 	name: string;
-	scope?: 'admin' | 'read_only';
+	scope?: 'admin' | 'read_only' | 'telemetry_ingest';
 	expires?: '30d' | '90d' | '';
 }
 
