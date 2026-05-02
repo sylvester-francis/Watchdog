@@ -399,3 +399,44 @@ export interface PaginationMeta {
 	total: number;
 	pages: number;
 }
+
+// Trace explorer types — wire-shape mirrors the CE OTLP read APIs at
+// /api/v1/traces and /api/v1/traces/:trace_id. trace_id, span_id, and
+// parent_span_id arrive as hex-encoded strings (16 bytes / 8 bytes
+// respectively); JSONB columns arrive as already-parsed JSON values.
+export interface TraceSummary {
+	trace_id: string;
+	start_time: string;
+	duration_ns: number;
+	span_count: number;
+	has_error: boolean;
+}
+
+// SpanKind mirrors OTLP Span.SpanKind (0..5); kept as a numeric literal
+// type so we don't have to convert to/from strings at the boundary.
+export type SpanKind = 0 | 1 | 2 | 3 | 4 | 5;
+
+// SpanStatusCode: 0=unset, 1=ok, 2=error.
+export type SpanStatusCode = 0 | 1 | 2;
+
+export interface Span {
+	trace_id: string;
+	span_id: string;
+	parent_span_id: string;
+	trace_state: string;
+	flags: number;
+	name: string;
+	kind: SpanKind;
+	service_name: string;
+	start_time: string;
+	end_time: string;
+	duration_ns: number;
+	status_code: SpanStatusCode;
+	status_message: string;
+	attributes: unknown;
+	resource: unknown;
+	events: unknown;
+	dropped_attributes_count: number;
+	dropped_events_count: number;
+	dropped_links_count: number;
+}
