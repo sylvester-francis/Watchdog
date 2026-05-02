@@ -49,7 +49,7 @@ func TestLogsAPI_ListLogs_HexEncodesTraceAndSpanIDs(t *testing.T) {
 	traceID := bytes16(0xAB)
 	spanID := bytes8(0xCD)
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _, _ []byte, _ int) ([]*domain.LogRecord, error) {
 			return []*domain.LogRecord{{
 				Timestamp:      time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC),
 				TraceID:        traceID,
@@ -82,7 +82,7 @@ func TestLogsAPI_ListLogs_HexEncodesTraceAndSpanIDs(t *testing.T) {
 
 func TestLogsAPI_ListLogs_OmitsEmptyTraceID(t *testing.T) {
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _, _ []byte, _ int) ([]*domain.LogRecord, error) {
 			return []*domain.LogRecord{{
 				Timestamp:   time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC),
 				Body:        "no-trace",
@@ -105,7 +105,7 @@ func TestLogsAPI_ListLogs_PassesServiceSeverityAndLimit(t *testing.T) {
 		limit             int
 	}
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, service, severity string, limit int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, service, severity string, _, _ []byte, limit int) ([]*domain.LogRecord, error) {
 			captured.service = service
 			captured.severity = severity
 			captured.limit = limit
@@ -125,7 +125,7 @@ func TestLogsAPI_ListLogs_PassesServiceSeverityAndLimit(t *testing.T) {
 func TestLogsAPI_ListLogs_ClampsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, limit int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _, _ []byte, limit int) ([]*domain.LogRecord, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -141,7 +141,7 @@ func TestLogsAPI_ListLogs_ClampsLimit(t *testing.T) {
 func TestLogsAPI_ListLogs_DefaultsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeLogRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, limit int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, _, _ []byte, limit int) ([]*domain.LogRecord, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -174,7 +174,7 @@ func TestLogsAPI_ListLogs_RejectsBadSince(t *testing.T) {
 
 func TestLogsAPI_ListLogs_RepoErrorReturns500(t *testing.T) {
 	repo := &fakeLogRepo{
-		listRecentFn: func(context.Context, uuid.UUID, time.Time, string, string, int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(context.Context, uuid.UUID, time.Time, string, string, []byte, []byte, int) ([]*domain.LogRecord, error) {
 			return nil, assertErr{}
 		},
 	}
@@ -189,6 +189,84 @@ type assertErr struct{}
 
 func (assertErr) Error() string { return "boom" }
 
+func TestLogsAPI_ListLogs_PassesTraceIDFilterToRepo(t *testing.T) {
+	wantTraceID := bytes16(0xAB)
+
+	var capturedTraceID, capturedSpanID []byte
+	repo := &fakeLogRepo{
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, traceID, spanID []byte, _ int) ([]*domain.LogRecord, error) {
+			capturedTraceID = traceID
+			capturedSpanID = spanID
+			return nil, nil
+		},
+	}
+	e := newLogsAPIServer(repo)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs?trace_id="+hex.EncodeToString(wantTraceID), nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, wantTraceID, capturedTraceID)
+	assert.Empty(t, capturedSpanID)
+}
+
+func TestLogsAPI_ListLogs_PassesSpanIDFilterToRepo(t *testing.T) {
+	wantSpanID := bytes8(0xCD)
+
+	var capturedTraceID, capturedSpanID []byte
+	repo := &fakeLogRepo{
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _, _ string, traceID, spanID []byte, _ int) ([]*domain.LogRecord, error) {
+			capturedTraceID = traceID
+			capturedSpanID = spanID
+			return nil, nil
+		},
+	}
+	e := newLogsAPIServer(repo)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs?span_id="+hex.EncodeToString(wantSpanID), nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Empty(t, capturedTraceID)
+	assert.Equal(t, wantSpanID, capturedSpanID)
+}
+
+func TestLogsAPI_ListLogs_RejectsBadTraceIDHex(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newLogsAPIServer(repo)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs?trace_id=not-hex", nil))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestLogsAPI_ListLogs_RejectsWrongLengthTraceID(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newLogsAPIServer(repo)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs?trace_id=abcdefabcdefabcd", nil))
+	assert.Equal(t, http.StatusBadRequest, rec.Code,
+		"trace_id must decode to exactly 16 bytes")
+}
+
+func TestLogsAPI_ListLogs_RejectsBadSpanIDHex(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newLogsAPIServer(repo)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs?span_id=not-hex", nil))
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestLogsAPI_ListLogs_RejectsWrongLengthSpanID(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newLogsAPIServer(repo)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/logs?span_id="+hex.EncodeToString(bytes16(0xAB)), nil))
+	assert.Equal(t, http.StatusBadRequest, rec.Code,
+		"span_id must decode to exactly 8 bytes")
+}
+
 func TestLogsAPI_ListLogs_PassesUserAndTenantToRepo(t *testing.T) {
 	userID := uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
 	const tenantID = "acme-corp"
@@ -198,7 +276,7 @@ func TestLogsAPI_ListLogs_PassesUserAndTenantToRepo(t *testing.T) {
 		tenantID string
 	}
 	repo := &fakeLogRepo{
-		listRecentFn: func(ctx context.Context, uid uuid.UUID, _ time.Time, _, _ string, _ int) ([]*domain.LogRecord, error) {
+		listRecentFn: func(ctx context.Context, uid uuid.UUID, _ time.Time, _, _ string, _, _ []byte, _ int) ([]*domain.LogRecord, error) {
 			captured.userID = uid
 			captured.tenantID = repository.TenantIDFromContext(ctx)
 			return nil, nil

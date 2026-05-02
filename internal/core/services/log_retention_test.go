@@ -22,7 +22,7 @@ type stubLogs struct {
 }
 
 func (s *stubLogs) InsertBatch(context.Context, []*domain.LogRecord) error { return nil }
-func (s *stubLogs) ListRecent(context.Context, uuid.UUID, time.Time, string, string, int) ([]*domain.LogRecord, error) {
+func (s *stubLogs) ListRecent(context.Context, uuid.UUID, time.Time, string, string, []byte, []byte, int) ([]*domain.LogRecord, error) {
 	return nil, nil
 }
 func (s *stubLogs) DeleteOlderThan(_ context.Context, cutoff time.Time) error {

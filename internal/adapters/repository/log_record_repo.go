@@ -54,10 +54,10 @@ func (r *LogRecordRepository) InsertBatch(ctx context.Context, records []*domain
 }
 
 // ListRecent returns log records scoped to (userID, tenantID-from-context)
-// emitted since `since`, optionally filtered by service name and severity
-// text. Empty filters match all. Results are ordered newest-first and
-// capped at limit.
-func (r *LogRecordRepository) ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error) {
+// emitted since `since`, optionally filtered by service name, severity
+// text, and trace/span correlation. Empty filters match all. Results
+// are ordered newest-first and capped at limit.
+func (r *LogRecordRepository) ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, traceID, spanID []byte, limit int) ([]*domain.LogRecord, error) {
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
@@ -71,8 +71,10 @@ func (r *LogRecordRepository) ListRecent(ctx context.Context, userID uuid.UUID, 
 		  AND tenant_id = $3
 		  AND ($4 = '' OR service_name = $4)
 		  AND ($5 = '' OR severity_text = $5)
+		  AND (octet_length($6) = 0 OR trace_id = $6)
+		  AND (octet_length($7) = 0 OR span_id = $7)
 		ORDER BY timestamp DESC
-		LIMIT $6`, since, userID, tenantID, service, severity, limit)
+		LIMIT $8`, since, userID, tenantID, service, severity, traceID, spanID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("logRecordRepo.ListRecent: %w", err)
 	}

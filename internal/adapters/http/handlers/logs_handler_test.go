@@ -30,7 +30,7 @@ type fakeLogRepo struct {
 	inserted []*domain.LogRecord
 	err      error
 
-	listRecentFn func(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error)
+	listRecentFn func(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, traceID, spanID []byte, limit int) ([]*domain.LogRecord, error)
 }
 
 func (f *fakeLogRepo) InsertBatch(_ context.Context, records []*domain.LogRecord) error {
@@ -43,9 +43,9 @@ func (f *fakeLogRepo) InsertBatch(_ context.Context, records []*domain.LogRecord
 	return nil
 }
 
-func (f *fakeLogRepo) ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error) {
+func (f *fakeLogRepo) ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, traceID, spanID []byte, limit int) ([]*domain.LogRecord, error) {
 	if f.listRecentFn != nil {
-		return f.listRecentFn(ctx, userID, since, service, severity, limit)
+		return f.listRecentFn(ctx, userID, since, service, severity, traceID, spanID, limit)
 	}
 	return nil, nil
 }
