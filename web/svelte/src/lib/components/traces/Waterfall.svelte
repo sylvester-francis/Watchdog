@@ -22,6 +22,37 @@
 	let tree = $derived.by(() => buildTree(spans));
 	let flat = $derived.by(() => flatten(tree));
 
+	// Critical path = chain from the trace's root span to the leaf with
+	// the latest end_time, i.e. the spans whose duration determines the
+	// total trace duration. Walking parent_span_id from that leaf to the
+	// root yields the highlight set.
+	let criticalPathIds = $derived.by(() => {
+		if (spans.length === 0) return new Set<string>();
+		const byID = new Map<string, Span>();
+		for (const s of spans) byID.set(s.span_id, s);
+
+		let latest = spans[0];
+		let latestEnd = new Date(latest.end_time).getTime();
+		for (const s of spans) {
+			const e = new Date(s.end_time).getTime();
+			if (e > latestEnd) {
+				latestEnd = e;
+				latest = s;
+			}
+		}
+
+		const ids = new Set<string>();
+		let cur: Span | undefined = latest;
+		// Cap walks at spans.length so a corrupt cycle can't loop forever.
+		let safety = spans.length + 1;
+		while (cur && safety-- > 0) {
+			ids.add(cur.span_id);
+			if (!cur.parent_span_id) break;
+			cur = byID.get(cur.parent_span_id);
+		}
+		return ids;
+	});
+
 	function buildTree(input: Span[]): TreeNode[] {
 		const byID = new Map<string, TreeNode>();
 		for (const s of input) {
@@ -113,6 +144,38 @@
 		}
 		return ticks;
 	});
+
+	// Hover crosshair. Tracks mouse X within the bar-track region of the
+	// rows container (between the fixed name column on the left and the
+	// fixed duration column on the right). null when the cursor isn't
+	// over the track.
+	const NAME_COL_PX = 288; // tailwind w-72
+	const DURATION_COL_PX = 96; // tailwind w-24
+	const SNAP_PX = 5; // jitter floor for the line
+	let rowsEl = $state<HTMLDivElement | null>(null);
+	let crosshairXPct = $state<number | null>(null);
+	let crosshairTimeNs = $state<number>(0);
+
+	function handleRowsMouseMove(e: MouseEvent) {
+		if (!rowsEl) return;
+		const rect = rowsEl.getBoundingClientRect();
+		const trackLeft = rect.left + NAME_COL_PX;
+		const trackRight = rect.right - DURATION_COL_PX;
+		const trackWidth = trackRight - trackLeft;
+		if (trackWidth <= 0 || e.clientX < trackLeft || e.clientX > trackRight) {
+			crosshairXPct = null;
+			return;
+		}
+		const rawPx = e.clientX - trackLeft;
+		const snapped = Math.round(rawPx / SNAP_PX) * SNAP_PX;
+		const pct = (snapped / trackWidth) * 100;
+		crosshairXPct = Math.max(0, Math.min(100, pct));
+		crosshairTimeNs = (totalMs * (crosshairXPct / 100)) * 1_000_000;
+	}
+
+	function handleRowsMouseLeave() {
+		crosshairXPct = null;
+	}
 </script>
 
 <div class="bg-card border border-border rounded-lg overflow-hidden">
@@ -137,11 +200,18 @@
 	</div>
 
 	<!-- Span rows -->
-	<div class="divide-y divide-border/10 font-mono">
+	<!-- svelte-ignore a11y_no_static_element_interactions — keyboard-driven span selection happens via the row buttons; mousemove is purely cosmetic crosshair -->
+	<div
+		bind:this={rowsEl}
+		onmousemove={handleRowsMouseMove}
+		onmouseleave={handleRowsMouseLeave}
+		class="relative divide-y divide-border/10 font-mono"
+	>
 		{#each flat as node (node.span.span_id)}
 			{@const s = node.span}
 			{@const isError = s.status_code === 2}
 			{@const isSelected = selectedSpanId === s.span_id}
+			{@const isCritical = criticalPathIds.has(s.span_id)}
 			<button
 				type="button"
 				onclick={() => onSelect(s.span_id)}
@@ -171,10 +241,12 @@
 							style="left: {tick.pct}%"
 						></div>
 					{/each}
-					<!-- bar -->
+					<!-- bar; critical-path spans get a 2px accent left border -->
 					<div
 						class="absolute top-1/2 -translate-y-1/2 h-3 rounded-sm {serviceBarClass(s.service_name)} {isError
 							? 'ring-1 ring-inset ring-red-400/80'
+							: ''} {isCritical
+							? 'border-l-2 border-accent'
 							: ''}"
 						style="left: {barLeftPct(s)}%; width: {barWidthPct(s)}%"
 					></div>
@@ -197,5 +269,24 @@
 				</div>
 			</button>
 		{/each}
+
+		{#if crosshairXPct !== null}
+			<!-- Vertical line spanning all rows in the bar-track region.
+				 Positioned left:NAME_COL_PX + (xpct/100 * (containerW - NAME_COL_PX - DURATION_COL_PX)).
+				 We can't compute container width in CSS without a CSS variable; use calc()
+				 with negative offsets that resolve correctly inside the relative parent. -->
+			<div
+				class="pointer-events-none absolute top-0 bottom-0 w-px bg-accent/60"
+				style="left: calc({NAME_COL_PX}px + ({crosshairXPct}% * (100% - {NAME_COL_PX + DURATION_COL_PX}px) / 100%))"
+				aria-hidden="true"
+			></div>
+			<div
+				class="pointer-events-none absolute top-1 px-1.5 py-0.5 -translate-x-1/2 rounded bg-card border border-border text-[10px] font-mono text-foreground tabular-nums"
+				style="left: calc({NAME_COL_PX}px + ({crosshairXPct}% * (100% - {NAME_COL_PX + DURATION_COL_PX}px) / 100%))"
+				aria-hidden="true"
+			>
+				+{formatDuration(crosshairTimeNs)}
+			</div>
+		{/if}
 	</div>
 </div>
