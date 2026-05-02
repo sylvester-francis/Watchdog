@@ -244,10 +244,15 @@ type SystemSettingsRepository interface {
 // context.
 //
 // ListRecent is a scoped read: userID is explicit and tenant_id is read
-// from context. DeleteOlderThan is called by the retention worker that
-// reads log_retention_days from system_settings.
+// from context. traceID (16 bytes) and spanID (8 bytes) are optional —
+// pass nil or an empty slice to skip the filter; when set, only records
+// carrying that trace/span are returned. This powers the trace explorer's
+// "logs in this trace" right-rail.
+//
+// DeleteOlderThan is called by the retention worker that reads
+// log_retention_days from system_settings.
 type LogRecordRepository interface {
 	InsertBatch(ctx context.Context, records []*domain.LogRecord) error
-	ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, limit int) ([]*domain.LogRecord, error)
+	ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, traceID, spanID []byte, limit int) ([]*domain.LogRecord, error)
 	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
 }

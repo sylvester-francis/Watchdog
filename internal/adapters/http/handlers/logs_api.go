@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	defaultLogListLimit  = 100
-	maxLogListLimit      = 500
-	defaultLogLookback   = 1 * time.Hour
+	defaultLogListLimit = 100
+	maxLogListLimit     = 500
+	defaultLogLookback  = 1 * time.Hour
+	spanIDByteLength    = 8
 )
 
 // LogsAPIHandler serves the read-side log API the explorer UI consumes.
@@ -52,8 +53,9 @@ type logRecordResponse struct {
 }
 
 // ListLogs returns recent log records scoped to the authenticated
-// user's tenant.
-// GET /api/v1/logs?service=&severity=&since=&limit=
+// user's tenant. trace_id and span_id correlate to OTLP IDs and are
+// optional; when present they must decode to exactly 16 / 8 bytes.
+// GET /api/v1/logs?service=&severity=&since=&trace_id=&span_id=&limit=
 func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
@@ -70,8 +72,18 @@ func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
 		return errJSON(c, http.StatusBadRequest, err.Error())
 	}
 
+	traceID, err := parseHexID(c.QueryParam("trace_id"), traceIDByteLength, "trace_id")
+	if err != nil {
+		return errJSON(c, http.StatusBadRequest, err.Error())
+	}
+
+	spanID, err := parseHexID(c.QueryParam("span_id"), spanIDByteLength, "span_id")
+	if err != nil {
+		return errJSON(c, http.StatusBadRequest, err.Error())
+	}
+
 	records, err := h.repo.ListRecent(c.Request().Context(), userID, since,
-		c.QueryParam("service"), c.QueryParam("severity"), limit)
+		c.QueryParam("service"), c.QueryParam("severity"), traceID, spanID, limit)
 	if err != nil {
 		return errJSON(c, http.StatusInternalServerError, "failed to list log records")
 	}
@@ -106,6 +118,22 @@ func parseLogSince(raw string) (time.Time, error) {
 		return time.Time{}, errors.New("since must be RFC3339 timestamp")
 	}
 	return t, nil
+}
+
+// parseHexID decodes a hex-encoded ID and verifies its length. Returns
+// nil with no error when the input is empty (filter not requested).
+func parseHexID(raw string, wantBytes int, name string) ([]byte, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	decoded, err := hex.DecodeString(raw)
+	if err != nil {
+		return nil, errors.New(name + " must be hex-encoded")
+	}
+	if len(decoded) != wantBytes {
+		return nil, errors.New(name + " must decode to " + strconv.Itoa(wantBytes) + " bytes")
+	}
+	return decoded, nil
 }
 
 func toLogRecordResponse(r *domain.LogRecord) logRecordResponse {
