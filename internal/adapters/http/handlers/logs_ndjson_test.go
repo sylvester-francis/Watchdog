@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -83,6 +84,29 @@ func TestLogsNDJSON_DecodesHexTraceIDs(t *testing.T) {
 	wantSpan, _ := hex.DecodeString(spanHex)
 	assert.Equal(t, want, repo.inserted[0].TraceID)
 	assert.Equal(t, wantSpan, repo.inserted[0].SpanID)
+}
+
+func TestLogsNDJSON_AcceptsGzippedBody(t *testing.T) {
+	repo := &fakeLogRepo{}
+	e := newNDJSONServer(t, repo)
+
+	body := `{"timestamp":"2026-04-26T12:00:00Z","severity":"INFO","body":"hello","service":"api"}` + "\n"
+
+	var compressed bytes.Buffer
+	gz := gzip.NewWriter(&compressed)
+	_, err := gz.Write([]byte(body))
+	require.NoError(t, err)
+	require.NoError(t, gz.Close())
+
+	httpReq := httptest.NewRequest(http.MethodPost, "/v1/logs/raw", &compressed)
+	httpReq.Header.Set("Content-Type", "application/x-ndjson")
+	httpReq.Header.Set("Content-Encoding", "gzip")
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httpReq)
+
+	require.Equal(t, http.StatusOK, rec.Code, "gzip-encoded NDJSON should be accepted")
+	require.Len(t, repo.inserted, 1)
+	assert.Equal(t, "hello", repo.inserted[0].Body)
 }
 
 func TestLogsNDJSON_RejectsWrongContentType(t *testing.T) {

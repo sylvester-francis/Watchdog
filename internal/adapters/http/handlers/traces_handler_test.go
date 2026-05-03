@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"log/slog"
@@ -105,6 +106,37 @@ func TestTracesHandler_AcceptsValidOTLP(t *testing.T) {
 	var resp coltracepb.ExportTraceServiceResponse
 	require.NoError(t, proto.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.Nil(t, resp.GetPartialSuccess(), "no partial success when nothing dropped")
+}
+
+func TestTracesHandler_AcceptsGzippedOTLP(t *testing.T) {
+	repo := &fakeSpanRepo{}
+	e := newTracesTestServer(t, repo)
+
+	req := requestWithSpan(&tracepb.Span{
+		TraceId:           bytes16(0x01),
+		SpanId:            bytes8(0x02),
+		Name:              "GET /healthz",
+		StartTimeUnixNano: 1,
+		EndTimeUnixNano:   2,
+	}, "svc")
+	body, err := proto.Marshal(req)
+	require.NoError(t, err)
+
+	var compressed bytes.Buffer
+	gz := gzip.NewWriter(&compressed)
+	_, err = gz.Write(body)
+	require.NoError(t, err)
+	require.NoError(t, gz.Close())
+
+	httpReq := httptest.NewRequest(http.MethodPost, "/v1/traces", &compressed)
+	httpReq.Header.Set("Content-Type", "application/x-protobuf")
+	httpReq.Header.Set("Content-Encoding", "gzip")
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httpReq)
+
+	require.Equal(t, http.StatusOK, rec.Code, "gzip-encoded OTLP body should be accepted")
+	require.Len(t, repo.inserted, 1)
+	assert.Equal(t, "svc", repo.inserted[0].ServiceName)
 }
 
 func TestTracesHandler_RejectsWrongContentType(t *testing.T) {
