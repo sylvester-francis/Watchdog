@@ -71,8 +71,8 @@ func (r *LogRecordRepository) ListRecent(ctx context.Context, userID uuid.UUID, 
 		  AND tenant_id = $3
 		  AND ($4 = '' OR service_name = $4)
 		  AND ($5 = '' OR severity_text = $5)
-		  AND (octet_length($6) = 0 OR trace_id = $6)
-		  AND (octet_length($7) = 0 OR span_id = $7)
+		  AND ($6::bytea IS NULL OR trace_id = $6)
+		  AND ($7::bytea IS NULL OR span_id = $7)
 		ORDER BY timestamp DESC
 		LIMIT $8`, since, userID, tenantID, service, severity, traceID, spanID, limit)
 	if err != nil {
