@@ -911,6 +911,8 @@
 											<code class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{token.prefix}...</code>
 											{#if token.scope === 'admin'}
 												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-yellow-500/15 text-yellow-400">admin</span>
+											{:else if token.scope === 'telemetry_ingest'}
+												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-emerald-500/15 text-emerald-400">telemetry</span>
 											{:else}
 												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-blue-500/15 text-blue-400">read-only</span>
 											{/if}
