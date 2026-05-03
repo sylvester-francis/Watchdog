@@ -176,34 +176,113 @@ curl -sSL https://raw.githubusercontent.com/sylvester-francis/watchdog-agent/mai
 
 See the [watchdog-agent README](https://github.com/sylvester-francis/watchdog-agent) for detailed installation options.
 
-## CLI
+## CLI (deprecated)
 
-WatchDog includes a CLI tool for managing your monitors, agents, and incidents from the terminal.
+> **The standalone CLI is deprecated as of v1.0 and will be removed in v1.2.0.** It hadn't kept pace with the REST API surface (no traces, no logs, no token management, no alert channels). Use the REST API directly — every CLI operation has a one-line `curl` equivalent. See [Scripting with the API](#scripting-with-the-api).
+
+The `cmd/cli/` binary still builds and works in the v1.0.x series, but every invocation prints a deprecation banner to stderr.
+
+If a community-maintained CLI emerges in a separate repo, we'll link it here.
+
+## Scripting with the API
+
+WatchDog exposes a REST API at `/api/v1` for programmatic access. Mint a token in **Settings → API Tokens** (pick the scope appropriate to what your script needs):
+
+| Scope | What it can do |
+|-------|----------------|
+| `admin` | Full read/write across the API |
+| `read_only` | All `GET` endpoints |
+| `telemetry_ingest` | Push-only access to `/v1/traces`, `/v1/logs`, `/v1/logs/raw` — for OTel collectors and SDKs |
+
+Then export it once and use plain `curl` + `jq`:
 
 ```bash
-# Build the CLI
-make build-cli
+export WATCHDOG_HUB="https://usewatchdog.dev"
+export WATCHDOG_TOKEN="wd_..."
+auth() { curl -sH "Authorization: Bearer $WATCHDOG_TOKEN" "$@"; }
+```
 
-# Login to your hub
-./bin/watchdog login
+### Quick health snapshot (replaces `watchdog status`)
 
-# List monitors
-./bin/watchdog monitors list
+```bash
+auth "$WATCHDOG_HUB/api/v1/dashboard/stats" | jq
+```
 
-# Create a monitor
-./bin/watchdog monitors create --name "API Health" --type http --target https://api.example.com/health --agent-id <uuid>
+### Manage monitors
 
-# List agents
-./bin/watchdog agents list
+```bash
+# List
+auth "$WATCHDOG_HUB/api/v1/monitors" | jq
 
-# View incidents
-./bin/watchdog incidents list
+# Create
+auth -X POST "$WATCHDOG_HUB/api/v1/monitors" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"API health","type":"http","target":"https://api.example.com/healthz","agent_id":"<uuid>","interval_seconds":30,"timeout_seconds":10}' | jq
 
-# Get a quick status overview
-./bin/watchdog status
+# Update
+auth -X PUT "$WATCHDOG_HUB/api/v1/monitors/<id>" \
+  -H 'Content-Type: application/json' \
+  -d '{"interval_seconds":60}' | jq
 
-# JSON output for scripting
-./bin/watchdog monitors list --json
+# SLA report
+auth "$WATCHDOG_HUB/api/v1/monitors/<id>/sla" | jq
+```
+
+### Query traces & logs
+
+```bash
+# List recent traces (last hour, errors only)
+SINCE=$(date -u -v-1H +%Y-%m-%dT%H:%M:%SZ)
+auth "$WATCHDOG_HUB/api/v1/traces?since=$SINCE&limit=50" \
+  | jq '.data[] | select(.has_error)'
+
+# Get a trace's full span tree
+auth "$WATCHDOG_HUB/api/v1/traces/<trace_id>" | jq
+
+# Logs correlated to a trace
+auth "$WATCHDOG_HUB/api/v1/logs?trace_id=<hex>&limit=100" | jq '.data[].body'
+
+# Page through older traces with the keyset cursor
+OLDEST=$(auth "$WATCHDOG_HUB/api/v1/traces?since=$SINCE&limit=200" | jq -r '.data[-1].start_time')
+auth "$WATCHDOG_HUB/api/v1/traces?since=$SINCE&before=$OLDEST&limit=200" | jq
+```
+
+### Incidents
+
+```bash
+# List active incidents
+auth "$WATCHDOG_HUB/api/v1/incidents?status=open" | jq
+
+# Investigate (full RCA + timeline + sibling monitors)
+auth "$WATCHDOG_HUB/api/v1/incidents/<id>/investigation" | jq
+
+# Acknowledge / resolve
+auth -X POST "$WATCHDOG_HUB/api/v1/incidents/<id>/acknowledge"
+auth -X POST "$WATCHDOG_HUB/api/v1/incidents/<id>/resolve"
+```
+
+### Alert channels & maintenance windows
+
+```bash
+# Test a channel (sends a test notification)
+auth -X POST "$WATCHDOG_HUB/api/v1/alert-channels/<id>/test"
+
+# Schedule a one-time maintenance window
+auth -X POST "$WATCHDOG_HUB/api/v1/maintenance-windows" \
+  -H 'Content-Type: application/json' \
+  -d '{"agent_id":"<uuid>","name":"DB upgrade","starts_at":"2026-06-01T02:00:00Z","ends_at":"2026-06-01T04:00:00Z","recurrence":"once"}'
+```
+
+### OTel collectors
+
+For pushing traces and logs from any OpenTelemetry collector or SDK, point the OTLP exporter at `$WATCHDOG_HUB` with a `telemetry_ingest`-scoped token. The receivers accept gzip-encoded protobuf at `/v1/traces` and `/v1/logs`:
+
+```yaml
+exporters:
+  otlphttp:
+    endpoint: https://usewatchdog.dev
+    headers:
+      Authorization: "Bearer wd_..."
 ```
 
 ## API
