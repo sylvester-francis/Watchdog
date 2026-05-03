@@ -60,7 +60,7 @@
 
 			<section>
 				<h2 class="text-base font-semibold text-foreground mb-2">5. Data Retention</h2>
-				<p>Heartbeat data is retained for the duration of the beta. You can request deletion of your account and all associated data at any time by contacting us.</p>
+				<p>Heartbeat data is retained according to the configured retention policy. You can request deletion of your account and all associated data at any time by contacting us.</p>
 			</section>
 
 			<section>

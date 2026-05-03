@@ -122,7 +122,6 @@
 					</div>
 					<span class="text-sm font-semibold text-foreground">WatchDog</span>
 				</a>
-				<span class="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">Beta</span>
 			</div>
 			<div class="flex items-center space-x-2">
 				<a href="#subscribe" class="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-md transition-colors">
@@ -282,7 +281,6 @@
 							<ShieldCheck class="w-3 h-3" />
 							<span>Powered by WatchDog</span>
 						</a>
-						<span class="px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider rounded bg-amber-500/15 text-amber-400/70 border border-amber-500/10">Beta</span>
 					</div>
 					<div class="flex items-center space-x-4">
 						<a href="https://github.com/sylvester-francis/watchdog" target="_blank" rel="noopener noreferrer" class="hover:text-muted-foreground transition-colors">GitHub</a>

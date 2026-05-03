@@ -10,7 +10,7 @@
 
 Monitor services behind firewalls, across data centers, and inside private networks — all from a single dashboard.
 
-> **Live at [usewatchdog.dev](https://usewatchdog.dev)** — Currently in open beta. All features free.
+> **Live at [usewatchdog.dev](https://usewatchdog.dev)** — Open source. Self-host or sign up for the hosted version.
 
 [![GitHub stars](https://img.shields.io/github/stars/sylvester-francis/Watchdog?style=flat)](https://github.com/sylvester-francis/Watchdog/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/sylvester-francis/Watchdog?include_prereleases)](https://github.com/sylvester-francis/Watchdog/releases)

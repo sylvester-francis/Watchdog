@@ -15,8 +15,8 @@
 		<div class="space-y-6 text-sm text-muted-foreground leading-relaxed">
 
 			<section>
-				<h2 class="text-base font-semibold text-foreground mb-2">1. Beta Disclaimer</h2>
-				<p>WatchDog is currently in <strong class="text-foreground">open beta</strong>. The software is provided "as-is" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. Features may change, data may be reset, and the service may experience downtime without prior notice.</p>
+				<h2 class="text-base font-semibold text-foreground mb-2">1. Disclaimer</h2>
+				<p>The software is provided "as-is" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. Features may change between releases and the service may experience downtime without prior notice.</p>
 			</section>
 
 			<section>
@@ -44,7 +44,7 @@
 
 			<section>
 				<h2 class="text-base font-semibold text-foreground mb-2">5. Service Availability</h2>
-				<p>WatchDog provides no uptime guarantees. The service may be modified, suspended, or discontinued at any time with reasonable notice. During the beta period, features may change and data may be wiped.</p>
+				<p>WatchDog provides no uptime guarantees. The service may be modified, suspended, or discontinued at any time with reasonable notice.</p>
 			</section>
 
 			<section>
