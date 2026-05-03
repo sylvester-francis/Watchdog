@@ -222,9 +222,11 @@ type SpanRepository interface {
 	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
 	// ListRecentTraces returns one TraceSummary per trace_id seen since
 	// `since`, scoped to (userID, tenant_id). An empty service filter
-	// matches all services. Results are ordered by trace start time,
-	// newest first, and capped at limit.
-	ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, limit int) ([]*domain.TraceSummary, error)
+	// matches all services. `before` is a keyset cursor — only traces
+	// whose root span's start_time is strictly older than `before` are
+	// returned. Pass time.Time{} for the first page. Results are
+	// ordered by trace start time, newest first, and capped at limit.
+	ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, before time.Time, limit int) ([]*domain.TraceSummary, error)
 }
 
 // SystemSettingsRepository defines persistence for the small key/value
@@ -253,6 +255,9 @@ type SystemSettingsRepository interface {
 // log_retention_days from system_settings.
 type LogRecordRepository interface {
 	InsertBatch(ctx context.Context, records []*domain.LogRecord) error
-	ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, traceID, spanID []byte, limit int) ([]*domain.LogRecord, error)
+	// ListRecent returns log records since `since`. `before` is a
+	// keyset cursor — only records strictly older than `before` are
+	// returned. Pass time.Time{} for the first page.
+	ListRecent(ctx context.Context, userID uuid.UUID, since time.Time, service, severity string, traceID, spanID []byte, before time.Time, limit int) ([]*domain.LogRecord, error)
 	DeleteOlderThan(ctx context.Context, cutoff time.Time) error
 }

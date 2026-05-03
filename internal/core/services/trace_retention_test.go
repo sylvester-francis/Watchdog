@@ -41,7 +41,7 @@ func (s *stubSpans) InsertBatch(context.Context, []*domain.Span) error { return 
 func (s *stubSpans) GetByTraceID(context.Context, uuid.UUID, []byte) ([]*domain.Span, error) {
 	return nil, nil
 }
-func (s *stubSpans) ListRecentTraces(context.Context, uuid.UUID, time.Time, string, int) ([]*domain.TraceSummary, error) {
+func (s *stubSpans) ListRecentTraces(context.Context, uuid.UUID, time.Time, string, time.Time, int) ([]*domain.TraceSummary, error) {
 	return nil, nil
 }
 func (s *stubSpans) DeleteOlderThan(_ context.Context, cutoff time.Time) error {

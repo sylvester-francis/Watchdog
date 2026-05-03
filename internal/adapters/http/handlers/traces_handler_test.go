@@ -34,7 +34,7 @@ type fakeSpanRepo struct {
 	err      error
 
 	getByTraceID    func(ctx context.Context, userID uuid.UUID, traceID []byte) ([]*domain.Span, error)
-	listRecentFn    func(ctx context.Context, userID uuid.UUID, since time.Time, service string, limit int) ([]*domain.TraceSummary, error)
+	listRecentFn    func(ctx context.Context, userID uuid.UUID, since time.Time, service string, before time.Time, limit int) ([]*domain.TraceSummary, error)
 }
 
 func (f *fakeSpanRepo) InsertBatch(_ context.Context, spans []*domain.Span) error {
@@ -56,9 +56,9 @@ func (f *fakeSpanRepo) GetByTraceID(ctx context.Context, userID uuid.UUID, trace
 func (f *fakeSpanRepo) DeleteOlderThan(context.Context, time.Time) error {
 	return nil
 }
-func (f *fakeSpanRepo) ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
+func (f *fakeSpanRepo) ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, before time.Time, limit int) ([]*domain.TraceSummary, error) {
 	if f.listRecentFn != nil {
-		return f.listRecentFn(ctx, userID, since, service, limit)
+		return f.listRecentFn(ctx, userID, since, service, before, limit)
 	}
 	return nil, nil
 }

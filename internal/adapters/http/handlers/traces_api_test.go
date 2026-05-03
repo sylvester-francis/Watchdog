@@ -52,7 +52,7 @@ func TestTracesAPI_ListTraces_EmptyResult(t *testing.T) {
 func TestTracesAPI_ListTraces_HexEncodesTraceID(t *testing.T) {
 	traceID := bytes16(0xAB)
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, _ int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, _ time.Time, _ int) ([]*domain.TraceSummary, error) {
 			return []*domain.TraceSummary{{
 				TraceID:    traceID,
 				StartTime:  time.Date(2026, 4, 26, 12, 0, 0, 0, time.UTC),
@@ -84,7 +84,7 @@ func TestTracesAPI_ListTraces_PassesServiceAndLimit(t *testing.T) {
 		limit   int
 	}
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, service string, _ time.Time, limit int) ([]*domain.TraceSummary, error) {
 			captured.service = service
 			captured.limit = limit
 			return nil, nil
@@ -102,7 +102,7 @@ func TestTracesAPI_ListTraces_PassesServiceAndLimit(t *testing.T) {
 func TestTracesAPI_ListTraces_ClampsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, limit int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, _ time.Time, limit int) ([]*domain.TraceSummary, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -118,7 +118,7 @@ func TestTracesAPI_ListTraces_ClampsLimit(t *testing.T) {
 func TestTracesAPI_ListTraces_DefaultsLimit(t *testing.T) {
 	var capturedLimit int
 	repo := &fakeSpanRepo{
-		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, limit int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(_ context.Context, _ uuid.UUID, _ time.Time, _ string, _ time.Time, limit int) ([]*domain.TraceSummary, error) {
 			capturedLimit = limit
 			return nil, nil
 		},
@@ -216,7 +216,7 @@ func TestTracesAPI_ListTraces_PassesUserAndTenantToRepo(t *testing.T) {
 		tenantID string
 	}
 	repo := &fakeSpanRepo{
-		listRecentFn: func(ctx context.Context, uid uuid.UUID, _ time.Time, _ string, _ int) ([]*domain.TraceSummary, error) {
+		listRecentFn: func(ctx context.Context, uid uuid.UUID, _ time.Time, _ string, _ time.Time, _ int) ([]*domain.TraceSummary, error) {
 			captured.userID = uid
 			captured.tenantID = repository.TenantIDFromContext(ctx)
 			return nil, nil
