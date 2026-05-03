@@ -5,9 +5,23 @@ import (
 	"os"
 )
 
-const version = "0.1.0"
+const version = "1.0.0"
+
+// printDeprecationBanner is shown on every CLI invocation. Goes to
+// stderr so JSON-mode output stays parseable. The CLI is scheduled
+// for removal in v1.2.0; everything it does is doable via the REST
+// API at /api/v1 with a bearer token, see the README's "Scripting
+// with the API" section.
+func printDeprecationBanner() {
+	fmt.Fprintln(os.Stderr, "DEPRECATED: watchdog-cli is deprecated and will be removed in v1.2.0.")
+	fmt.Fprintln(os.Stderr, "             Use the REST API directly. See:")
+	fmt.Fprintln(os.Stderr, "             https://github.com/sylvester-francis/Watchdog#scripting-with-the-api")
+	fmt.Fprintln(os.Stderr, "")
+}
 
 func main() {
+	printDeprecationBanner()
+
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)
