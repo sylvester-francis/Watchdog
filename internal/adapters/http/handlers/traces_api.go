@@ -40,11 +40,13 @@ func NewTracesAPIHandler(repo ports.SpanRepository, logger *slog.Logger) *Traces
 // trace-list view. trace_id is hex-encoded so JSON consumers don't
 // have to decode base64.
 type traceSummaryResponse struct {
-	TraceID    string    `json:"trace_id"`
-	StartTime  time.Time `json:"start_time"`
-	DurationNS int64     `json:"duration_ns"`
-	SpanCount  int       `json:"span_count"`
-	HasError   bool      `json:"has_error"`
+	TraceID     string    `json:"trace_id"`
+	StartTime   time.Time `json:"start_time"`
+	DurationNS  int64     `json:"duration_ns"`
+	SpanCount   int       `json:"span_count"`
+	HasError    bool      `json:"has_error"`
+	ServiceName string    `json:"service_name,omitempty"`
+	RootName    string    `json:"root_name,omitempty"`
 }
 
 // spanResponse is the wire-shape for a single span. JSONB columns are
@@ -102,11 +104,13 @@ func (h *TracesAPIHandler) ListTraces(c echo.Context) error {
 	out := make([]traceSummaryResponse, 0, len(summaries))
 	for _, s := range summaries {
 		out = append(out, traceSummaryResponse{
-			TraceID:    hex.EncodeToString(s.TraceID),
-			StartTime:  s.StartTime,
-			DurationNS: s.DurationNS,
-			SpanCount:  s.SpanCount,
-			HasError:   s.HasError,
+			TraceID:     hex.EncodeToString(s.TraceID),
+			StartTime:   s.StartTime,
+			DurationNS:  s.DurationNS,
+			SpanCount:   s.SpanCount,
+			HasError:    s.HasError,
+			ServiceName: s.ServiceName,
+			RootName:    s.RootName,
 		})
 	}
 	return c.JSON(http.StatusOK, map[string]any{"data": out})
