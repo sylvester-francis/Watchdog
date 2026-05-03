@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
@@ -52,14 +52,14 @@ func (h *LogsHandler) Handle(c echo.Context) error {
 		})
 	}
 
-	body, err := io.ReadAll(io.LimitReader(c.Request().Body, maxLogRequestBytes+1))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "read body"})
-	}
-	if len(body) > maxLogRequestBytes {
+	body, err := readOTLPBody(c, maxLogRequestBytes)
+	if errors.Is(err, ErrOTLPBodyTooLarge) {
 		return c.JSON(http.StatusRequestEntityTooLarge, map[string]string{
 			"error": fmt.Sprintf("log export exceeds %d-byte limit", maxLogRequestBytes),
 		})
+	}
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "read body"})
 	}
 
 	var req collogspb.ExportLogsServiceRequest

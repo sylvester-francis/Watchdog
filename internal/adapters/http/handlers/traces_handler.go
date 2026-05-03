@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
@@ -53,14 +53,14 @@ func (h *TracesHandler) Handle(c echo.Context) error {
 		})
 	}
 
-	body, err := io.ReadAll(io.LimitReader(c.Request().Body, maxTraceRequestBytes+1))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "read body"})
-	}
-	if len(body) > maxTraceRequestBytes {
+	body, err := readOTLPBody(c, maxTraceRequestBytes)
+	if errors.Is(err, ErrOTLPBodyTooLarge) {
 		return c.JSON(http.StatusRequestEntityTooLarge, map[string]string{
 			"error": fmt.Sprintf("trace export exceeds %d-byte limit", maxTraceRequestBytes),
 		})
+	}
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "read body"})
 	}
 
 	var req coltracepb.ExportTraceServiceRequest
