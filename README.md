@@ -50,6 +50,7 @@ graph LR
 ## Features
 
 - **Private Agent Architecture** — Monitor internal databases, APIs, and services without exposing them to the internet
+- **Distributed traces & logs (OTLP)** — Native OTLP/HTTP receivers at `/v1/traces` and `/v1/logs`. Any OpenTelemetry collector or SDK can push directly. Built-in trace explorer with waterfall, span detail, and logs correlated by `trace_id`. gzip Content-Encoding accepted. No Tempo, Loki, or Jaeger required.
 - **12 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), System metrics (CPU, memory, disk), Service monitoring (systemd/Windows services), Port Scanning with service detection, and SNMP device monitoring (v2c/v3)
 - **SNMP Device Monitoring** — Monitor network devices with built-in templates for Cisco IOS, HP ProCurve, MikroTik, Ubiquiti, APC UPS, and generic SNMP devices
 - **Network Discovery** — Scan IP ranges to discover SNMP-enabled devices with automatic device type detection
@@ -67,7 +68,7 @@ graph LR
 - **Interactive API Docs** — Swagger UI at `/docs` with OpenAPI 3.0 spec
 - **6 Alert Channels** — Slack, Discord, Email (SMTP), Telegram, PagerDuty, and generic webhooks
 - **Security Audit Logging** — All CRUD operations tracked with viewer in System dashboard
-- **API Key Scoping** — Admin and read-only token scopes with IP tracking
+- **API Key Scoping** — Admin, read-only, and telemetry-ingest token scopes with IP tracking
 - **Agent Fingerprinting** — Device identity verification on connect
 - **Brute Force Protection** — Per-IP and per-email login rate limiting with lockout
 - **Security Headers** — CSP, X-Frame-Options, HSTS, Permissions-Policy
