@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { getAuth } from '$lib/stores/auth.svelte';
-	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, ShieldAlert, ScrollText, MessageCircle, X, Search, Radar, GitBranch } from 'lucide-svelte';
+	import { LayoutDashboard, Activity, AlertTriangle, Globe, Settings, Monitor, ShieldCheck, ShieldAlert, ScrollText, MessageCircle, X, Search, Radar, GitBranch, BookOpen } from 'lucide-svelte';
 
 	const auth = getAuth();
 	let mobileOpen = $state(false);
@@ -40,6 +40,7 @@
 		{ href: `/audit`, label: 'Audit Log', icon: ScrollText },
 		{ href: `/system`, label: 'System', icon: Monitor },
 		{ href: `/security`, label: 'Security', icon: ShieldAlert },
+		{ href: `/docs/manual`, label: 'User Manual', icon: BookOpen },
 	];
 
 	function isActive(href: string): boolean {
