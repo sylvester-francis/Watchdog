@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check } from 'lucide-svelte';
+	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check, ChevronDown } from 'lucide-svelte';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -375,23 +375,31 @@
 
 			<div class="px-4 py-2 border-t border-border/30 text-[10px] text-muted-foreground/70 font-mono flex items-center justify-between gap-3">
 				<span>{filtered.length} trace{filtered.length === 1 ? '' : 's'}</span>
-				<div class="flex items-center gap-3">
-					{#if errorsOnly && summaries.length > filtered.length}
-						<span>{summaries.length - filtered.length} hidden by errors-only filter</span>
-					{/if}
-					{#if hasMore}
-						<button
-							onclick={() => void loadMore()}
-							disabled={loadingMore}
-							class="px-2.5 py-1 rounded-md text-[10px] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-						>
-							{loadingMore ? 'Loading…' : 'Load older'}
-						</button>
-					{:else}
-						<span class="text-muted-foreground/50">end of window</span>
-					{/if}
-				</div>
+				{#if errorsOnly && summaries.length > filtered.length}
+					<span>{summaries.length - filtered.length} hidden by errors-only filter</span>
+				{/if}
 			</div>
+		</div>
+
+		<!-- Pagination control: dedicated row below the table for visibility. -->
+		<div class="mt-4 flex justify-center">
+			{#if hasMore}
+				<button
+					onclick={() => void loadMore()}
+					disabled={loadingMore}
+					class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-border bg-card hover:bg-card-elevated hover:border-foreground/20 text-xs font-medium text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					{#if loadingMore}
+						<RefreshCw class="w-3.5 h-3.5 animate-spin" />
+						<span>Loading older traces…</span>
+					{:else}
+						<ChevronDown class="w-3.5 h-3.5" />
+						<span>Load older traces</span>
+					{/if}
+				</button>
+			{:else}
+				<span class="text-[11px] text-muted-foreground/60 font-mono">— end of {timeRange} window —</span>
+			{/if}
 		</div>
 	{/if}
 </div>
