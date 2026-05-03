@@ -57,7 +57,9 @@ type logRecordResponse struct {
 // ListLogs returns recent log records scoped to the authenticated
 // user's tenant. trace_id and span_id correlate to OTLP IDs and are
 // optional; when present they must decode to exactly 16 / 8 bytes.
-// GET /api/v1/logs?service=&severity=&since=&trace_id=&span_id=&limit=
+// `before` is an optional RFC3339 cursor for keyset pagination —
+// returns log records strictly older than that timestamp.
+// GET /api/v1/logs?service=&severity=&since=&trace_id=&span_id=&before=&limit=
 func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
@@ -74,6 +76,11 @@ func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
 		return errJSON(c, http.StatusBadRequest, err.Error())
 	}
 
+	before, err := parseBefore(c.QueryParam("before"))
+	if err != nil {
+		return errJSON(c, http.StatusBadRequest, err.Error())
+	}
+
 	traceID, err := parseHexID(c.QueryParam("trace_id"), traceIDByteLength, "trace_id")
 	if err != nil {
 		return errJSON(c, http.StatusBadRequest, err.Error())
@@ -85,7 +92,7 @@ func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
 	}
 
 	records, err := h.repo.ListRecent(c.Request().Context(), userID, since,
-		c.QueryParam("service"), c.QueryParam("severity"), traceID, spanID, limit)
+		c.QueryParam("service"), c.QueryParam("severity"), traceID, spanID, before, limit)
 	if err != nil {
 		h.logger.Error("logs api: ListRecent failed", slog.String("error", err.Error()))
 		return errJSON(c, http.StatusInternalServerError, "failed to list log records")

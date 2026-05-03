@@ -117,9 +117,11 @@ func (r *SpanRepository) DeleteOlderThan(ctx context.Context, cutoff time.Time) 
 
 // ListRecentTraces aggregates spans into one TraceSummary per trace_id,
 // scoped to (userID, tenantID-from-context). Service filter is
-// empty-string-or-match; limit is applied after the per-trace
-// aggregation.
-func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, limit int) ([]*domain.TraceSummary, error) {
+// empty-string-or-match. `before` is a keyset cursor — only traces
+// whose root span's start_time is strictly older than `before` are
+// returned. Pass time.Time{} (the zero value) for the first page.
+// Limit is applied after the per-trace aggregation.
+func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID, since time.Time, service string, before time.Time, limit int) ([]*domain.TraceSummary, error) {
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
@@ -127,6 +129,9 @@ func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID,
 	// (parent_span_id NULL or empty bytea) come first, breaking ties
 	// by start_time. The MAX(CASE WHEN rn = 1 ...) trick then plucks
 	// the root span's service_name and name into the aggregate row.
+	// before is a keyset cursor: when zero, $5 is also zero and the
+	// $5::timestamptz IS NULL branch matches everything, so first-page
+	// queries see no upper bound.
 	rows, err := q.Query(ctx, `
 		WITH ranked AS (
 			SELECT trace_id, start_time, end_time, name, service_name, status_code,
@@ -140,18 +145,23 @@ func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID,
 			  AND user_id = $2
 			  AND tenant_id = $3
 			  AND ($4 = '' OR service_name = $4)
+		),
+		aggregated AS (
+			SELECT trace_id,
+			       MIN(start_time) AS start_time,
+			       (EXTRACT(EPOCH FROM (MAX(end_time) - MIN(start_time))) * 1e9)::bigint AS duration_ns,
+			       COUNT(*)::int AS span_count,
+			       BOOL_OR(status_code = 2) AS has_error,
+			       MAX(CASE WHEN rn = 1 THEN service_name END) AS service_name,
+			       MAX(CASE WHEN rn = 1 THEN name END) AS root_name
+			FROM ranked
+			GROUP BY trace_id
 		)
-		SELECT trace_id,
-		       MIN(start_time) AS start_time,
-		       (EXTRACT(EPOCH FROM (MAX(end_time) - MIN(start_time))) * 1e9)::bigint AS duration_ns,
-		       COUNT(*)::int AS span_count,
-		       BOOL_OR(status_code = 2) AS has_error,
-		       MAX(CASE WHEN rn = 1 THEN service_name END) AS service_name,
-		       MAX(CASE WHEN rn = 1 THEN name END) AS root_name
-		FROM ranked
-		GROUP BY trace_id
-		ORDER BY MIN(start_time) DESC
-		LIMIT $5`, since, userID, tenantID, service, limit)
+		SELECT trace_id, start_time, duration_ns, span_count, has_error, service_name, root_name
+		FROM aggregated
+		WHERE $5::timestamptz IS NULL OR start_time < $5
+		ORDER BY start_time DESC
+		LIMIT $6`, since, userID, tenantID, service, nilIfZero(before), limit)
 	if err != nil {
 		return nil, fmt.Errorf("spanRepo.ListRecentTraces: %w", err)
 	}
@@ -169,4 +179,14 @@ func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID,
 		return nil, fmt.Errorf("spanRepo.ListRecentTraces rows: %w", err)
 	}
 	return out, nil
+}
+
+// nilIfZero returns nil for a zero time so pgx encodes the parameter
+// as SQL NULL — used for keyset cursors that are unset on the first
+// page.
+func nilIfZero(t time.Time) any {
+	if t.IsZero() {
+		return nil
+	}
+	return t
 }

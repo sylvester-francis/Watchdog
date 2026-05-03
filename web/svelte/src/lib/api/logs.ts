@@ -11,6 +11,7 @@ export interface ListLogsParams {
 	severity?: string;
 	trace_id?: string;
 	span_id?: string;
+	before?: string; // RFC3339 keyset cursor — returns logs strictly older than this
 	limit?: number;
 }
 
@@ -21,6 +22,7 @@ export function listLogs(params: ListLogsParams = {}): Promise<LogListResponse> 
 	if (params.severity) search.set('severity', params.severity);
 	if (params.trace_id) search.set('trace_id', params.trace_id);
 	if (params.span_id) search.set('span_id', params.span_id);
+	if (params.before) search.set('before', params.before);
 	if (params.limit !== undefined) search.set('limit', String(params.limit));
 	const query = search.toString();
 	return api.get<LogListResponse>(`/api/v1/logs${query ? `?${query}` : ''}`);

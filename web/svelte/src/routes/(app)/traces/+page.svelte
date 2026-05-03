@@ -11,6 +11,13 @@
 	let loading = $state(true);
 	let loadError = $state<string | null>(null);
 
+	// Pagination state — when "Load older" is clicked we append to summaries
+	// instead of replacing. hasMore goes false once a page returns < pageSize
+	// rows, signaling the end of the data set.
+	const pageSize = 200;
+	let loadingMore = $state(false);
+	let hasMore = $state(true);
+
 	let timeRange = $state<TimeRange>('1h');
 	let serviceFilter = $state('');
 	let errorsOnly = $state(false);
@@ -52,19 +59,43 @@
 			const resp = await tracesApi.listTraces({
 				since: sinceForRange(timeRange),
 				service: serviceFilter.trim() || undefined,
-				limit: 200
+				limit: pageSize
 			});
 			summaries = resp.data ?? [];
+			hasMore = (resp.data ?? []).length >= pageSize;
 		} catch (err) {
 			loadError = err instanceof Error ? err.message : 'Failed to load traces';
 			summaries = [];
+			hasMore = false;
 		} finally {
 			loading = false;
 		}
 	}
 
+	async function loadMore() {
+		if (loadingMore || !hasMore || summaries.length === 0) return;
+		loadingMore = true;
+		try {
+			const oldest = summaries[summaries.length - 1].start_time;
+			const resp = await tracesApi.listTraces({
+				since: sinceForRange(timeRange),
+				service: serviceFilter.trim() || undefined,
+				before: oldest,
+				limit: pageSize
+			});
+			const next = resp.data ?? [];
+			summaries = [...summaries, ...next];
+			hasMore = next.length >= pageSize;
+		} catch (err) {
+			loadError = err instanceof Error ? err.message : 'Failed to load more traces';
+		} finally {
+			loadingMore = false;
+		}
+	}
+
 	function applyFilters() {
 		loading = true;
+		hasMore = true;
 		void loadData();
 	}
 
@@ -342,11 +373,24 @@
 				{/each}
 			</div>
 
-			<div class="px-4 py-2 border-t border-border/30 text-[10px] text-muted-foreground/70 font-mono flex justify-between">
+			<div class="px-4 py-2 border-t border-border/30 text-[10px] text-muted-foreground/70 font-mono flex items-center justify-between gap-3">
 				<span>{filtered.length} trace{filtered.length === 1 ? '' : 's'}</span>
-				{#if errorsOnly && summaries.length > filtered.length}
-					<span>{summaries.length - filtered.length} hidden by errors-only filter</span>
-				{/if}
+				<div class="flex items-center gap-3">
+					{#if errorsOnly && summaries.length > filtered.length}
+						<span>{summaries.length - filtered.length} hidden by errors-only filter</span>
+					{/if}
+					{#if hasMore}
+						<button
+							onclick={() => void loadMore()}
+							disabled={loadingMore}
+							class="px-2.5 py-1 rounded-md text-[10px] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+						>
+							{loadingMore ? 'Loading…' : 'Load older'}
+						</button>
+					{:else}
+						<span class="text-muted-foreground/50">end of window</span>
+					{/if}
+				</div>
 			</div>
 		</div>
 	{/if}

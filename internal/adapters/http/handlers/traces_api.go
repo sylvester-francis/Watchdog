@@ -76,7 +76,7 @@ type spanResponse struct {
 
 // ListTraces returns recent trace summaries scoped to the authenticated
 // user's tenant.
-// GET /api/v1/traces?service=&since=&limit=
+// GET /api/v1/traces?service=&since=&before=&limit=
 func (h *TracesAPIHandler) ListTraces(c echo.Context) error {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
@@ -93,9 +93,14 @@ func (h *TracesAPIHandler) ListTraces(c echo.Context) error {
 		return errJSON(c, http.StatusBadRequest, err.Error())
 	}
 
+	before, err := parseBefore(c.QueryParam("before"))
+	if err != nil {
+		return errJSON(c, http.StatusBadRequest, err.Error())
+	}
+
 	service := c.QueryParam("service")
 
-	summaries, err := h.repo.ListRecentTraces(c.Request().Context(), userID, since, service, limit)
+	summaries, err := h.repo.ListRecentTraces(c.Request().Context(), userID, since, service, before, limit)
 	if err != nil {
 		h.logger.Error("traces api: ListRecentTraces failed", slog.String("error", err.Error()))
 		return errJSON(c, http.StatusInternalServerError, "failed to list traces")
@@ -171,6 +176,20 @@ func parseSince(raw string) (time.Time, error) {
 	t, err := time.Parse(time.RFC3339, raw)
 	if err != nil {
 		return time.Time{}, errors.New("since must be RFC3339 timestamp")
+	}
+	return t, nil
+}
+
+// parseBefore parses the optional keyset cursor for pagination. Empty
+// returns the zero time, which the repo treats as "no cursor / first
+// page".
+func parseBefore(raw string) (time.Time, error) {
+	if raw == "" {
+		return time.Time{}, nil
+	}
+	t, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return time.Time{}, errors.New("before must be RFC3339 timestamp")
 	}
 	return t, nil
 }
