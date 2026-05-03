@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,7 +27,7 @@ func newLogsAPIServer(repo *fakeLogRepo) *echo.Echo {
 func newScopedLogsAPIServer(repo *fakeLogRepo, userID, tenantID string) *echo.Echo {
 	e := echo.New()
 	e.Use(withAuthCtx(userID, tenantID))
-	h := NewLogsAPIHandler(repo)
+	h := NewLogsAPIHandler(repo, slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil)))
 	e.GET("/api/v1/logs", h.ListLogs)
 	return e
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -26,12 +27,13 @@ const (
 // UI consumes. Lives under /api/v1/traces with the same hybrid auth as
 // the rest of the v1 API (session OR bearer token).
 type TracesAPIHandler struct {
-	repo ports.SpanRepository
+	repo   ports.SpanRepository
+	logger *slog.Logger
 }
 
 // NewTracesAPIHandler constructs a TracesAPIHandler.
-func NewTracesAPIHandler(repo ports.SpanRepository) *TracesAPIHandler {
-	return &TracesAPIHandler{repo: repo}
+func NewTracesAPIHandler(repo ports.SpanRepository, logger *slog.Logger) *TracesAPIHandler {
+	return &TracesAPIHandler{repo: repo, logger: logger}
 }
 
 // traceSummaryResponse is the wire-shape for a single row in the
@@ -93,6 +95,7 @@ func (h *TracesAPIHandler) ListTraces(c echo.Context) error {
 
 	summaries, err := h.repo.ListRecentTraces(c.Request().Context(), userID, since, service, limit)
 	if err != nil {
+		h.logger.Error("traces api: ListRecentTraces failed", slog.String("error", err.Error()))
 		return errJSON(c, http.StatusInternalServerError, "failed to list traces")
 	}
 
@@ -129,6 +132,7 @@ func (h *TracesAPIHandler) GetTrace(c echo.Context) error {
 
 	spans, err := h.repo.GetByTraceID(c.Request().Context(), userID, traceID)
 	if err != nil {
+		h.logger.Error("traces api: GetByTraceID failed", slog.String("error", err.Error()))
 		return errJSON(c, http.StatusInternalServerError, "failed to fetch trace")
 	}
 	if len(spans) == 0 {
