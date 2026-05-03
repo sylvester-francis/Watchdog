@@ -44,7 +44,20 @@ jobs:
           username: deploy
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -e
             cd /opt/watchdog/Watchdog
-            git pull
+            # Fetch + reset (NOT git pull). git pull silently fails with
+            # 'You are not currently on a branch' if the working tree is
+            # in detached HEAD — which it ends up in any time someone runs
+            # `git checkout <tag>` for a release deploy. We hit that
+            # exact bug after the v1.0.0 retag: every CI run since silently
+            # built from stale source (cached layers all the way through),
+            # only surfacing when migration 102 hit the DB without the
+            # filesystem 102_*.sql being present. Reset --hard works
+            # regardless of HEAD state and is the right primitive for a
+            # one-way 'make this checkout match origin/main' deploy.
+            git fetch origin --tags --force
+            git reset --hard origin/main
+            git rev-parse --short HEAD
             cd deployments
             docker compose -f docker-compose.prod.yml up -d --build hub
