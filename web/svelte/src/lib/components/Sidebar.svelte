@@ -64,7 +64,7 @@
 
 	<!-- Logo -->
 	<div class="px-5 h-14 flex items-center border-b border-border">
-		<a href="/dashboard" class="flex items-center space-x-3" title="WatchDog v0.1.0-beta">
+		<a href="/dashboard" class="flex items-center space-x-3" title="WatchDog">
 			<div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
 				<ShieldCheck class="w-4 h-4 text-white" />
 			</div>
@@ -141,9 +141,9 @@
 	<!-- Footer -->
 	<div class="px-4 h-12 flex items-center border-t border-border/50">
 		<div class="flex items-center justify-between w-full">
-			{#if auth.user?.plan}
+			{#if auth.user?.plan && auth.user.plan !== 'beta'}
 				<span class="text-xs px-2 py-0.5 rounded-md font-medium cursor-default bg-muted text-muted-foreground">
-					{auth.user.plan === 'beta' ? 'Beta' : auth.user.plan}
+					{auth.user.plan}
 				</span>
 			{:else}
 				<span></span>
