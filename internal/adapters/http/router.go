@@ -138,12 +138,12 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	if deps.SpanRepo != nil {
 		r.tracesHandler = handlers.NewTracesHandler(deps.SpanRepo, logger)
-		r.tracesAPIHandler = handlers.NewTracesAPIHandler(deps.SpanRepo)
+		r.tracesAPIHandler = handlers.NewTracesAPIHandler(deps.SpanRepo, logger)
 	}
 
 	if deps.LogRecordRepo != nil {
 		r.logsHandler = handlers.NewLogsHandler(deps.LogRecordRepo, logger)
-		r.logsAPIHandler = handlers.NewLogsAPIHandler(deps.LogRecordRepo)
+		r.logsAPIHandler = handlers.NewLogsAPIHandler(deps.LogRecordRepo, logger)
 		r.logsNDJSONHandler = handlers.NewLogsNDJSONHandler(deps.LogRecordRepo, logger)
 	}
 

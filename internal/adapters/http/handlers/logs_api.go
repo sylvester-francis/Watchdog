@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -26,12 +27,13 @@ const (
 // Lives under /api/v1/logs with the same hybrid auth as the rest of the
 // v1 API (session OR bearer token).
 type LogsAPIHandler struct {
-	repo ports.LogRecordRepository
+	repo   ports.LogRecordRepository
+	logger *slog.Logger
 }
 
 // NewLogsAPIHandler constructs a LogsAPIHandler.
-func NewLogsAPIHandler(repo ports.LogRecordRepository) *LogsAPIHandler {
-	return &LogsAPIHandler{repo: repo}
+func NewLogsAPIHandler(repo ports.LogRecordRepository, logger *slog.Logger) *LogsAPIHandler {
+	return &LogsAPIHandler{repo: repo, logger: logger}
 }
 
 // logRecordResponse is the wire-shape for a single log record. JSONB
@@ -85,6 +87,7 @@ func (h *LogsAPIHandler) ListLogs(c echo.Context) error {
 	records, err := h.repo.ListRecent(c.Request().Context(), userID, since,
 		c.QueryParam("service"), c.QueryParam("severity"), traceID, spanID, limit)
 	if err != nil {
+		h.logger.Error("logs api: ListRecent failed", slog.String("error", err.Error()))
 		return errJSON(c, http.StatusInternalServerError, "failed to list log records")
 	}
 

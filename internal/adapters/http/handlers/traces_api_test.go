@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,7 +28,7 @@ func newTracesAPIServer(repo *fakeSpanRepo) *echo.Echo {
 func newScopedTracesAPIServer(repo *fakeSpanRepo, userID, tenantID string) *echo.Echo {
 	e := echo.New()
 	e.Use(withAuthCtx(userID, tenantID))
-	h := NewTracesAPIHandler(repo)
+	h := NewTracesAPIHandler(repo, slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil)))
 	e.GET("/api/v1/traces", h.ListTraces)
 	e.GET("/api/v1/traces/:trace_id", h.GetTrace)
 	return e
