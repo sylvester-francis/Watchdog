@@ -6,7 +6,7 @@
 		ShieldCheck, Menu, X, EyeOff, Eye, Download, Radar, Bell, Server,
 		Activity, BellRing, Terminal, Zap, Flame, Globe, Code, ScrollText,
 		Database, Radio, LayoutDashboard, ShieldOff, Scan, Lock, Copy, Check,
-		Target, Shield, Search, Wrench
+		Target, Shield, Search, Wrench, GitBranch
 	} from 'lucide-svelte';
 
 	const auth = getAuth();
@@ -133,6 +133,9 @@
 			pre: '<span class="text-muted-foreground/60">#1042</span> <span class="text-foreground">postgres:5432</span>  <span class="text-red-400">recurring</span>\n<span class="text-muted-foreground/60">  MTTR:</span> <span class="text-foreground">4m 12s</span>  <span class="text-muted-foreground/60">Previous:</span> <span class="text-foreground">3</span>\n<span class="text-muted-foreground/30">\u251c\u2500</span> <span class="text-red-400">\u25cf</span> <span class="text-muted-foreground/70">Connection refused    09:41:03</span>\n<span class="text-muted-foreground/30">\u251c\u2500</span> <span class="text-red-400">\u25cf</span> <span class="text-muted-foreground/70">Heartbeat: down       09:41:33</span>\n<span class="text-muted-foreground/30">\u2514\u2500</span> <span class="text-emerald-400">\u25cf</span> <span class="text-muted-foreground/70">Resolved              09:45:15</span>'
 		},
 		{ icon: Wrench, title: 'Maintenance windows', desc: 'Schedule maintenance per agent to suppress alerts. Recurring schedules (daily, weekly, monthly) with automatic next-occurrence generation.' },
+		{ icon: GitBranch, title: 'Distributed traces & logs', desc: 'Native OTLP receivers at /v1/traces and /v1/logs accept any OpenTelemetry collector or SDK — gzip compression and Content-Type: application/x-protobuf supported out of the box. Built-in trace explorer with waterfall, span detail, and correlated log records. No Tempo, Loki, or Jaeger required.',
+			pre: '<span class="text-muted-foreground/60">$</span> otelcol --config collector.yaml\n<span class="text-emerald-400">[ok]</span>   POST /v1/traces  <span class="text-muted-foreground/60">200</span>\n<span class="text-emerald-400">[ok]</span>   POST /v1/logs    <span class="text-muted-foreground/60">200</span>\n<span class="text-foreground">monitor.check</span>  <span class="text-muted-foreground/60">homelab-agent</span>\n<span class="text-muted-foreground/30">└─</span> <span class="text-foreground">HTTP GET</span>  <span class="text-muted-foreground/60">localhost:8096</span>  <span class="text-muted-foreground/60">12ms</span>'
+		},
 	];
 
 	const comparisons = [
@@ -148,7 +151,7 @@
 
 <svelte:head>
 	<title>WatchDog - Monitor Services Behind Your Firewall</title>
-	<meta name="description" content="Deploy lightweight agents inside your network to monitor internal services, databases, and APIs. Real-time dashboard, instant alerts, zero configuration.">
+	<meta name="description" content="Self-hosted monitoring with agents inside your network. Eleven check types, native OTLP receivers for traces and logs, built-in trace explorer, real-time dashboard, instant alerts, zero configuration.">
 </svelte:head>
 
 {#if checking}
