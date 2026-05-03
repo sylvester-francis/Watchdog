@@ -272,22 +272,34 @@
 		<div class="bg-card border border-border rounded-lg overflow-hidden">
 			<!-- Column headers -->
 			<div class="flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
-				<div class="w-32 shrink-0">Trace</div>
-				<div class="w-20 shrink-0 text-right ml-auto">Spans</div>
+				<div class="flex-1 min-w-0">Operation</div>
+				<div class="w-32 shrink-0 ml-3 hidden lg:block">Service</div>
+				<div class="w-28 shrink-0 ml-3">Trace ID</div>
+				<div class="w-16 shrink-0 text-right ml-3">Spans</div>
 				<div class="w-24 shrink-0 text-right ml-3 hidden sm:block">Duration</div>
-				<div class="w-32 shrink-0 text-right ml-3 hidden md:block">Started</div>
+				<div class="w-28 shrink-0 text-right ml-3 hidden md:block">Started</div>
 				<div class="w-6 shrink-0 ml-2"></div>
 			</div>
 
-			<div class="divide-y divide-border/20 font-mono">
+			<div class="divide-y divide-border/20">
 				{#each filtered as t (t.trace_id)}
 					<a
 						href="/traces/{t.trace_id}"
 						class="flex items-center px-4 py-3 hover:bg-card-elevated transition-colors group"
 					>
-						<!-- trace_id (mono, abbreviated) + copy button -->
-						<div class="w-32 shrink-0 flex items-center gap-1.5">
-							<span class="text-xs text-foreground tabular-nums">{shortHex(t.trace_id)}</span>
+						<!-- operation (root span name) — primary cell, sans-serif -->
+						<div class="flex-1 min-w-0 text-sm text-foreground truncate">
+							{t.root_name || 'unknown'}
+						</div>
+
+						<!-- service -->
+						<div class="w-32 shrink-0 ml-3 hidden lg:block text-xs text-muted-foreground truncate font-mono">
+							{t.service_name || '—'}
+						</div>
+
+						<!-- trace_id chip + copy button -->
+						<div class="w-28 shrink-0 ml-3 flex items-center gap-1.5">
+							<span class="text-[11px] text-muted-foreground/70 tabular-nums font-mono">{shortHex(t.trace_id)}</span>
 							<button
 								onclick={(e) => { e.preventDefault(); e.stopPropagation(); void copyTraceID(t.trace_id); }}
 								class="opacity-0 group-hover:opacity-100 text-muted-foreground/60 hover:text-foreground transition-all"
@@ -303,17 +315,17 @@
 						</div>
 
 						<!-- spans -->
-						<div class="w-20 shrink-0 text-right ml-auto tabular-nums text-xs text-muted-foreground">
+						<div class="w-16 shrink-0 text-right ml-3 tabular-nums text-xs text-muted-foreground font-mono">
 							{t.span_count}
 						</div>
 
 						<!-- duration -->
-						<div class="w-24 shrink-0 text-right ml-3 hidden sm:block tabular-nums text-xs {durationClass(t.duration_ns, t.has_error)}">
+						<div class="w-24 shrink-0 text-right ml-3 hidden sm:block tabular-nums text-xs {durationClass(t.duration_ns, t.has_error)} font-mono">
 							{formatDuration(t.duration_ns)}
 						</div>
 
 						<!-- started -->
-						<div class="w-32 shrink-0 text-right ml-3 hidden md:block tabular-nums text-xs text-muted-foreground/80">
+						<div class="w-28 shrink-0 text-right ml-3 hidden md:block tabular-nums text-xs text-muted-foreground/80 font-mono">
 							{relativeTime(t.start_time)}
 						</div>
 

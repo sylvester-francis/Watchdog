@@ -123,17 +123,32 @@ func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID,
 	q := r.db.Querier(ctx)
 	tenantID := TenantIDFromContext(ctx)
 
+	// ROW_NUMBER() partitions per trace_id and orders so root spans
+	// (parent_span_id NULL or empty bytea) come first, breaking ties
+	// by start_time. The MAX(CASE WHEN rn = 1 ...) trick then plucks
+	// the root span's service_name and name into the aggregate row.
 	rows, err := q.Query(ctx, `
+		WITH ranked AS (
+			SELECT trace_id, start_time, end_time, name, service_name, status_code,
+			       ROW_NUMBER() OVER (
+			           PARTITION BY trace_id
+			           ORDER BY CASE WHEN parent_span_id IS NULL OR octet_length(parent_span_id) = 0 THEN 0 ELSE 1 END,
+			                    start_time
+			       ) AS rn
+			FROM spans
+			WHERE start_time >= $1
+			  AND user_id = $2
+			  AND tenant_id = $3
+			  AND ($4 = '' OR service_name = $4)
+		)
 		SELECT trace_id,
 		       MIN(start_time) AS start_time,
 		       (EXTRACT(EPOCH FROM (MAX(end_time) - MIN(start_time))) * 1e9)::bigint AS duration_ns,
 		       COUNT(*)::int AS span_count,
-		       BOOL_OR(status_code = 2) AS has_error
-		FROM spans
-		WHERE start_time >= $1
-		  AND user_id = $2
-		  AND tenant_id = $3
-		  AND ($4 = '' OR service_name = $4)
+		       BOOL_OR(status_code = 2) AS has_error,
+		       MAX(CASE WHEN rn = 1 THEN service_name END) AS service_name,
+		       MAX(CASE WHEN rn = 1 THEN name END) AS root_name
+		FROM ranked
 		GROUP BY trace_id
 		ORDER BY MIN(start_time) DESC
 		LIMIT $5`, since, userID, tenantID, service, limit)
@@ -145,7 +160,7 @@ func (r *SpanRepository) ListRecentTraces(ctx context.Context, userID uuid.UUID,
 	var out []*domain.TraceSummary
 	for rows.Next() {
 		s := &domain.TraceSummary{}
-		if err := rows.Scan(&s.TraceID, &s.StartTime, &s.DurationNS, &s.SpanCount, &s.HasError); err != nil {
+		if err := rows.Scan(&s.TraceID, &s.StartTime, &s.DurationNS, &s.SpanCount, &s.HasError, &s.ServiceName, &s.RootName); err != nil {
 			return nil, fmt.Errorf("spanRepo.ListRecentTraces scan: %w", err)
 		}
 		out = append(out, s)

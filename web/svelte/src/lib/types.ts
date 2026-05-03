@@ -410,6 +410,8 @@ export interface TraceSummary {
 	duration_ns: number;
 	span_count: number;
 	has_error: boolean;
+	service_name?: string;
+	root_name?: string;
 }
 
 // SpanKind mirrors OTLP Span.SpanKind (0..5); kept as a numeric literal

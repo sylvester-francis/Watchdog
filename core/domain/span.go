@@ -33,11 +33,13 @@ const (
 // Used by the list endpoint to render the trace list without
 // shipping every span over the wire.
 type TraceSummary struct {
-	TraceID    []byte
-	StartTime  time.Time
-	DurationNS int64
-	SpanCount  int
-	HasError   bool
+	TraceID     []byte
+	StartTime   time.Time
+	DurationNS  int64
+	SpanCount   int
+	HasError    bool
+	ServiceName string
+	RootName    string
 }
 
 // Span is one node of a trace, persisted to the spans hypertable.
