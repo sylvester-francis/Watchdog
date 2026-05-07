@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       $lib: resolve(__dirname, 'src/lib'),
     },
+    conditions: ['browser'],
   },
   test: {
     environment: 'happy-dom',
