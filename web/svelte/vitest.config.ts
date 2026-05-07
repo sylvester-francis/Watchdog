@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       $lib: resolve(__dirname, 'src/lib'),
+      '$app/navigation': resolve(__dirname, 'src/test/sveltekit-mocks/navigation.ts'),
+      '$app/stores': resolve(__dirname, 'src/test/sveltekit-mocks/stores.ts'),
     },
     conditions: ['browser'],
   },
