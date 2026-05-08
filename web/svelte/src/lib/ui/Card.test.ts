@@ -17,4 +17,23 @@ describe('Card', () => {
     const { container } = render(Card);
     expect(container.querySelector('div')).toHaveAttribute('data-variant', 'default');
   });
+
+  it('applies default variant classes (bg-card, border)', () => {
+    const { container } = render(Card);
+    const div = container.querySelector('div')!;
+    expect(div.className).toContain('bg-card');
+    expect(div.className).toContain('border-border');
+  });
+
+  it('applies elevated variant (shadow + bg-card-elevated)', () => {
+    const { container } = render(Card, { props: { variant: 'elevated' } });
+    const div = container.querySelector('div')!;
+    expect(div.className).toContain('bg-card-elevated');
+    expect(div.className).toContain('shadow');
+  });
+
+  it('applies accent variant (border-accent)', () => {
+    const { container } = render(Card, { props: { variant: 'accent' } });
+    expect(container.querySelector('div')!.className).toContain('border-accent');
+  });
 });
