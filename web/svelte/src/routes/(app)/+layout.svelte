@@ -5,8 +5,8 @@
 	import { setOnUnauthorized } from '$lib/api/client';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import Header from '$lib/components/Header.svelte';
-	import ToastContainer from '$lib/components/ToastContainer.svelte';
-	import CommandPalette from '$lib/components/CommandPalette.svelte';
+	import Toast from '$lib/ui/Toast.svelte';
+	import CommandPalette from '$lib/ui/CommandPalette.svelte';
 
 	const auth = getAuth();
 	let ready = $state(false);
@@ -57,6 +57,6 @@
 			</footer>
 		</main>
 	</div>
-	<ToastContainer />
+	<Toast />
 	<CommandPalette />
 {/if}
