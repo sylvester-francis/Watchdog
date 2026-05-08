@@ -18,4 +18,10 @@ describe('EmptyState', () => {
     expect(container.querySelector('h3')).not.toBeInTheDocument();
     expect(container.querySelector('p')).not.toBeInTheDocument();
   });
+
+  // Snippet rendering tests deferred to Phase 1c — `createRawSnippet` client-mode API
+  // diverges from SSR; needs a wrapper-component pattern. Snippet props are type-checked
+  // at compile time, and EmptyState is consumed in Phase 1b+.
+  it.skip('renders the icon snippet when provided', () => {});
+  it.skip('renders the cta snippet when provided', () => {});
 });
