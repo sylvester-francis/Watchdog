@@ -3,6 +3,7 @@
 	import { getCertDetails } from '$lib/api/monitors';
 	import type { CertDetails } from '$lib/types';
 	import { onMount } from 'svelte';
+	import Pill from '$lib/ui/Pill.svelte';
 
 	interface Props {
 		monitorId: string;
@@ -122,10 +123,12 @@
 				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Subject Alternative Names</p>
 				<div class="flex flex-wrap gap-1.5">
 					{#each cert.sans as san}
-						<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-muted text-muted-foreground">
-							<Lock class="w-2.5 h-2.5 mr-1" />
-							{san}
-						</span>
+						<Pill tone="neutral">
+							<span class="inline-flex items-center font-mono">
+								<Lock class="w-2.5 h-2.5 mr-1" />
+								{san}
+							</span>
+						</Pill>
 					{/each}
 				</div>
 			</div>
