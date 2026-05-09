@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Server, History, Cpu, Shield } from 'lucide-svelte';
 	import type { IncidentInvestigation } from '$lib/types';
+	import { Pill, StatusDot } from '$lib/ui';
 	import IncidentTimeline from './IncidentTimeline.svelte';
 
 	interface Props {
@@ -18,12 +19,12 @@
 		}
 	}
 
-	function patternColor(pattern: string): string {
+	function patternTone(pattern: string): 'neutral' | 'accent' | 'up' | 'down' | 'warn' {
 		switch (pattern) {
-			case 'first_time': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-			case 'recurring': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-			case 'frequent': return 'bg-red-500/10 text-red-400 border-red-500/20';
-			default: return 'bg-muted/50 text-muted-foreground border-border';
+			case 'first_time': return 'accent';
+			case 'recurring': return 'warn';
+			case 'frequent': return 'down';
+			default: return 'neutral';
 		}
 	}
 
@@ -57,9 +58,9 @@
 		<!-- Pattern -->
 		<div class="bg-card border border-border rounded-lg p-4">
 			<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Pattern</div>
-			<span class="text-xs font-medium px-2 py-0.5 rounded border {patternColor(investigation.recurrence_pattern ?? 'unknown')}">
+			<Pill tone={patternTone(investigation.recurrence_pattern ?? 'unknown')}>
 				{patternLabel(investigation.recurrence_pattern ?? 'unknown')}
-			</span>
+			</Pill>
 		</div>
 
 		<!-- MTTR -->
@@ -101,16 +102,16 @@
 				{#each investigation.sibling_monitors as sibling}
 					<div class="px-5 py-3 flex items-center justify-between">
 						<div class="flex items-center space-x-2.5">
-							<div class="w-2 h-2 rounded-full {sibling.has_incident ? 'bg-red-400 animate-pulse' : sibling.status === 'up' ? 'bg-emerald-400' : 'bg-muted-foreground'}"></div>
+							<StatusDot status={sibling.has_incident ? 'down' : sibling.status === 'up' ? 'up' : 'unknown'} pulse={sibling.has_incident} />
 							<a href="/monitors/{sibling.id}" class="text-xs font-medium text-foreground hover:text-accent transition-colors">
 								{sibling.name}
 							</a>
-							<span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase font-mono">{sibling.type}</span>
+							<Pill tone="neutral"><span class="uppercase font-mono">{sibling.type}</span></Pill>
 						</div>
 						<div class="flex items-center space-x-2">
 							<span class="text-[10px] font-mono text-muted-foreground truncate max-w-[140px]">{sibling.target}</span>
 							{#if sibling.has_incident}
-								<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">incident</span>
+								<Pill tone="down">incident</Pill>
 							{/if}
 						</div>
 					</div>
@@ -135,7 +136,7 @@
 						</div>
 						<div class="flex items-center space-x-2">
 							<span class="text-xs font-mono text-foreground">{metric.value || '--'}</span>
-							<div class="w-2 h-2 rounded-full {metric.status === 'up' ? 'bg-emerald-400' : 'bg-red-400'}"></div>
+							<StatusDot status={metric.status === 'up' ? 'up' : 'down'} />
 						</div>
 					</div>
 				{/each}
@@ -187,9 +188,9 @@
 					<div class="px-5 py-3">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center space-x-2">
-								<div class="w-2 h-2 rounded-full {prev.status === 'resolved' ? 'bg-emerald-400' : 'bg-red-400'}"></div>
+								<StatusDot status={prev.status === 'resolved' ? 'up' : 'down'} />
 								<span class="text-xs text-foreground">{formatTimeAgo(prev.started_at)}</span>
-								<span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{prev.status}</span>
+								<Pill tone="neutral">{prev.status}</Pill>
 							</div>
 							{#if prev.ttr_seconds != null}
 								<span class="text-[10px] font-mono text-muted-foreground">TTR: {formatMTTR(prev.ttr_seconds)}</span>

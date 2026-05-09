@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Loader2, AlertTriangle, Eye, CheckCircle2, Search } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
+	import { Pill, StatusDot } from '$lib/ui';
 	import type { Incident, MonitorSummary } from '$lib/types';
 
 	interface Props {
@@ -15,19 +16,6 @@
 
 	let ackLoading = $state(false);
 	let resolveLoading = $state(false);
-
-	function statusBadgeClass(status: string): string {
-		switch (status) {
-			case 'open':
-				return 'bg-red-500/10 text-red-400 border border-red-500/20';
-			case 'acknowledged':
-				return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
-			case 'resolved':
-				return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-			default:
-				return 'bg-muted/50 text-muted-foreground border border-border';
-		}
-	}
 
 	function formatTTR(seconds: number | null | undefined): string {
 		if (seconds == null) return '--';
@@ -61,13 +49,8 @@
 	<!-- Status badge -->
 	<td class="px-4 py-3.5">
 		<div class="flex items-center space-x-2">
-			<div class="w-2 h-2 rounded-full
-				{incident.status === 'open' ? 'bg-red-400 animate-pulse' : incident.status === 'acknowledged' ? 'bg-yellow-400' : 'bg-emerald-400'}"
-				aria-label="Status: {incident.status}"></div>
-			<span class="text-xs font-medium px-1.5 py-0.5 rounded
-				{statusBadgeClass(incident.status)}">
-				{incident.status}
-			</span>
+			<StatusDot status={incident.status === 'open' ? 'down' : incident.status === 'acknowledged' ? 'warn' : 'up'} pulse={incident.status === 'open'} />
+			<Pill tone={incident.status === 'open' ? 'down' : incident.status === 'acknowledged' ? 'warn' : 'up'}>{incident.status}</Pill>
 		</div>
 	</td>
 
@@ -88,7 +71,9 @@
 				{#if monitor}
 					<a href="/monitors/{incident.monitor_id}" class="group/link">
 						<span class="text-sm font-medium text-foreground group-hover/link:text-accent transition-colors">{monitor.name}</span>
-						<span class="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase font-mono hidden lg:inline">{monitor.type}</span>
+						<span class="ml-1.5 hidden lg:inline">
+							<Pill tone="neutral"><span class="uppercase font-mono">{monitor.type}</span></Pill>
+						</span>
 					</a>
 				{:else}
 					<span class="text-sm text-muted-foreground">{incident.monitor_name ?? 'Unknown Monitor'}</span>
