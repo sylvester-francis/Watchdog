@@ -28,9 +28,9 @@ const config: Config = {
         'surface-sunken': t.color.bg,
       },
       borderRadius: {
-        lg: '0.5rem',
-        md: 'calc(0.5rem - 2px)',
-        sm: 'calc(0.5rem - 4px)',
+        sm: `${t.radius.sm}px`,
+        md: `${t.radius.base}px`,
+        lg: `${t.radius.lg}px`,
       },
       fontFamily: {
         sans: t.font.body.split(',').map((s) => s.trim().replace(/^"|"$/g, '')),
