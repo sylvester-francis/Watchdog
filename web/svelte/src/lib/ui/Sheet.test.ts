@@ -54,4 +54,24 @@ describe('Sheet', () => {
     const { container } = render(Sheet, { props: { open: true, side: 'bottom' } });
     expect(container.querySelector('[role="dialog"]')!.className).toContain('bottom-0');
   });
+
+  it('defaults to sm width on right/left side', () => {
+    const { container } = render(Sheet, { props: { open: true } });
+    expect(container.querySelector('[role="dialog"]')!.className).toContain('max-w-sm');
+  });
+
+  it('applies size="2xl" -> max-w-2xl on right side', () => {
+    const { container } = render(Sheet, { props: { open: true, side: 'right', size: '2xl' } });
+    expect(container.querySelector('[role="dialog"]')!.className).toContain('max-w-2xl');
+  });
+
+  it('applies size="lg" -> max-w-lg on left side', () => {
+    const { container } = render(Sheet, { props: { open: true, side: 'left', size: 'lg' } });
+    expect(container.querySelector('[role="dialog"]')!.className).toContain('max-w-lg');
+  });
+
+  it('reflects size onto data-size attribute', () => {
+    const { container } = render(Sheet, { props: { open: true, size: 'xl' } });
+    expect(container.querySelector('[role="dialog"]')!.getAttribute('data-size')).toBe('xl');
+  });
 });

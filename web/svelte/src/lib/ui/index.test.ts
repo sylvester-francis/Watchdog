@@ -11,6 +11,7 @@ const expected = [
   'Card',
   'Tabs',
   'Sheet',
+  'BottomSheet',
   'Modal',
   'Skeleton',
   'EmptyState',
