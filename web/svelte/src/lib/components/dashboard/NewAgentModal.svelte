@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, Check } from 'lucide-svelte';
+	import { Copy, Check, X } from 'lucide-svelte';
 	import { agents as agentsApi } from '$lib/api';
 	import Modal from '$lib/ui/Modal.svelte';
 	import Button from '$lib/ui/Button.svelte';
@@ -55,7 +55,12 @@
 
 <Modal bind:open onclose={handleClose}>
 	<div class="space-y-4">
-		<h3 class="text-sm font-medium text-foreground">Create Agent</h3>
+		<div class="flex items-center justify-between">
+			<h3 class="text-sm font-medium text-foreground">Create Agent</h3>
+			<button onclick={handleClose} class="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
+				<X class="w-4 h-4" />
+			</button>
+		</div>
 
 		{#if !createdAgent}
 			<form onsubmit={handleSubmit} class="space-y-4">
