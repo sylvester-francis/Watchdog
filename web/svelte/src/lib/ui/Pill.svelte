@@ -9,6 +9,6 @@
   let { tone = 'neutral', children }: Props = $props();
 </script>
 
-<span data-tone={tone} class="inline-flex items-center px-2 py-0.5 rounded-full text-xs border border-border">
+<span data-tone={tone} class="ui-pill inline-flex items-center px-2 py-0.5 rounded-full text-xs border">
   {@render children?.()}
 </span>

@@ -17,4 +17,9 @@ describe('StatusDot', () => {
     const { container } = render(StatusDot, { props: { status: 'up', pulse: true } });
     expect(container.querySelector('span')).toHaveClass('animate-pulse-dot');
   });
+
+  it('has the ui-status-dot class for styling hook', () => {
+    const { container } = render(StatusDot, { props: { status: 'up' } });
+    expect(container.querySelector('span')!.className).toContain('ui-status-dot');
+  });
 });
