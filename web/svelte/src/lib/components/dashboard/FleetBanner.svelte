@@ -2,6 +2,7 @@
 	import { MinusCircle } from 'lucide-svelte';
 	import { formatPercent, uptimeColor } from '$lib/utils';
 	import type { DashboardStats } from '$lib/types';
+	import Pill from '$lib/ui/Pill.svelte';
 
 	interface Props {
 		stats: DashboardStats;
@@ -41,9 +42,9 @@
 						</div>
 					</div>
 					<div class="flex items-center space-x-1.5">
-						<span class="text-xs font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">{stats.monitors_up} up</span>
+						<Pill tone="up">{stats.monitors_up} up</Pill>
 						{#if stats.monitors_down > 0}
-							<span class="text-xs font-mono px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">{stats.monitors_down} dn</span>
+							<Pill tone="down">{stats.monitors_down} dn</Pill>
 						{/if}
 					</div>
 				{:else}
