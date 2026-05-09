@@ -4,10 +4,13 @@
 	import type { Agent, MonitorType, DeviceTemplate } from '$lib/types';
 	import { onMount } from 'svelte';
 	import Modal from '$lib/ui/Modal.svelte';
-	import FormField from '$lib/ui/FormField.svelte';
-	import Input from '$lib/ui/Input.svelte';
-	import Select from '$lib/ui/Select.svelte';
 	import Button from '$lib/ui/Button.svelte';
+	import SharedFields from './SharedFields.svelte';
+	import HTTPSection from './HTTPSection.svelte';
+	import DatabaseSection from './DatabaseSection.svelte';
+	import SystemSection from './SystemSection.svelte';
+	import PortScanSection from './PortScanSection.svelte';
+	import SNMPSection from './SNMPSection.svelte';
 
 	interface Props {
 		open: boolean;
@@ -364,8 +367,6 @@
 			loading = false;
 		}
 	}
-
-	const plainSelectClass = 'w-full bg-card-elevated border border-border rounded px-3 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background';
 </script>
 
 <Modal bind:open onclose={handleClose} size="lg">
@@ -390,252 +391,52 @@
 				</div>
 			{/if}
 
-			<FormField label="Name" htmlFor="monitor-name" required>
-				<Input id="monitor-name" type="text" bind:value={name} placeholder="My API Server" />
-			</FormField>
-
-			<div class="grid grid-cols-2 gap-3">
-				<FormField label="Type" htmlFor="monitor-type">
-					<Select id="monitor-type" bind:value={type}>
-						{#each monitorTypes as mt}
-							<option value={mt.value}>{mt.label}</option>
-						{/each}
-					</Select>
-				</FormField>
-				<FormField label="Agent" htmlFor="monitor-agent" required>
-					<Select id="monitor-agent" bind:value={agentId}>
-						<option value="" disabled>Select agent</option>
-						{#each agents as agent}
-							<option value={agent.id}>{agent.name}</option>
-						{/each}
-					</Select>
-				</FormField>
-			</div>
-
-			<FormField label="Target" htmlFor="monitor-target" required>
-				<Input id="monitor-target" type="text" bind:value={target} placeholder={targetPlaceholders[type]} />
-			</FormField>
-
-			<div class="grid grid-cols-3 gap-3">
-				<FormField label="Interval (s)" htmlFor="monitor-interval">
-					<Input id="monitor-interval" type="number" bind:value={intervalSeconds} min={5} max={3600} />
-				</FormField>
-				<FormField label="Timeout (s)" htmlFor="monitor-timeout">
-					<Input id="monitor-timeout" type="number" bind:value={timeoutSeconds} min={1} max={300} />
-				</FormField>
-				<FormField label="Fail Threshold" htmlFor="monitor-threshold">
-					<Input id="monitor-threshold" type="number" bind:value={failureThreshold} min={1} max={10} />
-				</FormField>
-			</div>
+			<SharedFields
+				bind:name
+				bind:type
+				bind:agentId
+				bind:target
+				bind:intervalSeconds
+				bind:timeoutSeconds
+				bind:failureThreshold
+				{agents}
+				{monitorTypes}
+				targetPlaceholder={targetPlaceholders[type]}
+			/>
 
 			{#if type === 'http'}
-				<FormField label="Expected Status Code" htmlFor="monitor-expected-status">
-					<Input id="monitor-expected-status" type="number" bind:value={expectedStatus} min={100} max={599} />
-				</FormField>
-			{/if}
-
-			{#if type === 'database'}
-				<div class="space-y-3 pt-1">
-					<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Database Settings</div>
-					<FormField label="DB Type" htmlFor="monitor-db-type">
-						<Select id="monitor-db-type" bind:value={dbType}>
-							<option value="postgres">PostgreSQL</option>
-							<option value="mysql">MySQL</option>
-							<option value="redis">Redis</option>
-							<option value="mongodb">MongoDB</option>
-						</Select>
-					</FormField>
-					<FormField label="Connection String" htmlFor="monitor-db-conn">
-						<Input id="monitor-db-conn" type="text" bind:value={dbConnectionString} placeholder="host=localhost port=5432 dbname=mydb user=postgres" />
-					</FormField>
-					<FormField label="Password" htmlFor="monitor-db-pass">
-						<Input id="monitor-db-pass" type="password" bind:value={dbPassword} placeholder="Database password" />
-					</FormField>
-				</div>
-			{/if}
-
-			{#if type === 'system'}
-				<div class="space-y-3 pt-1">
-					<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">System Metric</div>
-					<div class="grid grid-cols-2 gap-3">
-						<FormField label="Metric" htmlFor="monitor-sys-metric">
-							<Select id="monitor-sys-metric" bind:value={systemMetric}>
-								<option value="cpu">CPU</option>
-								<option value="memory">Memory</option>
-								<option value="disk">Disk</option>
-							</Select>
-						</FormField>
-						<FormField label="Threshold %" htmlFor="monitor-sys-threshold">
-							<Input id="monitor-sys-threshold" type="number" bind:value={systemThreshold} min={1} max={100} />
-						</FormField>
-					</div>
-				</div>
-			{/if}
-
-			{#if type === 'port_scan'}
-				<div class="space-y-3 pt-1">
-					<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Port Scan Settings</div>
-					<FormField label="Ports (comma-separated)" htmlFor="monitor-ps-ports">
-						<Input id="monitor-ps-ports" type="text" bind:value={portScanPorts} placeholder="22,80,443,3306,8080" />
-						<p class="text-[10px] text-muted-foreground mt-1">Supports ranges: 8000-9000</p>
-					</FormField>
-					<FormField label="Port Range (alternative)" htmlFor="monitor-ps-range">
-						<Input id="monitor-ps-range" type="text" bind:value={portScanRange} placeholder="1-1024" />
-					</FormField>
-					<FormField label="Expected Open Ports (optional)" htmlFor="monitor-ps-expected">
-						<Input id="monitor-ps-expected" type="text" bind:value={portScanExpectedOpen} placeholder="22,80,443" />
-						<p class="text-[10px] text-muted-foreground mt-1">If set, alerts when expected ports close or unexpected ports open</p>
-					</FormField>
-					<div class="flex items-center justify-between pt-1">
-						<div>
-							<label for="monitor-banner-grab" class="block text-xs font-medium text-muted-foreground mb-1.5">Service Detection</label>
-							<p class="text-[10px] text-muted-foreground">Identify services and versions on open ports</p>
-						</div>
-						<label class="relative inline-flex items-center cursor-pointer">
-							<input
-								id="monitor-banner-grab"
-								type="checkbox"
-								bind:checked={bannerGrab}
-								class="sr-only peer"
-							/>
-							<div class="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-accent transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
-						</label>
-					</div>
-				</div>
-			{/if}
-
-			{#if type === 'snmp'}
-				<div class="space-y-3 pt-1">
-					<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">SNMP Settings</div>
-
-					{#if deviceTemplates.length > 0}
-						<FormField label="Device Template" htmlFor="monitor-snmp-template">
-							<select
-								id="monitor-snmp-template"
-								bind:value={selectedTemplateId}
-								onchange={(e) => applyTemplate((e.target as HTMLSelectElement).value)}
-								class={plainSelectClass}
-							>
-								<option value="">Custom (manual OID entry)</option>
-								{#each deviceTemplates as tmpl}
-									<option value={tmpl.id}>{tmpl.vendor} {tmpl.model} ({tmpl.oid_count} OIDs)</option>
-								{/each}
-							</select>
-							{#if selectedTemplateId}
-								<p class="text-[10px] text-muted-foreground mt-1">OIDs auto-filled from template. You can still edit them below.</p>
-							{/if}
-						</FormField>
-					{/if}
-
-					<FormField label="Quick Setup (Preset)" htmlFor="monitor-snmp-preset">
-						<select
-							id="monitor-snmp-preset"
-							onchange={(e) => {
-								const idx = parseInt((e.target as HTMLSelectElement).value);
-								if (idx >= 0) applyPreset(snmpPresets[idx]);
-								(e.target as HTMLSelectElement).value = '-1';
-							}}
-							class={plainSelectClass}
-						>
-							<option value="-1">Select a common OID...</option>
-							{#each ['System', 'CPU', 'Memory', 'Load', 'Network', 'Disk'] as group}
-								<optgroup label={group}>
-									{#each snmpPresets as preset, i}
-										{#if preset.group === group}
-											<option value={i}>{preset.label} ({preset.op})</option>
-										{/if}
-									{/each}
-								</optgroup>
-							{/each}
-						</select>
-					</FormField>
-
-					<div class="grid grid-cols-3 gap-3">
-						<FormField label="Version" htmlFor="monitor-snmp-version">
-							<Select id="monitor-snmp-version" bind:value={snmpVersion}>
-								<option value="2c">v2c</option>
-								<option value="3">v3</option>
-							</Select>
-						</FormField>
-						<FormField label="Operation" htmlFor="monitor-snmp-operation">
-							<Select id="monitor-snmp-operation" bind:value={snmpOperation}>
-								<option value="get">GET</option>
-								<option value="walk">Walk</option>
-								<option value="bulk">Bulk GET</option>
-							</Select>
-						</FormField>
-						<FormField label="Port" htmlFor="monitor-snmp-port">
-							<Input id="monitor-snmp-port" type="number" bind:value={snmpPort} min={1} max={65535} />
-						</FormField>
-					</div>
-
-					<FormField label="OID" htmlFor="monitor-snmp-oid">
-						<Input id="monitor-snmp-oid" type="text" bind:value={snmpOid} placeholder="1.3.6.1.2.1.1.1.0 (sysDescr)" />
-					</FormField>
-
-					<FormField label="Additional OIDs (optional, comma-separated)" htmlFor="monitor-snmp-oids">
-						<Input id="monitor-snmp-oids" type="text" bind:value={snmpOids} placeholder="1.3.6.1.2.1.1.3.0, 1.3.6.1.2.1.1.5.0" />
-					</FormField>
-
-					{#if snmpVersion === '2c'}
-						<FormField label="Community String" htmlFor="monitor-snmp-community">
-							<Input id="monitor-snmp-community" type="text" bind:value={snmpCommunity} placeholder="public" />
-						</FormField>
-					{/if}
-
-					{#if snmpVersion === '3'}
-						<div class="space-y-3 pt-1 border-t border-border/50">
-							<div class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium pt-2">SNMPv3 Authentication</div>
-
-							<div class="grid grid-cols-2 gap-3">
-								<FormField label="Username" htmlFor="monitor-snmp-username">
-									<Input id="monitor-snmp-username" type="text" bind:value={snmpUsername} placeholder="snmpuser" />
-								</FormField>
-								<FormField label="Security Level" htmlFor="monitor-snmp-seclevel">
-									<Select id="monitor-snmp-seclevel" bind:value={snmpSecurityLevel}>
-										<option value="noAuthNoPriv">No Auth, No Privacy</option>
-										<option value="authNoPriv">Auth, No Privacy</option>
-										<option value="authPriv">Auth + Privacy</option>
-									</Select>
-								</FormField>
-							</div>
-
-							{#if snmpSecurityLevel !== 'noAuthNoPriv'}
-								<div class="grid grid-cols-2 gap-3">
-									<FormField label="Auth Protocol" htmlFor="monitor-snmp-authproto">
-										<Select id="monitor-snmp-authproto" bind:value={snmpAuthProtocol}>
-											<option value="MD5">MD5</option>
-											<option value="SHA">SHA</option>
-											<option value="SHA224">SHA-224</option>
-											<option value="SHA256">SHA-256</option>
-											<option value="SHA384">SHA-384</option>
-											<option value="SHA512">SHA-512</option>
-										</Select>
-									</FormField>
-									<FormField label="Auth Password" htmlFor="monitor-snmp-authpass">
-										<Input id="monitor-snmp-authpass" type="password" bind:value={snmpAuthPassword} placeholder="Auth passphrase" />
-									</FormField>
-								</div>
-							{/if}
-
-							{#if snmpSecurityLevel === 'authPriv'}
-								<div class="grid grid-cols-2 gap-3">
-									<FormField label="Privacy Protocol" htmlFor="monitor-snmp-privproto">
-										<Select id="monitor-snmp-privproto" bind:value={snmpPrivacyProtocol}>
-											<option value="DES">DES</option>
-											<option value="AES">AES</option>
-											<option value="AES192">AES-192</option>
-											<option value="AES256">AES-256</option>
-										</Select>
-									</FormField>
-									<FormField label="Privacy Password" htmlFor="monitor-snmp-privpass">
-										<Input id="monitor-snmp-privpass" type="password" bind:value={snmpPrivacyPassword} placeholder="Privacy passphrase" />
-									</FormField>
-								</div>
-							{/if}
-						</div>
-					{/if}
-				</div>
+				<HTTPSection bind:expectedStatus />
+			{:else if type === 'database'}
+				<DatabaseSection bind:dbType bind:dbConnectionString bind:dbPassword />
+			{:else if type === 'system'}
+				<SystemSection bind:systemMetric bind:systemThreshold />
+			{:else if type === 'port_scan'}
+				<PortScanSection
+					bind:portScanPorts
+					bind:portScanRange
+					bind:portScanExpectedOpen
+					bind:bannerGrab
+				/>
+			{:else if type === 'snmp'}
+				<SNMPSection
+					bind:snmpVersion
+					bind:snmpCommunity
+					bind:snmpOid
+					bind:snmpOids
+					bind:snmpOperation
+					bind:snmpPort
+					bind:snmpSecurityLevel
+					bind:snmpUsername
+					bind:snmpAuthProtocol
+					bind:snmpAuthPassword
+					bind:snmpPrivacyProtocol
+					bind:snmpPrivacyPassword
+					bind:selectedTemplateId
+					{deviceTemplates}
+					{snmpPresets}
+					onApplyTemplate={applyTemplate}
+					onApplyPreset={applyPreset}
+				/>
 			{/if}
 		</div>
 

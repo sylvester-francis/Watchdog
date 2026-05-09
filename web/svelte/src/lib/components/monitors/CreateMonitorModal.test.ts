@@ -9,7 +9,7 @@ vi.mock('$lib/api', () => ({
   },
 }));
 
-import CreateMonitorModal from './CreateMonitorModal.svelte';
+import CreateMonitorModal from './CreateMonitorModal/index.svelte';
 
 const mkAgent = () => ({ id: 'a1', name: 'Agent 1', status: 'online', last_seen_at: null } as never);
 
