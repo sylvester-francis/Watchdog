@@ -38,4 +38,30 @@ describe('StatBlock', () => {
     const valueEl = Array.from(container.querySelectorAll('span')).find(s => s.textContent === '42')!;
     expect(valueEl.className).toContain('text-stat');
   });
+
+  it('applies accent stripe class when accent="up"', () => {
+    const { container } = render(StatBlock, { props: { label: 'L', value: 1, accent: 'up' } });
+    const root = container.querySelector('div')!;
+    expect(root.className).toContain('border-l-status-up');
+  });
+
+  it('applies accent stripe class when accent="down"', () => {
+    const { container } = render(StatBlock, { props: { label: 'L', value: 1, accent: 'down' } });
+    expect(container.querySelector('div')!.className).toContain('border-l-destructive');
+  });
+
+  it('applies accent stripe class when accent="warn"', () => {
+    const { container } = render(StatBlock, { props: { label: 'L', value: 1, accent: 'warn' } });
+    expect(container.querySelector('div')!.className).toContain('border-l-warning');
+  });
+
+  it('does not apply accent stripe by default', () => {
+    const { container } = render(StatBlock, { props: { label: 'L', value: 1 } });
+    expect(container.querySelector('div')!.className).not.toContain('border-l-');
+  });
+
+  it('reflects accent onto data-accent attribute', () => {
+    const { container } = render(StatBlock, { props: { label: 'L', value: 1, accent: 'up' } });
+    expect(container.querySelector('div')!.getAttribute('data-accent')).toBe('up');
+  });
 });
