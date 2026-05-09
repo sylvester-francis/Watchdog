@@ -17,4 +17,15 @@ describe('ChartFrame', () => {
     const { container } = render(ChartFrame);
     expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
+
+  it('title uses h4 with font-medium', () => {
+    const { container } = render(ChartFrame, { props: { title: 'Latency' } });
+    const h4 = container.querySelector('h4')!;
+    expect(h4.className).toContain('font-medium');
+  });
+
+  it('renders subtitle when provided', () => {
+    render(ChartFrame, { props: { title: 'Latency', subtitle: 'p50 over 24h' } });
+    expect(screen.getByText('p50 over 24h')).toBeInTheDocument();
+  });
 });
