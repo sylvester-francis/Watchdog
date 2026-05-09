@@ -128,7 +128,7 @@
 	}
 </script>
 
-<Modal bind:open onclose={handleClose}>
+<Modal bind:open onclose={handleClose} size="lg">
 	<div class="flex items-center justify-between mb-4">
 		<h3 class="text-sm font-medium text-foreground">Edit Monitor</h3>
 		<button

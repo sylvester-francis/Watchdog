@@ -40,4 +40,31 @@ describe('Modal', () => {
     const { container } = render(Modal, { props: { open: true } });
     expect(container.querySelector('[data-modal-content]')).toBeInTheDocument();
   });
+
+  it('defaults to max-w-md size', () => {
+    const { container } = render(Modal, { props: { open: true } });
+    expect(container.querySelector('[data-modal-content]')!.className).toContain('max-w-md');
+  });
+
+  it('applies size="lg" -> max-w-lg', () => {
+    const { container } = render(Modal, { props: { open: true, size: 'lg' } });
+    expect(container.querySelector('[data-modal-content]')!.className).toContain('max-w-lg');
+  });
+
+  it('applies size="sm" -> max-w-sm', () => {
+    const { container } = render(Modal, { props: { open: true, size: 'sm' } });
+    expect(container.querySelector('[data-modal-content]')!.className).toContain('max-w-sm');
+  });
+
+  it('applies size="xl" -> max-w-xl', () => {
+    const { container } = render(Modal, { props: { open: true, size: 'xl' } });
+    expect(container.querySelector('[data-modal-content]')!.className).toContain('max-w-xl');
+  });
+
+  it('content has scroll wrapper (max-h + overflow-y-auto) so tall content is reachable', () => {
+    const { container } = render(Modal, { props: { open: true } });
+    const content = container.querySelector('[data-modal-content]')!;
+    expect(content.className).toContain('overflow-y-auto');
+    expect(content.className).toContain('max-h-[90vh]');
+  });
 });
