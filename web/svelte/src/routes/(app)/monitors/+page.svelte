@@ -18,7 +18,7 @@
 	import StatusDot from '$lib/ui/StatusDot.svelte';
 	import Pill from '$lib/ui/Pill.svelte';
 	import Button from '$lib/ui/Button.svelte';
-	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal.svelte';
+	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal/index.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
 
