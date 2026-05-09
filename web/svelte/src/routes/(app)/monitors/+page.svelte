@@ -15,6 +15,8 @@
 	import type { MonitorSummary, Agent, MonitorType } from '$lib/types';
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
 	import Sparkline from '$lib/ui/Sparkline.svelte';
+	import StatusDot from '$lib/ui/StatusDot.svelte';
+	import Pill from '$lib/ui/Pill.svelte';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -135,13 +137,6 @@
 		if (m.type === 'docker' || m.type === 'service') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
 		if (m.type === 'system') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
 		return 'text-muted-foreground';
-	}
-
-	function statusDotClass(status: string): string {
-		if (status === 'up') return 'bg-emerald-400 shadow-[0_0_6px_rgba(34,197,94,0.4)]';
-		if (status === 'down') return 'bg-red-400 shadow-[0_0_6px_rgba(239,68,68,0.4)]';
-		if (status === 'degraded') return 'bg-amber-400';
-		return 'bg-muted-foreground/50';
 	}
 
 	function toggleDropdown(id: string) {
@@ -352,17 +347,16 @@
 							<div class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group relative">
 								<!-- Status dot -->
 								<div class="w-5 shrink-0 flex justify-center">
-									<div
-										class="w-2 h-2 rounded-full {statusDotClass(m.status)}"
-										aria-label="Status: {m.status}"
-									></div>
+									<StatusDot status={m.status === 'up' || m.status === 'down' || m.status === 'warn' ? m.status : 'unknown'} pulse={m.status === 'up'} />
 								</div>
 
 								<!-- Name + type + target (clickable link) -->
 								<a href="/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
 									<div class="flex items-center space-x-2">
 										<span class="text-sm text-foreground truncate group-hover:text-accent transition-colors">{m.name}</span>
-										<span class="text-[9px] text-muted-foreground font-mono uppercase shrink-0 px-1.5 py-0.5 rounded bg-muted/50">{m.type}</span>
+										<Pill tone="neutral">
+											<span class="text-[9px] font-mono uppercase">{m.type}</span>
+										</Pill>
 									</div>
 									<p class="text-[10px] text-muted-foreground font-mono truncate mt-0.5 hidden sm:block">{m.target}</p>
 								</a>
@@ -467,17 +461,16 @@
 							<div class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group relative">
 								<!-- Status dot -->
 								<div class="w-5 shrink-0 flex justify-center">
-									<div
-										class="w-2 h-2 rounded-full {statusDotClass(m.status)}"
-										aria-label="Status: {m.status}"
-									></div>
+									<StatusDot status={m.status === 'up' || m.status === 'down' || m.status === 'warn' ? m.status : 'unknown'} pulse={m.status === 'up'} />
 								</div>
 
 								<!-- Name + type + target -->
 								<a href="/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
 									<div class="flex items-center space-x-2">
 										<span class="text-sm text-foreground truncate group-hover:text-accent transition-colors">{m.name}</span>
-										<span class="text-[9px] text-muted-foreground font-mono uppercase shrink-0 px-1.5 py-0.5 rounded bg-muted/50">{m.type}</span>
+										<Pill tone="neutral">
+											<span class="text-[9px] font-mono uppercase">{m.type}</span>
+										</Pill>
 									</div>
 									<p class="text-[10px] text-muted-foreground font-mono truncate mt-0.5 hidden sm:block">{m.target}</p>
 								</a>
