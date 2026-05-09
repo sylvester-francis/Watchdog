@@ -19,4 +19,23 @@ describe('StatBlock', () => {
     const spans = container.querySelectorAll('span');
     expect(spans.length).toBe(2);
   });
+
+  it('renders delta with up direction class', () => {
+    const { container } = render(StatBlock, { props: { label: 'L', value: 1, delta: '+5%', deltaDirection: 'up' } });
+    const deltaEl = container.querySelector('[data-delta="up"]')!;
+    expect(deltaEl).toBeInTheDocument();
+    expect(deltaEl.className).toContain('text-status-up');
+  });
+
+  it('renders delta with down direction class', () => {
+    const { container } = render(StatBlock, { props: { label: 'L', value: 1, delta: '-5%', deltaDirection: 'down' } });
+    const deltaEl = container.querySelector('[data-delta="down"]')!;
+    expect(deltaEl.className).toContain('text-destructive');
+  });
+
+  it('uses text-stat typography on the value', () => {
+    const { container } = render(StatBlock, { props: { label: 'Foo', value: 42 } });
+    const valueEl = Array.from(container.querySelectorAll('span')).find(s => s.textContent === '42')!;
+    expect(valueEl.className).toContain('text-stat');
+  });
 });
