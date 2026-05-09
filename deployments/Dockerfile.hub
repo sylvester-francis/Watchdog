@@ -1,10 +1,10 @@
-# SvelteKit build stage (includes Tailwind via SvelteKit's PostCSS integration)
-FROM node:22-alpine AS svelte
+# SvelteKit build stage (uses bun — bun.lock is canonical since Phase 0)
+FROM oven/bun:1-alpine AS svelte
 WORKDIR /app
-COPY web/svelte/package.json web/svelte/package-lock.json ./
-RUN npm ci
+COPY web/svelte/package.json web/svelte/bun.lock ./
+RUN bun install --frozen-lockfile
 COPY web/svelte/ .
-RUN npx svelte-kit sync && npm run build
+RUN bun x svelte-kit sync && bun run build
 
 # Go build stage
 FROM golang:1.25-alpine AS builder
