@@ -1,18 +1,18 @@
 :root {
-  --font-display: Inter, system-ui, -apple-system, sans-serif;
-  --font-body: Inter, system-ui, -apple-system, sans-serif;
-  --font-prose: Inter, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", Menlo, monospace;
+  --font-display: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --font-body: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --font-prose: "Geist", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
 
-  --bg: #09090b;
-  --bg-elev: #111113;
-  --bg-overlay: #18181b;
-  --border: #27272a;
+  --bg: #07070a;
+  --bg-elev: #0a0a0d;
+  --bg-overlay: #0f0f12;
+  --border: #18181b;
   --border-strong: #27272a;
 
   --text: #fafafa;
   --text-secondary: #d4d4d8;
-  --text-muted: #a1a1aa;
+  --text-muted: #71717a;
   --text-faint: #52525b;
 
   --accent: #3b82f6;

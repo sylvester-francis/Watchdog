@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { chartTheme } from './chart-theme';
+import { tokens } from '$lib/tokens';
 
 describe('chartTheme', () => {
   it('returns an object with the expected keys', () => {
@@ -15,11 +16,11 @@ describe('chartTheme', () => {
 
   it('returns the active brand accent color', () => {
     const t = chartTheme();
-    expect(t.accent).toBe('#3b82f6');
+    expect(t.accent).toBe(tokens.color.accent);
   });
 
-  it('returns mono-family font string for fontMono', () => {
+  it('returns the active brand mono-family font string', () => {
     const t = chartTheme();
-    expect(t.fontMono).toMatch(/JetBrains Mono|monospace/);
+    expect(t.fontMono).toBe(tokens.font.mono);
   });
 });
