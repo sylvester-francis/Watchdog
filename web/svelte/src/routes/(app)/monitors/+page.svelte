@@ -14,7 +14,7 @@
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary, Agent, MonitorType } from '$lib/types';
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
-	import Sparkline from '$lib/components/dashboard/Sparkline.svelte';
+	import Sparkline from '$lib/ui/Sparkline.svelte';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -384,7 +384,7 @@
 								<!-- Sparkline -->
 								<div class="w-16 shrink-0 hidden md:flex items-center justify-end ml-3">
 									{#if m.latencies?.length > 0}
-										<Sparkline values={m.latencies} color={sparkColor(m.status)} />
+										<Sparkline data={m.latencies} color={sparkColor(m.status)} />
 									{:else}
 										<span class="text-[9px] text-muted-foreground">No data</span>
 									{/if}
