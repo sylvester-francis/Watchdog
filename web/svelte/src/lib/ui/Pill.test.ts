@@ -12,4 +12,9 @@ describe('Pill', () => {
     const { container } = render(Pill, { props: { tone: 'down' } });
     expect(container.querySelector('span')).toHaveAttribute('data-tone', 'down');
   });
+
+  it('has the ui-pill class for styling hook', () => {
+    const { container } = render(Pill);
+    expect(container.querySelector('span')!.className).toContain('ui-pill');
+  });
 });
