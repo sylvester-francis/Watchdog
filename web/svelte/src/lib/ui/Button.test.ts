@@ -60,4 +60,43 @@ describe('Button', () => {
     const { container } = render(Button, { props: { size: 'lg' } });
     expect(container.querySelector('button')!.getAttribute('data-size')).toBe('lg');
   });
+
+  it('reflects tone onto data-tone attribute when set', () => {
+    const { container } = render(Button, { props: { tone: 'up' } });
+    expect(container.querySelector('button')!.getAttribute('data-tone')).toBe('up');
+  });
+
+  it('omits data-tone when tone is not set', () => {
+    const { container } = render(Button);
+    expect(container.querySelector('button')!.hasAttribute('data-tone')).toBe(false);
+  });
+
+  it('applies up tone background + text classes', () => {
+    const { container } = render(Button, { props: { tone: 'up' } });
+    const btn = container.querySelector('button')!;
+    expect(btn.className).toContain('bg-success/10');
+    expect(btn.className).toContain('text-success');
+  });
+
+  it('applies warn tone classes', () => {
+    const { container } = render(Button, { props: { tone: 'warn' } });
+    expect(container.querySelector('button')!.className).toContain('bg-warning/10');
+  });
+
+  it('applies down tone classes', () => {
+    const { container } = render(Button, { props: { tone: 'down' } });
+    expect(container.querySelector('button')!.className).toContain('bg-destructive/10');
+  });
+
+  it('applies accent tone classes', () => {
+    const { container } = render(Button, { props: { tone: 'accent' } });
+    expect(container.querySelector('button')!.className).toContain('bg-accent/10');
+  });
+
+  it('tone overrides variant default background', () => {
+    const { container } = render(Button, { props: { variant: 'primary', tone: 'up' } });
+    const btn = container.querySelector('button')!;
+    expect(btn.className).toContain('bg-success/10');
+    expect(btn.className).not.toContain('bg-accent ');
+  });
 });

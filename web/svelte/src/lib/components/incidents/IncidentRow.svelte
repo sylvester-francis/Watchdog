@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Loader2, AlertTriangle, Eye, CheckCircle2, Search } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
-	import { Pill, StatusDot } from '$lib/ui';
+	import { Pill, StatusDot, Button } from '$lib/ui';
 	import type { Incident, MonitorSummary } from '$lib/types';
 
 	interface Props {
@@ -107,37 +107,32 @@
 	<td class="px-4 py-3.5">
 		<div class="flex items-center justify-end space-x-1.5">
 			{#if onInvestigate}
-				<button
-					onclick={() => onInvestigate(incident.id)}
-					class="px-2 py-1 bg-accent/10 text-accent hover:bg-accent/20 rounded text-xs font-medium transition-colors"
-				>
-					<Search class="w-3 h-3 inline mr-0.5" />
-					Investigate
-				</button>
+				<Button tone="accent" size="sm" onclick={() => onInvestigate(incident.id)}>
+					<span class="inline-flex items-center text-xs">
+						<Search class="w-3 h-3 mr-0.5" />
+						Investigate
+					</span>
+				</Button>
 			{/if}
 			{#if incident.status !== 'resolved'}
 				{#if incident.status === 'open'}
-					<button
-						onclick={handleAcknowledge}
-						disabled={ackLoading || resolveLoading}
-						class="px-2 py-1 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						{#if ackLoading}
-							<Loader2 class="w-3 h-3 animate-spin inline mr-1" />
-						{/if}
-						Ack
-					</button>
+					<Button tone="warn" size="sm" onclick={handleAcknowledge} disabled={ackLoading || resolveLoading}>
+						<span class="inline-flex items-center text-xs">
+							{#if ackLoading}
+								<Loader2 class="w-3 h-3 animate-spin mr-1" />
+							{/if}
+							Ack
+						</span>
+					</Button>
 				{/if}
-				<button
-					onclick={handleResolve}
-					disabled={ackLoading || resolveLoading}
-					class="px-2 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					{#if resolveLoading}
-						<Loader2 class="w-3 h-3 animate-spin inline mr-1" />
-					{/if}
-					Resolve
-				</button>
+				<Button tone="up" size="sm" onclick={handleResolve} disabled={ackLoading || resolveLoading}>
+					<span class="inline-flex items-center text-xs">
+						{#if resolveLoading}
+							<Loader2 class="w-3 h-3 animate-spin mr-1" />
+						{/if}
+						Resolve
+					</span>
+				</Button>
 			{/if}
 		</div>
 	</td>
