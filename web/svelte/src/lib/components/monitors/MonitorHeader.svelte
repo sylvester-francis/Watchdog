@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Pencil } from 'lucide-svelte';
 	import type { Monitor } from '$lib/types';
+	import Pill from '$lib/ui/Pill.svelte';
+	import Button from '$lib/ui/Button.svelte';
 
 	interface Props {
 		monitor: Monitor;
@@ -40,7 +42,9 @@
 			<div>
 				<h2 class="text-lg font-semibold text-foreground">{monitor.name}</h2>
 				<div class="flex items-center space-x-3 mt-1">
-					<span class="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground uppercase font-mono">{monitor.type}</span>
+					<Pill tone="neutral">
+					<span class="uppercase font-mono">{monitor.type}</span>
+				</Pill>
 					<span class="text-xs text-muted-foreground font-mono">{monitor.target}</span>
 				</div>
 			</div>
@@ -48,14 +52,12 @@
 		<div class="flex items-center space-x-3">
 			<span class="text-sm font-medium {statusTextClass(monitor.status)}">{statusLabel(monitor.status)}</span>
 			{#if onEdit}
-				<button
-					onclick={onEdit}
-					class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
-					aria-label="Edit monitor"
-				>
-					<Pencil class="w-3.5 h-3.5" />
-					<span>Edit</span>
-				</button>
+				<Button variant="secondary" size="sm" onclick={onEdit}>
+					<span class="flex items-center gap-1.5">
+						<Pencil class="w-3.5 h-3.5" />
+						<span>Edit</span>
+					</span>
+				</Button>
 			{/if}
 		</div>
 	</div>

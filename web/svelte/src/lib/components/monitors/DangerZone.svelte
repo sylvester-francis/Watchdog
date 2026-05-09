@@ -4,6 +4,7 @@
 	import { monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import Button from '$lib/ui/Button.svelte';
 
 	interface Props {
 		monitorId: string;
@@ -46,13 +47,14 @@
 				</p>
 			</div>
 
-			<button
-				onclick={() => { showConfirm = true; }}
-				class="shrink-0 ml-4 flex items-center space-x-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 text-xs font-medium rounded-md transition-colors"
-			>
-				<Trash2 class="w-3.5 h-3.5" />
-				<span>Delete Monitor</span>
-			</button>
+			<div class="shrink-0 ml-4">
+				<Button variant="destructive" size="sm" onclick={() => { showConfirm = true; }}>
+					<span class="flex items-center gap-1.5">
+						<Trash2 class="w-3.5 h-3.5" />
+						<span>Delete Monitor</span>
+					</span>
+				</Button>
+			</div>
 		</div>
 	</div>
 </div>
