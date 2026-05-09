@@ -2,6 +2,8 @@
 	import { Server } from 'lucide-svelte';
 	import { formatTimeAgo } from '$lib/utils';
 	import type { Agent, DashboardStats } from '$lib/types';
+	import Button from '$lib/ui/Button.svelte';
+	import Pill from '$lib/ui/Pill.svelte';
 
 	interface Props {
 		agents: Agent[];
@@ -21,12 +23,7 @@
 				<span class="text-[10px] text-muted-foreground font-mono">{stats.online_agents}/{stats.total_agents} online</span>
 			</div>
 		</div>
-		<button
-			onclick={onCreateAgent}
-			class="px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors"
-		>
-			New Agent
-		</button>
+		<Button variant="primary" size="sm" onclick={onCreateAgent}>New Agent</Button>
 	</div>
 
 	{#if agents.length > 0}
@@ -44,13 +41,12 @@
 							</p>
 						</div>
 					</div>
-					<span class="text-[10px] px-1.5 py-0.5 rounded font-mono flex items-center space-x-1
-						{agent.status === 'online' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-muted text-muted-foreground'}">
+					<Pill tone={agent.status === 'online' ? 'up' : 'neutral'}>
 						{#if agent.status === 'online'}
-							<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+							<span class="w-1.5 h-1.5 rounded-full bg-status-up animate-pulse inline-block mr-1"></span>
 						{/if}
-						<span>{agent.status}</span>
-					</span>
+						{agent.status}
+					</Pill>
 				</div>
 			{/each}
 		</div>
