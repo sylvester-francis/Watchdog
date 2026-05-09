@@ -14,4 +14,19 @@ describe('Checkbox', () => {
     const { container } = render(Checkbox, { props: { disabled: true } });
     expect(container.querySelector('input')).toBeDisabled();
   });
+
+  it('applies focus ring class', () => {
+    const { container } = render(Checkbox);
+    expect(container.querySelector('input')!.className).toContain('focus:ring-2');
+  });
+
+  it('applies error styling', () => {
+    const { container } = render(Checkbox, { props: { error: true } });
+    expect(container.querySelector('input')!.className).toContain('border-destructive');
+  });
+
+  it('reflects error onto aria-invalid', () => {
+    const { container } = render(Checkbox, { props: { error: true } });
+    expect(container.querySelector('input')!.getAttribute('aria-invalid')).toBe('true');
+  });
 });

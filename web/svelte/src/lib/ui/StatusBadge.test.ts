@@ -22,4 +22,9 @@ describe('StatusBadge', () => {
     const { container } = render(StatusBadge, { props: { status: 'warn' } });
     expect(container.textContent).toContain('⚠');
   });
+
+  it('has the ui-status-badge class for styling hook', () => {
+    const { container } = render(StatusBadge, { props: { status: 'up' } });
+    expect(container.querySelector('span')!.className).toContain('ui-status-badge');
+  });
 });

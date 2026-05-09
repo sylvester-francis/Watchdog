@@ -4,6 +4,25 @@
 
 @import './styles/theme-watchdog.css';
 
+/* Status primitive color hooks (driven by data-status / data-tone) */
+.ui-status-badge[data-status="up"]      { background-color: rgb(from var(--status-up) r g b / 0.15); color: var(--status-up); }
+.ui-status-badge[data-status="down"]    { background-color: rgb(from var(--status-down) r g b / 0.15); color: var(--status-down); }
+.ui-status-badge[data-status="warn"]    { background-color: rgb(from var(--status-warn) r g b / 0.15); color: var(--status-warn); }
+.ui-status-badge[data-status="expired"],
+.ui-status-badge[data-status="maintenance"],
+.ui-status-badge[data-status="unknown"] { background-color: rgb(from var(--text-muted) r g b / 0.15); color: var(--text-muted); }
+
+.ui-status-dot[data-status="up"]      { background-color: var(--status-up); }
+.ui-status-dot[data-status="down"]    { background-color: var(--status-down); }
+.ui-status-dot[data-status="warn"]    { background-color: var(--status-warn); }
+.ui-status-dot[data-status="unknown"] { background-color: var(--text-muted); }
+
+.ui-pill[data-tone="neutral"] { background-color: rgb(from var(--text-muted) r g b / 0.10); color: var(--text-muted); border-color: var(--border-strong); }
+.ui-pill[data-tone="accent"]  { background-color: var(--accent-fade); color: var(--accent); border-color: rgb(from var(--accent) r g b / 0.3); }
+.ui-pill[data-tone="up"]      { background-color: rgb(from var(--status-up) r g b / 0.10); color: var(--status-up); border-color: rgb(from var(--status-up) r g b / 0.3); }
+.ui-pill[data-tone="down"]    { background-color: rgb(from var(--status-down) r g b / 0.10); color: var(--status-down); border-color: rgb(from var(--status-down) r g b / 0.3); }
+.ui-pill[data-tone="warn"]    { background-color: rgb(from var(--status-warn) r g b / 0.10); color: var(--status-warn); border-color: rgb(from var(--status-warn) r g b / 0.3); }
+
 /* Pulse dot animation */
 @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
