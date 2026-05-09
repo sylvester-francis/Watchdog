@@ -2,6 +2,7 @@
 	import { AlertCircle, Clock, CheckCircle2, ArrowRight } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
 	import type { Incident, MonitorSummary } from '$lib/types';
+	import Pill from '$lib/ui/Pill.svelte';
 
 	interface Props {
 		incidents: Incident[];
@@ -44,10 +45,7 @@
 							<p class="text-[10px] text-muted-foreground">{formatTimeAgo(incident.started_at)} &middot; <span class="font-mono">{formatDuration(incident.started_at)}</span></p>
 						</div>
 					</div>
-					<span class="text-[10px] px-1.5 py-0.5 rounded font-mono
-						{incident.status === 'open' ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}">
-						{incident.status}
-					</span>
+					<Pill tone={incident.status === 'open' ? 'down' : 'warn'}>{incident.status}</Pill>
 				</div>
 			{/each}
 		</div>

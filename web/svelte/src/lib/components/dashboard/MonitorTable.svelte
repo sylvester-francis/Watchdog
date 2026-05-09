@@ -3,7 +3,9 @@
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary } from '$lib/types';
 	import UptimeChecks from './UptimeChecks.svelte';
-	import Sparkline from './Sparkline.svelte';
+	import Sparkline from '$lib/ui/Sparkline.svelte';
+	import StatusDot from '$lib/ui/StatusDot.svelte';
+	import Pill from '$lib/ui/Pill.svelte';
 
 	interface Props {
 		monitors: MonitorSummary[];
@@ -113,14 +115,14 @@
 		{#each monitors as m (m.id)}
 			<a href="/monitors/{m.id}" class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group">
 				<div class="w-5 shrink-0 flex justify-center">
-					<div class="w-2 h-2 rounded-full
-						{m.status === 'up' ? 'bg-emerald-400 animate-pulse' : m.status === 'down' ? 'bg-red-400' : 'bg-muted-foreground'}"
-						aria-label="Status: {m.status}"></div>
+					<StatusDot status={m.status === 'up' || m.status === 'down' || m.status === 'warn' ? m.status : 'unknown'} pulse={m.status === 'up'} />
 				</div>
 				<div class="flex-1 min-w-0 ml-2">
 					<div class="flex items-center space-x-2">
 						<span class="text-sm text-foreground truncate">{m.name}</span>
-						<span class="text-[9px] text-muted-foreground font-mono uppercase shrink-0 px-1.5 py-0.5 rounded bg-muted/50">{m.type}</span>
+						<Pill tone="neutral">
+							<span class="text-[9px] font-mono uppercase">{m.type}</span>
+						</Pill>
 					</div>
 					<p class="text-[10px] text-muted-foreground font-mono truncate mt-0.5 hidden sm:block">{m.target}</p>
 				</div>
@@ -143,7 +145,7 @@
 					<!-- Sparkline -->
 					<div class="w-16 shrink-0 hidden md:flex items-center justify-end ml-3">
 						{#if m.latencies?.length > 0}
-							<Sparkline values={m.latencies} color={sparkColor(m.status)} />
+							<Sparkline data={m.latencies} color={sparkColor(m.status)} />
 						{:else}
 							<span class="text-[9px] text-muted-foreground">No data</span>
 						{/if}
