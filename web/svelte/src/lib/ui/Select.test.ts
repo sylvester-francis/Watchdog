@@ -12,4 +12,19 @@ describe('Select', () => {
     const { container } = render(Select, { props: { disabled: true } });
     expect(container.querySelector('select')).toBeDisabled();
   });
+
+  it('applies error styling', () => {
+    const { container } = render(Select, { props: { error: true } });
+    expect(container.querySelector('select')!.className).toContain('border-destructive');
+  });
+
+  it('reflects error onto aria-invalid', () => {
+    const { container } = render(Select, { props: { error: true } });
+    expect(container.querySelector('select')!.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('exposes focus ring class', () => {
+    const { container } = render(Select);
+    expect(container.querySelector('select')!.className).toContain('focus:ring-2');
+  });
 });

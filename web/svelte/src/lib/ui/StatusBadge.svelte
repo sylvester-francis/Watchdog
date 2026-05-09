@@ -20,7 +20,7 @@
   };
 </script>
 
-<span data-status={status} class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs">
+<span data-status={status} class="ui-status-badge inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs">
   <span aria-hidden="true">{glyph[status]}</span>
   {@render children?.()}
 </span>
