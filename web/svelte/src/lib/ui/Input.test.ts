@@ -49,4 +49,26 @@ describe('Input', () => {
     const { container } = render(Input);
     expect(container.querySelector('input')!.className).toContain('focus:ring-2');
   });
+
+  it('forwards min, max, step attributes for number inputs', () => {
+    const { container } = render(Input, { props: { type: 'number', min: 5, max: 3600, step: 1 } });
+    const input = container.querySelector('input')!;
+    expect(input.getAttribute('min')).toBe('5');
+    expect(input.getAttribute('max')).toBe('3600');
+    expect(input.getAttribute('step')).toBe('1');
+  });
+
+  it('omits min, max, step when not provided', () => {
+    const { container } = render(Input);
+    const input = container.querySelector('input')!;
+    expect(input.hasAttribute('min')).toBe(false);
+    expect(input.hasAttribute('max')).toBe(false);
+    expect(input.hasAttribute('step')).toBe(false);
+  });
+
+  it('accepts numeric value', () => {
+    const { container } = render(Input, { props: { type: 'number', value: 42 } });
+    const input = container.querySelector('input') as HTMLInputElement;
+    expect(input.value).toBe('42');
+  });
 });
