@@ -31,4 +31,20 @@ describe('/monitors page', () => {
     const { container } = render(Page);
     expect(container).toBeInTheDocument();
   });
+
+  it('renders a primary Button for the header New Monitor CTA', async () => {
+    const { container } = render(Page);
+    await new Promise(r => setTimeout(r, 50));
+    const buttons = Array.from(container.querySelectorAll('button[data-variant="primary"]'));
+    const headerBtn = buttons.find(b => b.textContent?.includes('New Monitor'));
+    expect(headerBtn).toBeTruthy();
+  });
+
+  it('renders a primary Button for the empty-state Create Monitor CTA when no monitors', async () => {
+    const { container } = render(Page);
+    await new Promise(r => setTimeout(r, 50));
+    const buttons = Array.from(container.querySelectorAll('button[data-variant="primary"]'));
+    const emptyBtn = buttons.find(b => b.textContent?.includes('Create Monitor'));
+    expect(emptyBtn).toBeTruthy();
+  });
 });

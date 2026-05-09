@@ -17,6 +17,7 @@
 	import Sparkline from '$lib/ui/Sparkline.svelte';
 	import StatusDot from '$lib/ui/StatusDot.svelte';
 	import Pill from '$lib/ui/Pill.svelte';
+	import Button from '$lib/ui/Button.svelte';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -249,13 +250,12 @@
 					{summaries.length} monitor{summaries.length !== 1 ? 's' : ''} configured
 				</p>
 			</div>
-			<button
-				onclick={() => { showCreateModal = true; }}
-				class="flex items-center space-x-1.5 px-3 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-			>
-				<Plus class="w-3.5 h-3.5" />
-				<span>New Monitor</span>
-			</button>
+			<Button variant="primary" size="sm" onclick={() => { showCreateModal = true; }}>
+				<span class="flex items-center gap-1.5">
+					<Plus class="w-3.5 h-3.5" />
+					<span>New Monitor</span>
+				</span>
+			</Button>
 		</div>
 
 		<!-- Filter bar -->
@@ -297,13 +297,12 @@
 					<p class="text-xs text-muted-foreground mb-4">
 						Create a monitor to start tracking your services and infrastructure.
 					</p>
-					<button
-						onclick={() => { showCreateModal = true; }}
-						class="inline-flex items-center space-x-1.5 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-					>
-						<Plus class="w-3.5 h-3.5" />
-						<span>Create Monitor</span>
-					</button>
+					<Button variant="primary" size="md" onclick={() => { showCreateModal = true; }}>
+						<span class="inline-flex items-center gap-1.5">
+							<Plus class="w-3.5 h-3.5" />
+							<span>Create Monitor</span>
+						</span>
+					</Button>
 				</div>
 			</div>
 		{:else if filtered.length === 0}
