@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { ArrowLeft, AlertCircle, Copy, Check } from 'lucide-svelte';
+	import { ArrowLeft, AlertCircle, Copy, Check, RefreshCw } from 'lucide-svelte';
+	import { Button, EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { Span } from '$lib/types';
 	import Waterfall from '$lib/components/traces/Waterfall.svelte';
@@ -124,25 +125,26 @@
 		</div>
 	{:else if loadError}
 		<div class="bg-card border border-border rounded-lg">
-			<div class="p-12 text-center">
-				<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-					<AlertCircle class="w-6 h-6 text-red-400/70" />
-				</div>
-				<p class="text-sm font-medium text-foreground mb-1">Couldn't load trace</p>
-				<p class="text-xs text-muted-foreground mb-4 font-mono">{loadError}</p>
-				<button
-					onclick={loadTrace}
-					class="inline-flex items-center space-x-1.5 px-4 py-2 bg-muted/50 hover:bg-muted text-xs font-medium rounded-md transition-colors text-foreground"
-				>
-					Try again
-				</button>
-			</div>
+			<EmptyState
+				title="Couldn't load trace"
+				description={loadError}
+			>
+				{#snippet icon()}
+					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+						<AlertCircle class="w-6 h-6 text-red-400/70" />
+					</div>
+				{/snippet}
+				{#snippet cta()}
+					<Button variant="secondary" onclick={loadTrace}>
+						<RefreshCw class="w-3.5 h-3.5" />
+						<span>Try again</span>
+					</Button>
+				{/snippet}
+			</EmptyState>
 		</div>
 	{:else if spans.length === 0}
 		<div class="bg-card border border-border rounded-lg">
-			<div class="p-12 text-center">
-				<p class="text-sm text-muted-foreground">Trace not found.</p>
-			</div>
+			<EmptyState title="Trace not found" />
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 lg:grid-cols-[1fr_minmax(320px,420px)] gap-4">
