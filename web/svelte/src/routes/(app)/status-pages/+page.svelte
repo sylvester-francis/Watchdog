@@ -213,13 +213,15 @@
 								</a>
 
 								<!-- Delete -->
-								<button
+								<Button
+									size="xs"
+									tone="down"
 									onclick={() => handleDelete(sp.id)}
-									class="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground/40 hover:text-red-400 transition-colors"
+									aria-label="Delete status page"
 									title="Delete status page"
 								>
 									<Trash2 class="w-3.5 h-3.5" />
-								</button>
+								</Button>
 							</div>
 						</div>
 					{/each}

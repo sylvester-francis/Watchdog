@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check, ChevronDown } from 'lucide-svelte';
-	import { Button, EmptyState, Input } from '@sylvester-francis/watchdog-ui';
+	import { Button, EmptyState, Input, Select } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -228,15 +228,13 @@
 				<span>Errors only</span>
 			</label>
 
-			<select
-				bind:value={autoRefresh}
-				class="text-xs bg-card border border-border rounded-md px-2 py-1.5 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-				aria-label="Auto-refresh"
-			>
-				{#each refreshOptions as r}
-					<option value={r.value}>↻ {r.label}</option>
-				{/each}
-			</select>
+			<div class="w-28">
+				<Select bind:value={autoRefresh} size="sm" aria-label="Auto-refresh">
+					{#each refreshOptions as r}
+						<option value={r.value}>↻ {r.label}</option>
+					{/each}
+				</Select>
+			</div>
 		</div>
 	</div>
 
