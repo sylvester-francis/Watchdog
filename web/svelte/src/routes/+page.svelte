@@ -8,6 +8,7 @@
 		Database, Radio, LayoutDashboard, ShieldOff, Scan, Lock, Copy, Check,
 		Target, Shield, Search, Wrench, GitBranch
 	} from 'lucide-svelte';
+	import { Button } from '@sylvester-francis/watchdog-ui';
 
 	const auth = getAuth();
 	let checking = $state(true);
@@ -181,13 +182,20 @@
 				<a href="/login" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
 				<a href="/register" class="px-3.5 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Deploy Free</a>
 			</div>
-			<button onclick={() => { mobileOpen = !mobileOpen; }} class="sm:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors" aria-label="Toggle navigation menu">
-				{#if mobileOpen}
-					<X class="w-5 h-5" />
-				{:else}
-					<Menu class="w-5 h-5" />
-				{/if}
-			</button>
+			<div class="sm:hidden">
+				<Button
+					variant="ghost"
+					size="xs"
+					onclick={() => { mobileOpen = !mobileOpen; }}
+					aria-label="Toggle navigation menu"
+				>
+					{#if mobileOpen}
+						<X class="w-5 h-5" />
+					{:else}
+						<Menu class="w-5 h-5" />
+					{/if}
+				</Button>
+			</div>
 		</div>
 		{#if mobileOpen}
 			<div class="sm:hidden border-t border-border bg-background/95 backdrop-blur-sm">
@@ -239,13 +247,18 @@
 								<div class="w-2 h-2 rounded-full bg-emerald-500/60"></div>
 								<span class="text-[10px] text-muted-foreground ml-1 font-mono">terminal</span>
 							</div>
-							<button onclick={copyInstall} class="text-muted-foreground hover:text-foreground transition-colors p-1 rounded" aria-label="Copy install command">
+							<Button
+								variant="ghost"
+								size="xs"
+								onclick={copyInstall}
+								aria-label="Copy install command"
+							>
 								{#if copied}
 									<Check class="w-3.5 h-3.5 text-emerald-400" />
 								{:else}
 									<Copy class="w-3.5 h-3.5" />
 								{/if}
-							</button>
+							</Button>
 						</div>
 						<div class="font-mono text-xs sm:text-sm text-muted-foreground leading-relaxed overflow-x-auto">
 							<div class="whitespace-nowrap"><span class="text-muted-foreground/50">$</span> <span class="text-foreground">curl -sSL https://usewatchdog.dev/install | sh</span></div>
