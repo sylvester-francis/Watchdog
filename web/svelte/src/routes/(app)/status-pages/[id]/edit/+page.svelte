@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { ChevronRight, AlertCircle } from 'lucide-svelte';
+	import { Button, FormField } from '@sylvester-francis/watchdog-ui';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { StatusPage } from '$lib/types';
@@ -31,9 +32,6 @@
 	let selectedMonitorIds = $state<Set<string>>(new Set());
 
 	let pageId = $derived(page.params.id ?? '');
-
-	const inputClass = 'w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background';
-	const labelClass = 'block text-xs font-medium text-muted-foreground mb-1.5';
 
 	function statusDotClass(status: string): string {
 		if (status === 'up') return 'bg-emerald-400';
@@ -176,29 +174,27 @@
 					{/if}
 
 					<!-- Name -->
-					<div>
-						<label for="sp-name" class={labelClass}>Name</label>
+					<FormField label="Name" htmlFor="sp-name" required>
 						<input
 							id="sp-name"
 							type="text"
 							bind:value={name}
 							required
 							placeholder="My Status Page"
-							class={inputClass}
+							class="w-full bg-card-elevated border border-border rounded px-3 py-2 text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
 						/>
-					</div>
+					</FormField>
 
 					<!-- Description -->
-					<div>
-						<label for="sp-description" class={labelClass}>Description</label>
+					<FormField label="Description" htmlFor="sp-description">
 						<textarea
 							id="sp-description"
 							bind:value={description}
 							placeholder="A brief description of what this status page covers..."
 							rows="3"
-							class={inputClass}
+							class="w-full bg-card-elevated border border-border rounded px-3 py-2 text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
 						></textarea>
-					</div>
+					</FormField>
 
 					<!-- Public toggle -->
 					<div class="flex items-center space-x-3">
@@ -271,13 +267,9 @@
 					>
 						Cancel
 					</a>
-					<button
-						type="submit"
-						disabled={saving}
-						class="px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-					>
+					<Button variant="primary" type="submit" disabled={saving}>
 						{saving ? 'Saving...' : 'Save Changes'}
-					</button>
+					</Button>
 				</div>
 			</form>
 		</div>

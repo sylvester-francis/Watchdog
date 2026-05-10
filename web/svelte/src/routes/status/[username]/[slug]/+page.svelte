@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { ShieldCheck, Activity, CheckCircle2, Bell } from 'lucide-svelte';
+	import { EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import type { PublicStatusPageData, PublicMonitorData, PublicIncidentData } from '$lib/types';
 
@@ -150,9 +151,12 @@
 			</div>
 		</div>
 	{:else if error}
-		<div class="max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
-			<Activity class="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-			<p class="text-sm text-muted-foreground">{error}</p>
+		<div class="max-w-3xl mx-auto px-4 sm:px-6 py-20">
+			<EmptyState description={error}>
+				{#snippet icon()}
+					<Activity class="w-8 h-8 text-muted-foreground/30" />
+				{/snippet}
+			</EmptyState>
 		</div>
 	{:else if data}
 		<div class="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
