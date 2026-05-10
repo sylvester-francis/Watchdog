@@ -13,7 +13,9 @@
 
 	let { open, loading, investigation, onClose }: Props = $props();
 
-	let isMobile = $state(false);
+	let isMobile = $state(
+		typeof window !== 'undefined' && !window.matchMedia('(min-width: 1024px)').matches
+	);
 
 	$effect(() => {
 		if (typeof window === 'undefined') return;
@@ -31,7 +33,7 @@
 </script>
 
 {#if isMobile}
-	<BottomSheet {open} onclose={onClose}>
+	<BottomSheet {open} height="full" onclose={onClose}>
 		<div class="shrink-0 border-b border-border px-5 pb-3 flex items-center justify-between">
 			<h2 class="text-sm font-semibold text-foreground">Incident Investigation</h2>
 			<button
