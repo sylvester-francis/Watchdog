@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check, ChevronDown } from 'lucide-svelte';
+	import { Button, EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -259,31 +260,32 @@
 		</div>
 	{:else if loadError}
 		<div class="bg-card border border-border rounded-lg">
-			<div class="p-12 text-center">
-				<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-					<AlertCircle class="w-6 h-6 text-red-400/70" />
-				</div>
-				<p class="text-sm font-medium text-foreground mb-1">Couldn't load traces</p>
-				<p class="text-xs text-muted-foreground mb-4 font-mono">{loadError}</p>
-				<button
-					onclick={() => applyFilters()}
-					class="inline-flex items-center space-x-1.5 px-4 py-2 bg-muted/50 hover:bg-muted text-xs font-medium rounded-md transition-colors text-foreground"
-				>
-					<RefreshCw class="w-3.5 h-3.5" />
-					<span>Try again</span>
-				</button>
-			</div>
+			<EmptyState
+				title="Couldn't load traces"
+				description={loadError}
+			>
+				{#snippet icon()}
+					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+						<AlertCircle class="w-6 h-6 text-red-400/70" />
+					</div>
+				{/snippet}
+				{#snippet cta()}
+					<Button variant="secondary" onclick={() => applyFilters()}>
+						<RefreshCw class="w-3.5 h-3.5" />
+						<span>Try again</span>
+					</Button>
+				{/snippet}
+			</EmptyState>
 		</div>
 	{:else if filtered.length === 0}
-		<div class="bg-card border border-border rounded-lg">
-			<div class="p-12 text-center">
-				<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-					<GitBranch class="w-6 h-6 text-muted-foreground/40" />
-				</div>
-				<p class="text-sm font-medium text-foreground mb-1">
-					{summaries.length === 0 ? 'No traces ingested in this window' : 'No matches'}
-				</p>
-				{#if summaries.length === 0}
+		{#if summaries.length === 0}
+			<div class="bg-card border border-border rounded-lg">
+				<EmptyState title="No traces ingested in this window">
+					{#snippet icon()}
+						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+							<GitBranch class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+					{/snippet}
 					<p class="text-xs text-muted-foreground mb-1">
 						Configure your OTLP exporter to point at this Hub.
 					</p>
@@ -292,13 +294,22 @@
 						<div><span class="text-muted-foreground/60">headers</span> &nbsp; <span class="text-foreground">Authorization: Bearer wd_…</span></div>
 						<div><span class="text-muted-foreground/60">scope</span> &nbsp;&nbsp;&nbsp;<span class="text-foreground">telemetry_ingest</span></div>
 					</div>
-				{:else}
-					<p class="text-xs text-muted-foreground">
-						No traces match the current filter. Try widening the time range or clearing the service filter.
-					</p>
-				{/if}
+				</EmptyState>
 			</div>
-		</div>
+		{:else}
+			<div class="bg-card border border-border rounded-lg">
+				<EmptyState
+					title="No matches"
+					description="No traces match the current filter. Try widening the time range or clearing the service filter."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+							<GitBranch class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+					{/snippet}
+				</EmptyState>
+			</div>
+		{/if}
 	{:else}
 		<div class="bg-card border border-border rounded-lg overflow-hidden">
 			<!-- Column headers -->
@@ -384,10 +395,10 @@
 		<!-- Pagination control: dedicated row below the table for visibility. -->
 		<div class="mt-4 flex justify-center">
 			{#if hasMore}
-				<button
-					onclick={() => void loadMore()}
+				<Button
+					variant="outline"
 					disabled={loadingMore}
-					class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-border bg-card hover:bg-card-elevated hover:border-foreground/20 text-xs font-medium text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					onclick={() => void loadMore()}
 				>
 					{#if loadingMore}
 						<RefreshCw class="w-3.5 h-3.5 animate-spin" />
@@ -396,7 +407,7 @@
 						<ChevronDown class="w-3.5 h-3.5" />
 						<span>Load older traces</span>
 					{/if}
-				</button>
+				</Button>
 			{:else}
 				<span class="text-[11px] text-muted-foreground/60 font-mono">— end of {timeRange} window —</span>
 			{/if}
