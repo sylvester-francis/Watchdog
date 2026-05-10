@@ -3,9 +3,9 @@
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary } from '$lib/types';
 	import UptimeChecks from './UptimeChecks.svelte';
-	import Sparkline from '$lib/ui/Sparkline.svelte';
-	import StatusDot from '$lib/ui/StatusDot.svelte';
-	import Pill from '$lib/ui/Pill.svelte';
+	import { Sparkline } from '@sylvester-francis/watchdog-ui';
+	import { StatusDot } from '@sylvester-francis/watchdog-ui';
+	import { Pill } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		monitors: MonitorSummary[];

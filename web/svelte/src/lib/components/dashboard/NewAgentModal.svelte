@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Copy, Check, X } from 'lucide-svelte';
 	import { agents as agentsApi } from '$lib/api';
-	import Modal from '$lib/ui/Modal.svelte';
-	import Button from '$lib/ui/Button.svelte';
-	import Input from '$lib/ui/Input.svelte';
-	import FormField from '$lib/ui/FormField.svelte';
+	import { Modal } from '@sylvester-francis/watchdog-ui';
+	import { Button } from '@sylvester-francis/watchdog-ui';
+	import { Input } from '@sylvester-francis/watchdog-ui';
+	import { FormField } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		open: boolean;

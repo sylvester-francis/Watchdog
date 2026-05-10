@@ -14,10 +14,10 @@
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary, Agent, MonitorType } from '$lib/types';
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
-	import Sparkline from '$lib/ui/Sparkline.svelte';
-	import StatusDot from '$lib/ui/StatusDot.svelte';
-	import Pill from '$lib/ui/Pill.svelte';
-	import Button from '$lib/ui/Button.svelte';
+	import { Sparkline } from '@sylvester-francis/watchdog-ui';
+	import { StatusDot } from '@sylvester-francis/watchdog-ui';
+	import { Pill } from '@sylvester-francis/watchdog-ui';
+	import { Button } from '@sylvester-francis/watchdog-ui';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal/index.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';

@@ -2,8 +2,8 @@
 	import { Server } from 'lucide-svelte';
 	import { formatTimeAgo } from '$lib/utils';
 	import type { Agent, DashboardStats } from '$lib/types';
-	import Button from '$lib/ui/Button.svelte';
-	import Pill from '$lib/ui/Pill.svelte';
+	import { Button } from '@sylvester-francis/watchdog-ui';
+	import { Pill } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		agents: Agent[];

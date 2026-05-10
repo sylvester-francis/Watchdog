@@ -2,11 +2,11 @@
 	import { X, AlertCircle } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import type { Monitor, Agent } from '$lib/types';
-	import Modal from '$lib/ui/Modal.svelte';
-	import FormField from '$lib/ui/FormField.svelte';
-	import Input from '$lib/ui/Input.svelte';
-	import Select from '$lib/ui/Select.svelte';
-	import Button from '$lib/ui/Button.svelte';
+	import { Modal } from '@sylvester-francis/watchdog-ui';
+	import { FormField } from '@sylvester-francis/watchdog-ui';
+	import { Input } from '@sylvester-francis/watchdog-ui';
+	import { Select } from '@sylvester-francis/watchdog-ui';
+	import { Button } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		open: boolean;

@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss';
-import { watchdogTokens as t } from './src/lib/tokens/watchdog';
+import { watchdogTokens as t } from '@sylvester-francis/watchdog-ui/tokens';
 
 const config: Config = {
   darkMode: 'class',

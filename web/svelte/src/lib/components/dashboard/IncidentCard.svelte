@@ -2,7 +2,7 @@
 	import { AlertCircle, Clock, CheckCircle2, ArrowRight } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
 	import type { Incident, MonitorSummary } from '$lib/types';
-	import Pill from '$lib/ui/Pill.svelte';
+	import { Pill } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		incidents: Incident[];

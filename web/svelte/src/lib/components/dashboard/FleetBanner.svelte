@@ -2,7 +2,7 @@
 	import { MinusCircle } from 'lucide-svelte';
 	import { formatPercent, uptimeColor } from '$lib/utils';
 	import type { DashboardStats } from '$lib/types';
-	import Pill from '$lib/ui/Pill.svelte';
+	import { Pill } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		stats: DashboardStats;

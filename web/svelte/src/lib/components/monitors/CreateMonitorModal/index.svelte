@@ -3,8 +3,8 @@
 	import { monitors as monitorsApi } from '$lib/api';
 	import type { Agent, MonitorType, DeviceTemplate } from '$lib/types';
 	import { onMount } from 'svelte';
-	import Modal from '$lib/ui/Modal.svelte';
-	import Button from '$lib/ui/Button.svelte';
+	import { Modal } from '@sylvester-francis/watchdog-ui';
+	import { Button } from '@sylvester-francis/watchdog-ui';
 	import SharedFields from './SharedFields.svelte';
 	import HTTPSection from './HTTPSection.svelte';
 	import DatabaseSection from './DatabaseSection.svelte';

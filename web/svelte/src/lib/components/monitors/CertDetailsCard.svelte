@@ -3,7 +3,7 @@
 	import { getCertDetails } from '$lib/api/monitors';
 	import type { CertDetails } from '$lib/types';
 	import { onMount } from 'svelte';
-	import Pill from '$lib/ui/Pill.svelte';
+	import { Pill } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		monitorId: string;
