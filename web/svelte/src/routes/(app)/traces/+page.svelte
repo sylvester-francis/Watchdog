@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check, ChevronDown } from 'lucide-svelte';
-	import { Button, EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { Button, EmptyState, Input } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -189,14 +189,10 @@
 			<h1 class="text-lg font-semibold text-foreground">Traces</h1>
 			<p class="text-xs text-muted-foreground mt-0.5">Distributed traces ingested via OTLP</p>
 		</div>
-		<button
-			onclick={() => applyFilters()}
-			class="flex items-center space-x-1.5 px-3 py-2 bg-muted/50 hover:bg-muted text-xs font-medium rounded-md transition-colors text-foreground"
-			aria-label="Refresh"
-		>
-			<RefreshCw class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''}" />
-			<span>Refresh</span>
-		</button>
+		<Button variant="secondary" onclick={() => applyFilters()} aria-label="Refresh">
+			<RefreshCw class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''} mr-1.5" />
+			Refresh
+		</Button>
 	</div>
 
 	<!-- Filter bar -->
@@ -215,14 +211,12 @@
 		</div>
 
 		<div class="flex items-center gap-2 sm:ml-auto">
-			<div class="relative">
-				<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
-				<input
-					type="text"
-					bind:value={serviceFilter}
-					placeholder="Filter by service..."
-					class="w-44 sm:w-56 pl-8 pr-3 py-1.5 bg-card border border-border rounded-md text-xs text-foreground placeholder-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring font-mono"
-				/>
+			<div class="w-44 sm:w-56">
+				<Input bind:value={serviceFilter} placeholder="Filter by service...">
+					{#snippet iconLeft()}
+						<Search class="w-3.5 h-3.5" />
+					{/snippet}
+				</Input>
 			</div>
 
 			<label class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none">
