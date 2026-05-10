@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Server, History, Cpu, Shield } from 'lucide-svelte';
 	import type { IncidentInvestigation } from '$lib/types';
-	import { Pill, StatusDot } from '$lib/ui';
+	import { Pill, StatusDot } from '@sylvester-francis/watchdog-ui';
 	import IncidentTimeline from './IncidentTimeline.svelte';
 
 	interface Props {

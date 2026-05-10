@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Agent, MonitorType } from '$lib/types';
-	import FormField from '$lib/ui/FormField.svelte';
-	import Input from '$lib/ui/Input.svelte';
-	import Select from '$lib/ui/Select.svelte';
+	import { FormField } from '@sylvester-francis/watchdog-ui';
+	import { Input } from '@sylvester-francis/watchdog-ui';
+	import { Select } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		name: string;

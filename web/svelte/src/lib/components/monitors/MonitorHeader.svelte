@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Pencil } from 'lucide-svelte';
 	import type { Monitor } from '$lib/types';
-	import Pill from '$lib/ui/Pill.svelte';
-	import Button from '$lib/ui/Button.svelte';
+	import { Pill } from '@sylvester-francis/watchdog-ui';
+	import { Button } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		monitor: Monitor;

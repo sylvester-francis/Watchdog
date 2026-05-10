@@ -1,6 +1,6 @@
 <script lang="ts">
-	import FormField from '$lib/ui/FormField.svelte';
-	import Input from '$lib/ui/Input.svelte';
+	import { FormField } from '@sylvester-francis/watchdog-ui';
+	import { Input } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		portScanPorts: string;

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Loader2, AlertTriangle, Eye, CheckCircle2, Search } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
-	import { Pill, StatusDot, Button } from '$lib/ui';
+	import { Pill, StatusDot, Button } from '@sylvester-francis/watchdog-ui';
 	import type { Incident, MonitorSummary } from '$lib/types';
 
 	interface Props {

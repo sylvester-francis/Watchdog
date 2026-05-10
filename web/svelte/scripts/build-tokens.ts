@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { tokensToCSS } from '../src/lib/tokens';
+import { watchdogTokensToCSS as tokensToCSS } from '@sylvester-francis/watchdog-ui/tokens';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../src/styles/theme-watchdog.css');

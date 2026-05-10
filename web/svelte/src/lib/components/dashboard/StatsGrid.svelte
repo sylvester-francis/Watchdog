@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { formatPercent, uptimeColor } from '$lib/utils';
-	import StatBlock from '$lib/ui/StatBlock.svelte';
+	import { StatBlock } from '@sylvester-francis/watchdog-ui';
 	import type { DashboardStats } from '$lib/types';
 
 	interface Props {

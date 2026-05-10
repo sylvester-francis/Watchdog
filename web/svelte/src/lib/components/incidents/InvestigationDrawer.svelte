@@ -2,7 +2,7 @@
 	import { X, Loader2 } from 'lucide-svelte';
 	import type { IncidentInvestigation } from '$lib/types';
 	import InvestigationPanel from './InvestigationPanel.svelte';
-	import { Sheet, BottomSheet } from '$lib/ui';
+	import { Sheet, BottomSheet } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		open: boolean;
