@@ -13,18 +13,20 @@
 
 	let { open, loading, investigation, onClose }: Props = $props();
 
+	const TOUCH_QUERY = '(hover: none) and (pointer: coarse)';
+
 	let isMobile = $state(
-		typeof window !== 'undefined' && !window.matchMedia('(min-width: 1024px)').matches
+		typeof window !== 'undefined' && window.matchMedia(TOUCH_QUERY).matches
 	);
 
 	$effect(() => {
 		if (typeof window === 'undefined') return;
 
-		const mql = window.matchMedia('(min-width: 1024px)');
-		isMobile = !mql.matches;
+		const mql = window.matchMedia(TOUCH_QUERY);
+		isMobile = mql.matches;
 
 		function handleChange(e: MediaQueryListEvent) {
-			isMobile = !e.matches;
+			isMobile = e.matches;
 		}
 		mql.addEventListener('change', handleChange);
 
