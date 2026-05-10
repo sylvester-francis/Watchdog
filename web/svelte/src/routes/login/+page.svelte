@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { ShieldCheck, Server, Activity, BellRing, AlertCircle, CheckCircle2 } from 'lucide-svelte';
+	import { FormField } from '@sylvester-francis/watchdog-ui';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { page } from '$app/state';
 
@@ -138,8 +139,7 @@
 				{/if}
 
 				<form onsubmit={handleSubmit} class="space-y-4">
-					<div>
-						<label for="email" class="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
+					<FormField label="Email" htmlFor="email" required>
 						<input
 							type="email"
 							id="email"
@@ -149,22 +149,24 @@
 							class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
 							placeholder="you@example.com"
 						/>
-					</div>
+					</FormField>
 
 					<div>
 						<div class="flex items-center justify-between mb-1.5">
 							<label for="password" class="block text-xs font-medium text-muted-foreground">Password</label>
 							<span class="text-[10px] text-muted-foreground/40 cursor-default" title="Coming soon">Forgot password?</span>
 						</div>
-						<input
-							type="password"
-							id="password"
-							bind:value={password}
-							required
-							autocomplete="current-password"
-							class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
-							placeholder="Enter your password"
-						/>
+						<FormField htmlFor="password">
+							<input
+								type="password"
+								id="password"
+								bind:value={password}
+								required
+								autocomplete="current-password"
+								class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+								placeholder="Enter your password"
+							/>
+						</FormField>
 					</div>
 
 					<button
