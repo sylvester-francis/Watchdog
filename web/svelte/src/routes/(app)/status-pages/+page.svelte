@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Plus, Globe, ExternalLink, Pencil, Trash2 } from 'lucide-svelte';
+	import { Button, EmptyState, Pill } from '@sylvester-francis/watchdog-ui';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -124,34 +125,31 @@
 					{statusPages.length} status page{statusPages.length !== 1 ? 's' : ''} configured
 				</p>
 			</div>
-			<button
-				onclick={() => { showCreateModal = true; }}
-				class="flex items-center space-x-1.5 px-3 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-			>
-				<Plus class="w-3.5 h-3.5" />
-				<span>New Status Page</span>
-			</button>
+			<Button variant="primary" onclick={() => { showCreateModal = true; }}>
+				<Plus class="w-3.5 h-3.5 mr-1.5" />
+				New Status Page
+			</Button>
 		</div>
 
 		{#if statusPages.length === 0}
 			<!-- Empty state -->
 			<div class="bg-card border border-border rounded-lg">
-				<div class="p-12 text-center">
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-						<Globe class="w-6 h-6 text-muted-foreground/40" />
-					</div>
-					<p class="text-sm font-medium text-foreground mb-1">No status pages</p>
-					<p class="text-xs text-muted-foreground mb-4">
-						Create a public status page to share your service health with your users.
-					</p>
-					<button
-						onclick={() => { showCreateModal = true; }}
-						class="inline-flex items-center space-x-1.5 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-					>
-						<Plus class="w-3.5 h-3.5" />
-						<span>Create Status Page</span>
-					</button>
-				</div>
+				<EmptyState
+					title="No status pages"
+					description="Create a public status page to share your service health with your users."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+							<Globe class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+					{/snippet}
+					{#snippet cta()}
+						<Button variant="primary" onclick={() => { showCreateModal = true; }}>
+							<Plus class="w-3.5 h-3.5 mr-1.5" />
+							Create Status Page
+						</Button>
+					{/snippet}
+				</EmptyState>
 			</div>
 		{:else}
 			<!-- Status pages list -->
@@ -164,13 +162,9 @@
 								<div class="flex items-center space-x-2 mb-0.5">
 									<span class="text-sm text-foreground font-medium truncate">{sp.name}</span>
 									{#if sp.is_public}
-										<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
-											Public
-										</span>
+										<Pill tone="up">Public</Pill>
 									{:else}
-										<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
-											Private
-										</span>
+										<Pill tone="neutral">Private</Pill>
 									{/if}
 								</div>
 								{#if sp.is_public && username}
