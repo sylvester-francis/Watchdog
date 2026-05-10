@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { ShieldCheck, AlertCircle, Server, Activity, BellRing } from 'lucide-svelte';
+	import { FormField } from '@sylvester-francis/watchdog-ui';
 	import { getAuth } from '$lib/stores/auth.svelte';
 
 	const auth = getAuth();
@@ -129,24 +130,21 @@
 						<label for="website">Website</label>
 						<input type="text" id="website" name="website" bind:value={honeypot} tabindex="-1" autocomplete="off" />
 					</div>
-					<div>
-						<label for="email" class="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
+					<FormField label="Email" htmlFor="email" required>
 						<input type="email" id="email" bind:value={email} required autocomplete="email"
 							class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
 							placeholder="you@example.com" />
-					</div>
-					<div>
-						<label for="password" class="block text-xs font-medium text-muted-foreground mb-1.5">Password</label>
+					</FormField>
+					<FormField label="Password" htmlFor="password" required>
 						<input type="password" id="password" bind:value={password} required minlength="8" autocomplete="new-password"
 							class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
 							placeholder="At least 8 characters" />
-					</div>
-					<div>
-						<label for="confirm_password" class="block text-xs font-medium text-muted-foreground mb-1.5">Confirm Password</label>
+					</FormField>
+					<FormField label="Confirm Password" htmlFor="confirm_password" required>
 						<input type="password" id="confirm_password" bind:value={confirmPassword} required minlength="8" autocomplete="new-password"
 							class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
 							placeholder="Confirm your password" />
-					</div>
+					</FormField>
 
 					<button type="submit" disabled={submitting}
 						class="w-full py-2.5 bg-accent text-white hover:bg-accent/90 text-sm font-medium rounded-md transition-colors disabled:opacity-50">
