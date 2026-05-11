@@ -14,7 +14,6 @@ import (
 	"github.com/sylvester-francis/watchdog/core/domain"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
-	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 )
 
 // statusPageResponse is the JSON DTO for a status page.
@@ -333,8 +332,10 @@ type publicIncidentResponse struct {
 }
 
 // PublicView handles GET /api/v1/public/status/:username/:slug (no auth required).
+// Honors any tenant ID already set on the request context (used by EE wrapper
+// routes). Falls back to "default" tenant via repository.TenantIDFromContext.
 func (h *StatusPageAPIHandler) PublicView(c echo.Context) error {
-	ctx := repository.WithTenantID(c.Request().Context(), "default")
+	ctx := c.Request().Context()
 	username := c.Param("username")
 	slug := c.Param("slug")
 
