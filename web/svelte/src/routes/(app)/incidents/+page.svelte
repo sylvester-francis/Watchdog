@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-svelte';
+	import { Tabs } from '@sylvester-francis/watchdog-ui';
 	import { incidents as incidentsApi, monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Incident, MonitorSummary, IncidentStatus, IncidentInvestigation } from '$lib/types';
@@ -51,22 +52,11 @@
 	// Tab counts from all incidents
 	let activeCount = $derived(openCount + acknowledgedCount);
 
-	const tabs: { value: FilterTab; label: string }[] = [
-		{ value: 'active', label: 'Active' },
-		{ value: 'resolved', label: 'Resolved' },
-		{ value: 'all', label: 'All' }
-	];
-
-	function tabCount(tab: FilterTab): number {
-		switch (tab) {
-			case 'active':
-				return activeCount;
-			case 'resolved':
-				return resolvedCount;
-			case 'all':
-				return allIncidents.length;
-		}
-	}
+	const tabs = $derived([
+		{ value: 'active' as const, label: `Active ${activeCount}` },
+		{ value: 'resolved' as const, label: `Resolved ${resolvedCount}` },
+		{ value: 'all' as const, label: `All ${allIncidents.length}` }
+	]);
 
 	function statusParam(tab: FilterTab): string | undefined {
 		switch (tab) {
@@ -245,19 +235,13 @@
 			<IncidentStats open={openCount} acknowledged={acknowledgedCount} resolved={resolvedCount} />
 		</div>
 
-		<!-- Filter tabs -->
-		<div class="flex items-center gap-1 mb-4">
-			{#each tabs as tab}
-				<button
-					onclick={() => handleTabChange(tab.value)}
-					class="flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded-md transition-colors {activeTab === tab.value
-						? 'bg-foreground/[0.08] text-foreground font-medium'
-						: 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'}"
-				>
-					<span>{tab.label}</span>
-					<span class="text-[10px] font-mono {activeTab === tab.value ? 'text-foreground/60' : 'text-muted-foreground/60'}">{tabCount(tab.value)}</span>
-				</button>
-			{/each}
+		<div class="mb-4">
+			<Tabs
+				options={tabs as Array<{ value: string; label: string }>}
+				value={activeTab}
+				variant="pill"
+				onchange={(v) => handleTabChange(v as FilterTab)}
+			/>
 		</div>
 
 		<!-- Incidents table -->
