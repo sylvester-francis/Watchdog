@@ -2,7 +2,6 @@
 	import { X, Loader2 } from 'lucide-svelte';
 	import type { IncidentInvestigation } from '$lib/types';
 	import InvestigationPanel from './InvestigationPanel.svelte';
-	import { Sheet, BottomSheet } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		open: boolean;
@@ -13,30 +12,41 @@
 
 	let { open, loading, investigation, onClose }: Props = $props();
 
-	const NARROW_QUERY = '(max-width: 1023px)';
-
-	let isMobile = $state(
-		typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches
-	);
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && open) onClose();
+	}
 
 	$effect(() => {
-		if (typeof window === 'undefined') return;
-
-		const mql = window.matchMedia(NARROW_QUERY);
-		isMobile = mql.matches;
-
-		function handleChange(e: MediaQueryListEvent) {
-			isMobile = e.matches;
+		if (typeof document === 'undefined') return;
+		if (open) {
+			document.body.style.overflow = 'hidden';
+		} else {
+			document.body.style.overflow = '';
 		}
-		mql.addEventListener('change', handleChange);
-
-		return () => mql.removeEventListener('change', handleChange);
+		return () => {
+			document.body.style.overflow = '';
+		};
 	});
 </script>
 
-{#if isMobile}
-	<BottomSheet {open} height="full" onclose={onClose}>
-		<div class="shrink-0 border-b border-border px-5 pb-3 flex items-center justify-between">
+<svelte:window onkeydown={handleKeydown} />
+
+{#if open}
+	<button
+		type="button"
+		onclick={onClose}
+		aria-label="Close panel"
+		class="fixed inset-0 z-40 bg-black/50"
+	></button>
+
+	<div
+		role="dialog"
+		aria-modal="true"
+		class="fixed z-50 bg-card border-border shadow-2xl overflow-y-auto flex flex-col
+		       inset-x-0 bottom-0 h-[92dvh] border-t rounded-t-2xl
+		       lg:inset-y-0 lg:right-0 lg:bottom-auto lg:left-auto lg:h-full lg:w-full lg:max-w-2xl lg:border-l lg:border-t-0 lg:rounded-none"
+	>
+		<div class="sticky top-0 z-10 shrink-0 bg-background/95 backdrop-blur-sm border-b border-border px-5 py-3 flex items-center justify-between">
 			<h2 class="text-sm font-semibold text-foreground">Incident Investigation</h2>
 			<button
 				type="button"
@@ -57,29 +67,5 @@
 				<InvestigationPanel {investigation} />
 			{/if}
 		</div>
-	</BottomSheet>
-{:else}
-	<Sheet {open} side="right" size="2xl" onclose={onClose}>
-		<div class="sticky top-0 -mx-4 -mt-4 mb-4 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4 flex items-center justify-between z-10">
-			<h2 class="text-sm font-semibold text-foreground">Incident Investigation</h2>
-			<button
-				type="button"
-				onclick={onClose}
-				class="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-				aria-label="Close"
-			>
-				<X class="w-4 h-4" />
-			</button>
-		</div>
-
-		<div class="px-2 pb-2">
-			{#if loading}
-				<div class="flex items-center justify-center py-16">
-					<Loader2 class="w-6 h-6 text-muted-foreground animate-spin" />
-				</div>
-			{:else if investigation}
-				<InvestigationPanel {investigation} />
-			{/if}
-		</div>
-	</Sheet>
+	</div>
 {/if}
