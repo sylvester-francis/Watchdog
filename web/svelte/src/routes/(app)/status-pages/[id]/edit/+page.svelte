@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { ChevronRight, AlertCircle } from 'lucide-svelte';
-	import { Button, FormField } from '@sylvester-francis/watchdog-ui';
+	import { Alert, Button, FormField } from '@sylvester-francis/watchdog-ui';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { StatusPage } from '$lib/types';
@@ -167,10 +167,10 @@
 			<form onsubmit={handleSubmit}>
 				<div class="p-5 space-y-4">
 					{#if error}
-						<div class="bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 flex items-center space-x-2" role="alert">
-							<AlertCircle class="w-3.5 h-3.5 text-destructive flex-shrink-0" />
-							<span class="text-xs text-destructive">{error}</span>
-						</div>
+						<Alert tone="down">
+							{#snippet icon()}<AlertCircle class="w-3.5 h-3.5" />{/snippet}
+							{error}
+						</Alert>
 					{/if}
 
 					<!-- Name -->

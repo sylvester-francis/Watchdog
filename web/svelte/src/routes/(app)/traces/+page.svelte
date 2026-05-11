@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check, ChevronDown } from 'lucide-svelte';
-	import { Button, EmptyState, Input, Select } from '@sylvester-francis/watchdog-ui';
+	import { Button, EmptyState, Input, Select, Tabs } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -197,18 +197,12 @@
 
 	<!-- Filter bar -->
 	<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-		<div class="flex items-center gap-1">
-			{#each timeTabs as t}
-				<button
-					onclick={() => { timeRange = t.value; }}
-					class="px-2.5 py-1 text-xs rounded-md transition-colors {timeRange === t.value
-						? 'bg-foreground/[0.08] text-foreground font-medium'
-						: 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'}"
-				>
-					{t.label}
-				</button>
-			{/each}
-		</div>
+		<Tabs
+			options={timeTabs as Array<{ value: string; label: string }>}
+			value={timeRange}
+			variant="pill"
+			onchange={(v) => { timeRange = v as TimeRange; }}
+		/>
 
 		<div class="flex items-center gap-2 sm:ml-auto">
 			<div class="w-44 sm:w-56">

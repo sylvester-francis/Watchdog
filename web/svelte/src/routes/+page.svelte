@@ -8,7 +8,7 @@
 		Database, Radio, LayoutDashboard, ShieldOff, Scan, Lock, Copy, Check,
 		Target, Shield, Search, Wrench, GitBranch
 	} from 'lucide-svelte';
-	import { Button } from '@sylvester-francis/watchdog-ui';
+	import { Button, LinkButton } from '@sylvester-francis/watchdog-ui';
 
 	const auth = getAuth();
 	let checking = $state(true);
@@ -180,7 +180,7 @@
 			<div class="hidden sm:flex items-center space-x-5">
 				<a href="#features" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
 				<a href="/login" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</a>
-				<a href="/register" class="px-3.5 py-1.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors">Deploy Free</a>
+				<LinkButton href="/register" variant="primary" size="sm">Deploy Free</LinkButton>
 			</div>
 			<div class="sm:hidden">
 				<Button
@@ -230,12 +230,8 @@
 					</p>
 
 					<div class="flex flex-col sm:flex-row gap-3 mb-4 md:mb-5">
-						<a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
-							Deploy Free
-						</a>
-						<a href="#how-it-works" class="w-full sm:w-auto px-5 py-2.5 bg-card border border-border text-foreground hover:bg-card-elevated text-sm font-medium rounded-md transition-colors text-center">
-							See How It Works
-						</a>
+						<LinkButton href="/register" variant="primary" size="sm">Deploy Free</LinkButton>
+						<LinkButton href="#how-it-works" variant="secondary" size="sm">See How It Works</LinkButton>
 					</div>
 
 					<!-- Install snippet -->
@@ -536,12 +532,8 @@
 			<h2 class="text-xl md:text-2xl font-bold text-foreground mb-2 sm:mb-3">Deploy your first agent</h2>
 			<p class="text-sm text-muted-foreground mb-5 sm:mb-6">Sign up, deploy an agent, and start monitoring in a few minutes.</p>
 			<div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-				<a href="/register" class="w-full sm:w-auto px-5 py-2.5 bg-accent text-accent-foreground hover:bg-accent/90 text-sm font-medium rounded-md transition-colors text-center">
-					Deploy Free
-				</a>
-				<a href="#how-it-works" class="w-full sm:w-auto px-5 py-2.5 bg-card border border-border text-foreground hover:bg-card-elevated text-sm font-medium rounded-md transition-colors text-center">
-					See How It Works
-				</a>
+				<LinkButton href="/register" variant="primary" size="sm">Deploy Free</LinkButton>
+				<LinkButton href="#how-it-works" variant="secondary" size="sm">See How It Works</LinkButton>
 			</div>
 		</div>
 	</section>
