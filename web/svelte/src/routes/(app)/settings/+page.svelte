@@ -23,6 +23,7 @@
 		Wrench,
 		Calendar
 	} from 'lucide-svelte';
+	import { EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { settings as settingsApi, maintenance as maintenanceApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
@@ -667,15 +668,25 @@
 
 			<!-- Channel list -->
 			{#if channels.length === 0}
-				<div class="p-4">
-					<div class="text-center py-10">
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+				<EmptyState
+					title="No alert channels"
+					description="Add Discord, Slack, Email, or other integrations to receive incident alerts."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
 							<BellOff class="w-6 h-6 text-muted-foreground/40" />
 						</div>
-						<p class="text-sm text-muted-foreground font-medium">No alert channels</p>
-						<p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Add Discord, Slack, Email, or other integrations to receive incident alerts.</p>
-					</div>
-				</div>
+					{/snippet}
+					{#snippet cta()}
+						<button
+							onclick={() => { showChannelModal = true; }}
+							class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5"
+						>
+							<Plus class="w-3.5 h-3.5" />
+							<span>Add Channel</span>
+						</button>
+					{/snippet}
+				</EmptyState>
 			{:else}
 				<div class="p-4">
 					<div class="space-y-2">
@@ -801,15 +812,25 @@
 
 			<!-- Window list -->
 			{#if maintenanceWindows.length === 0}
-				<div class="p-4">
-					<div class="text-center py-10">
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+				<EmptyState
+					title="No maintenance windows"
+					description="Schedule maintenance to suppress alerts during planned downtime."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
 							<Calendar class="w-6 h-6 text-muted-foreground/40" />
 						</div>
-						<p class="text-sm text-muted-foreground font-medium">No maintenance windows</p>
-						<p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Schedule maintenance to suppress alerts during planned downtime.</p>
-					</div>
-				</div>
+					{/snippet}
+					{#snippet cta()}
+						<button
+							onclick={() => { showMaintenanceModal = true; }}
+							class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5"
+						>
+							<Plus class="w-3.5 h-3.5" />
+							<span>Schedule</span>
+						</button>
+					{/snippet}
+				</EmptyState>
 			{:else}
 				<div class="p-4">
 					<div class="space-y-2">
@@ -886,15 +907,25 @@
 
 			<!-- Token list -->
 			{#if tokens.length === 0}
-				<div class="p-4">
-					<div class="text-center py-10">
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+				<EmptyState
+					title="No API tokens"
+					description="Create tokens for CI/CD pipelines, Grafana, or custom integrations."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
 							<Key class="w-6 h-6 text-muted-foreground/40" />
 						</div>
-						<p class="text-sm text-muted-foreground font-medium">No API tokens</p>
-						<p class="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">Create tokens for CI/CD pipelines, Grafana, or custom integrations.</p>
-					</div>
-				</div>
+					{/snippet}
+					{#snippet cta()}
+						<button
+							onclick={() => { showTokenModal = true; }}
+							class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5"
+						>
+							<Plus class="w-3.5 h-3.5" />
+							<span>New Token</span>
+						</button>
+					{/snippet}
+				</EmptyState>
 			{:else}
 				<div class="p-4">
 					<div class="space-y-2">

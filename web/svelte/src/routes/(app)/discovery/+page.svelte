@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Radar, CheckCircle2, XCircle, Wifi, WifiOff, Loader2 } from 'lucide-svelte';
+	import { EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { discovery as discoveryApi, agents as agentsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Agent, DiscoveryScan, DiscoveredDevice } from '$lib/types';
@@ -290,10 +291,17 @@
 
 	<!-- Empty state -->
 	{#if !loading && scans.length === 0 && activeDevices.length === 0}
-		<div class="bg-card border border-border rounded-lg p-8 text-center">
-			<Radar class="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-			<p class="text-sm text-foreground font-medium mb-1">No scans yet</p>
-			<p class="text-xs text-muted-foreground">Select an agent and subnet above to discover SNMP devices on your network</p>
+		<div class="bg-card border border-border rounded-lg">
+			<EmptyState
+				title="No scans yet"
+				description="Select an agent and subnet above to discover SNMP devices on your network."
+			>
+				{#snippet icon()}
+					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+						<Radar class="w-6 h-6 text-muted-foreground/40" />
+					</div>
+				{/snippet}
+			</EmptyState>
 		</div>
 	{/if}
 </div>

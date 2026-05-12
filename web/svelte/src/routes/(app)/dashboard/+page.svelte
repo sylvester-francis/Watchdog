@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Globe, HardDrive } from 'lucide-svelte';
+	import { Globe, HardDrive, Activity } from 'lucide-svelte';
+	import { Button, EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { goto } from '$app/navigation';
 	import { monitors as monitorsApi, agents as agentsApi, incidents as incidentsApi } from '$lib/api';
 	import { createSSE } from '$lib/stores/sse';
 	import { isInfraMonitor } from '$lib/utils';
@@ -124,21 +126,39 @@
 				<div class="px-4 py-3 border-b border-border">
 					<h2 class="text-sm font-medium text-foreground">Monitor Health</h2>
 				</div>
-				<div class="p-8 text-center">
-					<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
-						<svg class="w-5 h-5 text-muted-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-							<path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-						</svg>
-					</div>
-					{#if stats.total_agents > 0}
-						<p class="text-sm text-foreground font-medium mb-1">You have {stats.total_agents} agent{stats.total_agents > 1 ? 's' : ''} ready</p>
-						<p class="text-xs text-muted-foreground mb-3">Create a monitor to start tracking your services.</p>
-						<a href="/monitors" class="inline-block px-3 py-1.5 bg-accent text-accent-foreground text-xs font-medium rounded-md hover:bg-accent/90 transition-colors">Create Monitor</a>
-					{:else}
-						<p class="text-sm text-foreground font-medium mb-1">No monitors yet</p>
-						<p class="text-xs text-muted-foreground mb-1">Deploy an agent first, then create monitors to track your services.</p>
-					{/if}
-				</div>
+				{#if stats.total_agents > 0}
+					<EmptyState
+						title="You have {stats.total_agents} agent{stats.total_agents > 1 ? 's' : ''} ready"
+						description="Create a monitor to start tracking your services."
+					>
+						{#snippet icon()}
+							<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center">
+								<Activity class="w-5 h-5 text-muted-foreground/40" />
+							</div>
+						{/snippet}
+						{#snippet cta()}
+							<Button variant="primary" size="sm" onclick={() => goto('/monitors')}>
+								Create Monitor
+							</Button>
+						{/snippet}
+					</EmptyState>
+				{:else}
+					<EmptyState
+						title="No monitors yet"
+						description="Deploy an agent first, then create monitors to track your services."
+					>
+						{#snippet icon()}
+							<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center">
+								<Activity class="w-5 h-5 text-muted-foreground/40" />
+							</div>
+						{/snippet}
+						{#snippet cta()}
+							<Button variant="secondary" size="sm" onclick={() => { showAgentModal = true; }}>
+								Deploy Agent
+							</Button>
+						{/snippet}
+					</EmptyState>
+				{/if}
 			</div>
 		{/if}
 

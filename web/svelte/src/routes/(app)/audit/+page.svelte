@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ScrollText, ChevronLeft, ChevronRight, Download, Search, Loader2 } from 'lucide-svelte';
+	import { EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { system as systemApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { AuditLogEntry, PaginationMeta } from '$lib/types';
@@ -232,13 +233,16 @@
 		</div>
 	{:else if filteredLogs.length === 0}
 		<div class="bg-card border border-border rounded-lg">
-			<div class="p-12 text-center">
-				<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-					<ScrollText class="w-6 h-6 text-muted-foreground/40" />
-				</div>
-				<p class="text-sm font-medium text-foreground mb-1">No audit logs found</p>
-				<p class="text-xs text-muted-foreground">Try adjusting your filters or date range.</p>
-			</div>
+			<EmptyState
+				title="No audit logs found"
+				description="Try adjusting your filters or date range."
+			>
+				{#snippet icon()}
+					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+						<ScrollText class="w-6 h-6 text-muted-foreground/40" />
+					</div>
+				{/snippet}
+			</EmptyState>
 		</div>
 	{:else}
 		<div class="bg-card border border-border rounded-lg overflow-x-auto">

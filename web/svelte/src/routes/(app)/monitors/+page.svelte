@@ -18,6 +18,7 @@
 	import { StatusDot } from '@sylvester-francis/watchdog-ui';
 	import { Pill } from '@sylvester-francis/watchdog-ui';
 	import { Button } from '@sylvester-francis/watchdog-ui';
+	import { EmptyState } from '@sylvester-francis/watchdog-ui';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal/index.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -289,34 +290,46 @@
 		{#if summaries.length === 0}
 			<!-- Empty state: no monitors at all -->
 			<div class="bg-card border border-border rounded-lg">
-				<div class="p-12 text-center">
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-						<Activity class="w-6 h-6 text-muted-foreground/40" />
-					</div>
-					<p class="text-sm font-medium text-foreground mb-1">No monitors yet</p>
-					<p class="text-xs text-muted-foreground mb-4">
-						Create a monitor to start tracking your services and infrastructure.
-					</p>
-					<Button variant="primary" size="md" onclick={() => { showCreateModal = true; }}>
-						<span class="inline-flex items-center gap-1.5">
-							<Plus class="w-3.5 h-3.5" />
-							<span>Create Monitor</span>
-						</span>
-					</Button>
-				</div>
+				<EmptyState
+					title="No monitors yet"
+					description="Create a monitor to start tracking your services and infrastructure."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+							<Activity class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+					{/snippet}
+					{#snippet cta()}
+						<Button variant="primary" size="md" onclick={() => { showCreateModal = true; }}>
+							<span class="inline-flex items-center gap-1.5">
+								<Plus class="w-3.5 h-3.5" />
+								<span>Create Monitor</span>
+							</span>
+						</Button>
+					{/snippet}
+				</EmptyState>
 			</div>
 		{:else if filtered.length === 0}
 			<!-- Empty state: filters returned nothing -->
 			<div class="bg-card border border-border rounded-lg">
-				<div class="p-8 text-center">
-					<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
-						<Search class="w-5 h-5 text-muted-foreground/40" />
-					</div>
-					<p class="text-sm font-medium text-foreground mb-1">No matches</p>
-					<p class="text-xs text-muted-foreground">
-						No monitors match the current filter. Try adjusting your search or filter.
-					</p>
-				</div>
+				<EmptyState
+					title="No matches"
+					description="No monitors match the current filter. Try adjusting your search or filter."
+				>
+					{#snippet icon()}
+						<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center">
+							<Search class="w-5 h-5 text-muted-foreground/40" />
+						</div>
+					{/snippet}
+					{#snippet cta()}
+						<button
+							onclick={() => { activeFilter = 'all'; searchQuery = ''; }}
+							class="text-xs text-accent hover:underline"
+						>
+							Clear filters
+						</button>
+					{/snippet}
+				</EmptyState>
 			</div>
 		{:else}
 			<!-- Services section -->
