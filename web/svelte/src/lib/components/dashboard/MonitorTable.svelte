@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ChevronRight, ArrowRight } from 'lucide-svelte';
-	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
+	import { formatPercent, uptimeColor } from '$lib/utils';
 	import type { MonitorSummary } from '$lib/types';
 	import UptimeChecks from './UptimeChecks.svelte';
 	import { Sparkline } from '@sylvester-francis/watchdog-ui';
@@ -10,12 +10,10 @@
 	interface Props {
 		monitors: MonitorSummary[];
 		title: string;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		icon: any;
 		variant: 'service' | 'infra';
 	}
 
-	let { monitors, title, icon, variant }: Props = $props();
+	let { monitors, title, variant }: Props = $props();
 
 	function uptimePercent(m: MonitorSummary): number {
 		if (m.total === 0) return 0;
@@ -75,45 +73,44 @@
 	}
 </script>
 
-<div class="bg-card border border-border rounded-lg mb-4">
-	<div class="px-4 py-3 border-b border-border flex items-center justify-between">
-		<div class="flex items-center space-x-2">
-			<icon class="w-4 h-4 text-muted-foreground"></icon>
-			<h2 class="text-sm font-medium text-foreground">{title}</h2>
-			<span class="text-[10px] text-muted-foreground font-mono">{monitors.length}</span>
+<section>
+	<div class="flex items-center justify-between border-b border-border pb-3">
+		<div class="flex items-baseline gap-2">
+			<h3 class="text-sm font-medium text-foreground">{title}</h3>
+			<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{monitors.length}</span>
 		</div>
-		<a href="/monitors" class="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center space-x-1">
+		<a href="/monitors" class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline">
 			<span>View all</span>
-			<ArrowRight class="w-3 h-3" />
+			<ArrowRight class="h-3 w-3" />
 		</a>
 	</div>
 
 	<!-- Column Headers -->
 	{#if variant === 'service'}
-		<div class="hidden sm:flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
+		<div class="mt-4 hidden items-center pb-2 text-[9px] font-medium uppercase tracking-wider text-muted-foreground sm:flex">
 			<div class="w-5 shrink-0"></div>
-			<div class="flex-1 min-w-0 ml-2">Service</div>
-			<div class="w-36 shrink-0 text-center hidden md:block">Uptime (24h)</div>
-			<div class="w-14 shrink-0 text-right hidden md:block ml-2">Uptime</div>
-			<div class="w-16 shrink-0 text-right hidden md:block ml-3">Latency</div>
-			<div class="w-14 shrink-0 text-right hidden md:block ml-2">Response</div>
+			<div class="ml-2 min-w-0 flex-1">Service</div>
+			<div class="hidden w-36 shrink-0 text-center md:block">Uptime (24h)</div>
+			<div class="ml-2 hidden w-14 shrink-0 text-right md:block">Uptime</div>
+			<div class="ml-3 hidden w-16 shrink-0 text-right md:block">Latency</div>
+			<div class="ml-2 hidden w-14 shrink-0 text-right md:block">Response</div>
 			<div class="w-5 shrink-0"></div>
 		</div>
 	{:else}
-		<div class="hidden sm:flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
+		<div class="mt-4 hidden items-center pb-2 text-[9px] font-medium uppercase tracking-wider text-muted-foreground sm:flex">
 			<div class="w-5 shrink-0"></div>
-			<div class="flex-1 min-w-0 ml-2">Service</div>
-			<div class="w-36 shrink-0 text-center hidden md:block">Health (24h)</div>
-			<div class="w-14 shrink-0 text-right hidden md:block ml-2">Uptime</div>
-			<div class="w-20 shrink-0 text-right hidden md:block ml-3">Value</div>
+			<div class="ml-2 min-w-0 flex-1">Service</div>
+			<div class="hidden w-36 shrink-0 text-center md:block">Health (24h)</div>
+			<div class="ml-2 hidden w-14 shrink-0 text-right md:block">Uptime</div>
+			<div class="ml-3 hidden w-20 shrink-0 text-right md:block">Value</div>
 			<div class="w-5 shrink-0"></div>
 		</div>
 	{/if}
 
 	<!-- Rows -->
-	<div class="divide-y divide-border/20">
+	<div class="divide-y divide-border/40">
 		{#each monitors as m (m.id)}
-			<a href="/monitors/{m.id}" class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group">
+			<a href="/monitors/{m.id}" class="group flex items-center py-3 transition-colors hover:bg-muted/30">
 				<div class="w-5 shrink-0 flex justify-center">
 					<StatusDot status={m.status === 'up' || m.status === 'down' || m.status === 'warn' ? m.status : 'unknown'} pulse={m.status === 'up'} />
 				</div>
@@ -167,4 +164,4 @@
 			</a>
 		{/each}
 	</div>
-</div>
+</section>

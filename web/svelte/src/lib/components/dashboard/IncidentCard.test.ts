@@ -24,25 +24,26 @@ const mkMonitor = () => ({
 });
 
 describe('IncidentCard', () => {
-  it('renders a Pill per displayed incident', () => {
+  it('lists each incident with its monitor name', () => {
     const incidents = [mkIncident(), mkIncident({ id: 'i2', status: 'acknowledged' })] as never;
     const monitors = new Map([['m1', mkMonitor()]]) as never;
     const { container } = render(IncidentCard, { props: { incidents, monitors } });
-    expect(container.querySelectorAll('.ui-pill').length).toBe(2);
+    expect(container.querySelectorAll('p').length).toBeGreaterThan(0);
+    expect(container.textContent).toContain('API');
   });
 
-  it('Pill tone="down" for open incidents', () => {
+  it('renders the status text for open incidents', () => {
     const incidents = [mkIncident({ status: 'open' })] as never;
     const monitors = new Map([['m1', mkMonitor()]]) as never;
     const { container } = render(IncidentCard, { props: { incidents, monitors } });
-    expect(container.querySelector('.ui-pill[data-tone="down"]')).toBeInTheDocument();
+    expect(container.textContent?.toLowerCase()).toContain('open');
   });
 
-  it('Pill tone="warn" for acknowledged incidents', () => {
+  it('renders the status text for acknowledged incidents', () => {
     const incidents = [mkIncident({ status: 'acknowledged' })] as never;
     const monitors = new Map([['m1', mkMonitor()]]) as never;
     const { container } = render(IncidentCard, { props: { incidents, monitors } });
-    expect(container.querySelector('.ui-pill[data-tone="warn"]')).toBeInTheDocument();
+    expect(container.textContent?.toLowerCase()).toContain('acknowledged');
   });
 
   it('renders empty state when no incidents', () => {

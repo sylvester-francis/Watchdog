@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { AlertCircle, Clock, CheckCircle2, ArrowRight } from 'lucide-svelte';
+	import { ArrowRight } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
 	import type { Incident, MonitorSummary } from '$lib/types';
-	import { Pill } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		incidents: Incident[];
@@ -14,48 +13,46 @@
 	let displayed = $derived(incidents.slice(0, 5));
 </script>
 
-<div class="bg-card border border-border rounded-lg self-start">
-	<div class="px-4 py-3 border-b border-border flex items-center justify-between">
-		<div class="flex items-center space-x-2">
-			<h2 class="text-sm font-medium text-foreground">Active Incidents</h2>
-		</div>
+<section>
+	<div class="flex items-center justify-between border-b border-border pb-3">
+		<h3 class="text-sm font-medium text-foreground">Active Incidents</h3>
 		{#if incidents.length > 0}
-			<a href="/incidents" class="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center space-x-1">
+			<a href="/incidents" class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline">
 				<span>View all</span>
-				<ArrowRight class="w-3 h-3" />
+				<ArrowRight class="h-3 w-3" />
 			</a>
 		{/if}
 	</div>
 
 	{#if displayed.length > 0}
-		<div class="divide-y divide-border/30">
+		<div class="divide-y divide-border/40">
 			{#each displayed as incident (incident.id)}
 				{@const monitor = monitors.get(incident.monitor_id)}
-				<div class="px-4 py-2.5 flex items-center justify-between transition-colors hover:bg-card-elevated">
-					<div class="flex items-center space-x-3">
-						<div class="w-7 h-7 rounded-md {incident.status === 'open' ? 'bg-red-500/10' : 'bg-yellow-500/10'} flex items-center justify-center">
-							{#if incident.status === 'open'}
-								<AlertCircle class="w-3.5 h-3.5 text-red-400" />
-							{:else}
-								<Clock class="w-3.5 h-3.5 text-yellow-400" />
-							{/if}
+				<div class="flex items-center justify-between gap-3 py-3 transition-colors hover:bg-muted/30">
+					<div class="min-w-0">
+						<div class="flex items-center gap-2">
+							<span class="inline-block h-1.5 w-1.5 rounded-full {incident.status === 'open' ? 'bg-destructive' : 'bg-warning'}"></span>
+							<p class="truncate text-sm text-foreground">{monitor?.name ?? incident.monitor_name ?? 'Unknown Monitor'}</p>
 						</div>
-						<div>
-							<p class="text-sm font-medium text-foreground">{monitor?.name ?? 'Unknown Monitor'}</p>
-							<p class="text-[10px] text-muted-foreground">{formatTimeAgo(incident.started_at)} &middot; <span class="font-mono">{formatDuration(incident.started_at)}</span></p>
-						</div>
+						<p class="mt-0.5 ml-3.5 font-mono tabular-nums text-[11px] text-muted-foreground">
+							{formatTimeAgo(incident.started_at)} · {formatDuration(incident.started_at)}
+						</p>
 					</div>
-					<Pill tone={incident.status === 'open' ? 'down' : 'warn'}>{incident.status}</Pill>
+					<span class="shrink-0 font-mono tabular-nums text-[11px] uppercase tracking-wider {incident.status === 'open' ? 'text-destructive' : 'text-warning'}">
+						{incident.status}
+					</span>
 				</div>
 			{/each}
 		</div>
 	{:else}
-		<div class="text-center py-8">
-			<div class="w-12 h-12 bg-emerald-500/5 rounded-lg flex items-center justify-center mx-auto mb-3">
-				<CheckCircle2 class="w-6 h-6 text-emerald-400/40" />
-			</div>
-			<p class="text-sm text-muted-foreground">No active incidents</p>
-			<a href="/incidents?status=all" class="text-xs text-muted-foreground/60 hover:text-muted-foreground mt-1 inline-block transition-colors">View incident history</a>
+		<div class="pt-6 text-center">
+			<p class="font-mono tabular-nums text-xs uppercase tracking-wider text-muted-foreground">
+				<span class="inline-block h-1.5 w-1.5 rounded-full bg-success"></span>
+				No active incidents
+			</p>
+			<a href="/incidents?status=all" class="mt-2 inline-block text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline">
+				View incident history
+			</a>
 		</div>
 	{/if}
-</div>
+</section>

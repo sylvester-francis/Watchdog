@@ -1,81 +1,76 @@
 <script lang="ts">
-	import { Server } from 'lucide-svelte';
 	import { formatTimeAgo } from '$lib/utils';
 	import type { Agent, DashboardStats } from '$lib/types';
 	import { Button } from '@sylvester-francis/watchdog-ui';
-	import { Pill } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		agents: Agent[];
 		stats: DashboardStats;
 		onCreateAgent: () => void;
+		canWrite?: boolean;
 	}
 
-	let { agents, stats, onCreateAgent }: Props = $props();
+	let { agents, stats, onCreateAgent, canWrite = true }: Props = $props();
 </script>
 
-<div class="bg-card border border-border rounded-lg self-start">
-	<div class="px-4 py-3 border-b border-border flex items-center justify-between">
-		<div class="flex items-center space-x-2">
-			<h2 class="text-sm font-medium text-foreground">Agents</h2>
-			<div class="flex items-center space-x-1.5">
-				<div class="w-1.5 h-1.5 rounded-full {stats.online_agents > 0 ? 'bg-emerald-400' : 'bg-muted-foreground'}"></div>
-				<span class="text-[10px] text-muted-foreground font-mono">{stats.online_agents}/{stats.total_agents} online</span>
-			</div>
+<section>
+	<div class="flex items-center justify-between border-b border-border pb-3">
+		<div class="flex items-center gap-2">
+			<h3 class="text-sm font-medium text-foreground">Agents</h3>
+			<span class="font-mono tabular-nums text-[11px] text-muted-foreground">
+				{stats.online_agents}/{stats.total_agents} online
+			</span>
 		</div>
-		<Button variant="primary" size="sm" onclick={onCreateAgent}>New Agent</Button>
+		{#if canWrite}
+			<Button variant="primary" size="sm" onclick={onCreateAgent}>New Agent</Button>
+		{/if}
 	</div>
 
 	{#if agents.length > 0}
-		<div class="divide-y divide-border/30">
+		<div class="divide-y divide-border/40">
 			{#each agents as agent (agent.id)}
-				<div class="flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-card-elevated">
-					<div class="flex items-center space-x-3">
-						<div class="w-7 h-7 rounded-md {agent.status === 'online' ? 'bg-emerald-500/10' : 'bg-muted/50'} flex items-center justify-center">
-							<Server class="w-3.5 h-3.5 {agent.status === 'online' ? 'text-emerald-400' : 'text-muted-foreground'}" />
+				<div class="flex items-center justify-between gap-3 py-3 transition-colors hover:bg-muted/30">
+					<div class="min-w-0">
+						<div class="flex items-center gap-2">
+							<span class="inline-block h-1.5 w-1.5 rounded-full {agent.status === 'online' ? 'bg-success' : 'bg-muted-foreground/50'}"></span>
+							<p class="truncate text-sm text-foreground">{agent.name}</p>
 						</div>
-						<div>
-							<p class="text-sm font-medium text-foreground">{agent.name}</p>
-							<p class="text-[10px] text-muted-foreground">
-								{agent.last_seen_at ? formatTimeAgo(agent.last_seen_at) : 'Never connected'}
-							</p>
-						</div>
+						<p class="mt-0.5 ml-3.5 font-mono tabular-nums text-[11px] text-muted-foreground">
+							{agent.last_seen_at ? formatTimeAgo(agent.last_seen_at) : 'Never connected'}
+						</p>
 					</div>
-					<Pill tone={agent.status === 'online' ? 'up' : 'neutral'}>
-						{#if agent.status === 'online'}
-							<span class="w-1.5 h-1.5 rounded-full bg-status-up animate-pulse inline-block mr-1"></span>
-						{/if}
+					<span class="shrink-0 font-mono tabular-nums text-[11px] uppercase tracking-wider {agent.status === 'online' ? 'text-success' : 'text-muted-foreground'}">
 						{agent.status}
-					</Pill>
+					</span>
 				</div>
 			{/each}
 		</div>
 	{:else}
-		<div class="px-4 py-6">
-			<p class="text-sm font-medium text-foreground mb-4">Get started in 3 steps</p>
-			<div class="space-y-3">
-				<div class="flex items-start space-x-3">
-					<span class="shrink-0 w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] font-bold flex items-center justify-center mt-0.5">1</span>
-					<div>
+		<div class="pt-5">
+			<p class="mb-4 text-sm font-medium text-foreground">Get started in 3 steps</p>
+			<ol class="space-y-3 font-mono tabular-nums text-xs text-muted-foreground">
+				<li class="flex items-start gap-3">
+					<span class="mt-0.5 shrink-0 text-foreground/40">01</span>
+					<div class="font-sans">
 						<p class="text-xs font-medium text-foreground">Create an agent</p>
-						<p class="text-[10px] text-muted-foreground mt-0.5">Click <strong>New Agent</strong> above to register an agent and get an API key.</p>
+						<p class="mt-0.5 text-[11px] text-muted-foreground">Click <strong class="text-foreground">New Agent</strong> above to register an agent and get an API key.</p>
 					</div>
-				</div>
-				<div class="flex items-start space-x-3">
-					<span class="shrink-0 w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] font-bold flex items-center justify-center mt-0.5">2</span>
-					<div>
+				</li>
+				<li class="flex items-start gap-3">
+					<span class="mt-0.5 shrink-0 text-foreground/40">02</span>
+					<div class="font-sans">
 						<p class="text-xs font-medium text-foreground">Install the agent</p>
-						<p class="text-[10px] text-muted-foreground mt-0.5 font-mono bg-muted/50 rounded px-1.5 py-1 mt-1 select-all">curl -fsSL https://usewatchdog.dev/install | bash</p>
+						<code class="mt-1 block select-all break-all border border-border bg-background px-2 py-1.5 font-mono text-[11px] text-foreground">curl -sSL https://{window.location.host}/install | sh -s -- --api-key YOUR_KEY</code>
 					</div>
-				</div>
-				<div class="flex items-start space-x-3">
-					<span class="shrink-0 w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px] font-bold flex items-center justify-center mt-0.5">3</span>
-					<div>
+				</li>
+				<li class="flex items-start gap-3">
+					<span class="mt-0.5 shrink-0 text-foreground/40">03</span>
+					<div class="font-sans">
 						<p class="text-xs font-medium text-foreground">Create monitors</p>
-						<p class="text-[10px] text-muted-foreground mt-0.5">Add HTTP, TCP, Ping, or TLS monitors to track your services.</p>
+						<p class="mt-0.5 text-[11px] text-muted-foreground">Add HTTP, TCP, Ping, or TLS monitors to track your services.</p>
 					</div>
-				</div>
-			</div>
+				</li>
+			</ol>
 		</div>
 	{/if}
-</div>
+</section>
