@@ -1,13 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import {
-		AtSign,
-		Bell,
-		BellOff,
-		Key,
 		Plus,
-		Trash2,
-		RefreshCw,
 		Copy,
 		Check,
 		Loader2,
@@ -18,12 +12,10 @@
 		Send,
 		PhoneCall,
 		Webhook,
-		Lock,
 		AlertTriangle,
-		Wrench,
-		Calendar
+		X
 	} from 'lucide-svelte';
-	import { Alert, EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
+	import { Alert, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { settings as settingsApi, maintenance as maintenanceApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
@@ -52,6 +44,8 @@
 	let usernameLoading = $state(false);
 	let usernameSuccess = $state('');
 	let usernameError = $state('');
+	let editingUsername = $state(false);
+	let usernameDraft = $state('');
 
 	// Change password form
 	let currentPassword = $state('');
@@ -60,6 +54,7 @@
 	let passwordLoading = $state(false);
 	let passwordSuccess = $state('');
 	let passwordError = $state('');
+	let editingPassword = $state(false);
 
 	// Modals
 	let showChannelModal = $state(false);
@@ -75,11 +70,6 @@
 	let testingChannelId = $state<string | null>(null);
 	let channelTestResult = $state<Record<string, { ok: boolean; message: string }>>({});
 	let togglingChannelId = $state<string | null>(null);
-	let deletingChannelId = $state<string | null>(null);
-
-	// Per-token action states
-	let deletingTokenId = $state<string | null>(null);
-	let regenTokenId = $state<string | null>(null);
 
 	// Confirm modal state
 	let confirmModal = $state<{
@@ -100,26 +90,22 @@
 		action: null
 	});
 
-	const inputClass = 'w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background';
-	const labelClass = 'block text-xs font-medium text-muted-foreground mb-1.5';
+	const inlineInputClass =
+		'w-full px-2.5 py-1.5 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/30 focus:ring-0';
 
 	const usernameRegex = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
-	// Channel type config
+	// Channel type config (label + icon only — colors removed for grayscale chrome)
 	const channelTypeConfig: Record<AlertChannelType, {
 		icon: typeof MessageCircle;
-		iconBg: string;
-		iconColor: string;
-		badgeBg: string;
-		badgeText: string;
 		label: string;
 	}> = {
-		discord: { icon: MessageCircle, iconBg: 'bg-indigo-500/10', iconColor: 'text-indigo-400', badgeBg: 'bg-indigo-500/15', badgeText: 'text-indigo-400', label: 'Discord' },
-		slack: { icon: Hash, iconBg: 'bg-green-500/10', iconColor: 'text-green-400', badgeBg: 'bg-green-500/15', badgeText: 'text-green-400', label: 'Slack' },
-		email: { icon: Mail, iconBg: 'bg-blue-500/10', iconColor: 'text-blue-400', badgeBg: 'bg-blue-500/15', badgeText: 'text-blue-400', label: 'Email' },
-		telegram: { icon: Send, iconBg: 'bg-cyan-500/10', iconColor: 'text-cyan-400', badgeBg: 'bg-cyan-500/15', badgeText: 'text-cyan-400', label: 'Telegram' },
-		pagerduty: { icon: PhoneCall, iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-400', badgeBg: 'bg-emerald-500/15', badgeText: 'text-emerald-400', label: 'PagerDuty' },
-		webhook: { icon: Webhook, iconBg: 'bg-orange-500/10', iconColor: 'text-orange-400', badgeBg: 'bg-orange-500/15', badgeText: 'text-orange-400', label: 'Webhook' }
+		discord: { icon: MessageCircle, label: 'Discord' },
+		slack: { icon: Hash, label: 'Slack' },
+		email: { icon: Mail, label: 'Email' },
+		telegram: { icon: Send, label: 'Telegram' },
+		pagerduty: { icon: PhoneCall, label: 'PagerDuty' },
+		webhook: { icon: Webhook, label: 'Webhook' }
 	};
 
 	function timeAgo(dateStr: string | null): string {
@@ -133,19 +119,44 @@
 		return `${Math.floor(diff / 86400)}d ago`;
 	}
 
+	function formatRange(starts: string, ends: string): string {
+		const s = new Date(starts);
+		const e = new Date(ends);
+		const sameDay = s.toDateString() === e.toDateString();
+		const dateOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+		const timeOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+		if (sameDay) {
+			return `${s.toLocaleDateString(undefined, dateOpts)} ${s.toLocaleTimeString(undefined, timeOpts)}–${e.toLocaleTimeString(undefined, timeOpts)}`;
+		}
+		return `${s.toLocaleDateString(undefined, dateOpts)} ${s.toLocaleTimeString(undefined, timeOpts)} → ${e.toLocaleDateString(undefined, dateOpts)} ${e.toLocaleTimeString(undefined, timeOpts)}`;
+	}
+
 	// Username
+	function startEditUsername() {
+		usernameDraft = username;
+		usernameError = '';
+		usernameSuccess = '';
+		editingUsername = true;
+	}
+
+	function cancelEditUsername() {
+		editingUsername = false;
+		usernameError = '';
+	}
+
 	async function handleUsernameSubmit(e: Event) {
 		e.preventDefault();
 		usernameSuccess = '';
 		usernameError = '';
 
-		const trimmed = username.trim();
+		const trimmed = usernameDraft.trim();
 		if (!trimmed) {
 			usernameError = 'Username is required.';
 			return;
 		}
 		if (!usernameRegex.test(trimmed)) {
-			usernameError = 'Must be 3-50 characters. Lowercase letters, numbers, and hyphens only. Cannot start or end with a hyphen.';
+			usernameError =
+				'Must be 3-50 characters. Lowercase letters, numbers, and hyphens only. Cannot start or end with a hyphen.';
 			return;
 		}
 
@@ -153,8 +164,11 @@
 		try {
 			const res = await settingsApi.updateProfile({ username: trimmed });
 			username = res.data.username;
-			usernameSuccess = 'Username updated successfully.';
-			setTimeout(() => { usernameSuccess = ''; }, 3000);
+			editingUsername = false;
+			usernameSuccess = 'Username updated.';
+			setTimeout(() => {
+				usernameSuccess = '';
+			}, 3000);
 		} catch (err) {
 			usernameError = err instanceof Error ? err.message : 'Failed to update username.';
 		} finally {
@@ -162,22 +176,47 @@
 		}
 	}
 
+	// Password
+	function startEditPassword() {
+		editingPassword = true;
+		passwordError = '';
+		passwordSuccess = '';
+		currentPassword = '';
+		newPassword = '';
+		confirmNewPassword = '';
+	}
+
+	function cancelEditPassword() {
+		editingPassword = false;
+		currentPassword = '';
+		newPassword = '';
+		confirmNewPassword = '';
+		passwordError = '';
+	}
+
 	// Channel actions
 	async function handleTestChannel(id: string) {
 		testingChannelId = id;
-		// Clear previous result for this channel
 		const updated = { ...channelTestResult };
 		delete updated[id];
 		channelTestResult = updated;
 
 		try {
 			await settingsApi.testChannel(id);
-			channelTestResult = { ...channelTestResult, [id]: { ok: true, message: 'Test notification sent.' } };
+			channelTestResult = {
+				...channelTestResult,
+				[id]: { ok: true, message: 'Test sent.' }
+			};
 		} catch (err) {
-			channelTestResult = { ...channelTestResult, [id]: { ok: false, message: err instanceof Error ? err.message : 'Test failed.' } };
+			channelTestResult = {
+				...channelTestResult,
+				[id]: {
+					ok: false,
+					message: err instanceof Error ? err.message : 'Test failed.'
+				}
+			};
 		} finally {
 			testingChannelId = null;
-			// Clear feedback after 4s
 			setTimeout(() => {
 				const cleaned = { ...channelTestResult };
 				delete cleaned[id];
@@ -190,7 +229,7 @@
 		togglingChannelId = id;
 		try {
 			const res = await settingsApi.toggleChannel(id);
-			channels = channels.map((c) => c.id === id ? res.data : c);
+			channels = channels.map((c) => (c.id === id ? res.data : c));
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to toggle channel.');
 		} finally {
@@ -199,7 +238,7 @@
 	}
 
 	function handleDeleteChannel(id: string) {
-		const channel = channels.find(c => c.id === id);
+		const channel = channels.find((c) => c.id === id);
 		confirmModal = {
 			open: true,
 			title: 'Delete Channel',
@@ -224,7 +263,7 @@
 
 	// Token actions
 	function handleDeleteToken(id: string) {
-		const token = tokens.find(t => t.id === id);
+		const token = tokens.find((t) => t.id === id);
 		confirmModal = {
 			open: true,
 			title: 'Delete Token',
@@ -248,7 +287,7 @@
 	}
 
 	function handleRegenerateToken(id: string) {
-		const token = tokens.find(t => t.id === id);
+		const token = tokens.find((t) => t.id === id);
 		confirmModal = {
 			open: true,
 			title: 'Regenerate Token',
@@ -260,7 +299,7 @@
 				confirmModal.loading = true;
 				try {
 					const res = await settingsApi.regenerateToken(id);
-					tokens = tokens.map((t) => t.id === id ? res.data : t);
+					tokens = tokens.map((t) => (t.id === id ? res.data : t));
 					plaintextToken = res.plaintext;
 					plaintextTokenName = res.data.name;
 					closeConfirmModal();
@@ -274,7 +313,15 @@
 	}
 
 	function closeConfirmModal() {
-		confirmModal = { open: false, title: '', message: '', confirmLabel: 'Confirm', variant: 'danger', loading: false, action: null };
+		confirmModal = {
+			open: false,
+			title: '',
+			message: '',
+			confirmLabel: 'Confirm',
+			variant: 'danger',
+			loading: false,
+			action: null
+		};
 	}
 
 	async function executeConfirm() {
@@ -284,7 +331,9 @@
 	async function copyTokenToClipboard() {
 		await navigator.clipboard.writeText(plaintextToken);
 		copiedToken = true;
-		setTimeout(() => { copiedToken = false; }, 2000);
+		setTimeout(() => {
+			copiedToken = false;
+		}, 2000);
 	}
 
 	function dismissPlaintext() {
@@ -294,7 +343,6 @@
 	}
 
 	function handleTokenCreated(plaintext: string) {
-		// Reload tokens and show plaintext
 		loadTokens();
 		plaintextToken = plaintext;
 		plaintextTokenName = 'New token';
@@ -307,7 +355,7 @@
 
 	// Maintenance window actions
 	function handleDeleteMaintenance(id: string) {
-		const mw = maintenanceWindows.find(w => w.id === id);
+		const mw = maintenanceWindows.find((w) => w.id === id);
 		confirmModal = {
 			open: true,
 			title: 'Delete Maintenance Window',
@@ -319,11 +367,13 @@
 				confirmModal.loading = true;
 				try {
 					await maintenanceApi.deleteWindow(id);
-					maintenanceWindows = maintenanceWindows.filter(w => w.id !== id);
+					maintenanceWindows = maintenanceWindows.filter((w) => w.id !== id);
 					closeConfirmModal();
 					toast.success('Maintenance window deleted.');
 				} catch (err) {
-					toast.error(err instanceof Error ? err.message : 'Failed to delete maintenance window.');
+					toast.error(
+						err instanceof Error ? err.message : 'Failed to delete maintenance window.'
+					);
 					confirmModal.loading = false;
 				}
 			}
@@ -408,13 +458,16 @@
 				new_password: newPassword,
 				confirm_password: confirmNewPassword
 			});
-			passwordSuccess = 'Password changed successfully.';
+			passwordSuccess = 'Password changed.';
 			currentPassword = '';
 			newPassword = '';
 			confirmNewPassword = '';
 			showForceChangeBanner = false;
+			editingPassword = false;
 			auth.clearMustChangePassword();
-			setTimeout(() => { passwordSuccess = ''; }, 5000);
+			setTimeout(() => {
+				passwordSuccess = '';
+			}, 5000);
 		} catch (err) {
 			passwordError = err instanceof Error ? err.message : 'Failed to change password.';
 		} finally {
@@ -423,12 +476,12 @@
 	}
 
 	onMount(() => {
-		// Prefill username from auth store
 		if (auth.user?.username) {
 			username = auth.user.username;
 		}
 		if (forceChange) {
 			showForceChangeBanner = true;
+			editingPassword = true;
 		}
 		loadData();
 	});
@@ -439,580 +492,566 @@
 </svelte:head>
 
 {#if loading}
-	<!-- Skeleton loading state -->
-	<div class="animate-fade-in-up space-y-6">
-		<!-- Header skeleton -->
-		<div>
-			<Skeleton emphasis="secondary" width="7rem" height="1.75rem" />
-			<div class="mt-1.5">
-				<Skeleton emphasis="tertiary" width="18rem" height="1rem" />
-			</div>
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-6 py-10">
+		<div class="space-y-2">
+			<Skeleton emphasis="secondary" width="8rem" height="2rem" />
+			<Skeleton emphasis="tertiary" width="22rem" height="1rem" />
 		</div>
-		<!-- Card skeletons -->
-		{#each Array(3) as _}
-			<div class="bg-card border border-border rounded-lg p-5">
-				<div class="flex items-center space-x-3 mb-4">
-					<Skeleton emphasis="secondary" width="2.25rem" height="2.25rem" />
-					<div class="space-y-1.5">
-						<Skeleton emphasis="secondary" width="8rem" height="1rem" />
-						<Skeleton emphasis="tertiary" width="14rem" height="0.75rem" />
-					</div>
+		<div class="mt-10 space-y-10">
+			{#each Array(4) as _}
+				<div class="space-y-3 border-t border-border pt-8">
+					<Skeleton emphasis="secondary" width="10rem" height="1.25rem" />
+					<Skeleton emphasis="tertiary" width="100%" height="3rem" />
+					<Skeleton emphasis="tertiary" width="100%" height="3rem" />
 				</div>
-				<Skeleton emphasis="tertiary" height="2.5rem" />
-			</div>
-		{/each}
+			{/each}
+		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up space-y-6">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-6 py-10">
 		<!-- Page header -->
-		<div>
-			<h1 class="text-lg font-semibold text-foreground">Settings</h1>
-			<p class="text-xs text-muted-foreground mt-0.5">Manage your account, notifications, and API access.</p>
-		</div>
+		<header class="mb-2 flex items-baseline justify-between gap-4">
+			<div>
+				<h1 class="text-2xl font-medium tracking-tight text-foreground">Settings</h1>
+				<p class="mt-1 text-sm text-muted-foreground">
+					Account, notifications, and API access.
+				</p>
+			</div>
+			{#if auth.user?.email}
+				<span class="font-mono tabular-nums text-xs text-muted-foreground">{auth.user.email}</span>
+			{/if}
+		</header>
 
 		<!-- Plaintext token banner (shown after create or regenerate) -->
 		{#if plaintextToken}
-			<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-				<div class="flex items-start justify-between mb-2">
-					<div class="flex items-center space-x-2">
-						<Key class="w-4 h-4 text-yellow-400" />
-						<span class="text-sm font-medium text-foreground">Token Created</span>
+			<div class="mt-8 border border-warning/40 bg-warning/[0.04] p-4">
+				<div class="mb-2 flex items-start justify-between gap-3">
+					<div>
+						<div class="text-sm font-medium text-foreground">
+							{plaintextTokenName} created
+						</div>
+						<p class="mt-0.5 text-xs text-muted-foreground">
+							Copy this token now. You won't be able to see it again.
+						</p>
 					</div>
 					<button
 						onclick={dismissPlaintext}
-						class="text-muted-foreground hover:text-foreground transition-colors text-xs"
+						class="text-muted-foreground transition-colors hover:text-foreground"
+						aria-label="Dismiss"
 					>
-						Dismiss
+						<X class="h-4 w-4" />
 					</button>
 				</div>
-				<p class="text-xs text-muted-foreground mb-2">Copy this token now. You won't be able to see it again.</p>
-				<div class="flex items-center space-x-2">
-					<code class="flex-1 text-xs font-mono bg-card border border-border rounded px-3 py-2 text-foreground break-all select-all">{plaintextToken}</code>
+				<div class="flex items-center gap-2">
+					<code
+						class="flex-1 select-all break-all border border-border bg-background px-3 py-2 font-mono text-xs text-foreground"
+					>
+						{plaintextToken}
+					</code>
 					<button
 						onclick={copyTokenToClipboard}
-						class="p-2 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+						class="flex shrink-0 items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
 						aria-label="Copy token"
 					>
 						{#if copiedToken}
-							<Check class="w-4 h-4 text-emerald-400" />
+							<Check class="h-3.5 w-3.5 text-success" />
+							<span>Copied</span>
 						{:else}
-							<Copy class="w-4 h-4" />
+							<Copy class="h-3.5 w-3.5" />
+							<span>Copy</span>
 						{/if}
 					</button>
 				</div>
 			</div>
 		{/if}
 
-		<!-- ==================== USERNAME SECTION ==================== -->
-		<div class="bg-card border border-border rounded-lg overflow-hidden">
-			<div class="px-5 py-4 border-b border-border">
-				<div class="flex items-center space-x-3">
-					<div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-						<AtSign class="w-4 h-4 text-blue-400" />
-					</div>
-					<div>
-						<h2 class="text-sm font-medium text-foreground">Username</h2>
-						<p class="text-[11px] text-muted-foreground mt-0.5">Your public identifier for status page URLs.</p>
-					</div>
+		<!-- ==================== ACCOUNT ==================== -->
+		<section class="mt-8 border-t border-border pt-8">
+			<div class="mb-5 flex items-baseline justify-between gap-4">
+				<div>
+					<h2 class="text-lg font-medium text-foreground">Account</h2>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Identity and credentials for this workspace.
+					</p>
 				</div>
 			</div>
-			<div class="p-5">
-				<form onsubmit={handleUsernameSubmit} class="space-y-3">
-					<div>
-						<label for="settings-username" class={labelClass}>Username</label>
-						<div class="flex flex-col sm:flex-row">
-							<span class="px-3 py-2 bg-muted/30 border border-border rounded-t-md sm:rounded-t-none sm:rounded-l-md sm:border-r-0 text-xs text-muted-foreground font-mono truncate">usewatchdog.dev/status/@</span>
-							<div class="flex flex-1 min-w-0">
+
+			<div class="divide-y divide-border">
+				<!-- Username row -->
+				<div class="py-4">
+					{#if !editingUsername}
+						<div class="flex items-center justify-between gap-4">
+							<div class="min-w-0">
+								<div class="text-sm text-muted-foreground">Username</div>
+								<div class="mt-1 flex items-baseline gap-2">
+									<span
+										class="font-mono tabular-nums text-sm text-muted-foreground/60"
+									>usewatchdog.dev/status/@</span>
+									<span class="font-mono tabular-nums text-sm text-foreground">{username || '—'}</span>
+								</div>
+							</div>
+							<button
+								onclick={startEditUsername}
+								class="shrink-0 text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+							>
+								Edit
+							</button>
+						</div>
+						{#if usernameSuccess}
+							<p class="mt-2 font-mono tabular-nums text-xs text-success">
+								<span aria-hidden="true">●</span> {usernameSuccess}
+							</p>
+						{/if}
+					{:else}
+						<form onsubmit={handleUsernameSubmit} class="space-y-3">
+							<div class="text-sm text-muted-foreground">Username</div>
+							<div class="flex items-center gap-2">
+								<span
+									class="hidden font-mono tabular-nums text-sm text-muted-foreground/60 sm:inline"
+								>usewatchdog.dev/status/@</span>
 								<input
-									id="settings-username"
 									type="text"
-									bind:value={username}
+									bind:value={usernameDraft}
 									placeholder="my-username"
-									class="flex-1 min-w-0 px-3 py-2 bg-background border border-t-0 sm:border-t border-border border-r-0 rounded-bl-md sm:rounded-none text-sm text-foreground font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent"
+									class="{inlineInputClass} flex-1 font-mono tabular-nums"
 								/>
 								<button
 									type="submit"
 									disabled={usernameLoading}
-									class="shrink-0 px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-br-md sm:rounded-r-md transition-colors disabled:opacity-50 whitespace-nowrap"
+									class="shrink-0 bg-accent px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
 								>
-									{usernameLoading ? 'Saving...' : 'Save'}
+									{usernameLoading ? 'Saving…' : 'Save'}
+								</button>
+								<button
+									type="button"
+									onclick={cancelEditUsername}
+									disabled={usernameLoading}
+									class="shrink-0 px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+								>
+									Cancel
 								</button>
 							</div>
+							<p class="text-xs text-muted-foreground">
+								3–50 characters. Lowercase letters, numbers, and hyphens only.
+							</p>
+							{#if usernameError}
+								<Alert tone="down">
+									{#snippet icon()}<AlertCircle class="h-3.5 w-3.5" />{/snippet}
+									{usernameError}
+								</Alert>
+							{/if}
+						</form>
+					{/if}
+				</div>
+
+				<!-- Password row -->
+				<div class="py-4">
+					{#if showForceChangeBanner}
+						<div class="mb-4">
+							<Alert tone="warn">
+								{#snippet icon()}<AlertTriangle class="h-3.5 w-3.5" />{/snippet}
+								Your password was reset by an administrator. Please set a new password.
+							</Alert>
 						</div>
-						<p class="text-[10px] text-muted-foreground/60 mt-1">3-50 characters. Lowercase letters, numbers, and hyphens only.</p>
-					</div>
-
-					{#if usernameError}
-						<Alert tone="down">
-							{#snippet icon()}<AlertCircle class="w-3.5 h-3.5" />{/snippet}
-							{usernameError}
-						</Alert>
 					{/if}
 
-					{#if usernameSuccess}
-						<Alert tone="up">
-							{#snippet icon()}<Check class="w-3.5 h-3.5" />{/snippet}
-							{usernameSuccess}
-						</Alert>
-					{/if}
-				</form>
-			</div>
-		</div>
+					{#if !editingPassword}
+						<div class="flex items-center justify-between gap-4">
+							<div class="min-w-0">
+								<div class="text-sm text-muted-foreground">Password</div>
+								<div class="mt-1 font-mono tabular-nums text-sm text-foreground">
+									••••••••••••
+								</div>
+							</div>
+							<button
+								onclick={startEditPassword}
+								class="shrink-0 text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+							>
+								Change
+							</button>
+						</div>
+						{#if passwordSuccess}
+							<p class="mt-2 font-mono tabular-nums text-xs text-success">
+								<span aria-hidden="true">●</span> {passwordSuccess}
+							</p>
+						{/if}
+					{:else}
+						<form onsubmit={handlePasswordSubmit} class="space-y-3">
+							<div class="text-sm text-muted-foreground">Change password</div>
+							<div class="grid gap-2 sm:max-w-sm">
+								<input
+									type="password"
+									bind:value={currentPassword}
+									autocomplete="current-password"
+									placeholder="Current password"
+									class={inlineInputClass}
+								/>
+								<input
+									type="password"
+									bind:value={newPassword}
+									autocomplete="new-password"
+									placeholder="New password (min 8 characters)"
+									class={inlineInputClass}
+								/>
+								<input
+									type="password"
+									bind:value={confirmNewPassword}
+									autocomplete="new-password"
+									placeholder="Confirm new password"
+									class={inlineInputClass}
+								/>
+							</div>
 
-		<!-- ==================== CHANGE PASSWORD SECTION ==================== -->
-		<div class="bg-card border border-border rounded-lg overflow-hidden">
-			<div class="px-5 py-4 border-b border-border">
-				<div class="flex items-center space-x-3">
-					<div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
-						<Lock class="w-4 h-4 text-yellow-400" />
-					</div>
-					<div>
-						<h2 class="text-sm font-medium text-foreground">Change Password</h2>
-						<p class="text-[11px] text-muted-foreground mt-0.5">Update your account password.</p>
-					</div>
+							{#if passwordError}
+								<Alert tone="down">
+									{#snippet icon()}<AlertCircle class="h-3.5 w-3.5" />{/snippet}
+									{passwordError}
+								</Alert>
+							{/if}
+
+							<div class="flex items-center gap-2">
+								<button
+									type="submit"
+									disabled={passwordLoading}
+									class="bg-accent px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+								>
+									{passwordLoading ? 'Changing…' : 'Change password'}
+								</button>
+								<button
+									type="button"
+									onclick={cancelEditPassword}
+									disabled={passwordLoading}
+									class="px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+								>
+									Cancel
+								</button>
+							</div>
+						</form>
+					{/if}
 				</div>
 			</div>
-			<div class="p-5">
-				{#if showForceChangeBanner}
-					<div class="mb-4">
-						<Alert tone="warn">
-							{#snippet icon()}<AlertTriangle class="w-3.5 h-3.5" />{/snippet}
-							Your password was reset by an administrator. Please set a new password.
-						</Alert>
-					</div>
-				{/if}
+		</section>
 
-				<form onsubmit={handlePasswordSubmit} class="space-y-3">
-					<div>
-						<label for="current-password" class={labelClass}>Current Password</label>
-						<input
-							id="current-password"
-							type="password"
-							bind:value={currentPassword}
-							autocomplete="current-password"
-							placeholder="Enter current password"
-							class={inputClass}
-						/>
-					</div>
-					<div>
-						<label for="new-password" class={labelClass}>New Password</label>
-						<input
-							id="new-password"
-							type="password"
-							bind:value={newPassword}
-							autocomplete="new-password"
-							placeholder="Enter new password"
-							class={inputClass}
-						/>
-						<p class="text-[10px] text-muted-foreground/70 mt-1">Minimum 8 characters.</p>
-					</div>
-					<div>
-						<label for="confirm-new-password" class={labelClass}>Confirm New Password</label>
-						<input
-							id="confirm-new-password"
-							type="password"
-							bind:value={confirmNewPassword}
-							autocomplete="new-password"
-							placeholder="Confirm new password"
-							class={inputClass}
-						/>
-					</div>
-
-					{#if passwordError}
-						<Alert tone="down">
-							{#snippet icon()}<AlertCircle class="w-3.5 h-3.5" />{/snippet}
-							{passwordError}
-						</Alert>
-					{/if}
-
-					{#if passwordSuccess}
-						<Alert tone="up">
-							{#snippet icon()}<Check class="w-3.5 h-3.5" />{/snippet}
-							{passwordSuccess}
-						</Alert>
-					{/if}
-
-					<button
-						type="submit"
-						disabled={passwordLoading}
-						class="px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-					>
-						{passwordLoading ? 'Changing...' : 'Change Password'}
-					</button>
-				</form>
-			</div>
-		</div>
-
-		<!-- ==================== ALERT CHANNELS SECTION ====================-->
-		<div class="bg-card border border-border rounded-lg overflow-hidden">
-			<!-- Header -->
-			<div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-				<div class="flex items-center space-x-3">
-					<div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-						<Bell class="w-4 h-4 text-accent" />
-					</div>
-					<div>
-						<div class="flex items-center space-x-2">
-							<h2 class="text-sm font-medium text-foreground">Alert Channels</h2>
-							{#if channels.length > 0}
-								<span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{channels.length}</span>
-							{/if}
-						</div>
-						<p class="text-[11px] text-muted-foreground mt-0.5">Get notified when incidents open or resolve.</p>
-					</div>
+		<!-- ==================== NOTIFICATIONS ==================== -->
+		<section class="mt-8 border-t border-border pt-8">
+			<div class="mb-5 flex items-baseline justify-between gap-4">
+				<div>
+					<h2 class="flex items-baseline gap-2 text-lg font-medium text-foreground">
+						<span>Notifications</span>
+						{#if channels.length > 0}
+							<span class="font-mono tabular-nums text-xs text-muted-foreground">
+								{channels.length}
+							</span>
+						{/if}
+					</h2>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Where incidents are delivered when monitors fail or recover.
+					</p>
 				</div>
 				<button
-					onclick={() => { showChannelModal = true; }}
-					class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5 w-fit"
+					onclick={() => {
+						showChannelModal = true;
+					}}
+					class="inline-flex shrink-0 items-center gap-1.5 bg-accent px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
 				>
-					<Plus class="w-3.5 h-3.5" />
-					<span>Add Channel</span>
+					<Plus class="h-3.5 w-3.5" strokeWidth={2.5} />
+					<span>Add channel</span>
 				</button>
 			</div>
 
-			<!-- Channel list -->
 			{#if channels.length === 0}
-				<EmptyState
-					title="No alert channels"
-					description="Add Discord, Slack, Email, or other integrations to receive incident alerts."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
-							<BellOff class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-					{#snippet cta()}
-						<button
-							onclick={() => { showChannelModal = true; }}
-							class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5"
-						>
-							<Plus class="w-3.5 h-3.5" />
-							<span>Add Channel</span>
-						</button>
-					{/snippet}
-				</EmptyState>
+				<div class="border border-dashed border-border px-6 py-10 text-center">
+					<p class="text-sm text-foreground">No alert channels configured.</p>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Add Discord, Slack, Email, Telegram, PagerDuty, or a webhook to receive incidents.
+					</p>
+				</div>
 			{:else}
-				<div class="p-4">
-					<div class="space-y-2">
+				<div class="divide-y divide-border border-y border-border">
 					{#each channels as channel (channel.id)}
 						{@const typeConf = channelTypeConfig[channel.type]}
 						{@const ChannelIcon = typeConf.icon}
-						<div class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
-						<div class="flex items-center justify-between p-3 gap-3">
-							<div class="flex items-center space-x-3 min-w-0">
-								<div class="w-8 h-8 {typeConf.iconBg} rounded-lg flex items-center justify-center flex-shrink-0">
-									<ChannelIcon class="w-4 h-4 {typeConf.iconColor}" />
-								</div>
-								<div class="min-w-0">
-									<div class="flex items-center space-x-2">
-										<span class="text-sm text-foreground truncate">{channel.name}</span>
-										<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded {typeConf.badgeBg} {typeConf.badgeText}">{typeConf.label}</span>
-									</div>
-									<div class="flex items-center space-x-2 mt-0.5">
-										{#if channel.enabled}
-											<span class="flex items-center space-x-1">
-												<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-												<span class="text-[10px] text-emerald-400">Active</span>
-											</span>
-										{:else}
-											<span class="flex items-center space-x-1">
-												<span class="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></span>
-												<span class="text-[10px] text-muted-foreground">Paused</span>
-											</span>
-										{/if}
-									</div>
-								</div>
+						{@const result = channelTestResult[channel.id]}
+						<div class="group flex items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
+							<!-- Status pip -->
+							<span
+								class="inline-block h-1.5 w-1.5 shrink-0 rounded-full {channel.enabled
+									? 'bg-success'
+									: 'bg-muted-foreground/40'}"
+								aria-label={channel.enabled ? 'Active' : 'Paused'}
+							></span>
+
+							<!-- Type icon -->
+							<ChannelIcon class="h-4 w-4 shrink-0 text-muted-foreground" />
+
+							<!-- Name + type -->
+							<div class="flex min-w-0 flex-1 items-baseline gap-3">
+								<span class="truncate text-sm text-foreground">{channel.name}</span>
+								<span class="font-mono tabular-nums text-xs text-muted-foreground">
+									{typeConf.label.toLowerCase()}
+								</span>
 							</div>
 
-							<div class="flex items-center space-x-1.5 flex-shrink-0">
-								<!-- Test feedback -->
-								{#if channelTestResult[channel.id]}
-									{@const result = channelTestResult[channel.id]}
-									<span class="text-[10px] {result.ok ? 'text-emerald-400' : 'text-red-400'} mr-1">{result.message}</span>
-								{/if}
+							<!-- Test result inline -->
+							{#if result}
+								<span
+									class="font-mono tabular-nums text-xs {result.ok
+										? 'text-success'
+										: 'text-destructive'}"
+								>
+									<span aria-hidden="true">●</span> {result.message}
+								</span>
+							{/if}
 
-								<!-- Test button -->
+							<!-- Actions -->
+							<div class="flex shrink-0 items-center gap-3">
 								<button
 									onclick={() => handleTestChannel(channel.id)}
 									disabled={testingChannelId === channel.id}
-									class="px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors disabled:opacity-50 flex items-center space-x-1"
+									class="text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
 								>
 									{#if testingChannelId === channel.id}
-										<Loader2 class="w-3 h-3 animate-spin" />
-										<span>Testing</span>
+										<Loader2 class="h-3.5 w-3.5 animate-spin" />
 									{:else}
-										<span>Test</span>
+										Test
 									{/if}
 								</button>
-
-								<!-- Toggle button -->
 								<button
 									onclick={() => handleToggleChannel(channel.id)}
 									disabled={togglingChannelId === channel.id}
-									class="px-2.5 py-1.5 text-[10px] font-medium rounded-md transition-colors disabled:opacity-50 {channel.enabled
-										? 'text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted'
-										: 'text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15'}"
+									class="text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
 								>
 									{channel.enabled ? 'Disable' : 'Enable'}
 								</button>
-
-								<!-- Delete button -->
 								<button
 									onclick={() => handleDeleteChannel(channel.id)}
-									class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors"
-									aria-label="Delete channel"
+									class="text-sm text-muted-foreground transition-colors hover:text-destructive"
 								>
-									<Trash2 class="w-3.5 h-3.5" />
+									Delete
 								</button>
 							</div>
 						</div>
-						</div>
 					{/each}
-					</div>
 				</div>
 			{/if}
 
-			<!-- Footer: integrations row -->
-			<div class="px-5 py-2.5 border-t border-border/50 bg-muted/10">
-				<div class="flex flex-wrap items-center gap-2 text-[11px] opacity-60">
-					<span class="text-muted-foreground/50 mr-0.5">Integrations:</span>
-					{#each Object.entries(channelTypeConfig) as [key, conf]}
-						{@const IntegrationIcon = conf.icon}
-						<span class="px-2 py-0.5 rounded bg-muted/50 text-muted-foreground inline-flex items-center space-x-1">
-							<IntegrationIcon class="w-3 h-3" />
-							<span>{conf.label}</span>
-						</span>
-					{/each}
-				</div>
+			<!-- Supported integrations footer -->
+			<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground/70">
+				<span>Supported:</span>
+				{#each Object.entries(channelTypeConfig) as [key, conf]}
+					{@const IntegrationIcon = conf.icon}
+					<span class="inline-flex items-center gap-1">
+						<IntegrationIcon class="h-3 w-3" />
+						<span>{conf.label}</span>
+					</span>
+				{/each}
 			</div>
-		</div>
+		</section>
 
-		<!-- ==================== MAINTENANCE WINDOWS SECTION ==================== -->
-		<div class="bg-card border border-border rounded-lg overflow-hidden">
-			<!-- Header -->
-			<div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-				<div class="flex items-center space-x-3">
-					<div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
-						<Wrench class="w-4 h-4 text-orange-400" />
-					</div>
-					<div>
-						<div class="flex items-center space-x-2">
-							<h2 class="text-sm font-medium text-foreground">Maintenance Windows</h2>
-							{#if maintenanceWindows.length > 0}
-								<span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{maintenanceWindows.length}</span>
-							{/if}
-						</div>
-						<p class="text-[11px] text-muted-foreground mt-0.5">Schedule downtime to suppress alerts during planned maintenance.</p>
-					</div>
+		<!-- ==================== MAINTENANCE WINDOWS ==================== -->
+		<section class="mt-8 border-t border-border pt-8">
+			<div class="mb-5 flex items-baseline justify-between gap-4">
+				<div>
+					<h2 class="flex items-baseline gap-2 text-lg font-medium text-foreground">
+						<span>Maintenance windows</span>
+						{#if maintenanceWindows.length > 0}
+							<span class="font-mono tabular-nums text-xs text-muted-foreground">
+								{maintenanceWindows.length}
+							</span>
+						{/if}
+					</h2>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Suppress alerts during planned downtime.
+					</p>
 				</div>
 				<button
-					onclick={() => { showMaintenanceModal = true; }}
-					class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5 w-fit"
+					onclick={() => {
+						showMaintenanceModal = true;
+					}}
+					class="inline-flex shrink-0 items-center gap-1.5 bg-accent px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
 				>
-					<Plus class="w-3.5 h-3.5" />
+					<Plus class="h-3.5 w-3.5" strokeWidth={2.5} />
 					<span>Schedule</span>
 				</button>
 			</div>
 
-			<!-- Window list -->
 			{#if maintenanceWindows.length === 0}
-				<EmptyState
-					title="No maintenance windows"
-					description="Schedule maintenance to suppress alerts during planned downtime."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
-							<Calendar class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-					{#snippet cta()}
-						<button
-							onclick={() => { showMaintenanceModal = true; }}
-							class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5"
-						>
-							<Plus class="w-3.5 h-3.5" />
-							<span>Schedule</span>
-						</button>
-					{/snippet}
-				</EmptyState>
+				<div class="border border-dashed border-border px-6 py-10 text-center">
+					<p class="text-sm text-foreground">No maintenance windows scheduled.</p>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Suppress alerts ahead of planned downtime, deploys, or upgrades.
+					</p>
+				</div>
 			{:else}
-				<div class="p-4">
-					<div class="space-y-2">
+				<div class="divide-y divide-border border-y border-border">
 					{#each maintenanceWindows as mw (mw.id)}
-						<div class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
-							<div class="flex items-center justify-between p-3 gap-3">
-								<div class="flex items-center space-x-3 min-w-0">
-									<div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
-										{mw.status === 'active' ? 'bg-green-500/10' : mw.status === 'expired' ? 'bg-muted/50' : 'bg-orange-500/10'}">
-										<Wrench class="w-4 h-4 {mw.status === 'active' ? 'text-green-400' : mw.status === 'expired' ? 'text-muted-foreground/50' : 'text-orange-400'}" />
-									</div>
-									<div class="min-w-0">
-										<div class="flex items-center space-x-2">
-											<span class="text-sm text-foreground truncate">{mw.name}</span>
-											<span class="text-[9px] font-medium uppercase px-1.5 py-0.5 rounded
-												{mw.status === 'active' ? 'bg-green-500/15 text-green-400' : mw.status === 'expired' ? 'bg-muted text-muted-foreground' : 'bg-orange-500/15 text-orange-400'}">
-												{mw.status}
-											</span>
-											{#if mw.recurrence && mw.recurrence !== 'once'}
-												<span class="text-[9px] font-medium px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">
-													↻ {mw.recurrence}
-												</span>
-											{/if}
-										</div>
-										<div class="flex items-center space-x-2 mt-0.5 flex-wrap">
-											<span class="text-[10px] text-muted-foreground">{mw.agent_name}</span>
-											<span class="text-[10px] text-muted-foreground/50">|</span>
-											<span class="text-[10px] text-muted-foreground/60">{new Date(mw.starts_at).toLocaleString()} &mdash; {new Date(mw.ends_at).toLocaleString()}</span>
-										</div>
-									</div>
-								</div>
+						<div class="group flex items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
+							<!-- Status pip -->
+							<span
+								class="inline-block h-1.5 w-1.5 shrink-0 rounded-full {mw.status === 'active'
+									? 'bg-success'
+									: mw.status === 'expired'
+										? 'bg-muted-foreground/40'
+										: 'bg-warning'}"
+								aria-label={mw.status}
+							></span>
 
+							<!-- Name + meta -->
+							<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+								<div class="flex items-baseline gap-3">
+									<span class="truncate text-sm text-foreground">{mw.name}</span>
+									<span class="font-mono tabular-nums text-xs text-muted-foreground">
+										{mw.status}
+									</span>
+									{#if mw.recurrence && mw.recurrence !== 'once'}
+										<span class="font-mono tabular-nums text-xs text-muted-foreground/70">
+											↻ {mw.recurrence}
+										</span>
+									{/if}
+								</div>
+								<div class="font-mono tabular-nums text-xs text-muted-foreground">
+									<span>{mw.agent_name}</span>
+									<span class="px-1.5 text-muted-foreground/40">·</span>
+									<span>{formatRange(mw.starts_at, mw.ends_at)}</span>
+								</div>
+							</div>
+
+							<!-- Actions -->
+							<button
+								onclick={() => handleDeleteMaintenance(mw.id)}
+								class="shrink-0 text-sm text-muted-foreground transition-colors hover:text-destructive"
+							>
+								Delete
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</section>
+
+		<!-- ==================== API TOKENS ==================== -->
+		<section class="mt-8 border-t border-border pt-8">
+			<div class="mb-5 flex items-baseline justify-between gap-4">
+				<div>
+					<h2 class="flex items-baseline gap-2 text-lg font-medium text-foreground">
+						<span>API tokens</span>
+						{#if tokens.length > 0}
+							<span class="font-mono tabular-nums text-xs text-muted-foreground">
+								{tokens.length}
+							</span>
+						{/if}
+					</h2>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Programmatic access to the WatchDog API for CI, Grafana, or custom scripts.
+					</p>
+				</div>
+				<button
+					onclick={() => {
+						showTokenModal = true;
+					}}
+					class="inline-flex shrink-0 items-center gap-1.5 bg-accent px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+				>
+					<Plus class="h-3.5 w-3.5" strokeWidth={2.5} />
+					<span>New token</span>
+				</button>
+			</div>
+
+			{#if tokens.length === 0}
+				<div class="border border-dashed border-border px-6 py-10 text-center">
+					<p class="text-sm text-foreground">No API tokens issued.</p>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Create a token to integrate with CI/CD pipelines, Grafana, or custom scripts.
+					</p>
+				</div>
+			{:else}
+				<div class="divide-y divide-border border-y border-border">
+					{#each tokens as token (token.id)}
+						<div class="group flex items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
+							<!-- Scope pip -->
+							<span
+								class="inline-block h-1.5 w-1.5 shrink-0 rounded-full {token.scope === 'admin'
+									? 'bg-warning'
+									: token.scope === 'telemetry_ingest'
+										? 'bg-success'
+										: 'bg-muted-foreground/40'}"
+								aria-label={token.scope}
+							></span>
+
+							<!-- Name + prefix + meta -->
+							<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+								<div class="flex items-baseline gap-3">
+									<span class="truncate text-sm text-foreground">{token.name}</span>
+									<code class="font-mono tabular-nums text-xs text-muted-foreground">
+										{token.prefix}…
+									</code>
+									<span class="font-mono tabular-nums text-xs text-muted-foreground">
+										{token.scope === 'telemetry_ingest' ? 'telemetry' : token.scope}
+									</span>
+								</div>
+								<div class="flex flex-wrap items-baseline gap-x-3 font-mono tabular-nums text-xs text-muted-foreground">
+									<span>created {timeAgo(token.created_at)}</span>
+									{#if token.expires_at}
+										<span class="text-warning/80">expires {timeAgo(token.expires_at)}</span>
+									{:else}
+										<span class="text-muted-foreground/60">no expiry</span>
+									{/if}
+									{#if token.last_used_at}
+										<span class="hidden sm:inline">last used {timeAgo(token.last_used_at)}</span>
+										{#if token.last_used_ip}
+											<span class="hidden text-muted-foreground/60 sm:inline">
+												from {token.last_used_ip}
+											</span>
+										{/if}
+									{:else}
+										<span class="hidden text-muted-foreground/60 sm:inline">never used</span>
+									{/if}
+								</div>
+							</div>
+
+							<!-- Actions -->
+							<div class="flex shrink-0 items-center gap-3">
 								<button
-									onclick={() => handleDeleteMaintenance(mw.id)}
-									class="p-1.5 text-muted-foreground/40 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors flex-shrink-0"
-									aria-label="Delete maintenance window"
+									onclick={() => handleRegenerateToken(token.id)}
+									class="text-sm text-muted-foreground transition-colors hover:text-foreground"
 								>
-									<Trash2 class="w-3.5 h-3.5" />
+									Regenerate
+								</button>
+								<button
+									onclick={() => handleDeleteToken(token.id)}
+									class="text-sm text-muted-foreground transition-colors hover:text-destructive"
+								>
+									Delete
 								</button>
 							</div>
 						</div>
 					{/each}
-					</div>
 				</div>
 			{/if}
-		</div>
-
-		<!-- ==================== API TOKENS SECTION ==================== -->
-		<div class="bg-card border border-border rounded-lg overflow-hidden">
-			<!-- Header -->
-			<div class="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-				<div class="flex items-center space-x-3">
-					<div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
-						<Key class="w-4 h-4 text-yellow-400" />
-					</div>
-					<div>
-						<div class="flex items-center space-x-2">
-							<h2 class="text-sm font-medium text-foreground">API Tokens</h2>
-							{#if tokens.length > 0}
-								<span class="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">{tokens.length}</span>
-							{/if}
-						</div>
-						<p class="text-[11px] text-muted-foreground mt-0.5">Programmatic access to the WatchDog API.</p>
-					</div>
-				</div>
-				<button
-					onclick={() => { showTokenModal = true; }}
-					class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5 w-fit"
-				>
-					<Plus class="w-3.5 h-3.5" />
-					<span>New Token</span>
-				</button>
-			</div>
-
-			<!-- Token list -->
-			{#if tokens.length === 0}
-				<EmptyState
-					title="No API tokens"
-					description="Create tokens for CI/CD pipelines, Grafana, or custom integrations."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
-							<Key class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-					{#snippet cta()}
-						<button
-							onclick={() => { showTokenModal = true; }}
-							class="px-3 py-1.5 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors flex items-center space-x-1.5"
-						>
-							<Plus class="w-3.5 h-3.5" />
-							<span>New Token</span>
-						</button>
-					{/snippet}
-				</EmptyState>
-			{:else}
-				<div class="p-4">
-					<div class="space-y-2">
-					{#each tokens as token (token.id)}
-						<div class="group rounded-lg border border-border/50 bg-background hover:border-border transition-colors">
-							<div class="flex items-center justify-between p-3 gap-3">
-								<div class="flex items-center space-x-3 min-w-0">
-									<div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
-										<Key class="w-4 h-4 text-yellow-400" />
-									</div>
-									<div class="min-w-0">
-										<div class="flex items-center space-x-2">
-											<span class="text-sm font-medium text-foreground truncate">{token.name}</span>
-											<code class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{token.prefix}...</code>
-											{#if token.scope === 'admin'}
-												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-yellow-500/15 text-yellow-400">admin</span>
-											{:else if token.scope === 'telemetry_ingest'}
-												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-emerald-500/15 text-emerald-400">telemetry</span>
-											{:else}
-												<span class="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-blue-500/15 text-blue-400">read-only</span>
-											{/if}
-										</div>
-										<div class="flex items-center space-x-1.5 mt-0.5">
-											<span class="text-[10px] text-muted-foreground/60">Created {timeAgo(token.created_at)}</span>
-											{#if token.expires_at}
-												<span class="text-[10px] text-yellow-400/70">Expires {timeAgo(token.expires_at)}</span>
-											{:else}
-												<span class="text-[10px] text-muted-foreground/40">No expiry</span>
-											{/if}
-											{#if token.last_used_at}
-												<span class="text-[10px] text-muted-foreground/60 hidden sm:inline">Last used: {timeAgo(token.last_used_at)}</span>
-												{#if token.last_used_ip}
-													<span class="text-[10px] text-muted-foreground/40 hidden sm:inline font-mono">IP: {token.last_used_ip}</span>
-												{/if}
-											{:else}
-												<span class="text-[10px] text-muted-foreground/60 hidden sm:inline">Never used</span>
-											{/if}
-										</div>
-									</div>
-								</div>
-
-								<div class="flex items-center gap-1 shrink-0">
-									<!-- Regenerate button (text) -->
-									<button
-										onclick={() => handleRegenerateToken(token.id)}
-										class="px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
-									>
-										Regenerate
-									</button>
-
-									<!-- Delete button -->
-									<button
-										onclick={() => handleDeleteToken(token.id)}
-										class="text-red-400/40 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10"
-										aria-label="Delete token"
-									>
-										<Trash2 class="w-3.5 h-3.5" />
-									</button>
-								</div>
-							</div>
-						</div>
-					{/each}
-					</div>
-				</div>
-			{/if}
-		</div>
+		</section>
 	</div>
 
 	<CreateChannelModal
 		bind:open={showChannelModal}
-		onClose={() => { showChannelModal = false; }}
+		onClose={() => {
+			showChannelModal = false;
+		}}
 		onCreated={handleChannelCreated}
 	/>
 
 	<CreateTokenModal
 		bind:open={showTokenModal}
-		onClose={() => { showTokenModal = false; plaintextToken = ''; }}
+		onClose={() => {
+			showTokenModal = false;
+			plaintextToken = '';
+		}}
 		onCreated={handleTokenCreated}
 	/>
 
 	<CreateMaintenanceModal
 		bind:open={showMaintenanceModal}
-		onClose={() => { showMaintenanceModal = false; }}
+		onClose={() => {
+			showMaintenanceModal = false;
+		}}
 		onCreated={handleMaintenanceCreated}
 	/>
 
