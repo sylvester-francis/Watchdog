@@ -1,8 +1,5 @@
 <script lang="ts">
-	import { Pencil } from 'lucide-svelte';
 	import type { Monitor } from '$lib/types';
-	import { Pill } from '@sylvester-francis/watchdog-ui';
-	import { Button } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		monitor: Monitor;
@@ -11,10 +8,10 @@
 
 	let { monitor, onEdit }: Props = $props();
 
-	function statusDotClass(status: string): string {
-		if (status === 'up') return 'bg-emerald-400 shadow-[0_0_8px_rgba(34,197,94,0.5)]';
-		if (status === 'down') return 'bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.5)]';
-		if (status === 'degraded') return 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]';
+	function statusPipClass(status: string): string {
+		if (status === 'up') return 'bg-success';
+		if (status === 'down') return 'bg-destructive';
+		if (status === 'degraded') return 'bg-warning';
 		return 'bg-muted-foreground/50';
 	}
 
@@ -24,41 +21,29 @@
 		if (status === 'degraded') return 'Degraded';
 		return 'Pending';
 	}
-
-	function statusTextClass(status: string): string {
-		if (status === 'up') return 'text-emerald-400';
-		if (status === 'down') return 'text-red-400';
-		if (status === 'degraded') return 'text-amber-400';
-		return 'text-muted-foreground';
-	}
 </script>
 
-<div class="bg-card border border-border rounded-lg p-5">
-	<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-		<div class="flex items-center space-x-4">
-			<div class="w-10 h-10 rounded-lg {monitor.status === 'up' ? 'bg-emerald-500/10' : monitor.status === 'down' ? 'bg-red-500/10' : 'bg-muted/50'} flex items-center justify-center">
-				<div class="w-3 h-3 rounded-full {statusDotClass(monitor.status)}" aria-label="Status: {monitor.status}"></div>
-			</div>
-			<div>
-				<h2 class="text-lg font-semibold text-foreground">{monitor.name}</h2>
-				<div class="flex items-center space-x-3 mt-1">
-					<Pill tone="neutral">
-					<span class="uppercase font-mono">{monitor.type}</span>
-				</Pill>
-					<span class="text-xs text-muted-foreground font-mono">{monitor.target}</span>
-				</div>
-			</div>
+<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+	<div class="min-w-0">
+		<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+			<span class="inline-block h-1.5 w-1.5 rounded-full {statusPipClass(monitor.status)}" aria-label="Status: {monitor.status}"></span>
+			<span class="uppercase tracking-wider">{statusLabel(monitor.status)}</span>
+			<span class="text-muted-foreground/40">·</span>
+			<span class="uppercase tracking-wider">{monitor.type}</span>
 		</div>
-		<div class="flex items-center space-x-3">
-			<span class="text-sm font-medium {statusTextClass(monitor.status)}">{statusLabel(monitor.status)}</span>
-			{#if onEdit}
-				<Button variant="secondary" size="sm" onclick={onEdit}>
-					<span class="flex items-center gap-1.5">
-						<Pencil class="w-3.5 h-3.5" />
-						<span>Edit</span>
-					</span>
-				</Button>
-			{/if}
+		<h1 class="mt-1.5 truncate text-2xl font-medium text-foreground sm:text-3xl">
+			{monitor.name}
+		</h1>
+		<div class="mt-1 truncate font-mono tabular-nums text-sm text-muted-foreground">
+			{monitor.target}
 		</div>
 	</div>
-</div>
+	{#if onEdit}
+		<button
+			onclick={onEdit}
+			class="shrink-0 self-start text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline sm:self-auto"
+		>
+			Edit
+		</button>
+	{/if}
+</header>

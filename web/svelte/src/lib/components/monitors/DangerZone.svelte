@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Trash2, AlertTriangle } from 'lucide-svelte';
+	import { Trash2 } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -32,32 +32,27 @@
 	}
 </script>
 
-<div class="bg-card border border-red-500/20 rounded-lg">
-	<div class="px-5 py-3.5 border-b border-red-500/20 flex items-center space-x-2">
-		<AlertTriangle class="w-4 h-4 text-destructive" />
+<section>
+	<div class="border-b border-destructive/30 pb-3">
 		<h3 class="text-sm font-medium text-destructive">Danger Zone</h3>
 	</div>
 
-	<div class="px-5 py-4">
-		<div class="flex items-start justify-between">
-			<div>
-				<p class="text-sm text-foreground font-medium">Delete this monitor</p>
-				<p class="text-xs text-muted-foreground mt-1">
-					Once deleted, all heartbeat data and incident history for this monitor will be permanently removed.
-				</p>
-			</div>
-
-			<div class="shrink-0 ml-4">
-				<Button variant="destructive" size="sm" onclick={() => { showConfirm = true; }}>
-					<span class="flex items-center gap-1.5">
-						<Trash2 class="w-3.5 h-3.5" />
-						<span>Delete Monitor</span>
-					</span>
-				</Button>
-			</div>
+	<div class="flex flex-col items-start gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+		<div>
+			<p class="text-sm font-medium text-foreground">Delete this monitor</p>
+			<p class="mt-1 text-xs text-muted-foreground">
+				Once deleted, all heartbeat data and incident history for this monitor will be permanently removed.
+			</p>
 		</div>
+
+		<Button variant="destructive" size="sm" onclick={() => { showConfirm = true; }}>
+			<span class="flex items-center gap-1.5">
+				<Trash2 class="h-3.5 w-3.5" />
+				<span>Delete Monitor</span>
+			</span>
+		</Button>
 	</div>
-</div>
+</section>
 
 <ConfirmModal
 	open={showConfirm}

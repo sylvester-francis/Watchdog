@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Loader2, Activity } from 'lucide-svelte';
+	import { Loader2 } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { HeartbeatPoint } from '$lib/types';
@@ -161,15 +161,12 @@
 	});
 </script>
 
-<div class="bg-card border border-border rounded-lg">
+<section>
 	<!-- Header -->
-	<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
+	<div class="flex items-center justify-between border-b border-border pb-3">
 		<div>
-			<div class="flex items-center space-x-2">
-				<Activity class="w-4 h-4 text-muted-foreground" />
-				<h3 class="text-sm font-medium text-foreground">Status History</h3>
-			</div>
-			<p class="text-[10px] text-muted-foreground mt-0.5 ml-6">Each bar is one health check. Green = reachable, Red = down or unreachable.</p>
+			<h3 class="text-sm font-medium text-foreground">Status History</h3>
+			<p class="mt-0.5 text-xs text-muted-foreground">Each bar is one health check. Green = reachable, Red = down or unreachable.</p>
 		</div>
 		<div class="flex items-center space-x-1">
 			{#each periods as p}
@@ -186,13 +183,13 @@
 	</div>
 
 	<!-- Chart area -->
-	<div class="px-5 py-4">
+	<div class="pt-4">
 		{#if loading}
-			<div class="flex items-center justify-center h-[220px]">
-				<Loader2 class="w-5 h-5 text-muted-foreground animate-spin" />
+			<div class="flex h-[220px] items-center justify-center">
+				<Loader2 class="h-5 w-5 animate-spin text-muted-foreground" />
 			</div>
 		{:else if heartbeats.length === 0}
-			<div class="flex items-center justify-center h-[220px]">
+			<div class="flex h-[220px] items-center justify-center">
 				<p class="text-xs text-muted-foreground">No status data for this period</p>
 			</div>
 		{:else}
@@ -200,16 +197,16 @@
 				<canvas bind:this={canvasEl}></canvas>
 			</div>
 			<!-- Legend -->
-			<div class="flex items-center justify-end space-x-4 mt-2">
-				<div class="flex items-center space-x-1.5">
-					<div class="w-2.5 h-2.5 rounded-sm bg-emerald-500/70"></div>
-					<span class="text-[10px] text-muted-foreground">Running</span>
+			<div class="mt-2 flex items-center justify-end gap-4 font-mono tabular-nums text-[10px] text-muted-foreground">
+				<div class="flex items-center gap-1.5">
+					<span class="inline-block h-1.5 w-1.5 rounded-full bg-success"></span>
+					Running
 				</div>
-				<div class="flex items-center space-x-1.5">
-					<div class="w-2.5 h-2.5 rounded-sm bg-red-500/70"></div>
-					<span class="text-[10px] text-muted-foreground">Down</span>
+				<div class="flex items-center gap-1.5">
+					<span class="inline-block h-1.5 w-1.5 rounded-full bg-destructive"></span>
+					Down
 				</div>
 			</div>
 		{/if}
 	</div>
-</div>
+</section>

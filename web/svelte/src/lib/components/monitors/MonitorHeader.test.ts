@@ -14,21 +14,28 @@ const mkMonitor = (over: Record<string, unknown> = {}) => ({
 } as never);
 
 describe('MonitorHeader', () => {
-  it('renders a Pill for the monitor type', () => {
+  it('shows the monitor type and status in the meta row', () => {
     const { container } = render(MonitorHeader, { props: { monitor: mkMonitor() } });
-    expect(container.querySelector('.ui-pill')).toBeInTheDocument();
-    expect(container.querySelector('.ui-pill')?.textContent?.trim()).toContain('http');
+    const meta = container.querySelector('header > div > div');
+    expect(meta?.textContent).toContain('Operational');
+    expect(meta?.textContent).toContain('http');
   });
 
-  it('renders a secondary Button when onEdit is provided', () => {
+  it('shows the monitor name and target', () => {
+    const { getByText } = render(MonitorHeader, { props: { monitor: mkMonitor() } });
+    expect(getByText('My API')).toBeInTheDocument();
+    expect(getByText('https://example.com')).toBeInTheDocument();
+  });
+
+  it('renders an Edit button when onEdit is provided', () => {
     const { container } = render(MonitorHeader, { props: { monitor: mkMonitor(), onEdit: () => {} } });
-    const btn = container.querySelector('button[data-variant="secondary"]');
+    const btn = container.querySelector('button');
     expect(btn).toBeInTheDocument();
-    expect(btn?.textContent).toContain('Edit');
+    expect(btn?.textContent?.trim()).toBe('Edit');
   });
 
   it('does not render an Edit button when onEdit is omitted', () => {
     const { container } = render(MonitorHeader, { props: { monitor: mkMonitor() } });
-    expect(container.querySelector('button[data-variant="secondary"]')).not.toBeInTheDocument();
+    expect(container.querySelector('button')).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { ChevronRight, HeartPulse } from 'lucide-svelte';
+	import { ChevronRight } from 'lucide-svelte';
 	import { Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { monitors as monitorsApi, agents as agentsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -76,148 +76,132 @@
 
 {#if loading}
 	<!-- Skeleton loading state -->
-	<div class="animate-fade-in-up space-y-4">
-		<!-- Breadcrumb skeleton -->
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] space-y-8 px-4 py-8 sm:px-6 sm:py-10">
 		<Skeleton emphasis="secondary" width="12rem" height="1rem" />
 
-		<!-- Header skeleton -->
-		<div class="flex items-center space-x-3">
-			<div class="w-3 h-3 bg-muted/50 rounded-full animate-pulse"></div>
-			<div class="space-y-2">
-				<Skeleton emphasis="secondary" width="14rem" height="1.5rem" />
-				<Skeleton emphasis="tertiary" width="18rem" height="0.75rem" />
-			</div>
+		<div class="space-y-2">
+			<Skeleton emphasis="tertiary" width="9rem" height="0.75rem" />
+			<Skeleton emphasis="secondary" width="16rem" height="2rem" />
+			<Skeleton emphasis="tertiary" width="18rem" height="0.875rem" />
 		</div>
 
-		<!-- Stats grid skeleton -->
-		<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+		<div class="grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-4">
 			{#each Array(4) as _}
-				<Skeleton variant="card" emphasis="secondary" height="6rem" />
-			{/each}
-		</div>
-
-		<!-- Chart skeleton -->
-		<Skeleton variant="chart" emphasis="secondary" height="16rem" />
-
-		<!-- Table skeleton -->
-		<div class="bg-card border border-border rounded-lg">
-			{#each Array(5) as _}
-				<div class="flex items-center px-4 py-3 border-b border-border/20">
-					<Skeleton emphasis="secondary" width="5rem" height="0.75rem" />
-					<div class="ml-auto">
-						<Skeleton emphasis="secondary" width="3rem" height="0.75rem" />
-					</div>
-					<div class="ml-4">
-						<Skeleton emphasis="secondary" width="3.5rem" height="0.75rem" />
+				<div class="bg-background p-4">
+					<Skeleton emphasis="tertiary" width="3.5rem" height="0.625rem" />
+					<div class="mt-2">
+						<Skeleton emphasis="secondary" width="4rem" height="1.25rem" />
 					</div>
 				</div>
 			{/each}
 		</div>
+
+		<Skeleton variant="chart" emphasis="secondary" height="16rem" />
 	</div>
 {:else if error && !monitor}
 	<!-- Error state -->
-	<div class="animate-fade-in-up">
-		<div class="bg-card border border-border rounded-lg p-8 text-center">
-			<p class="text-sm text-foreground font-medium mb-1">Failed to load monitor</p>
-			<p class="text-xs text-muted-foreground mb-4">{error}</p>
-			<a
-				href="/monitors"
-				class="inline-flex items-center px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-			>
-				Back to Monitors
-			</a>
-		</div>
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+		<p class="text-sm font-medium text-foreground">Failed to load monitor</p>
+		<p class="mt-1 font-mono tabular-nums text-xs text-destructive">{error}</p>
+		<a
+			href="/monitors"
+			class="mt-4 inline-block text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+		>
+			← Back to Monitors
+		</a>
 	</div>
 {:else if monitor}
-	<div class="animate-fade-in-up space-y-5">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
 		<!-- Breadcrumb -->
-		<nav class="flex items-center space-x-1.5 text-xs">
-			<a href="/monitors" class="text-muted-foreground hover:text-foreground transition-colors">
+		<nav class="flex items-center gap-1.5 text-xs">
+			<a href="/monitors" class="text-muted-foreground transition-colors hover:text-foreground">
 				Monitors
 			</a>
-			<ChevronRight class="w-3 h-3 text-muted-foreground/50" />
-			<span class="text-foreground font-medium truncate max-w-[200px]">{monitor.name}</span>
+			<ChevronRight class="h-3 w-3 text-muted-foreground/40" />
+			<span class="truncate max-w-[200px] font-mono tabular-nums text-foreground">{monitor.name}</span>
 		</nav>
 
 		<!-- Header -->
-		<MonitorHeader {monitor} onEdit={() => editOpen = true} />
+		<div class="mt-6">
+			<MonitorHeader {monitor} onEdit={() => editOpen = true} />
+		</div>
 
-		<!-- Stats Cards -->
-		<MonitorStats {monitor} {uptimePercent} {agentName} />
+		<!-- Stats Row (hairline-separated columns) -->
+		<div class="mt-8">
+			<MonitorStats {monitor} {uptimePercent} {agentName} />
+		</div>
 
-		<!-- Charts: type-specific primary chart + StatusChart for all types -->
-		{#if monitor.type === 'tls'}
-			<CertExpiryChart {monitorId} />
-			<CertDetailsCard {monitorId} />
-			<LatencyChart {monitorId} />
-			<StatusChart {monitorId} />
-		{:else if monitor.type === 'system'}
-			<MetricChart {monitorId} target={monitor.target} />
-			<StatusChart {monitorId} />
-		{:else if monitor.type === 'port_scan'}
-			<PortScanResults metadata={monitor.metadata} />
-			<StatusChart {monitorId} />
-		{:else if monitor.type === 'snmp'}
-			{#if monitor.metadata?.template_id}
-				<DeviceHealthCard metadata={monitor.metadata} templateId={monitor.metadata.template_id} />
+		<!-- Charts and sections -->
+		<div class="mt-10 space-y-10">
+			{#if monitor.type === 'tls'}
+				<CertExpiryChart {monitorId} />
+				<CertDetailsCard {monitorId} />
+				<LatencyChart {monitorId} />
+				<StatusChart {monitorId} />
+			{:else if monitor.type === 'system'}
+				<MetricChart {monitorId} target={monitor.target} />
+				<StatusChart {monitorId} />
+			{:else if monitor.type === 'port_scan'}
+				<PortScanResults metadata={monitor.metadata} />
+				<StatusChart {monitorId} />
+			{:else if monitor.type === 'snmp'}
+				{#if monitor.metadata?.template_id}
+					<DeviceHealthCard metadata={monitor.metadata} templateId={monitor.metadata.template_id} />
+				{/if}
+				<SNMPResults metadata={monitor.metadata} />
+				<SNMPValueChart {monitorId} />
+				<LatencyChart {monitorId} />
+				<StatusChart {monitorId} />
+			{:else if monitor.type === 'service' || monitor.type === 'docker'}
+				<StatusChart {monitorId} />
+			{:else}
+				<LatencyChart {monitorId} />
+				<StatusChart {monitorId} />
 			{/if}
-			<SNMPResults metadata={monitor.metadata} />
-			<SNMPValueChart {monitorId} />
-			<LatencyChart {monitorId} />
-			<StatusChart {monitorId} />
-		{:else if monitor.type === 'service' || monitor.type === 'docker'}
-			<StatusChart {monitorId} />
-		{:else}
-			<LatencyChart {monitorId} />
-			<StatusChart {monitorId} />
-		{/if}
 
-		<!-- SLA Compliance -->
-		{#if monitor.metadata?.sla_target_percent || monitor.sla_target_percent}
-			<SLACard {monitorId} />
-		{/if}
+			{#if monitor.metadata?.sla_target_percent || monitor.sla_target_percent}
+				<SLACard {monitorId} />
+			{/if}
 
-		<!-- Uptime Bar (hidden for port_scan — redundant with StatusChart) -->
-		{#if monitor.type !== 'port_scan' && (uptimeUp > 0 || uptimeDown > 0)}
-			<div class="bg-card border border-border rounded-lg">
-				<div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
-					<HeartPulse class="w-4 h-4 text-muted-foreground" />
-					<h3 class="text-sm font-medium text-foreground">Uptime (Last 20 checks)</h3>
-				</div>
-				<div class="px-5 py-4">
-					<div class="flex items-center space-x-4 mb-3">
-						<div class="flex items-center space-x-1.5">
-							<div class="w-2 h-2 rounded-full bg-emerald-400"></div>
-							<span class="text-[10px] text-muted-foreground font-mono">{uptimeUp} success</span>
+			<!-- Uptime Bar (hidden for port_scan — redundant with StatusChart) -->
+			{#if monitor.type !== 'port_scan' && (uptimeUp > 0 || uptimeDown > 0)}
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">Uptime (Last 20 checks)</h3>
+					</div>
+					<div class="pt-4">
+						<div class="mb-3 flex items-center gap-4 font-mono tabular-nums text-[10px] text-muted-foreground">
+							<div class="flex items-center gap-1.5">
+								<span class="inline-block h-1.5 w-1.5 rounded-full bg-success"></span>
+								{uptimeUp} success
+							</div>
+							<div class="flex items-center gap-1.5">
+								<span class="inline-block h-1.5 w-1.5 rounded-full bg-destructive"></span>
+								{uptimeDown} failed
+							</div>
 						</div>
-						<div class="flex items-center space-x-1.5">
-							<div class="w-2 h-2 rounded-full bg-red-400"></div>
-							<span class="text-[10px] text-muted-foreground font-mono">{uptimeDown} failed</span>
+						<div class="flex h-2 w-full gap-px overflow-hidden bg-muted">
+							{#if uptimeUp > 0}
+								<div
+									class="h-full bg-success"
+									style="width: {(uptimeUp / (uptimeUp + uptimeDown)) * 100}%"
+								></div>
+							{/if}
+							{#if uptimeDown > 0}
+								<div
+									class="h-full bg-destructive"
+									style="width: {(uptimeDown / (uptimeUp + uptimeDown)) * 100}%"
+								></div>
+							{/if}
 						</div>
 					</div>
-					<div class="w-full h-3 bg-muted rounded-full overflow-hidden flex gap-px">
-						{#if uptimeUp > 0}
-							<div
-								class="bg-emerald-500 h-full rounded-sm"
-								style="width: {(uptimeUp / (uptimeUp + uptimeDown)) * 100}%"
-							></div>
-						{/if}
-						{#if uptimeDown > 0}
-							<div
-								class="bg-red-500 h-full rounded-sm"
-								style="width: {(uptimeDown / (uptimeUp + uptimeDown)) * 100}%"
-							></div>
-						{/if}
-					</div>
-				</div>
-			</div>
-		{/if}
+				</section>
+			{/if}
 
-		<!-- Recent Checks -->
-		<RecentChecks {monitorId} monitorType={monitor.type} />
+			<RecentChecks {monitorId} monitorType={monitor.type} />
 
-		<!-- Danger Zone -->
-		<DangerZone {monitorId} />
+			<DangerZone {monitorId} />
+		</div>
 	</div>
 
 	<!-- Edit Modal -->

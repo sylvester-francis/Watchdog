@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { Loader2, List } from 'lucide-svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { Loader2 } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { formatTimeAgo } from '$lib/utils';
 
@@ -32,10 +32,7 @@
 	let { monitorId, monitorType = '' }: Props = $props();
 
 	const toast = getToasts();
-	const isSystem = $derived(monitorType === 'system');
-	const isDocker = $derived(monitorType === 'docker');
-	const isService = $derived(monitorType === 'service');
-	const isNonLatency = $derived(isSystem || isDocker || isService);
+	const isNonLatency = $derived(monitorType === 'system' || monitorType === 'docker' || monitorType === 'service');
 	const isTLS = $derived(monitorType === 'tls');
 	const isPortScan = $derived(monitorType === 'port_scan');
 	const isSNMP = $derived(monitorType === 'snmp');
@@ -59,16 +56,6 @@
 		return `${ms}ms`;
 	}
 
-	function parsePortScanSummary(msg: string | undefined): string {
-		if (!msg) return '--';
-		// Error messages from agent contain port scan details
-		const openMatch = msg.match(/(\d+)\s*(?:open|ports?\s*open)/i);
-		const scannedMatch = msg.match(/(\d+)\s*(?:scanned|total)/i);
-		if (openMatch && scannedMatch) return `${openMatch[1]}/${scannedMatch[1]} open`;
-		if (openMatch) return `${openMatch[1]} open`;
-		return msg.length > 40 ? msg.slice(0, 40) + '...' : msg;
-	}
-
 	function parseMetricValue(msg: string | undefined, status?: string): string {
 		if (!msg) {
 			if (status === 'up') return 'Running';
@@ -83,8 +70,29 @@
 		return msg;
 	}
 
+	function parsePortCounts(hb: HeartbeatPoint): string {
+		const msg = hb.error_message || '';
+		const openMatch = msg.match(/(\d+)\s*open/i);
+		const scannedMatch = msg.match(/(\d+)\s*scanned/i);
+		if (openMatch && scannedMatch) return `${openMatch[1]}/${scannedMatch[1]}`;
+		if (openMatch) return `${openMatch[1]} open`;
+		return hb.status === 'up' ? 'OK' : '--';
+	}
+
+	function parsePortDetail(hb: HeartbeatPoint): { text: string; color: string } {
+		const msg = hb.error_message || '';
+		const missingMatch = msg.match(/missing:\s*([^;]+)/i);
+		const unexpectedMatch = msg.match(/unexpected:\s*([^;]+)/i);
+		if (missingMatch) return { text: `Missing: ${missingMatch[1].trim()}`, color: 'text-red-400' };
+		if (unexpectedMatch) return { text: `Unexpected: ${unexpectedMatch[1].trim()}`, color: 'text-yellow-400' };
+		if (hb.status === 'up') return { text: 'Clean', color: 'text-emerald-400' };
+		return { text: 'Check failed', color: 'text-red-400' };
+	}
+
+	let initialLoad = true;
+
 	async function fetchHeartbeats() {
-		loading = true;
+		if (initialLoad) loading = true;
 		try {
 			const res = await monitorsApi.getHeartbeats(monitorId);
 			const arr = Array.isArray(res) ? res : [];
@@ -94,17 +102,24 @@
 			heartbeats = [];
 		} finally {
 			loading = false;
+			initialLoad = false;
 		}
 	}
 
+	let pollInterval: ReturnType<typeof setInterval>;
+
 	onMount(() => {
 		fetchHeartbeats();
+		pollInterval = setInterval(fetchHeartbeats, 30_000);
+	});
+
+	onDestroy(() => {
+		clearInterval(pollInterval);
 	});
 </script>
 
-<div class="bg-card border border-border rounded-lg">
-	<div class="px-5 py-3.5 border-b border-border flex items-center space-x-2">
-		<List class="w-4 h-4 text-muted-foreground" />
+<section>
+	<div class="border-b border-border pb-3">
 		<h3 class="text-sm font-medium text-foreground">Recent Checks</h3>
 	</div>
 
@@ -124,10 +139,10 @@
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isPortScan ? 'Ports' : isSNMP ? 'Response' : isSystem ? 'Value' : isTLS ? 'Handshake' : isDocker || isService ? 'Detail' : 'Latency'}
+							{isPortScan ? 'Ports' : isSNMP ? 'Response' : isNonLatency ? 'Value' : 'Latency'}
 						</th>
 						<th class="px-5 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-							{isPortScan ? 'Drift' : isSNMP ? 'Value' : isTLS ? 'Cert Expiry' : isSystem ? 'Threshold' : isDocker ? 'Container' : isService ? 'Service' : 'Result'}
+							{isPortScan ? 'Detail' : isSNMP ? 'Value' : isNonLatency ? 'Detail' : isTLS ? 'Certificate' : 'Status'}
 						</th>
 					</tr>
 				</thead>
@@ -147,13 +162,9 @@
 								{#if isSNMP}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
 								{:else if isPortScan}
-									<span class="text-xs text-foreground font-mono">{parsePortScanSummary(hb.error_message)}</span>
-								{:else if isSystem}
+									<span class="text-xs text-foreground font-mono">{parsePortCounts(hb)}</span>
+								{:else if isNonLatency}
 									<span class="text-xs text-foreground font-mono">{parseMetricValue(hb.error_message, hb.status)}</span>
-								{:else if isDocker || isService}
-									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">
-										{hb.error_message || (hb.status === 'up' ? 'Healthy' : 'Unreachable')}
-									</span>
 								{:else if hb.latency_ms != null}
 									<span class="text-xs text-foreground font-mono">{formatLatency(hb.latency_ms)}</span>
 								{:else}
@@ -167,26 +178,20 @@
 									<span class="text-xs text-emerald-400 font-mono">OK</span>
 								{:else if isSNMP && hb.error_message}
 									<span class="text-xs text-red-400 font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
-								{:else if isPortScan && hb.error_message}
-									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
-								{:else if isPortScan && hb.status === 'up'}
-									<span class="text-xs text-emerald-400 font-mono">No drift</span>
+								{:else if isPortScan}
+									{@const detail = parsePortDetail(hb)}
+									<span class="text-xs font-mono truncate max-w-[200px] inline-block {detail.color}">{detail.text}</span>
 								{:else if isTLS && hb.cert_expiry_days != null}
 									{@const days = hb.cert_expiry_days}
 									<span class="text-xs font-mono {days < 14 ? 'text-red-400' : days < 30 ? 'text-amber-400' : 'text-emerald-400'}">
-										{days}d remaining
+										Expires in {days}d
 									</span>
-								{:else if isSystem && hb.error_message}
-									{@const hasThreshold = hb.error_message.includes('exceeds')}
-									<span class="text-xs font-mono {hasThreshold ? 'text-red-400' : 'text-emerald-400'}">
-										{hasThreshold ? 'Exceeded' : 'Within limit'}
-									</span>
-								{:else if (isDocker || isService) && hb.status === 'up'}
-									<span class="text-xs text-emerald-400 font-mono">Running</span>
-								{:else if (isDocker || isService) && hb.status === 'down'}
-									<span class="text-xs text-red-400 font-mono">Stopped</span>
+								{:else if isNonLatency && hb.error_message}
+									<span class="text-xs text-muted-foreground font-mono truncate max-w-[200px] inline-block">{hb.error_message}</span>
+								{:else if isNonLatency && hb.status === 'up'}
+									<span class="text-xs text-emerald-400 font-mono">OK</span>
 								{:else if hb.status === 'down' || hb.status === 'error'}
-									<span class="text-xs text-red-400 font-mono">Failed</span>
+									<span class="text-xs text-red-400 font-mono">Check failed</span>
 								{:else if hb.status === 'timeout'}
 									<span class="text-xs text-amber-400 font-mono">Timeout</span>
 								{:else if hb.status === 'up'}
@@ -201,4 +206,4 @@
 			</table>
 		</div>
 	{/if}
-</div>
+</section>
