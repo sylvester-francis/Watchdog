@@ -23,7 +23,7 @@
 		Wrench,
 		Calendar
 	} from 'lucide-svelte';
-	import { EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { Alert, EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { settings as settingsApi, maintenance as maintenanceApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
@@ -443,20 +443,22 @@
 	<div class="animate-fade-in-up space-y-6">
 		<!-- Header skeleton -->
 		<div>
-			<div class="h-7 w-28 bg-muted/50 rounded animate-pulse"></div>
-			<div class="h-4 w-72 bg-muted/30 rounded animate-pulse mt-1.5"></div>
+			<Skeleton emphasis="secondary" width="7rem" height="1.75rem" />
+			<div class="mt-1.5">
+				<Skeleton emphasis="tertiary" width="18rem" height="1rem" />
+			</div>
 		</div>
 		<!-- Card skeletons -->
 		{#each Array(3) as _}
 			<div class="bg-card border border-border rounded-lg p-5">
 				<div class="flex items-center space-x-3 mb-4">
-					<div class="w-9 h-9 bg-muted/50 rounded-lg animate-pulse"></div>
+					<Skeleton emphasis="secondary" width="2.25rem" height="2.25rem" />
 					<div class="space-y-1.5">
-						<div class="h-4 w-32 bg-muted/50 rounded animate-pulse"></div>
-						<div class="h-3 w-56 bg-muted/30 rounded animate-pulse"></div>
+						<Skeleton emphasis="secondary" width="8rem" height="1rem" />
+						<Skeleton emphasis="tertiary" width="14rem" height="0.75rem" />
 					</div>
 				</div>
-				<div class="h-10 w-full bg-muted/30 rounded-md animate-pulse"></div>
+				<Skeleton emphasis="tertiary" height="2.5rem" />
 			</div>
 		{/each}
 	</div>
@@ -541,17 +543,17 @@
 					</div>
 
 					{#if usernameError}
-						<div class="bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 flex items-center space-x-2" role="alert">
-							<AlertCircle class="w-3.5 h-3.5 text-destructive flex-shrink-0" />
-							<span class="text-xs text-destructive">{usernameError}</span>
-						</div>
+						<Alert tone="down">
+							{#snippet icon()}<AlertCircle class="w-3.5 h-3.5" />{/snippet}
+							{usernameError}
+						</Alert>
 					{/if}
 
 					{#if usernameSuccess}
-						<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 flex items-center space-x-2">
-							<Check class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-							<span class="text-xs text-emerald-400">{usernameSuccess}</span>
-						</div>
+						<Alert tone="up">
+							{#snippet icon()}<Check class="w-3.5 h-3.5" />{/snippet}
+							{usernameSuccess}
+						</Alert>
 					{/if}
 				</form>
 			</div>
@@ -572,9 +574,11 @@
 			</div>
 			<div class="p-5">
 				{#if showForceChangeBanner}
-					<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-md px-3 py-2 mb-4 flex items-center space-x-2" role="alert">
-						<AlertTriangle class="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-						<span class="text-xs text-yellow-400">Your password was reset by an administrator. Please set a new password.</span>
+					<div class="mb-4">
+						<Alert tone="warn">
+							{#snippet icon()}<AlertTriangle class="w-3.5 h-3.5" />{/snippet}
+							Your password was reset by an administrator. Please set a new password.
+						</Alert>
 					</div>
 				{/if}
 
@@ -615,17 +619,17 @@
 					</div>
 
 					{#if passwordError}
-						<div class="bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 flex items-center space-x-2" role="alert">
-							<AlertCircle class="w-3.5 h-3.5 text-destructive flex-shrink-0" />
-							<span class="text-xs text-destructive">{passwordError}</span>
-						</div>
+						<Alert tone="down">
+							{#snippet icon()}<AlertCircle class="w-3.5 h-3.5" />{/snippet}
+							{passwordError}
+						</Alert>
 					{/if}
 
 					{#if passwordSuccess}
-						<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2 flex items-center space-x-2">
-							<Check class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-							<span class="text-xs text-emerald-400">{passwordSuccess}</span>
-						</div>
+						<Alert tone="up">
+							{#snippet icon()}<Check class="w-3.5 h-3.5" />{/snippet}
+							{passwordSuccess}
+						</Alert>
 					{/if}
 
 					<button

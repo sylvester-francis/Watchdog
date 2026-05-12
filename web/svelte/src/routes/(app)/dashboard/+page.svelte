@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Globe, HardDrive, Activity } from 'lucide-svelte';
-	import { Button, EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { Button, EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { goto } from '$app/navigation';
 	import { monitors as monitorsApi, agents as agentsApi, incidents as incidentsApi } from '$lib/api';
 	import { createSSE } from '$lib/stores/sse';
@@ -99,11 +99,11 @@
 {#if loading}
 	<div class="animate-fade-in-up space-y-4">
 		<!-- Skeleton fleet banner -->
-		<div class="bg-card border border-border rounded-lg h-16 animate-pulse"></div>
+		<Skeleton variant="card" emphasis="secondary" height="4rem" />
 		<!-- Skeleton stats grid -->
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 			{#each Array(4) as _}
-				<div class="bg-card border border-border rounded-lg h-24 animate-pulse"></div>
+				<Skeleton variant="card" emphasis="secondary" height="6rem" />
 			{/each}
 		</div>
 	</div>

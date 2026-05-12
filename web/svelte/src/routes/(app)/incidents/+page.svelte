@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-svelte';
-	import { Tabs } from '@sylvester-francis/watchdog-ui';
+	import { Skeleton, Tabs } from '@sylvester-francis/watchdog-ui';
 	import { incidents as incidentsApi, monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Incident, MonitorSummary, IncidentStatus, IncidentInvestigation } from '$lib/types';
@@ -191,31 +191,39 @@
 	<div class="animate-fade-in-up space-y-4">
 		<!-- Header skeleton -->
 		<div class="flex items-center justify-between">
-			<div class="h-7 w-32 bg-muted/50 rounded animate-pulse"></div>
+			<Skeleton emphasis="secondary" width="8rem" height="1.75rem" />
 		</div>
 		<!-- Stats pills skeleton -->
 		<div class="flex items-center gap-3">
 			{#each Array(3) as _}
-				<div class="h-9 w-36 bg-muted/50 rounded-lg animate-pulse"></div>
+				<Skeleton emphasis="secondary" width="9rem" height="2.25rem" />
 			{/each}
 		</div>
 		<!-- Filter tabs skeleton -->
 		<div class="flex items-center gap-1">
 			{#each Array(3) as _}
-				<div class="h-7 w-20 bg-muted/50 rounded-md animate-pulse"></div>
+				<Skeleton emphasis="secondary" width="5rem" height="1.75rem" />
 			{/each}
 		</div>
 		<!-- Table skeleton -->
 		<div class="bg-card border border-border rounded-lg">
 			{#each Array(5) as _}
 				<div class="flex items-center px-4 py-4 border-b border-border/20">
-					<div class="h-5 w-20 bg-muted/50 rounded animate-pulse mr-4"></div>
-					<div class="flex-1 space-y-1.5">
-						<div class="h-4 w-40 bg-muted/50 rounded animate-pulse"></div>
+					<div class="mr-4">
+						<Skeleton emphasis="secondary" width="5rem" height="1.25rem" />
 					</div>
-					<div class="h-4 w-16 bg-muted/50 rounded animate-pulse hidden md:block ml-4"></div>
-					<div class="h-4 w-16 bg-muted/50 rounded animate-pulse hidden md:block ml-4"></div>
-					<div class="h-6 w-24 bg-muted/50 rounded animate-pulse ml-4"></div>
+					<div class="flex-1 space-y-1.5">
+						<Skeleton emphasis="secondary" width="10rem" height="1rem" />
+					</div>
+					<div class="hidden md:block ml-4">
+						<Skeleton emphasis="secondary" width="4rem" height="1rem" />
+					</div>
+					<div class="hidden md:block ml-4">
+						<Skeleton emphasis="secondary" width="4rem" height="1rem" />
+					</div>
+					<div class="ml-4">
+						<Skeleton emphasis="secondary" width="6rem" height="1.5rem" />
+					</div>
 				</div>
 			{/each}
 		</div>

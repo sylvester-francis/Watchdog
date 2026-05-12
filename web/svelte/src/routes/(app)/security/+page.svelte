@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ShieldAlert, ShieldCheck, ShieldX, UserX, RefreshCw, Trash2 } from 'lucide-svelte';
-	import { EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { Alert, EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { system as systemApi } from '$lib/api';
 	import type { SecurityEvent } from '$lib/types';
 
@@ -154,9 +154,7 @@
 	</div>
 
 	{#if error}
-		<div class="bg-destructive/10 border border-destructive/20 rounded-md px-4 py-3">
-			<p class="text-sm text-destructive">{error}</p>
-		</div>
+		<Alert tone="down">{error}</Alert>
 	{/if}
 
 	<!-- Registered Users -->

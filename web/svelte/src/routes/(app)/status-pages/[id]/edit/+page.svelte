@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { ChevronRight, AlertCircle } from 'lucide-svelte';
-	import { Alert, Button, FormField } from '@sylvester-francis/watchdog-ui';
+	import { Alert, Button, FormField, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { StatusPage } from '$lib/types';
@@ -113,24 +113,28 @@
 	<!-- Skeleton loading state -->
 	<div class="animate-fade-in-up space-y-4">
 		<!-- Breadcrumb skeleton -->
-		<div class="h-4 w-56 bg-muted/50 rounded animate-pulse"></div>
+		<Skeleton emphasis="secondary" width="14rem" height="1rem" />
 
 		<!-- Form card skeleton -->
 		<div class="bg-card border border-border rounded-lg">
 			<div class="p-5 space-y-4">
-				<div class="h-4 w-20 bg-muted/50 rounded animate-pulse"></div>
-				<div class="h-10 w-full bg-muted/30 rounded-md animate-pulse"></div>
-				<div class="h-4 w-24 bg-muted/50 rounded animate-pulse"></div>
-				<div class="h-20 w-full bg-muted/30 rounded-md animate-pulse"></div>
-				<div class="h-4 w-16 bg-muted/50 rounded animate-pulse"></div>
-				<div class="h-6 w-48 bg-muted/30 rounded animate-pulse"></div>
-				<div class="h-4 w-24 bg-muted/50 rounded animate-pulse mt-4"></div>
+				<Skeleton emphasis="secondary" width="5rem" height="1rem" />
+				<Skeleton emphasis="tertiary" height="2.5rem" />
+				<Skeleton emphasis="secondary" width="6rem" height="1rem" />
+				<Skeleton emphasis="tertiary" height="5rem" />
+				<Skeleton emphasis="secondary" width="4rem" height="1rem" />
+				<Skeleton emphasis="tertiary" width="12rem" height="1.5rem" />
+				<div class="mt-4">
+					<Skeleton emphasis="secondary" width="6rem" height="1rem" />
+				</div>
 				{#each Array(3) as _}
 					<div class="flex items-center px-3 py-2.5 border border-border/20 rounded-md">
-						<div class="w-4 h-4 bg-muted/50 rounded animate-pulse mr-3"></div>
+						<div class="mr-3">
+							<Skeleton emphasis="secondary" width="1rem" height="1rem" />
+						</div>
 						<div class="flex-1 space-y-1">
-							<div class="h-3.5 w-32 bg-muted/50 rounded animate-pulse"></div>
-							<div class="h-3 w-48 bg-muted/30 rounded animate-pulse"></div>
+							<Skeleton emphasis="secondary" width="8rem" height="0.875rem" />
+							<Skeleton emphasis="tertiary" width="12rem" height="0.75rem" />
 						</div>
 					</div>
 				{/each}

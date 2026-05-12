@@ -2,7 +2,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 
 	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle, Trash2, Activity, Wifi, CircleDot } from 'lucide-svelte';
-	import { EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -315,18 +315,18 @@
 
 {#if loading}
 	<div class="animate-fade-in-up space-y-4">
-		<div class="h-7 w-24 bg-muted/50 rounded animate-pulse"></div>
+		<Skeleton emphasis="secondary" width="6rem" height="1.75rem" />
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 			{#each Array(4) as _}
-				<div class="bg-card border border-border rounded-lg h-24 animate-pulse"></div>
+				<Skeleton variant="card" emphasis="secondary" height="6rem" />
 			{/each}
 		</div>
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 			{#each Array(2) as _}
-				<div class="bg-card border border-border rounded-lg h-48 animate-pulse"></div>
+				<Skeleton variant="card" emphasis="secondary" height="12rem" />
 			{/each}
 		</div>
-		<div class="bg-card border border-border rounded-lg h-64 animate-pulse"></div>
+		<Skeleton variant="card" emphasis="secondary" height="16rem" />
 	</div>
 {:else if error}
 	<div class="animate-fade-in-up">
