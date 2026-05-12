@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-svelte';
 	import { Skeleton, Tabs } from '@sylvester-francis/watchdog-ui';
 	import { incidents as incidentsApi, monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -77,17 +76,6 @@
 				return { title: 'No resolved incidents yet', subtitle: 'Resolved incidents will appear here.' };
 			case 'all':
 				return { title: 'No incidents recorded yet', subtitle: 'Incidents will appear here when monitors detect failures.' };
-		}
-	}
-
-	function emptyIcon(tab: FilterTab) {
-		switch (tab) {
-			case 'active':
-				return CheckCircle2;
-			case 'resolved':
-				return ShieldAlert;
-			case 'all':
-				return AlertTriangle;
 		}
 	}
 
@@ -187,63 +175,49 @@
 </svelte:head>
 
 {#if loading}
-	<!-- Skeleton loading state -->
-	<div class="animate-fade-in-up space-y-4">
-		<!-- Header skeleton -->
-		<div class="flex items-center justify-between">
-			<Skeleton emphasis="secondary" width="8rem" height="1.75rem" />
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] space-y-8 px-4 py-8 sm:px-6 sm:py-10">
+		<div class="space-y-2">
+			<Skeleton emphasis="tertiary" width="6rem" height="0.75rem" />
+			<Skeleton emphasis="secondary" width="14rem" height="2rem" />
+			<Skeleton emphasis="tertiary" width="10rem" height="0.875rem" />
 		</div>
-		<!-- Stats pills skeleton -->
-		<div class="flex items-center gap-3">
+		<div class="grid grid-cols-3 gap-px border-y border-border bg-border">
 			{#each Array(3) as _}
-				<Skeleton emphasis="secondary" width="9rem" height="2.25rem" />
-			{/each}
-		</div>
-		<!-- Filter tabs skeleton -->
-		<div class="flex items-center gap-1">
-			{#each Array(3) as _}
-				<Skeleton emphasis="secondary" width="5rem" height="1.75rem" />
-			{/each}
-		</div>
-		<!-- Table skeleton -->
-		<div class="bg-card border border-border rounded-lg">
-			{#each Array(5) as _}
-				<div class="flex items-center px-4 py-4 border-b border-border/20">
-					<div class="mr-4">
-						<Skeleton emphasis="secondary" width="5rem" height="1.25rem" />
-					</div>
-					<div class="flex-1 space-y-1.5">
-						<Skeleton emphasis="secondary" width="10rem" height="1rem" />
-					</div>
-					<div class="hidden md:block ml-4">
-						<Skeleton emphasis="secondary" width="4rem" height="1rem" />
-					</div>
-					<div class="hidden md:block ml-4">
-						<Skeleton emphasis="secondary" width="4rem" height="1rem" />
-					</div>
-					<div class="ml-4">
-						<Skeleton emphasis="secondary" width="6rem" height="1.5rem" />
+				<div class="bg-background p-4">
+					<Skeleton emphasis="tertiary" width="4rem" height="0.625rem" />
+					<div class="mt-2">
+						<Skeleton emphasis="secondary" width="3rem" height="1.25rem" />
 					</div>
 				</div>
 			{/each}
 		</div>
+		<div class="space-y-2">
+			{#each Array(5) as _}
+				<Skeleton emphasis="tertiary" width="100%" height="2.5rem" />
+			{/each}
+		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
 		<!-- Page header -->
-		<div class="mb-5">
-			<h1 class="text-lg font-semibold text-foreground">Incidents</h1>
-			<p class="text-xs text-muted-foreground mt-0.5">
-				{allIncidents.length} incident{allIncidents.length !== 1 ? 's' : ''} total
-			</p>
-		</div>
+		<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+			<div class="min-w-0">
+				<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+					<span class="uppercase tracking-wider">Incidents</span>
+				</div>
+				<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">
+					{allIncidents.length} incident{allIncidents.length !== 1 ? 's' : ''} total
+				</h1>
+			</div>
+		</header>
 
-		<!-- Stats pills -->
-		<div class="mb-4">
+		<!-- Stats -->
+		<div class="mt-8">
 			<IncidentStats open={openCount} acknowledged={acknowledgedCount} resolved={resolvedCount} />
 		</div>
 
-		<div class="mb-4">
+		<!-- Tabs -->
+		<div class="mt-8">
 			<Tabs
 				options={tabs as Array<{ value: string; label: string }>}
 				value={activeTab}
@@ -253,48 +227,46 @@
 		</div>
 
 		<!-- Incidents table -->
-		{#if filteredIncidents.length > 0}
-			<div class="bg-card border border-border rounded-lg overflow-x-auto">
-				<table class="w-full">
-					<thead>
-						<tr class="border-b border-border">
-							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Monitor</th>
-							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Target</th>
-							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Started</th>
-							<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
-								{activeTab === 'resolved' ? 'TTR' : 'Duration'}
-							</th>
-							<th class="px-4 py-3 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
-						</tr>
-					</thead>
-					<tbody class="divide-y divide-border/50">
-						{#each filteredIncidents as incident (incident.id)}
-							<IncidentRow
-								{incident}
-								monitor={monitorMap.get(incident.monitor_id)}
-								onAcknowledge={handleAcknowledge}
-								onResolve={handleResolve}
-								onInvestigate={handleInvestigate}
-							/>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		{:else}
-			<!-- Empty state -->
-			{@const msg = emptyMessage(activeTab)}
-			{@const Icon = emptyIcon(activeTab)}
-			<div class="bg-card border border-border rounded-lg">
-				<div class="p-12 text-center">
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-4">
-						<Icon class="w-6 h-6 text-muted-foreground/40" />
-					</div>
-					<p class="text-sm font-medium text-foreground mb-1">{msg.title}</p>
-					<p class="text-xs text-muted-foreground">{msg.subtitle}</p>
+		<div class="mt-6">
+			{#if filteredIncidents.length > 0}
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead>
+							<tr class="border-b border-border">
+								<th class="py-2.5 pl-1 pr-4 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+								<th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Monitor</th>
+								<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:table-cell">Target</th>
+								<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground md:table-cell">Started</th>
+								<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground md:table-cell">
+									{activeTab === 'resolved' ? 'TTR' : 'Duration'}
+								</th>
+								<th class="px-1 py-2.5 pr-1 text-right text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:px-4">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-border/40">
+							{#each filteredIncidents as incident (incident.id)}
+								<IncidentRow
+									{incident}
+									monitor={monitorMap.get(incident.monitor_id)}
+									onAcknowledge={handleAcknowledge}
+									onResolve={handleResolve}
+									onInvestigate={handleInvestigate}
+								/>
+							{/each}
+						</tbody>
+					</table>
 				</div>
-			</div>
-		{/if}
+			{:else}
+				<!-- Empty state -->
+				{@const msg = emptyMessage(activeTab)}
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">{msg.title}</h3>
+					</div>
+					<p class="pt-4 text-xs text-muted-foreground">{msg.subtitle}</p>
+				</section>
+			{/if}
+		</div>
 	</div>
 
 	<InvestigationDrawer

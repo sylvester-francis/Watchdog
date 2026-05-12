@@ -1,8 +1,21 @@
 <script lang="ts">
-	import { Loader2, AlertTriangle, Eye, CheckCircle2, Search } from 'lucide-svelte';
+	import { Loader2, ChevronRight, Search } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
-	import { Pill, StatusDot, Button } from '@sylvester-francis/watchdog-ui';
 	import type { Incident, MonitorSummary } from '$lib/types';
+
+	function statusPipClass(status: string): string {
+		if (status === 'open') return 'bg-destructive';
+		if (status === 'acknowledged') return 'bg-warning';
+		if (status === 'resolved') return 'bg-success';
+		return 'bg-muted-foreground/50';
+	}
+
+	function statusTextClass(status: string): string {
+		if (status === 'open') return 'text-destructive';
+		if (status === 'acknowledged') return 'text-warning';
+		if (status === 'resolved') return 'text-success';
+		return 'text-muted-foreground';
+	}
 
 	interface Props {
 		incident: Incident;
@@ -10,9 +23,10 @@
 		onAcknowledge: (id: string) => Promise<void>;
 		onResolve: (id: string) => Promise<void>;
 		onInvestigate?: (id: string) => void;
+		canWrite?: boolean;
 	}
 
-	let { incident, monitor, onAcknowledge, onResolve, onInvestigate }: Props = $props();
+	let { incident, monitor, onAcknowledge, onResolve, onInvestigate, canWrite = true }: Props = $props();
 
 	let ackLoading = $state(false);
 	let resolveLoading = $state(false);
@@ -45,95 +59,86 @@
 	}
 </script>
 
-<tr class="hover:bg-card-elevated transition-colors group">
-	<!-- Status badge -->
-	<td class="px-4 py-3.5">
-		<div class="flex items-center space-x-2">
-			<StatusDot status={incident.status === 'open' ? 'down' : incident.status === 'acknowledged' ? 'warn' : 'up'} pulse={incident.status === 'open'} />
-			<Pill tone={incident.status === 'open' ? 'down' : incident.status === 'acknowledged' ? 'warn' : 'up'}>{incident.status}</Pill>
+<tr class="group cursor-pointer transition-colors hover:bg-muted/30" onclick={() => window.location.href = `/incidents/${incident.id}`}>
+	<!-- Status -->
+	<td class="py-3.5 pl-1 pr-4">
+		<div class="flex items-center gap-2">
+			<span class="inline-block h-1.5 w-1.5 rounded-full {statusPipClass(incident.status)} {incident.status === 'open' ? 'animate-pulse' : ''}" aria-label="Status: {incident.status}"></span>
+			<span class="font-mono tabular-nums text-xs uppercase tracking-wider {statusTextClass(incident.status)}">
+				{incident.status}
+			</span>
 		</div>
 	</td>
 
-	<!-- Monitor name + type with icon -->
+	<!-- Monitor name + type -->
 	<td class="px-4 py-3.5">
-		<div class="flex items-center space-x-2.5">
-			<div class="w-7 h-7 rounded-md flex items-center justify-center shrink-0
-				{incident.status === 'open' ? 'bg-red-500/10' : incident.status === 'acknowledged' ? 'bg-yellow-500/10' : 'bg-emerald-500/10'}">
-				{#if incident.status === 'open'}
-					<AlertTriangle class="w-3.5 h-3.5 text-red-400" />
-				{:else if incident.status === 'acknowledged'}
-					<Eye class="w-3.5 h-3.5 text-yellow-400" />
-				{:else}
-					<CheckCircle2 class="w-3.5 h-3.5 text-emerald-400" />
-				{/if}
-			</div>
-			<div>
-				{#if monitor}
-					<a href="/monitors/{incident.monitor_id}" class="group/link">
-						<span class="text-sm font-medium text-foreground group-hover/link:text-accent transition-colors">{monitor.name}</span>
-						<span class="ml-1.5 hidden lg:inline">
-							<Pill tone="neutral"><span class="uppercase font-mono">{monitor.type}</span></Pill>
-						</span>
-					</a>
-				{:else}
-					<span class="text-sm text-muted-foreground">{incident.monitor_name ?? 'Unknown Monitor'}</span>
-				{/if}
-			</div>
-		</div>
+		{#if monitor}
+			<a href="/incidents/{incident.id}" class="group/link" onclick={(e) => e.stopPropagation()}>
+				<span class="text-sm font-medium text-foreground transition-colors group-hover/link:text-accent">{monitor.name}</span>
+				<span class="ml-2 hidden font-mono tabular-nums text-[10px] uppercase tracking-wider text-muted-foreground lg:inline">{monitor.type}</span>
+			</a>
+		{:else}
+			<a href="/incidents/{incident.id}" class="text-sm text-muted-foreground transition-colors hover:text-accent" onclick={(e) => e.stopPropagation()}>
+				{incident.monitor_name || 'Unknown Monitor'}
+			</a>
+		{/if}
 	</td>
 
 	<!-- Target -->
-	<td class="px-4 py-3.5 hidden lg:table-cell">
-		<span class="text-xs font-mono text-muted-foreground truncate max-w-[200px] inline-block">
+	<td class="hidden px-4 py-3.5 lg:table-cell">
+		<span class="inline-block max-w-[200px] truncate font-mono tabular-nums text-xs text-muted-foreground">
 			{monitor?.target ?? '--'}
 		</span>
 	</td>
 
 	<!-- Started -->
-	<td class="px-4 py-3.5 hidden md:table-cell">
-		<span class="text-xs text-muted-foreground">{formatTimeAgo(incident.started_at)}</span>
+	<td class="hidden px-4 py-3.5 md:table-cell">
+		<span class="font-mono tabular-nums text-xs text-muted-foreground">{formatTimeAgo(incident.started_at)}</span>
 	</td>
 
 	<!-- Duration / TTR -->
-	<td class="px-4 py-3.5 hidden md:table-cell">
+	<td class="hidden px-4 py-3.5 md:table-cell">
 		{#if incident.status === 'resolved'}
-			<span class="text-xs font-mono text-muted-foreground">{formatTTR(incident.ttr_seconds)} TTR</span>
+			<span class="font-mono tabular-nums text-xs text-muted-foreground">{formatTTR(incident.ttr_seconds)} TTR</span>
 		{:else}
-			<span class="text-xs font-mono text-muted-foreground">{formatDuration(incident.started_at)}</span>
+			<span class="font-mono tabular-nums text-xs text-muted-foreground">{formatDuration(incident.started_at)}</span>
 		{/if}
 	</td>
 
 	<!-- Actions -->
-	<td class="px-4 py-3.5">
-		<div class="flex items-center justify-end space-x-1.5">
+	<td class="px-1 py-3.5 pr-1 sm:px-4" onclick={(e) => e.stopPropagation()}>
+		<div class="flex items-center justify-end gap-3">
 			{#if onInvestigate}
-				<Button tone="accent" size="sm" onclick={() => onInvestigate(incident.id)}>
-					<span class="inline-flex items-center text-xs">
-						<Search class="w-3 h-3 mr-0.5" />
-						Investigate
-					</span>
-				</Button>
+				<button
+					onclick={() => onInvestigate(incident.id)}
+					class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+					title="Investigate"
+				>
+					<Search class="h-3 w-3" />
+					<span class="hidden sm:inline">Investigate</span>
+				</button>
 			{/if}
-			{#if incident.status !== 'resolved'}
+			{#if incident.status !== 'resolved' && canWrite}
 				{#if incident.status === 'open'}
-					<Button tone="warn" size="sm" onclick={handleAcknowledge} disabled={ackLoading || resolveLoading}>
-						<span class="inline-flex items-center text-xs">
-							{#if ackLoading}
-								<Loader2 class="w-3 h-3 animate-spin mr-1" />
-							{/if}
-							Ack
-						</span>
-					</Button>
+					<button
+						onclick={handleAcknowledge}
+						disabled={ackLoading || resolveLoading}
+						class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-50"
+					>
+						{#if ackLoading}<Loader2 class="h-3 w-3 animate-spin" />{/if}
+						Ack
+					</button>
 				{/if}
-				<Button tone="up" size="sm" onclick={handleResolve} disabled={ackLoading || resolveLoading}>
-					<span class="inline-flex items-center text-xs">
-						{#if resolveLoading}
-							<Loader2 class="w-3 h-3 animate-spin mr-1" />
-						{/if}
-						Resolve
-					</span>
-				</Button>
+				<button
+					onclick={handleResolve}
+					disabled={ackLoading || resolveLoading}
+					class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-50"
+				>
+					{#if resolveLoading}<Loader2 class="h-3 w-3 animate-spin" />{/if}
+					Resolve
+				</button>
 			{/if}
+			<ChevronRight class="hidden h-3 w-3 text-muted-foreground/30 opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
 		</div>
 	</td>
 </tr>
