@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check, ChevronDown } from 'lucide-svelte';
-	import { Button, EmptyState, Input, Select, Tabs } from '@sylvester-francis/watchdog-ui';
+	import { Button, EmptyState, Input, Select, Skeleton, Tabs } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -237,10 +237,16 @@
 		<div class="bg-card border border-border rounded-lg overflow-hidden">
 			{#each Array(5) as _}
 				<div class="flex items-center px-4 py-3 border-b border-border/20">
-					<div class="w-20 h-3 bg-muted/50 rounded animate-pulse"></div>
-					<div class="ml-6 w-24 h-3 bg-muted/30 rounded animate-pulse"></div>
-					<div class="ml-auto w-16 h-3 bg-muted/50 rounded animate-pulse"></div>
-					<div class="ml-4 w-20 h-3 bg-muted/30 rounded animate-pulse"></div>
+					<Skeleton emphasis="secondary" width="5rem" height="0.75rem" />
+					<div class="ml-6">
+						<Skeleton emphasis="tertiary" width="6rem" height="0.75rem" />
+					</div>
+					<div class="ml-auto">
+						<Skeleton emphasis="secondary" width="4rem" height="0.75rem" />
+					</div>
+					<div class="ml-4">
+						<Skeleton emphasis="tertiary" width="5rem" height="0.75rem" />
+					</div>
 				</div>
 			{/each}
 		</div>

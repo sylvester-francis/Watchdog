@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { ArrowLeft, AlertCircle, Copy, Check, RefreshCw } from 'lucide-svelte';
-	import { Button, EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { Button, EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { Span } from '$lib/types';
 	import Waterfall from '$lib/components/traces/Waterfall.svelte';
@@ -111,14 +111,18 @@
 
 	{#if loading}
 		<div class="space-y-4">
-			<div class="h-8 w-64 bg-muted/50 rounded animate-pulse"></div>
-			<div class="h-5 w-96 bg-muted/30 rounded animate-pulse"></div>
+			<Skeleton emphasis="secondary" width="16rem" height="2rem" />
+			<Skeleton emphasis="tertiary" width="24rem" height="1.25rem" />
 			<div class="bg-card border border-border rounded-lg overflow-hidden">
 				{#each Array(8) as _}
 					<div class="flex items-center px-4 py-2.5 border-b border-border/20">
-						<div class="w-44 h-3 bg-muted/40 rounded animate-pulse"></div>
-						<div class="ml-auto w-72 h-3 bg-muted/30 rounded animate-pulse"></div>
-						<div class="ml-4 w-16 h-3 bg-muted/30 rounded animate-pulse"></div>
+						<Skeleton emphasis="secondary" width="11rem" height="0.75rem" />
+						<div class="ml-auto">
+							<Skeleton emphasis="tertiary" width="18rem" height="0.75rem" />
+						</div>
+						<div class="ml-4">
+							<Skeleton emphasis="tertiary" width="4rem" height="0.75rem" />
+						</div>
 					</div>
 				{/each}
 			</div>

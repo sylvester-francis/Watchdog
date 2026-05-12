@@ -14,11 +14,7 @@
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary, Agent, MonitorType } from '$lib/types';
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
-	import { Sparkline } from '@sylvester-francis/watchdog-ui';
-	import { StatusDot } from '@sylvester-francis/watchdog-ui';
-	import { Pill } from '@sylvester-francis/watchdog-ui';
-	import { Button } from '@sylvester-francis/watchdog-ui';
-	import { EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { Button, EmptyState, Pill, Skeleton, Sparkline, StatusDot } from '@sylvester-francis/watchdog-ui';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal/index.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -217,13 +213,13 @@
 	<div class="animate-fade-in-up space-y-4">
 		<!-- Header skeleton -->
 		<div class="flex items-center justify-between">
-			<div class="h-7 w-32 bg-muted/50 rounded animate-pulse"></div>
-			<div class="h-9 w-32 bg-muted/50 rounded-md animate-pulse"></div>
+			<Skeleton emphasis="secondary" width="8rem" height="1.75rem" />
+			<Skeleton emphasis="secondary" width="8rem" height="2.25rem" />
 		</div>
 		<!-- Filter bar skeleton -->
 		<div class="flex items-center space-x-2">
 			{#each Array(5) as _}
-				<div class="h-7 w-16 bg-muted/50 rounded-md animate-pulse"></div>
+				<Skeleton emphasis="secondary" width="4rem" height="1.75rem" />
 			{/each}
 		</div>
 		<!-- Table skeleton -->
@@ -232,11 +228,15 @@
 				<div class="flex items-center px-4 py-4 border-b border-border/20">
 					<div class="w-2.5 h-2.5 bg-muted/50 rounded-full mr-3"></div>
 					<div class="flex-1 space-y-1.5">
-						<div class="h-4 w-40 bg-muted/50 rounded animate-pulse"></div>
-						<div class="h-3 w-56 bg-muted/30 rounded animate-pulse"></div>
+						<Skeleton emphasis="secondary" width="10rem" height="1rem" />
+						<Skeleton emphasis="tertiary" width="14rem" height="0.75rem" />
 					</div>
-					<div class="h-4 w-28 bg-muted/50 rounded animate-pulse hidden md:block"></div>
-					<div class="h-4 w-14 bg-muted/50 rounded animate-pulse hidden md:block ml-4"></div>
+					<div class="hidden md:block">
+						<Skeleton emphasis="secondary" width="7rem" height="1rem" />
+					</div>
+					<div class="hidden md:block ml-4">
+						<Skeleton emphasis="secondary" width="3.5rem" height="1rem" />
+					</div>
 				</div>
 			{/each}
 		</div>

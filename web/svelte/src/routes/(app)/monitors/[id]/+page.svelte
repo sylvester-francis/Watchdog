@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { ChevronRight, HeartPulse } from 'lucide-svelte';
+	import { Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { monitors as monitorsApi, agents as agentsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Monitor, Agent } from '$lib/types';
@@ -77,34 +78,38 @@
 	<!-- Skeleton loading state -->
 	<div class="animate-fade-in-up space-y-4">
 		<!-- Breadcrumb skeleton -->
-		<div class="h-4 w-48 bg-muted/50 rounded animate-pulse"></div>
+		<Skeleton emphasis="secondary" width="12rem" height="1rem" />
 
 		<!-- Header skeleton -->
 		<div class="flex items-center space-x-3">
 			<div class="w-3 h-3 bg-muted/50 rounded-full animate-pulse"></div>
 			<div class="space-y-2">
-				<div class="h-6 w-56 bg-muted/50 rounded animate-pulse"></div>
-				<div class="h-3 w-72 bg-muted/30 rounded animate-pulse"></div>
+				<Skeleton emphasis="secondary" width="14rem" height="1.5rem" />
+				<Skeleton emphasis="tertiary" width="18rem" height="0.75rem" />
 			</div>
 		</div>
 
 		<!-- Stats grid skeleton -->
 		<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
 			{#each Array(4) as _}
-				<div class="bg-card border border-border rounded-lg h-24 animate-pulse"></div>
+				<Skeleton variant="card" emphasis="secondary" height="6rem" />
 			{/each}
 		</div>
 
 		<!-- Chart skeleton -->
-		<div class="bg-card border border-border rounded-lg h-64 animate-pulse"></div>
+		<Skeleton variant="chart" emphasis="secondary" height="16rem" />
 
 		<!-- Table skeleton -->
 		<div class="bg-card border border-border rounded-lg">
 			{#each Array(5) as _}
 				<div class="flex items-center px-4 py-3 border-b border-border/20">
-					<div class="h-3 w-20 bg-muted/50 rounded animate-pulse"></div>
-					<div class="h-3 w-12 bg-muted/50 rounded animate-pulse ml-auto"></div>
-					<div class="h-3 w-14 bg-muted/50 rounded animate-pulse ml-4"></div>
+					<Skeleton emphasis="secondary" width="5rem" height="0.75rem" />
+					<div class="ml-auto">
+						<Skeleton emphasis="secondary" width="3rem" height="0.75rem" />
+					</div>
+					<div class="ml-4">
+						<Skeleton emphasis="secondary" width="3.5rem" height="0.75rem" />
+					</div>
 				</div>
 			{/each}
 		</div>
