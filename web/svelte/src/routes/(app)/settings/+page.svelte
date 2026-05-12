@@ -610,6 +610,7 @@
 									class="hidden font-mono tabular-nums text-sm text-muted-foreground/60 sm:inline"
 								>usewatchdog.dev/status/@</span>
 								<input
+									id="settings-username"
 									type="text"
 									bind:value={usernameDraft}
 									placeholder="my-username"
