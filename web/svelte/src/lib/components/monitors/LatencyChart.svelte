@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Loader2, Timer } from 'lucide-svelte';
+	import { Loader2 } from 'lucide-svelte';
 	import { monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { LatencyPoint } from '$lib/types';
@@ -215,15 +215,12 @@
 	});
 </script>
 
-<div class="bg-card border border-border rounded-lg">
+<section>
 	<!-- Header -->
-	<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
+	<div class="flex items-center justify-between border-b border-border pb-3">
 		<div>
-			<div class="flex items-center space-x-2">
-				<Timer class="w-4 h-4 text-muted-foreground" />
-				<h3 class="text-sm font-medium text-foreground">Response Time</h3>
-			</div>
-			<p class="text-[10px] text-muted-foreground mt-0.5 ml-6">How fast this target responds. Spikes mean slowdowns; flat lines are healthy.</p>
+			<h3 class="text-sm font-medium text-foreground">Response Time</h3>
+			<p class="mt-0.5 text-xs text-muted-foreground">How fast this target responds. Spikes mean slowdowns; flat lines are healthy.</p>
 		</div>
 		<div class="flex items-center space-x-1">
 			{#each periods as p}
@@ -240,13 +237,13 @@
 	</div>
 
 	<!-- Chart area -->
-	<div class="px-5 py-4">
+	<div class="pt-4">
 		{#if loading}
-			<div class="flex items-center justify-center h-[220px]">
-				<Loader2 class="w-5 h-5 text-muted-foreground animate-spin" />
+			<div class="flex h-[220px] items-center justify-center">
+				<Loader2 class="h-5 w-5 animate-spin text-muted-foreground" />
 			</div>
 		{:else if data.length === 0}
-			<div class="flex items-center justify-center h-[220px]">
+			<div class="flex h-[220px] items-center justify-center">
 				<p class="text-xs text-muted-foreground">No latency data for this period</p>
 			</div>
 		{:else}
@@ -255,4 +252,4 @@
 			</div>
 		{/if}
 	</div>
-</div>
+</section>

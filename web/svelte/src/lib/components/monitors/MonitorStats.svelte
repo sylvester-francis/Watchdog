@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Clock, Timer, Activity, Server, Shield, Container, Database, Cpu, Cog } from 'lucide-svelte';
 	import { formatPercent, uptimeColor } from '$lib/utils';
 	import type { Monitor } from '$lib/types';
 
@@ -13,106 +12,117 @@
 
 	let uptimeDisplay = $derived(formatPercent(uptimePercent));
 	let uptimeColorClass = $derived(uptimeColor(uptimePercent));
+
+	let isPortScan = $derived(monitor.type === 'port_scan');
+	let scannedCount = $derived(monitor.metadata?.scanned_count ?? '0');
+	let openCount = $derived(monitor.metadata?.open_count ?? '0');
+	let hasDrift = $derived(
+		(monitor.metadata?.missing_ports?.split(',').filter(Boolean).length ?? 0) > 0 ||
+			(monitor.metadata?.unexpected_ports?.split(',').filter(Boolean).length ?? 0) > 0
+	);
+
+	let tlsDays = $derived(
+		monitor.type === 'tls' && monitor.metadata?.cert_expiry_days
+			? parseInt(monitor.metadata.cert_expiry_days)
+			: null
+	);
+	let tlsColorClass = $derived(
+		tlsDays === null
+			? ''
+			: tlsDays < 14
+				? 'text-destructive'
+				: tlsDays < 30
+					? 'text-warning'
+					: 'text-success'
+	);
+
+	const cellClass = 'flex flex-col bg-background px-4 py-3.5';
+	const labelClass = 'text-[11px] font-medium uppercase tracking-wider text-muted-foreground';
+	const valueClass = 'mt-1 font-mono tabular-nums text-lg text-foreground';
 </script>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-	<!-- Check Interval -->
-	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-1.5 mb-1">
-			<Clock class="w-3 h-3 text-muted-foreground" />
-			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Interval</p>
+<section class="grid grid-cols-2 gap-px overflow-hidden border-y border-border bg-border sm:grid-cols-3 md:grid-cols-4">
+	{#if isPortScan}
+		<div class={cellClass}>
+			<div class={labelClass}>Scanned</div>
+			<div class={valueClass}>{scannedCount}</div>
 		</div>
-		<p class="text-lg font-semibold text-foreground font-mono">{monitor.interval_seconds}s</p>
-	</div>
-
-	<!-- Timeout -->
-	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-1.5 mb-1">
-			<Timer class="w-3 h-3 text-muted-foreground" />
-			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Timeout</p>
+		<div class={cellClass}>
+			<div class={labelClass}>Open</div>
+			<div class="{valueClass} text-success">{openCount}</div>
 		</div>
-		<p class="text-lg font-semibold text-foreground font-mono">{monitor.timeout_seconds}s</p>
-	</div>
-
-	<!-- Uptime -->
-	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-1.5 mb-1">
-			<Activity class="w-3 h-3 text-muted-foreground" />
-			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Uptime</p>
-		</div>
-		<p class="text-lg font-semibold font-mono {uptimeColorClass}">{uptimeDisplay}%</p>
-	</div>
-
-	<!-- Agent -->
-	<div class="bg-card border border-border rounded-lg p-4">
-		<div class="flex items-center space-x-1.5 mb-1">
-			<Server class="w-3 h-3 text-muted-foreground" />
-			<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Agent</p>
-		</div>
-		<p class="text-sm font-medium text-foreground truncate">{agentName}</p>
-	</div>
-
-	<!-- Type-specific extra cards -->
-	{#if monitor.type === 'tls' && monitor.metadata?.cert_expiry_days}
-		{@const days = parseInt(monitor.metadata.cert_expiry_days)}
-		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-1.5 mb-1">
-				<Shield class="w-3 h-3 text-muted-foreground" />
-				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Cert Expiry</p>
+		<div class={cellClass}>
+			<div class={labelClass}>Compliance</div>
+			<div class="{valueClass} {hasDrift ? 'text-destructive' : 'text-success'}">
+				{hasDrift ? 'Drift' : 'Clean'}
 			</div>
-			<p class="text-lg font-semibold font-mono {days < 14 ? 'text-red-400' : days < 30 ? 'text-amber-400' : 'text-emerald-400'}">
-				{days}d
-			</p>
+		</div>
+		<div class={cellClass}>
+			<div class={labelClass}>Agent</div>
+			<div class="mt-1 truncate text-sm text-foreground">{agentName}</div>
+		</div>
+	{:else}
+		<div class={cellClass}>
+			<div class={labelClass}>Interval</div>
+			<div class={valueClass}>{monitor.interval_seconds}s</div>
+		</div>
+		<div class={cellClass}>
+			<div class={labelClass}>Timeout</div>
+			<div class={valueClass}>{monitor.timeout_seconds}s</div>
+		</div>
+		<div class={cellClass}>
+			<div class={labelClass}>Uptime</div>
+			<div class="{valueClass} {uptimeColorClass}">{uptimeDisplay}%</div>
+		</div>
+		<div class={cellClass}>
+			<div class={labelClass}>Agent</div>
+			<div class="mt-1 truncate text-sm text-foreground">{agentName}</div>
+		</div>
+	{/if}
+
+	{#if tlsDays !== null}
+		<div class={cellClass}>
+			<div class={labelClass}>Cert Expiry</div>
+			<div class="{valueClass} {tlsColorClass}">{tlsDays}d</div>
 		</div>
 	{/if}
 
 	{#if monitor.type === 'tls' && monitor.metadata?.cert_issuer}
-		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-1.5 mb-1">
-				<Shield class="w-3 h-3 text-muted-foreground" />
-				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Issuer</p>
-			</div>
-			<p class="text-sm font-medium text-foreground truncate">{monitor.metadata.cert_issuer}</p>
+		<div class={cellClass}>
+			<div class={labelClass}>Issuer</div>
+			<div class="mt-1 truncate text-sm text-foreground">{monitor.metadata.cert_issuer}</div>
 		</div>
 	{/if}
 
 	{#if monitor.type === 'docker' && monitor.metadata?.container_name}
-		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-1.5 mb-1">
-				<Container class="w-3 h-3 text-muted-foreground" />
-				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Container</p>
+		<div class={cellClass}>
+			<div class={labelClass}>Container</div>
+			<div class="mt-1 truncate font-mono tabular-nums text-sm text-foreground">
+				{monitor.metadata.container_name}
 			</div>
-			<p class="text-sm font-medium text-foreground truncate">{monitor.metadata.container_name}</p>
 		</div>
 	{/if}
 
 	{#if monitor.type === 'database' && monitor.metadata?.db_type}
-		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-1.5 mb-1">
-				<Database class="w-3 h-3 text-muted-foreground" />
-				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">DB Type</p>
-			</div>
-			<p class="text-sm font-medium text-foreground capitalize">{monitor.metadata.db_type}</p>
+		<div class={cellClass}>
+			<div class={labelClass}>DB Type</div>
+			<div class="mt-1 truncate text-sm capitalize text-foreground">{monitor.metadata.db_type}</div>
 		</div>
 	{/if}
 
 	{#if monitor.type === 'system' && monitor.metadata?.metric_name}
-		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-1.5 mb-1">
-				<Cpu class="w-3 h-3 text-muted-foreground" />
-				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Metric</p>
+		<div class={cellClass}>
+			<div class={labelClass}>Metric</div>
+			<div class="mt-1 truncate text-sm capitalize text-foreground">
+				{monitor.metadata.metric_name}
 			</div>
-			<p class="text-sm font-medium text-foreground capitalize">{monitor.metadata.metric_name}</p>
 		</div>
 	{/if}
 
 	{#if monitor.type === 'service'}
-		<div class="bg-card border border-border rounded-lg p-4">
-			<div class="flex items-center space-x-1.5 mb-1">
-				<Cog class="w-3 h-3 text-muted-foreground" />
-				<p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Service</p>
-			</div>
-			<p class="text-sm font-medium text-foreground font-mono">{monitor.target}</p>
+		<div class={cellClass}>
+			<div class={labelClass}>Service</div>
+			<div class="mt-1 truncate font-mono tabular-nums text-sm text-foreground">{monitor.target}</div>
 		</div>
 	{/if}
-</div>
+</section>

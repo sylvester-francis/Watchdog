@@ -156,6 +156,14 @@ export interface MonitorSummary {
 	latest_value?: string;
 }
 
+export interface SLAData {
+	uptime_percent: number;
+	sla_target: number;
+	breached: boolean;
+	margin: number;
+	period: string;
+}
+
 export interface AdminUser {
 	id: string;
 	email: string;
