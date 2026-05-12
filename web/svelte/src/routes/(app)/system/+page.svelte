@@ -2,6 +2,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 
 	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle, Trash2, Activity, Wifi, CircleDot } from 'lucide-svelte';
+	import { EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -698,12 +699,16 @@
 					</table>
 				</div>
 			{:else}
-				<div class="text-center py-12">
-					<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-						<Users class="w-6 h-6 text-muted-foreground/40" />
-					</div>
-					<p class="text-sm text-muted-foreground font-medium">No users found</p>
-				</div>
+				<EmptyState
+					title="No users found"
+					description="Registered users will appear here."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+							<Users class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+					{/snippet}
+				</EmptyState>
 			{/if}
 		</div>
 		{/if}
@@ -770,13 +775,16 @@
 					</table>
 				</div>
 			{:else}
-				<div class="text-center py-12">
-					<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-						<ScrollText class="w-6 h-6 text-muted-foreground/40" />
-					</div>
-					<p class="text-sm text-muted-foreground font-medium">No audit log entries yet</p>
-					<p class="text-xs text-muted-foreground/60 mt-1">Events will appear here as users interact with the system.</p>
-				</div>
+				<EmptyState
+					title="No audit log entries yet"
+					description="Events will appear here as users interact with the system."
+				>
+					{#snippet icon()}
+						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+							<ScrollText class="w-6 h-6 text-muted-foreground/40" />
+						</div>
+					{/snippet}
+				</EmptyState>
 			{/if}
 		</div>
 	</div>

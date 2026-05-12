@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ShieldAlert, ShieldCheck, ShieldX, UserX, RefreshCw, Trash2 } from 'lucide-svelte';
+	import { EmptyState } from '@sylvester-francis/watchdog-ui';
 	import { system as systemApi } from '$lib/api';
 	import type { SecurityEvent } from '$lib/types';
 
@@ -227,7 +228,16 @@
 		{#if loading}
 			<div class="p-8 text-center text-sm text-muted-foreground">Loading security events...</div>
 		{:else if events.length === 0}
-			<div class="p-8 text-center text-sm text-muted-foreground">No security events found.</div>
+			<EmptyState
+				title="No security events"
+				description="Registration attempts, blocked bots, and failed logins will appear here."
+			>
+				{#snippet icon()}
+					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
+						<ShieldAlert class="w-6 h-6 text-muted-foreground/40" />
+					</div>
+				{/snippet}
+			</EmptyState>
 		{:else}
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">
