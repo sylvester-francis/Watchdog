@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Globe, HardDrive, Activity } from 'lucide-svelte';
-	import { Button, EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
+	import { Button, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { goto } from '$app/navigation';
 	import { monitors as monitorsApi, agents as agentsApi, incidents as incidentsApi } from '$lib/api';
 	import { createSSE } from '$lib/stores/sse';
@@ -97,75 +96,72 @@
 </svelte:head>
 
 {#if loading}
-	<div class="animate-fade-in-up space-y-4">
-		<!-- Skeleton fleet banner -->
-		<Skeleton variant="card" emphasis="secondary" height="4rem" />
-		<!-- Skeleton stats grid -->
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] space-y-8 px-4 py-8 sm:px-6 sm:py-10">
+		<div class="space-y-2">
+			<Skeleton emphasis="tertiary" width="3rem" height="0.75rem" />
+			<Skeleton emphasis="secondary" width="22rem" height="2rem" />
+			<Skeleton emphasis="tertiary" width="18rem" height="0.875rem" />
+		</div>
+		<div class="grid grid-cols-2 gap-px border-y border-border bg-border sm:grid-cols-4">
 			{#each Array(4) as _}
-				<Skeleton variant="card" emphasis="secondary" height="6rem" />
+				<div class="bg-background p-4">
+					<Skeleton emphasis="tertiary" width="3.5rem" height="0.625rem" />
+					<div class="mt-2">
+						<Skeleton emphasis="secondary" width="4rem" height="1.25rem" />
+					</div>
+				</div>
 			{/each}
 		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
 		<FleetBanner {stats} uptimePercent={uptimePercent()} />
-		<StatsGrid {stats} uptimePercent={uptimePercent()} />
 
-		{#if services.length > 0}
-			<MonitorTable monitors={services} title="Services" icon={Globe} variant="service" />
-		{/if}
+		<div class="mt-8">
+			<StatsGrid {stats} uptimePercent={uptimePercent()} />
+		</div>
 
-		{#if infra.length > 0}
-			<MonitorTable monitors={infra} title="Infrastructure" icon={HardDrive} variant="infra" />
-		{/if}
+		<div class="mt-10 space-y-10">
+			{#if services.length > 0}
+				<MonitorTable monitors={services} title="Services" variant="service" />
+			{/if}
 
-		{#if summaries.length === 0}
-			<!-- Empty state for no monitors -->
-			<div class="bg-card border border-border rounded-lg mb-4">
-				<div class="px-4 py-3 border-b border-border">
-					<h2 class="text-sm font-medium text-foreground">Monitor Health</h2>
-				</div>
-				{#if stats.total_agents > 0}
-					<EmptyState
-						title="You have {stats.total_agents} agent{stats.total_agents > 1 ? 's' : ''} ready"
-						description="Create a monitor to start tracking your services."
-					>
-						{#snippet icon()}
-							<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center">
-								<Activity class="w-5 h-5 text-muted-foreground/40" />
-							</div>
-						{/snippet}
-						{#snippet cta()}
-							<Button variant="primary" size="sm" onclick={() => goto('/monitors')}>
-								Create Monitor
-							</Button>
-						{/snippet}
-					</EmptyState>
-				{:else}
-					<EmptyState
-						title="No monitors yet"
-						description="Deploy an agent first, then create monitors to track your services."
-					>
-						{#snippet icon()}
-							<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center">
-								<Activity class="w-5 h-5 text-muted-foreground/40" />
-							</div>
-						{/snippet}
-						{#snippet cta()}
-							<Button variant="secondary" size="sm" onclick={() => { showAgentModal = true; }}>
-								Deploy Agent
-							</Button>
-						{/snippet}
-					</EmptyState>
-				{/if}
+			{#if infra.length > 0}
+				<MonitorTable monitors={infra} title="Infrastructure" variant="infra" />
+			{/if}
+
+			{#if summaries.length === 0}
+				<!-- Empty state -->
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">Monitor Health</h3>
+					</div>
+					<div class="flex flex-col items-start gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+						<div>
+							{#if stats.total_agents > 0}
+								<p class="text-sm font-medium text-foreground">
+									You have {stats.total_agents} agent{stats.total_agents > 1 ? 's' : ''} ready
+								</p>
+								<p class="mt-1 text-xs text-muted-foreground">Create a monitor to start tracking your services.</p>
+							{:else}
+								<p class="text-sm font-medium text-foreground">No monitors yet</p>
+								<p class="mt-1 text-xs text-muted-foreground">Deploy an agent first, then create monitors to track your services.</p>
+							{/if}
+						</div>
+						{#if stats.total_agents > 0}
+							<Button variant="primary" size="sm" onclick={() => goto('/monitors')}>Create Monitor</Button>
+						{:else}
+							<Button variant="secondary" size="sm" onclick={() => { showAgentModal = true; }}>Deploy Agent</Button>
+						{/if}
+					</div>
+				</section>
+			{/if}
+
+			<!-- Bottom Grid: Agents + Incidents -->
+			<div class="grid grid-cols-1 gap-10 lg:grid-cols-2">
+				<AgentCard agents={agentList} {stats} onCreateAgent={() => { showAgentModal = true; }} />
+				<IncidentCard incidents={incidentList} monitors={monitorMap()} />
 			</div>
-		{/if}
-
-		<!-- Bottom Grid: Agents + Incidents -->
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-			<AgentCard agents={agentList} {stats} onCreateAgent={() => { showAgentModal = true; }} />
-			<IncidentCard incidents={incidentList} monitors={monitorMap()} />
 		</div>
 	</div>
 

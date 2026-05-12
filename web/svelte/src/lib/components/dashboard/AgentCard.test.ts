@@ -20,19 +20,20 @@ describe('AgentCard', () => {
     expect(btn?.textContent?.trim()).toBe('New Agent');
   });
 
-  it('renders a Pill per agent', () => {
+  it('lists each agent name', () => {
     const agents = [
-      { id: 'a', name: 'A', status: 'online', last_seen_at: null },
-      { id: 'b', name: 'B', status: 'offline', last_seen_at: null },
+      { id: 'a', name: 'agent-one', status: 'online', last_seen_at: null },
+      { id: 'b', name: 'agent-two', status: 'offline', last_seen_at: null },
     ] as never;
     const { container } = render(AgentCard, { props: { agents, stats: mkStats({ total_agents: 2, online_agents: 1 }), onCreateAgent: () => {} } });
-    expect(container.querySelectorAll('.ui-pill').length).toBe(2);
+    expect(container.textContent).toContain('agent-one');
+    expect(container.textContent).toContain('agent-two');
   });
 
-  it('Pill has tone="up" when agent is online', () => {
+  it('shows the online/total count', () => {
     const agents = [{ id: 'a', name: 'A', status: 'online', last_seen_at: null }] as never;
     const { container } = render(AgentCard, { props: { agents, stats: mkStats({ total_agents: 1, online_agents: 1 }), onCreateAgent: () => {} } });
-    expect(container.querySelector('.ui-pill[data-tone="up"]')).toBeInTheDocument();
+    expect(container.textContent).toContain('1/1 online');
   });
 
   it('calls onCreateAgent when New Agent button is clicked', async () => {

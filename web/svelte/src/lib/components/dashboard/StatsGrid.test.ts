@@ -13,27 +13,26 @@ const mkStats = (over: Partial<{ total_monitors: number; monitors_up: number; mo
 });
 
 describe('StatsGrid', () => {
-  it('renders 4 stat tiles', () => {
+  it('renders 4 stat cells with stat-key data attributes', () => {
     const { container } = render(StatsGrid, { props: { stats: mkStats(), uptimePercent: 99.5 } });
-    expect(container.querySelectorAll('[data-accent]').length).toBe(4);
+    expect(container.querySelector('[data-stat-key="monitors"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-stat-key="healthy"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-stat-key="down"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-stat-key="incidents"]')).toBeInTheDocument();
   });
 
-  it('applies accent="warn" to the Down tile when monitors_down > 0', () => {
-    const { container } = render(StatsGrid, { props: { stats: mkStats({ monitors_down: 3 }), uptimePercent: 90 } });
-    const tiles = Array.from(container.querySelectorAll('[data-accent]'));
-    const downTile = tiles.find(el => el.querySelector('[data-stat-key="down"]'));
-    expect(downTile?.getAttribute('data-accent')).toBe('warn');
-  });
-
-  it('applies accent="up" to the Healthy tile', () => {
-    const { container } = render(StatsGrid, { props: { stats: mkStats(), uptimePercent: 99.5 } });
-    const tiles = Array.from(container.querySelectorAll('[data-accent]'));
-    const healthyTile = tiles.find(el => el.querySelector('[data-stat-key="healthy"]'));
-    expect(healthyTile?.getAttribute('data-accent')).toBe('up');
-  });
-
-  it('renders uptime percent on the Healthy tile when monitors exist', () => {
+  it('renders uptime percent on the Healthy cell when monitors exist', () => {
     const { container } = render(StatsGrid, { props: { stats: mkStats(), uptimePercent: 99.5 } });
     expect(container.textContent).toContain('99.5');
+  });
+
+  it('renders "No checks yet" on Healthy cell when no monitors exist', () => {
+    const { container } = render(StatsGrid, { props: { stats: mkStats({ total_monitors: 0, monitors_up: 0 }), uptimePercent: 0 } });
+    expect(container.textContent).toContain('No checks yet');
+  });
+
+  it('shows "Requires attention" hint when monitors are down', () => {
+    const { container } = render(StatsGrid, { props: { stats: mkStats({ monitors_down: 3 }), uptimePercent: 90 } });
+    expect(container.textContent).toContain('Requires attention');
   });
 });

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { formatPercent, uptimeColor } from '$lib/utils';
-	import { StatBlock } from '@sylvester-francis/watchdog-ui';
 	import type { DashboardStats } from '$lib/types';
 
 	interface Props {
@@ -10,28 +9,48 @@
 
 	let { stats, uptimePercent }: Props = $props();
 
-	const downAccent = $derived(stats.monitors_down > 0 ? 'warn' : 'neutral');
-	const incidentsAccent = $derived(stats.active_incidents > 0 ? 'warn' : 'neutral');
+	const cellClass = 'flex flex-col bg-background px-4 py-3.5';
+	const labelClass = 'text-[11px] font-medium uppercase tracking-wider text-muted-foreground';
+	const valueClass = 'mt-1 font-mono tabular-nums text-lg text-foreground';
+
+	let downColorClass = $derived(stats.monitors_down > 0 ? 'text-destructive' : '');
+	let incidentsColorClass = $derived(stats.active_incidents > 0 ? 'text-warning' : '');
 </script>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-	<StatBlock label="Monitors" value={stats.total_monitors} accent="neutral">
-		<span data-stat-key="monitors" class="text-xs text-muted-foreground">{stats.monitors_up} up &middot; {stats.monitors_down} down</span>
-	</StatBlock>
+<section class="grid grid-cols-2 gap-px overflow-hidden border-y border-border bg-border sm:grid-cols-4">
+	<div class={cellClass}>
+		<div class={labelClass}>Monitors</div>
+		<div class={valueClass}>{stats.total_monitors}</div>
+		<div data-stat-key="monitors" class="mt-0.5 font-mono tabular-nums text-[11px] text-muted-foreground">
+			{stats.monitors_up} up · {stats.monitors_down} down
+		</div>
+	</div>
 
-	<StatBlock label="Healthy" value={stats.monitors_up} accent="up">
+	<div class={cellClass}>
+		<div class={labelClass}>Healthy</div>
+		<div class="{valueClass} text-success">{stats.monitors_up}</div>
 		{#if stats.total_monitors > 0}
-			<span data-stat-key="healthy" class="text-xs {uptimeColor(uptimePercent)}" style="opacity: 0.7">{formatPercent(uptimePercent)}% uptime (24h)</span>
+			<div data-stat-key="healthy" class="mt-0.5 font-mono tabular-nums text-[11px] {uptimeColor(uptimePercent)}">
+				{formatPercent(uptimePercent)}% uptime (24h)
+			</div>
 		{:else}
-			<span data-stat-key="healthy" class="text-xs text-muted-foreground">No checks yet</span>
+			<div data-stat-key="healthy" class="mt-0.5 text-[11px] text-muted-foreground">No checks yet</div>
 		{/if}
-	</StatBlock>
+	</div>
 
-	<StatBlock label="Down" value={stats.monitors_down} accent={downAccent}>
-		<span data-stat-key="down" class="text-xs text-muted-foreground">{stats.monitors_down > 0 ? 'Requires attention' : 'All clear'}</span>
-	</StatBlock>
+	<div class={cellClass}>
+		<div class={labelClass}>Down</div>
+		<div class="{valueClass} {downColorClass}">{stats.monitors_down}</div>
+		<div data-stat-key="down" class="mt-0.5 text-[11px] text-muted-foreground">
+			{stats.monitors_down > 0 ? 'Requires attention' : 'All clear'}
+		</div>
+	</div>
 
-	<StatBlock label="Incidents" value={stats.active_incidents} accent={incidentsAccent}>
-		<span data-stat-key="incidents" class="text-xs text-muted-foreground">{stats.active_incidents > 0 ? 'Active now' : 'No open incidents'}</span>
-	</StatBlock>
-</div>
+	<div class={cellClass}>
+		<div class={labelClass}>Incidents</div>
+		<div class="{valueClass} {incidentsColorClass}">{stats.active_incidents}</div>
+		<div data-stat-key="incidents" class="mt-0.5 text-[11px] text-muted-foreground">
+			{stats.active_incidents > 0 ? 'Active now' : 'No open incidents'}
+		</div>
+	</div>
+</section>
