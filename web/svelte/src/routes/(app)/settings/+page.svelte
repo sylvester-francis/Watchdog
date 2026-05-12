@@ -508,17 +508,17 @@
 		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-6 py-10">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-12 lg:py-16">
 		<!-- Page header -->
-		<header class="mb-2 flex items-baseline justify-between gap-4">
+		<header class="mb-2 flex flex-col items-start gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
 			<div>
-				<h1 class="text-2xl font-medium tracking-tight text-foreground">Settings</h1>
-				<p class="mt-1 text-sm text-muted-foreground">
+				<h1 class="text-3xl font-medium tracking-tight text-foreground sm:text-[32px]">Settings</h1>
+				<p class="mt-1.5 text-sm text-muted-foreground sm:text-base">
 					Account, notifications, and API access.
 				</p>
 			</div>
 			{#if auth.user?.email}
-				<span class="font-mono tabular-nums text-xs text-muted-foreground">{auth.user.email}</span>
+				<span class="font-mono tabular-nums text-xs text-muted-foreground sm:text-sm">{auth.user.email}</span>
 			{/if}
 		</header>
 
@@ -567,9 +567,9 @@
 
 		<!-- ==================== ACCOUNT ==================== -->
 		<section class="mt-8 border-t border-border pt-8">
-			<div class="mb-5 flex items-baseline justify-between gap-4">
+			<div class="mb-6 flex flex-col items-start gap-3 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
 				<div>
-					<h2 class="text-lg font-medium text-foreground">Account</h2>
+					<h2 class="text-xl font-medium text-foreground sm:text-2xl">Account</h2>
 					<p class="mt-1 text-sm text-muted-foreground">
 						Identity and credentials for this workspace.
 					</p>
@@ -734,9 +734,9 @@
 
 		<!-- ==================== NOTIFICATIONS ==================== -->
 		<section class="mt-8 border-t border-border pt-8">
-			<div class="mb-5 flex items-baseline justify-between gap-4">
+			<div class="mb-6 flex flex-col items-start gap-3 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
 				<div>
-					<h2 class="flex items-baseline gap-2 text-lg font-medium text-foreground">
+					<h2 class="flex items-baseline gap-2 text-xl font-medium text-foreground sm:text-2xl">
 						<span>Notifications</span>
 						{#if channels.length > 0}
 							<span class="font-mono tabular-nums text-xs text-muted-foreground">
@@ -772,7 +772,7 @@
 						{@const typeConf = channelTypeConfig[channel.type]}
 						{@const ChannelIcon = typeConf.icon}
 						{@const result = channelTestResult[channel.id]}
-						<div class="group flex items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
+						<div class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
 							<!-- Status pip -->
 							<span
 								class="inline-block h-1.5 w-1.5 shrink-0 rounded-full {channel.enabled
@@ -804,7 +804,7 @@
 							{/if}
 
 							<!-- Actions -->
-							<div class="flex shrink-0 items-center gap-3">
+							<div class="ml-auto flex shrink-0 items-center gap-3">
 								<button
 									onclick={() => handleTestChannel(channel.id)}
 									disabled={testingChannelId === channel.id}
@@ -850,9 +850,9 @@
 
 		<!-- ==================== MAINTENANCE WINDOWS ==================== -->
 		<section class="mt-8 border-t border-border pt-8">
-			<div class="mb-5 flex items-baseline justify-between gap-4">
+			<div class="mb-6 flex flex-col items-start gap-3 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
 				<div>
-					<h2 class="flex items-baseline gap-2 text-lg font-medium text-foreground">
+					<h2 class="flex items-baseline gap-2 text-xl font-medium text-foreground sm:text-2xl">
 						<span>Maintenance windows</span>
 						{#if maintenanceWindows.length > 0}
 							<span class="font-mono tabular-nums text-xs text-muted-foreground">
@@ -885,7 +885,7 @@
 			{:else}
 				<div class="divide-y divide-border border-y border-border">
 					{#each maintenanceWindows as mw (mw.id)}
-						<div class="group flex items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
+						<div class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
 							<!-- Status pip -->
 							<span
 								class="inline-block h-1.5 w-1.5 shrink-0 rounded-full {mw.status === 'active'
@@ -919,7 +919,7 @@
 							<!-- Actions -->
 							<button
 								onclick={() => handleDeleteMaintenance(mw.id)}
-								class="shrink-0 text-sm text-muted-foreground transition-colors hover:text-destructive"
+								class="ml-auto shrink-0 text-sm text-muted-foreground transition-colors hover:text-destructive"
 							>
 								Delete
 							</button>
@@ -931,9 +931,9 @@
 
 		<!-- ==================== API TOKENS ==================== -->
 		<section class="mt-8 border-t border-border pt-8">
-			<div class="mb-5 flex items-baseline justify-between gap-4">
+			<div class="mb-6 flex flex-col items-start gap-3 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
 				<div>
-					<h2 class="flex items-baseline gap-2 text-lg font-medium text-foreground">
+					<h2 class="flex items-baseline gap-2 text-xl font-medium text-foreground sm:text-2xl">
 						<span>API tokens</span>
 						{#if tokens.length > 0}
 							<span class="font-mono tabular-nums text-xs text-muted-foreground">
@@ -966,7 +966,7 @@
 			{:else}
 				<div class="divide-y divide-border border-y border-border">
 					{#each tokens as token (token.id)}
-						<div class="group flex items-center gap-4 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
+						<div class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-2 py-3 transition-colors hover:bg-muted/[0.15]">
 							<!-- Scope pip -->
 							<span
 								class="inline-block h-1.5 w-1.5 shrink-0 rounded-full {token.scope === 'admin'
@@ -1009,7 +1009,7 @@
 							</div>
 
 							<!-- Actions -->
-							<div class="flex shrink-0 items-center gap-3">
+							<div class="ml-auto flex shrink-0 items-center gap-3">
 								<button
 									onclick={() => handleRegenerateToken(token.id)}
 									class="text-sm text-muted-foreground transition-colors hover:text-foreground"
