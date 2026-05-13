@@ -5,7 +5,7 @@
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary, Agent, MonitorType } from '$lib/types';
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
-	import { Button, Skeleton, Sparkline } from '@sylvester-francis/watchdog-ui';
+	import { Button, PageHero, Skeleton, Sparkline } from '@sylvester-francis/watchdog-ui';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal/index.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -221,23 +221,19 @@
 	</div>
 {:else}
 	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
-		<!-- Page header -->
-		<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-			<div class="min-w-0">
-				<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
-					<span class="uppercase tracking-wider">Monitors</span>
-				</div>
-				<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">
-					{summaries.length} monitor{summaries.length !== 1 ? 's' : ''} configured
-				</h1>
-			</div>
-			<Button variant="primary" size="sm" onclick={() => { showCreateModal = true; }}>
-				<span class="flex items-center gap-1.5">
-					<Plus class="h-3.5 w-3.5" />
-					<span>New Monitor</span>
-				</span>
-			</Button>
-		</header>
+		<PageHero
+			meta="Monitors"
+			title="{summaries.length} monitor{summaries.length !== 1 ? 's' : ''} configured"
+		>
+			{#snippet action()}
+				<Button variant="primary" size="sm" onclick={() => { showCreateModal = true; }}>
+					<span class="flex items-center gap-1.5">
+						<Plus class="h-3.5 w-3.5" />
+						<span>New Monitor</span>
+					</span>
+				</Button>
+			{/snippet}
+		</PageHero>
 
 		<!-- Filter bar -->
 		<div class="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">

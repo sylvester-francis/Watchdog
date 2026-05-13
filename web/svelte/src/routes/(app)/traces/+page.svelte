@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { RefreshCw, Search, Copy, Check, ChevronDown } from 'lucide-svelte';
-	import { Button, Input, Select, Tabs } from '@sylvester-francis/watchdog-ui';
+	import { Button, Input, PageHero, Select, Tabs } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -177,20 +177,14 @@
 </svelte:head>
 
 <div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
-	<!-- Page header -->
-	<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-		<div class="min-w-0">
-			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
-				<span class="uppercase tracking-wider">Telemetry · Traces</span>
-			</div>
-			<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">Traces</h1>
-			<p class="mt-1 text-sm text-muted-foreground">Distributed traces ingested via OTLP.</p>
-		</div>
-		<Button variant="secondary" onclick={() => applyFilters()} aria-label="Refresh">
-			<RefreshCw class="mr-1.5 h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
-			Refresh
-		</Button>
-	</header>
+	<PageHero meta="Telemetry · Traces" title="Traces" description="Distributed traces ingested via OTLP.">
+		{#snippet action()}
+			<Button variant="secondary" onclick={() => applyFilters()} aria-label="Refresh">
+				<RefreshCw class="mr-1.5 h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
+				Refresh
+			</Button>
+		{/snippet}
+	</PageHero>
 
 	<!-- Filter bar -->
 	<div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

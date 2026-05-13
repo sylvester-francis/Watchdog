@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Skeleton, Tabs } from '@sylvester-francis/watchdog-ui';
+	import { PageHero, Skeleton, Tabs } from '@sylvester-francis/watchdog-ui';
 	import { incidents as incidentsApi, monitors as monitorsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Incident, MonitorSummary, IncidentStatus, IncidentInvestigation } from '$lib/types';
@@ -199,17 +199,10 @@
 	</div>
 {:else}
 	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
-		<!-- Page header -->
-		<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-			<div class="min-w-0">
-				<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
-					<span class="uppercase tracking-wider">Incidents</span>
-				</div>
-				<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">
-					{allIncidents.length} incident{allIncidents.length !== 1 ? 's' : ''} total
-				</h1>
-			</div>
-		</header>
+		<PageHero
+			meta="Incidents"
+			title="{allIncidents.length} incident{allIncidents.length !== 1 ? 's' : ''} total"
+		/>
 
 		<!-- Stats -->
 		<div class="mt-8">
