@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Radar, CheckCircle2, XCircle, Wifi, WifiOff, Loader2 } from 'lucide-svelte';
-	import { EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { Radar, Loader2 } from 'lucide-svelte';
 	import { discovery as discoveryApi, agents as agentsApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { Agent, DiscoveryScan, DiscoveredDevice } from '$lib/types';
@@ -15,7 +14,6 @@
 	let loading = $state(true);
 	let scanning = $state(false);
 
-	// Form state
 	let selectedAgentId = $state('');
 	let subnet = $state('');
 	let community = $state('public');
@@ -33,8 +31,7 @@
 			agents = agentsRes.data ?? [];
 			scans = scansRes.data ?? [];
 
-			// Check for any running scan
-			const running = scans.find(s => s.status === 'running' || s.status === 'pending');
+			const running = scans.find((s) => s.status === 'running' || s.status === 'pending');
 			if (running) {
 				activeScan = running;
 				scanning = true;
@@ -59,7 +56,6 @@
 					scanning = false;
 					if (pollInterval) clearInterval(pollInterval);
 					pollInterval = null;
-					// Reload scan list
 					const scansRes = await discoveryApi.listScans();
 					scans = scansRes.data ?? [];
 					if (activeScan.status === 'complete') {
@@ -105,46 +101,48 @@
 		}
 	}
 
+	function scanStatusPipClass(status: string): string {
+		if (status === 'complete') return 'bg-success';
+		if (status === 'error') return 'bg-destructive';
+		if (status === 'running') return 'bg-warning animate-pulse';
+		return 'bg-muted-foreground/40';
+	}
+
 	onMount(() => {
 		loadData();
 		return () => {
 			if (pollInterval) clearInterval(pollInterval);
 		};
 	});
+
+	const inputClass =
+		'w-full border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-0';
 </script>
 
 <svelte:head>
 	<title>Discovery - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up space-y-5">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
-		<div class="flex items-center space-x-3">
-			<div class="w-8 h-8 bg-muted/50 rounded-lg flex items-center justify-center">
-				<Radar class="w-4 h-4 text-muted-foreground" />
-			</div>
-			<div>
-				<h1 class="text-base font-semibold text-foreground">Network Discovery</h1>
-				<p class="text-xs text-muted-foreground">Scan your network to find SNMP-capable devices</p>
-			</div>
+	<header>
+		<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+			<span class="uppercase tracking-wider">Network · Discovery</span>
 		</div>
-	</div>
+		<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">Network Discovery</h1>
+		<p class="mt-1 text-sm text-muted-foreground">Scan your network to find SNMP-capable devices.</p>
+	</header>
 
-	<!-- Start Scan Card -->
-	<div class="bg-card border border-border rounded-lg">
-		<div class="px-5 py-3.5 border-b border-border">
+	<!-- Start Scan -->
+	<section class="mt-8">
+		<div class="border-b border-border pb-3">
 			<h3 class="text-sm font-medium text-foreground">Start Scan</h3>
 		</div>
-		<div class="p-5 space-y-4">
-			<div class="grid grid-cols-2 gap-3">
+		<div class="space-y-4 pt-4">
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div>
-					<label for="disc-agent" class="block text-xs font-medium text-muted-foreground mb-1.5">Agent</label>
-					<select
-						id="disc-agent"
-						bind:value={selectedAgentId}
-						class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-					>
+					<label for="disc-agent" class="mb-1.5 block text-xs font-medium text-muted-foreground">Agent</label>
+					<select id="disc-agent" bind:value={selectedAgentId} class={inputClass}>
 						<option value="" disabled>Select agent</option>
 						{#each agents as agent}
 							<option value={agent.id}>{agent.name} ({agent.status})</option>
@@ -152,34 +150,30 @@
 					</select>
 				</div>
 				<div>
-					<label for="disc-subnet" class="block text-xs font-medium text-muted-foreground mb-1.5">Subnet (CIDR)</label>
+					<label for="disc-subnet" class="mb-1.5 block text-xs font-medium text-muted-foreground">Subnet (CIDR)</label>
 					<input
 						id="disc-subnet"
 						type="text"
 						bind:value={subnet}
 						placeholder="192.168.1.0/24"
-						class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+						class={inputClass}
 					/>
 				</div>
 			</div>
-			<div class="grid grid-cols-2 gap-3">
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div>
-					<label for="disc-community" class="block text-xs font-medium text-muted-foreground mb-1.5">Community String</label>
+					<label for="disc-community" class="mb-1.5 block text-xs font-medium text-muted-foreground">Community String</label>
 					<input
 						id="disc-community"
 						type="password"
 						bind:value={community}
 						placeholder="public"
-						class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+						class={inputClass}
 					/>
 				</div>
 				<div>
-					<label for="disc-version" class="block text-xs font-medium text-muted-foreground mb-1.5">SNMP Version</label>
-					<select
-						id="disc-version"
-						bind:value={snmpVersion}
-						class="w-full px-3 py-2 bg-card-elevated border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-					>
+					<label for="disc-version" class="mb-1.5 block text-xs font-medium text-muted-foreground">SNMP Version</label>
+					<select id="disc-version" bind:value={snmpVersion} class={inputClass}>
 						<option value="2c">v2c</option>
 						<option value="3">v3</option>
 					</select>
@@ -188,120 +182,119 @@
 			<button
 				onclick={handleStartScan}
 				disabled={scanning || !selectedAgentId || !subnet}
-				class="px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors disabled:opacity-50 flex items-center space-x-2"
+				class="flex items-center gap-2 bg-accent px-3 py-1.5 text-xs font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
 			>
 				{#if scanning}
-					<Loader2 class="w-3.5 h-3.5 animate-spin" />
-					<span>Scanning...</span>
+					<Loader2 class="h-3.5 w-3.5 animate-spin" />
+					<span>Scanning…</span>
 				{:else}
-					<Radar class="w-3.5 h-3.5" />
+					<Radar class="h-3.5 w-3.5" />
 					<span>Start Scan</span>
 				{/if}
 			</button>
 		</div>
-	</div>
+	</section>
 
 	<!-- Active Scan Progress -->
 	{#if activeScan && (activeScan.status === 'running' || activeScan.status === 'pending')}
-		<div class="bg-card border border-border rounded-lg p-5">
-			<div class="flex items-center space-x-3 mb-3">
-				<Loader2 class="w-4 h-4 animate-spin text-accent" />
-				<span class="text-sm font-medium text-foreground">Scanning {activeScan.subnet}...</span>
-				<span class="text-xs text-muted-foreground">{activeDevices.length} devices found</span>
+		<section class="mt-10">
+			<div class="border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">Active Scan</h3>
 			</div>
-			<div class="w-full h-2 bg-muted rounded-full overflow-hidden">
-				<div class="h-full bg-accent rounded-full transition-all duration-500" style="width: {activeScan.host_count ? Math.min((activeDevices.length / activeScan.host_count) * 100, 100) : 10}%"></div>
+			<div class="pt-4">
+				<div class="mb-3 flex items-center gap-3 font-mono tabular-nums text-xs">
+					<Loader2 class="h-3.5 w-3.5 animate-spin text-accent" />
+					<span class="text-foreground">Scanning {activeScan.subnet}…</span>
+					<span class="text-muted-foreground">{activeDevices.length} devices found</span>
+				</div>
+				<div class="h-1.5 w-full overflow-hidden bg-muted">
+					<div
+						class="h-full bg-accent transition-all duration-500"
+						style="width: {activeScan.host_count ? Math.min((activeDevices.length / activeScan.host_count) * 100, 100) : 10}%"
+					></div>
+				</div>
 			</div>
-		</div>
+		</section>
 	{/if}
 
 	<!-- Results Table -->
 	{#if activeDevices.length > 0}
-		<div class="bg-card border border-border rounded-lg">
-			<div class="px-5 py-3.5 border-b border-border flex items-center justify-between">
-				<h3 class="text-sm font-medium text-foreground">Discovered Devices ({activeDevices.length})</h3>
+		<section class="mt-10">
+			<div class="flex items-baseline justify-between gap-2 border-b border-border pb-3">
+				<div class="flex items-baseline gap-2">
+					<h3 class="text-sm font-medium text-foreground">Discovered Devices</h3>
+					<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{activeDevices.length}</span>
+				</div>
 				{#if activeScan}
-					<span class="text-xs text-muted-foreground">{activeScan.subnet}</span>
+					<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{activeScan.subnet}</span>
 				{/if}
 			</div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
-						<tr class="text-left text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/50">
-							<th class="px-5 py-2.5">IP</th>
-							<th class="px-3 py-2.5">Name</th>
-							<th class="px-3 py-2.5">SNMP</th>
-							<th class="px-3 py-2.5">Ping</th>
-							<th class="px-3 py-2.5">Template</th>
+						<tr class="border-b border-border">
+							<th class="py-2.5 pl-1 pr-4 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">IP</th>
+							<th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Name</th>
+							<th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">SNMP</th>
+							<th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Ping</th>
+							<th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Template</th>
 						</tr>
 					</thead>
-					<tbody>
+					<tbody class="divide-y divide-border/40">
 						{#each activeDevices as device}
-							<tr class="border-b border-border/20 hover:bg-muted/20 transition-colors">
-								<td class="px-5 py-2.5 text-xs font-mono text-foreground">{device.ip}</td>
-								<td class="px-3 py-2.5 text-xs text-foreground">{device.sys_name || device.hostname || '—'}</td>
-								<td class="px-3 py-2.5">
-									{#if device.snmp_reachable}
-										<Wifi class="w-3.5 h-3.5 text-emerald-500" />
-									{:else}
-										<WifiOff class="w-3.5 h-3.5 text-muted-foreground/40" />
-									{/if}
+							<tr class="transition-colors hover:bg-muted/30">
+								<td class="py-3 pl-1 pr-4 font-mono tabular-nums text-xs text-foreground">{device.ip}</td>
+								<td class="px-4 py-3 text-xs text-foreground">{device.sys_name || device.hostname || '—'}</td>
+								<td class="px-4 py-3 font-mono tabular-nums text-[11px] uppercase tracking-wider {device.snmp_reachable ? 'text-success' : 'text-muted-foreground/50'}">
+									{device.snmp_reachable ? 'Yes' : 'No'}
 								</td>
-								<td class="px-3 py-2.5">
-									{#if device.ping_reachable}
-										<CheckCircle2 class="w-3.5 h-3.5 text-emerald-500" />
-									{:else}
-										<XCircle class="w-3.5 h-3.5 text-muted-foreground/40" />
-									{/if}
+								<td class="px-4 py-3 font-mono tabular-nums text-[11px] uppercase tracking-wider {device.ping_reachable ? 'text-success' : 'text-muted-foreground/50'}">
+									{device.ping_reachable ? 'Yes' : 'No'}
 								</td>
-								<td class="px-3 py-2.5 text-xs text-muted-foreground">{device.suggested_template_id || '—'}</td>
+								<td class="px-4 py-3 font-mono tabular-nums text-xs text-muted-foreground">{device.suggested_template_id || '—'}</td>
 							</tr>
 						{/each}
 					</tbody>
 				</table>
 			</div>
-		</div>
+		</section>
 	{/if}
 
 	<!-- Scan History -->
 	{#if scans.length > 0}
-		<div class="bg-card border border-border rounded-lg">
-			<div class="px-5 py-3.5 border-b border-border">
+		<section class="mt-10">
+			<div class="border-b border-border pb-3">
 				<h3 class="text-sm font-medium text-foreground">Scan History</h3>
 			</div>
-			<div class="divide-y divide-border/20">
+			<div class="divide-y divide-border/40">
 				{#each scans as scan}
 					<button
 						onclick={() => viewScan(scan.id)}
-						class="w-full px-5 py-3 flex items-center justify-between hover:bg-muted/20 transition-colors text-left"
+						class="flex w-full items-center justify-between py-3 text-left transition-colors hover:bg-muted/30"
 					>
-						<div class="flex items-center space-x-3">
-							<div class="w-2 h-2 rounded-full {scan.status === 'complete' ? 'bg-emerald-500' : scan.status === 'error' ? 'bg-red-500' : scan.status === 'running' ? 'bg-amber-500 animate-pulse' : 'bg-muted-foreground/40'}"></div>
-							<span class="text-xs font-mono text-foreground">{scan.subnet}</span>
+						<div class="flex items-center gap-2">
+							<span class="inline-block h-1.5 w-1.5 rounded-full {scanStatusPipClass(scan.status)}"></span>
+							<span class="font-mono tabular-nums text-xs text-foreground">{scan.subnet}</span>
 						</div>
-						<div class="flex items-center space-x-4">
-							<span class="text-[10px] text-muted-foreground">{scan.host_count} hosts</span>
-							<span class="text-[10px] text-muted-foreground">{new Date(scan.created_at).toLocaleDateString()}</span>
+						<div class="flex items-center gap-4 font-mono tabular-nums text-[11px] text-muted-foreground">
+							<span>{scan.host_count} hosts</span>
+							<span>{new Date(scan.created_at).toLocaleDateString()}</span>
 						</div>
 					</button>
 				{/each}
 			</div>
-		</div>
+		</section>
 	{/if}
 
 	<!-- Empty state -->
 	{#if !loading && scans.length === 0 && activeDevices.length === 0}
-		<div class="bg-card border border-border rounded-lg">
-			<EmptyState
-				title="No scans yet"
-				description="Select an agent and subnet above to discover SNMP devices on your network."
-			>
-				{#snippet icon()}
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-						<Radar class="w-6 h-6 text-muted-foreground/40" />
-					</div>
-				{/snippet}
-			</EmptyState>
-		</div>
+		<section class="mt-10">
+			<div class="border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">No scans yet</h3>
+			</div>
+			<p class="pt-4 text-xs text-muted-foreground">
+				Select an agent and subnet above to discover SNMP devices on your network.
+			</p>
+		</section>
 	{/if}
 </div>
