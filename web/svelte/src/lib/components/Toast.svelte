@@ -29,7 +29,7 @@
 		<div class="toast-enter flex items-center space-x-2 px-4 py-3 rounded-lg border {colors[toast.type]} max-w-sm shadow-lg">
 			<Icon class="w-4 h-4 {textColors[toast.type]} flex-shrink-0" />
 			<span class="text-sm {textColors[toast.type]} flex-1">{toast.message}</span>
-			<button onclick={() => toasts.remove(toast.id)} class="p-0.5 rounded hover:bg-muted/50">
+			<button onclick={() => toasts.remove(toast.id)} aria-label="Dismiss notification" class="p-0.5 rounded hover:bg-muted/50">
 				<X class="w-3.5 h-3.5 text-muted-foreground" />
 			</button>
 		</div>

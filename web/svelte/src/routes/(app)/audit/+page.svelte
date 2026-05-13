@@ -192,8 +192,8 @@
 			</select>
 		{/if}
 
-		<input type="date" bind:value={dateFrom} onchange={handleDateFilter} class={inputClass} placeholder="From" />
-		<input type="date" bind:value={dateTo} onchange={handleDateFilter} class={inputClass} placeholder="To" />
+		<input type="date" bind:value={dateFrom} onchange={handleDateFilter} class={inputClass} placeholder="From" aria-label="Filter from date" />
+		<input type="date" bind:value={dateTo} onchange={handleDateFilter} class={inputClass} placeholder="To" aria-label="Filter to date" />
 
 		<div class="relative min-w-[160px] max-w-[240px] flex-1">
 			<Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
