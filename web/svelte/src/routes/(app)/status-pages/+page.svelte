@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Plus, Globe, ExternalLink, Pencil, Trash2 } from 'lucide-svelte';
-	import { Button, EmptyState, Pill, Skeleton } from '@sylvester-francis/watchdog-ui';
+	import { Plus, ExternalLink, Pencil, Trash2 } from 'lucide-svelte';
+	import { Button, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -16,7 +16,6 @@
 	let loading = $state(true);
 	let showCreateModal = $state(false);
 
-	// Delete confirmation modal
 	let deleting = $state(false);
 	let confirmModal = $state<{
 		open: boolean;
@@ -37,7 +36,7 @@
 	}
 
 	function handleDelete(id: string) {
-		const sp = statusPages.find(s => s.id === id);
+		const sp = statusPages.find((s) => s.id === id);
 		confirmModal = { open: true, pageId: id, pageName: sp?.name ?? 'this status page' };
 	}
 
@@ -70,8 +69,8 @@
 		}
 	}
 
-	function handleCreated() {
-		loadData();
+	async function handleCreated() {
+		await loadData();
 		toast.success('Status page created');
 	}
 
@@ -85,151 +84,134 @@
 </svelte:head>
 
 {#if loading}
-	<!-- Skeleton loading state -->
-	<div class="animate-fade-in-up space-y-4">
-		<!-- Header skeleton -->
-		<div class="flex items-center justify-between">
-			<div>
-				<Skeleton emphasis="secondary" width="9rem" height="1.75rem" />
-				<div class="mt-1.5">
-					<Skeleton emphasis="tertiary" width="12rem" height="0.75rem" />
-				</div>
-			</div>
-			<Skeleton emphasis="secondary" width="9rem" height="2.25rem" />
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] space-y-8 px-4 py-8 sm:px-6 sm:py-10">
+		<div class="space-y-2">
+			<Skeleton emphasis="tertiary" width="9rem" height="0.75rem" />
+			<Skeleton emphasis="secondary" width="16rem" height="2rem" />
+			<Skeleton emphasis="tertiary" width="12rem" height="0.875rem" />
 		</div>
-		<!-- List skeleton -->
-		<div class="bg-card border border-border rounded-lg">
+		<div class="space-y-2">
 			{#each Array(3) as _}
-				<div class="flex items-center px-4 py-4 border-b border-border/20">
-					<div class="flex-1 space-y-1.5">
-						<div class="flex items-center space-x-2">
-							<Skeleton emphasis="secondary" width="10rem" height="1rem" />
-							<Skeleton emphasis="tertiary" width="3.5rem" height="1rem" />
-						</div>
-						<Skeleton emphasis="tertiary" width="16rem" height="0.75rem" />
-					</div>
-					<div class="flex items-center space-x-2">
-						<Skeleton emphasis="secondary" width="1.75rem" height="1.75rem" />
-						<Skeleton emphasis="secondary" width="1.75rem" height="1.75rem" />
-						<Skeleton emphasis="secondary" width="1.75rem" height="1.75rem" />
-					</div>
-				</div>
+				<Skeleton emphasis="tertiary" width="100%" height="3rem" />
 			{/each}
 		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
 		<!-- Page header -->
-		<div class="flex items-center justify-between mb-5">
-			<div>
-				<h1 class="text-lg font-semibold text-foreground">Status Pages</h1>
-				<p class="text-xs text-muted-foreground mt-0.5">
+		<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+			<div class="min-w-0">
+				<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+					<span class="uppercase tracking-wider">Status Pages</span>
+				</div>
+				<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">
 					{statusPages.length} status page{statusPages.length !== 1 ? 's' : ''} configured
-				</p>
+				</h1>
+				<p class="mt-1 text-sm text-muted-foreground">Public-facing service health pages for your customers.</p>
 			</div>
-			<Button variant="primary" onclick={() => { showCreateModal = true; }}>
-				<Plus class="w-3.5 h-3.5 mr-1.5" />
-				New Status Page
+			<Button variant="primary" size="sm" onclick={() => { showCreateModal = true; }}>
+				<span class="flex items-center gap-1.5">
+					<Plus class="h-3.5 w-3.5" />
+					<span>New Status Page</span>
+				</span>
 			</Button>
-		</div>
+		</header>
 
-		{#if statusPages.length === 0}
-			<!-- Empty state -->
-			<div class="bg-card border border-border rounded-lg">
-				<EmptyState
-					title="No status pages"
-					description="Create a public status page to share your service health with your users."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-							<Globe class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-					{#snippet cta()}
-						<Button variant="primary" onclick={() => { showCreateModal = true; }}>
-							<Plus class="w-3.5 h-3.5 mr-1.5" />
-							Create Status Page
+		<div class="mt-8">
+			{#if statusPages.length === 0}
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">No status pages</h3>
+					</div>
+					<div class="flex flex-col items-start gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+						<p class="text-xs text-muted-foreground">
+							Create a public status page to share your service health with your users.
+						</p>
+						<Button variant="primary" size="sm" onclick={() => { showCreateModal = true; }}>
+							<span class="flex items-center gap-1.5">
+								<Plus class="h-3.5 w-3.5" />
+								<span>Create Status Page</span>
+							</span>
 						</Button>
-					{/snippet}
-				</EmptyState>
-			</div>
-		{:else}
-			<!-- Status pages list -->
-			<div class="bg-card border border-border rounded-lg">
-				<div class="divide-y divide-border">
-					{#each statusPages as sp (sp.id)}
-						<div class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group">
-							<!-- Info -->
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center space-x-2 mb-0.5">
-									<span class="text-sm text-foreground font-medium truncate">{sp.name}</span>
-									{#if sp.is_public}
-										<Pill tone="up">Public</Pill>
+					</div>
+				</section>
+			{:else}
+				<section>
+					<div class="flex items-baseline gap-2 border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">All Pages</h3>
+						<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{statusPages.length}</span>
+					</div>
+					<div class="divide-y divide-border/40">
+						{#each statusPages as sp (sp.id)}
+							<div class="group flex items-start gap-3 py-3 transition-colors hover:bg-muted/30">
+								<!-- Info -->
+								<div class="min-w-0 flex-1">
+									<div class="flex items-baseline gap-2">
+										<span class="truncate text-sm font-medium text-foreground">{sp.name}</span>
+										<span class="font-mono tabular-nums text-[11px] uppercase tracking-wider {sp.is_public ? 'text-success' : 'text-muted-foreground'}">
+											{sp.is_public ? 'Public' : 'Private'}
+										</span>
+									</div>
+									{#if sp.is_public && username}
+										<a
+											href={publicUrl(sp)}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="mt-0.5 block truncate font-mono tabular-nums text-[11px] text-muted-foreground transition-colors hover:text-accent"
+										>
+											/status/@{username}/{sp.slug}
+										</a>
 									{:else}
-										<Pill tone="neutral">Private</Pill>
+										<p class="mt-0.5 truncate font-mono tabular-nums text-[11px] text-muted-foreground">
+											/{sp.slug}
+										</p>
+									{/if}
+									{#if sp.description}
+										<p class="mt-1 hidden truncate text-xs text-muted-foreground sm:block">
+											{truncate(sp.description, 100)}
+										</p>
 									{/if}
 								</div>
-								{#if sp.is_public && username}
+
+								<!-- Actions -->
+								<div class="flex shrink-0 items-center gap-3 text-xs">
+									{#if sp.is_public && username}
+										<a
+											href={publicUrl(sp)}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="flex items-center gap-1 text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+											title="View status page"
+										>
+											<ExternalLink class="h-3 w-3" />
+											<span class="hidden sm:inline">View</span>
+										</a>
+									{/if}
+
 									<a
-										href={publicUrl(sp)}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-[10px] text-muted-foreground font-mono hover:text-accent transition-colors truncate block"
+										href="/status-pages/{sp.id}/edit"
+										class="flex items-center gap-1 text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+										title="Edit status page"
 									>
-										/status/@{username}/{sp.slug}
+										<Pencil class="h-3 w-3" />
+										<span class="hidden sm:inline">Edit</span>
 									</a>
-								{:else}
-									<p class="text-[10px] text-muted-foreground font-mono truncate">
-										/{sp.slug}
-									</p>
-								{/if}
-								{#if sp.description}
-									<p class="text-[10px] text-muted-foreground mt-0.5 truncate hidden sm:block">
-										{truncate(sp.description, 100)}
-									</p>
-								{/if}
-							</div>
 
-							<!-- Actions -->
-							<div class="flex items-center space-x-1 shrink-0 ml-3">
-								<!-- View (external link) -->
-								{#if sp.is_public && username}
-									<a
-										href={publicUrl(sp)}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="p-1.5 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-										title="View status page"
+									<button
+										onclick={() => handleDelete(sp.id)}
+										class="flex items-center gap-1 text-destructive underline-offset-4 transition-colors hover:underline"
+										title="Delete status page"
 									>
-										<ExternalLink class="w-3.5 h-3.5" />
-									</a>
-								{/if}
-
-								<!-- Edit -->
-								<a
-									href="/status-pages/{sp.id}/edit"
-									class="p-1.5 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-									title="Edit status page"
-								>
-									<Pencil class="w-3.5 h-3.5" />
-								</a>
-
-								<!-- Delete -->
-								<Button
-									size="xs"
-									tone="down"
-									onclick={() => handleDelete(sp.id)}
-									aria-label="Delete status page"
-									title="Delete status page"
-								>
-									<Trash2 class="w-3.5 h-3.5" />
-								</Button>
+										<Trash2 class="h-3 w-3" />
+										<span class="hidden sm:inline">Delete</span>
+									</button>
+								</div>
 							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
+						{/each}
+					</div>
+				</section>
+			{/if}
+		</div>
 	</div>
 
 	<CreateStatusPageModal

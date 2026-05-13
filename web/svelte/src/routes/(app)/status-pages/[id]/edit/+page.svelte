@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { ChevronRight, AlertCircle } from 'lucide-svelte';
-	import { Alert, Button, FormField, Skeleton } from '@sylvester-francis/watchdog-ui';
+	import { Alert, Button, FormField } from '@sylvester-francis/watchdog-ui';
 	import { statusPages as statusPagesApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { StatusPage } from '$lib/types';
@@ -25,7 +25,6 @@
 	let error = $state('');
 	let loadError = $state('');
 
-	// Form state
 	let name = $state('');
 	let description = $state('');
 	let isPublic = $state(false);
@@ -33,10 +32,10 @@
 
 	let pageId = $derived(page.params.id ?? '');
 
-	function statusDotClass(status: string): string {
-		if (status === 'up') return 'bg-emerald-400';
-		if (status === 'down') return 'bg-red-400';
-		if (status === 'degraded') return 'bg-amber-400';
+	function statusPipClass(status: string): string {
+		if (status === 'up') return 'bg-success';
+		if (status === 'down') return 'bg-destructive';
+		if (status === 'degraded') return 'bg-warning';
 		return 'bg-muted-foreground/50';
 	}
 
@@ -59,7 +58,6 @@
 			statusPage = res.data;
 			availableMonitors = res.available_monitors ?? [];
 
-			// Populate form from loaded data
 			name = statusPage.name;
 			description = statusPage.description ?? '';
 			isPublic = statusPage.is_public;
@@ -103,81 +101,67 @@
 	onMount(() => {
 		loadData();
 	});
+
+	const inputClass =
+		'w-full border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-0';
 </script>
 
 <svelte:head>
 	<title>{statusPage?.name ?? 'Edit Status Page'} - WatchDog</title>
 </svelte:head>
 
-{#if loading}
-	<!-- Skeleton loading state -->
-	<div class="animate-fade-in-up space-y-4">
-		<!-- Breadcrumb skeleton -->
-		<Skeleton emphasis="secondary" width="14rem" height="1rem" />
-
-		<!-- Form card skeleton -->
-		<div class="bg-card border border-border rounded-lg">
-			<div class="p-5 space-y-4">
-				<Skeleton emphasis="secondary" width="5rem" height="1rem" />
-				<Skeleton emphasis="tertiary" height="2.5rem" />
-				<Skeleton emphasis="secondary" width="6rem" height="1rem" />
-				<Skeleton emphasis="tertiary" height="5rem" />
-				<Skeleton emphasis="secondary" width="4rem" height="1rem" />
-				<Skeleton emphasis="tertiary" width="12rem" height="1.5rem" />
-				<div class="mt-4">
-					<Skeleton emphasis="secondary" width="6rem" height="1rem" />
-				</div>
-				{#each Array(3) as _}
-					<div class="flex items-center px-3 py-2.5 border border-border/20 rounded-md">
-						<div class="mr-3">
-							<Skeleton emphasis="secondary" width="1rem" height="1rem" />
-						</div>
-						<div class="flex-1 space-y-1">
-							<Skeleton emphasis="secondary" width="8rem" height="0.875rem" />
-							<Skeleton emphasis="tertiary" width="12rem" height="0.75rem" />
-						</div>
-					</div>
-				{/each}
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+	{#if loading}
+		<div class="space-y-4">
+			<div class="h-4 w-56 animate-pulse bg-muted/50"></div>
+			<div class="space-y-3 pt-4">
+				<div class="h-4 w-20 animate-pulse bg-muted/50"></div>
+				<div class="h-10 w-full animate-pulse bg-muted/30"></div>
+				<div class="h-4 w-24 animate-pulse bg-muted/50"></div>
+				<div class="h-20 w-full animate-pulse bg-muted/30"></div>
 			</div>
 		</div>
-	</div>
-{:else if loadError && !statusPage}
-	<!-- Error state -->
-	<div class="animate-fade-in-up">
-		<div class="bg-card border border-border rounded-lg p-8 text-center">
-			<p class="text-sm text-foreground font-medium mb-1">Failed to load status page</p>
-			<p class="text-xs text-muted-foreground mb-4">{loadError}</p>
-			<a
-				href="/status-pages"
-				class="inline-flex items-center px-4 py-2 bg-accent text-white hover:bg-accent/90 text-xs font-medium rounded-md transition-colors"
-			>
-				Back to Status Pages
-			</a>
-		</div>
-	</div>
-{:else if statusPage}
-	<div class="animate-fade-in-up space-y-5">
+	{:else if loadError && !statusPage}
+		<p class="text-sm font-medium text-foreground">Failed to load status page</p>
+		<p class="mt-1 font-mono tabular-nums text-xs text-destructive">{loadError}</p>
+		<a
+			href="/status-pages"
+			class="mt-4 inline-block text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+		>
+			← Back to Status Pages
+		</a>
+	{:else if statusPage}
 		<!-- Breadcrumb -->
-		<nav class="flex items-center space-x-1.5 text-xs">
-			<a href="/status-pages" class="text-muted-foreground hover:text-foreground transition-colors">
+		<nav class="flex items-center gap-1.5 text-xs">
+			<a href="/status-pages" class="text-muted-foreground transition-colors hover:text-foreground">
 				Status Pages
 			</a>
-			<ChevronRight class="w-3 h-3 text-muted-foreground/50" />
-			<span class="text-foreground font-medium truncate max-w-[200px]">{statusPage.name}</span>
+			<ChevronRight class="h-3 w-3 text-muted-foreground/40" />
+			<span class="truncate max-w-[200px] font-mono tabular-nums text-foreground">{statusPage.name}</span>
 		</nav>
 
-		<!-- Form card -->
-		<div class="bg-card border border-border rounded-lg">
-			<form onsubmit={handleSubmit}>
-				<div class="p-5 space-y-4">
-					{#if error}
-						<Alert tone="down">
-							{#snippet icon()}<AlertCircle class="w-3.5 h-3.5" />{/snippet}
-							{error}
-						</Alert>
-					{/if}
+		<!-- Header -->
+		<header class="mt-6">
+			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+				<span class="uppercase tracking-wider">Edit · Status Page</span>
+			</div>
+			<h1 class="mt-1.5 truncate text-2xl font-medium text-foreground sm:text-3xl">{statusPage.name}</h1>
+		</header>
 
-					<!-- Name -->
+		<form onsubmit={handleSubmit} class="mt-8 space-y-8">
+			{#if error}
+				<Alert tone="down">
+					{#snippet icon()}<AlertCircle class="h-3.5 w-3.5" />{/snippet}
+					{error}
+				</Alert>
+			{/if}
+
+			<!-- Configuration -->
+			<section>
+				<div class="border-b border-border pb-3">
+					<h3 class="text-sm font-medium text-foreground">Configuration</h3>
+				</div>
+				<div class="space-y-4 pt-4">
 					<FormField label="Name" htmlFor="sp-name" required>
 						<input
 							id="sp-name"
@@ -185,97 +169,93 @@
 							bind:value={name}
 							required
 							placeholder="My Status Page"
-							class="w-full bg-card-elevated border border-border rounded px-3 py-2 text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+							class={inputClass}
 						/>
 					</FormField>
 
-					<!-- Description -->
 					<FormField label="Description" htmlFor="sp-description">
 						<textarea
 							id="sp-description"
 							bind:value={description}
 							placeholder="A brief description of what this status page covers..."
 							rows="3"
-							class="w-full bg-card-elevated border border-border rounded px-3 py-2 text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+							class={inputClass}
 						></textarea>
 					</FormField>
 
-					<!-- Public toggle -->
-					<div class="flex items-center space-x-3">
+					<div class="flex items-center gap-3">
 						<input
 							id="sp-public"
 							type="checkbox"
 							bind:checked={isPublic}
-							class="w-4 h-4 rounded border-border bg-card-elevated text-accent focus:ring-ring focus:ring-offset-background"
+							class="h-4 w-4 border-border bg-background accent-accent focus:ring-ring"
 						/>
 						<label for="sp-public" class="text-xs text-foreground">
 							Make this page publicly accessible
 						</label>
 					</div>
+				</div>
+			</section>
 
-					<!-- Monitor selection -->
-					<div>
-						<div class="text-xs font-medium text-muted-foreground mb-2">
-							Monitors
-							{#if selectedMonitorIds.size > 0}
-								<span class="text-muted-foreground/60 font-normal ml-1">
-									({selectedMonitorIds.size} selected)
-								</span>
-							{/if}
-						</div>
+			<!-- Monitors -->
+			<section>
+				<div class="flex items-baseline gap-2 border-b border-border pb-3">
+					<h3 class="text-sm font-medium text-foreground">Monitors</h3>
+					{#if selectedMonitorIds.size > 0}
+						<span class="font-mono tabular-nums text-[11px] text-muted-foreground">
+							{selectedMonitorIds.size} selected
+						</span>
+					{/if}
+				</div>
 
-						{#if availableMonitors.length === 0}
-							<div class="border border-border/30 rounded-md p-4 text-center">
-								<p class="text-xs text-muted-foreground">
-									No monitors available. Create monitors first, then assign them here.
-								</p>
-							</div>
-						{:else}
-							<div class="border border-border/30 rounded-md divide-y divide-border/20 max-h-64 overflow-y-auto">
-								{#each availableMonitors as monitor (monitor.id)}
-									<button
-										type="button"
-										onclick={() => toggleMonitor(monitor.id)}
-										class="flex items-center w-full px-3 py-2.5 hover:bg-card-elevated transition-colors text-left"
-									>
-										<input
-											type="checkbox"
-											checked={selectedMonitorIds.has(monitor.id)}
-											tabindex={-1}
-											class="w-3.5 h-3.5 rounded border-border bg-card-elevated text-accent focus:ring-ring focus:ring-offset-background mr-3 pointer-events-none"
-										/>
-										<div class="w-2 h-2 rounded-full {statusDotClass(monitor.status)} mr-2.5 shrink-0"></div>
-										<div class="flex-1 min-w-0">
-											<div class="flex items-center space-x-2">
-												<span class="text-xs text-foreground truncate">{monitor.name}</span>
-												<span class="text-[9px] text-muted-foreground font-mono uppercase px-1.5 py-0.5 rounded bg-muted/50 shrink-0">
-													{monitor.type}
-												</span>
-											</div>
-											<p class="text-[10px] text-muted-foreground font-mono truncate mt-0.5">
-												{monitor.target}
-											</p>
-										</div>
-									</button>
-								{/each}
-							</div>
-						{/if}
+				{#if availableMonitors.length === 0}
+					<p class="pt-4 text-xs text-muted-foreground">
+						No monitors available. Create monitors first, then assign them here.
+					</p>
+				{:else}
+					<div class="max-h-64 divide-y divide-border/40 overflow-y-auto">
+						{#each availableMonitors as monitor (monitor.id)}
+							<button
+								type="button"
+								onclick={() => toggleMonitor(monitor.id)}
+								class="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/30"
+							>
+								<input
+									type="checkbox"
+									checked={selectedMonitorIds.has(monitor.id)}
+									tabindex={-1}
+									class="pointer-events-none h-3.5 w-3.5 border-border bg-background accent-accent"
+								/>
+								<span class="inline-block h-1.5 w-1.5 shrink-0 rounded-full {statusPipClass(monitor.status)}"></span>
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2">
+										<span class="truncate text-sm text-foreground">{monitor.name}</span>
+										<span class="font-mono tabular-nums text-[10px] uppercase tracking-wider text-muted-foreground">
+											{monitor.type}
+										</span>
+									</div>
+									<p class="mt-0.5 truncate font-mono tabular-nums text-[11px] text-muted-foreground">
+										{monitor.target}
+									</p>
+								</div>
+							</button>
+						{/each}
 					</div>
-				</div>
+				{/if}
+			</section>
 
-				<!-- Footer -->
-				<div class="px-5 py-3.5 border-t border-border flex justify-end space-x-2">
-					<a
-						href="/status-pages"
-						class="px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 text-xs font-medium rounded-md transition-colors"
-					>
-						Cancel
-					</a>
-					<Button variant="primary" type="submit" disabled={saving}>
-						{saving ? 'Saving...' : 'Save Changes'}
-					</Button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
+			<!-- Footer -->
+			<div class="flex items-center justify-end gap-4 border-t border-border pt-4 text-xs">
+				<a
+					href="/status-pages"
+					class="text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+				>
+					Cancel
+				</a>
+				<Button variant="primary" size="sm" type="submit" disabled={saving}>
+					{saving ? 'Saving…' : 'Save Changes'}
+				</Button>
+			</div>
+		</form>
+	{/if}
+</div>
