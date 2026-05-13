@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatPercent, uptimeColor } from '$lib/utils';
+	import { StatusPip } from '@sylvester-francis/watchdog-ui';
 	import type { DashboardStats } from '$lib/types';
 
 	interface Props {
@@ -12,12 +13,8 @@
 	let hasMonitors = $derived(stats.total_monitors > 0);
 	let allUp = $derived(stats.monitors_down === 0 && hasMonitors);
 
-	let statusPipClass = $derived(
-		!hasMonitors
-			? 'bg-muted-foreground/50'
-			: allUp
-				? 'bg-success'
-				: 'bg-destructive'
+	let statusTone = $derived<'success' | 'destructive' | 'muted'>(
+		!hasMonitors ? 'muted' : allUp ? 'success' : 'destructive'
 	);
 	let statusLabel = $derived(
 		!hasMonitors
@@ -31,7 +28,7 @@
 <section class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
 	<div class="min-w-0">
 		<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
-			<span class="inline-block h-1.5 w-1.5 rounded-full {statusPipClass}" aria-label="Fleet status"></span>
+			<StatusPip tone={statusTone} label="Fleet status" />
 			<span class="uppercase tracking-wider">Fleet</span>
 		</div>
 		<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">{statusLabel}</h1>
