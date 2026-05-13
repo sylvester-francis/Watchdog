@@ -114,7 +114,7 @@
 		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 		<FleetBanner {stats} uptimePercent={uptimePercent()} />
 
 		<div class="mt-8">

@@ -492,7 +492,7 @@
 </svelte:head>
 
 {#if loading}
-	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-6 py-10">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 		<div class="space-y-2">
 			<Skeleton emphasis="secondary" width="8rem" height="2rem" />
 			<Skeleton emphasis="tertiary" width="22rem" height="1rem" />
@@ -508,11 +508,11 @@
 		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-12 lg:py-16">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-12 lg:py-16">
 		<!-- Page header -->
 		<header class="mb-2 flex flex-col items-start gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
 			<div>
-				<h1 class="text-3xl font-medium tracking-tight text-foreground sm:text-[32px]">Settings</h1>
+				<h1 class="text-xl font-medium tracking-tight text-foreground sm:text-3xl lg:text-[32px]">Settings</h1>
 				<p class="mt-1.5 text-sm text-muted-foreground sm:text-base">
 					Account, notifications, and API access.
 				</p>

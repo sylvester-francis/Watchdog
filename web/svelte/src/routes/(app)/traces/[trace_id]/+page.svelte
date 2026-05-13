@@ -98,7 +98,7 @@
 	<title>Trace {traceId.slice(0, 8)} - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 	<a href="/traces" class="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
 		<ArrowLeft class="h-3.5 w-3.5" />
 		<span>Back to traces</span>
@@ -156,7 +156,7 @@
 					{/if}
 				</button>
 			</div>
-			<h1 class="mt-1.5 truncate font-mono tabular-nums text-2xl font-medium text-foreground sm:text-3xl">
+			<h1 class="mt-1.5 truncate font-mono tabular-nums text-xl font-medium text-foreground sm:text-2xl md:text-3xl">
 				{rootSpan?.name ?? 'Trace'}
 			</h1>
 			<div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono tabular-nums text-xs">

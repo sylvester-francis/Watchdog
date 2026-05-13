@@ -110,7 +110,7 @@
 	<title>{statusPage?.name ?? 'Edit Status Page'} - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 	{#if loading}
 		<div class="space-y-4">
 			<div class="h-4 w-56 animate-pulse bg-muted/50"></div>
@@ -145,7 +145,7 @@
 			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
 				<span class="uppercase tracking-wider">Edit · Status Page</span>
 			</div>
-			<h1 class="mt-1.5 truncate text-2xl font-medium text-foreground sm:text-3xl">{statusPage.name}</h1>
+			<h1 class="mt-1.5 truncate text-xl font-medium text-foreground sm:text-2xl md:text-3xl">{statusPage.name}</h1>
 		</header>
 
 		<form onsubmit={handleSubmit} class="mt-8 space-y-8">

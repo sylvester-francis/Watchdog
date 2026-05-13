@@ -100,7 +100,7 @@
 	</div>
 {:else if error && !monitor}
 	<!-- Error state -->
-	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 		<p class="text-sm font-medium text-foreground">Failed to load monitor</p>
 		<p class="mt-1 font-mono tabular-nums text-xs text-destructive">{error}</p>
 		<a
@@ -111,7 +111,7 @@
 		</a>
 	</div>
 {:else if monitor}
-	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 		<!-- Breadcrumb -->
 		<nav class="flex items-center gap-1.5 text-xs">
 			<a href="/monitors" class="text-muted-foreground transition-colors hover:text-foreground">
