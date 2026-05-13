@@ -19,13 +19,11 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			h := c.Response().Header()
 
-			// Prevent XSS attacks
-			h.Set("X-XSS-Protection", "1; mode=block")
-
 			// Prevent MIME type sniffing
 			h.Set("X-Content-Type-Options", "nosniff")
 
-			// Prevent clickjacking
+			// Prevent clickjacking. CSP frame-ancestors 'none' below covers
+			// modern browsers; X-Frame-Options stays for legacy fallback.
 			h.Set("X-Frame-Options", "DENY")
 
 			// Control referrer information
@@ -39,21 +37,30 @@ func SecureHeaders(secureCookies ...bool) echo.MiddlewareFunc {
 			nonce := base64.StdEncoding.EncodeToString(nonceBytes)
 			c.Set(NonceContextKey, nonce)
 
-			// Nonce-based CSP — the SvelteKit SPA has one inline bootstrap
-			// script that gets the nonce injected by the router.
-			// H-018: 'unsafe-inline' retained in style-src because SvelteKit
-			// generates inline styles for transitions and components use
-			// inline style= attributes (10 occurrences). Removing it would
-			// break the UI. CSS injection risk is low: connect-src 'self'
-			// blocks data exfiltration via background-url, and style
-			// injection cannot execute JavaScript.
+			// Nonce-based CSP. Hardening notes:
+			// - script-src: 'self' + per-request nonce + jsdelivr for Swagger UI
+			//   on /docs. unpkg.com removed — it was a stale allowlist entry,
+			//   no source code actually loaded from it.
+			// - style-src: 'unsafe-inline' retained (H-018) because SvelteKit
+			//   transition styles plus ~20 dynamic style="" attributes (width %,
+			//   position %, etc.) in components require it. Style injection can't
+			//   execute JS, and connect-src 'self' blocks data exfiltration via
+			//   background-url.
+			// - frame-ancestors 'none': modern equivalent of X-Frame-Options DENY.
+			// - base-uri 'self': prevents <base> tag injection.
+			// - form-action 'self': prevents <form action=...> exfiltration.
+			// - object-src 'none': blocks plugin embedding.
 			h.Set("Content-Security-Policy",
 				"default-src 'self'; "+
-					"script-src 'self' 'nonce-"+nonce+"' https://unpkg.com https://cdn.jsdelivr.net; "+
+					"script-src 'self' 'nonce-"+nonce+"' https://cdn.jsdelivr.net; "+
 					"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "+
 					"img-src 'self' data: https://validator.swagger.io; "+
 					"font-src 'self' https://fonts.gstatic.com; "+
-					"connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net")
+					"connect-src 'self' https://cdn.jsdelivr.net; "+
+					"frame-ancestors 'none'; "+
+					"base-uri 'self'; "+
+					"form-action 'self'; "+
+					"object-src 'none'")
 
 			// Permissions Policy
 			h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
