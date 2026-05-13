@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { ArrowLeft, AlertCircle, Copy, Check, RefreshCw } from 'lucide-svelte';
-	import { Button, EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
+	import { ArrowLeft, Copy, Check, RefreshCw } from 'lucide-svelte';
+	import { Button } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { Span } from '$lib/types';
 	import Waterfall from '$lib/components/traces/Waterfall.svelte';
@@ -36,13 +36,8 @@
 
 	let rootSpan = $derived.by(() => {
 		if (spans.length === 0) return null;
-		// A trace's root is the span with no resolvable parent. If the
-		// parent_span_id is set but its span isn't in this trace's set
-		// (orphan after dropping), treat as root too.
 		const ids = new Set(spans.map((s) => s.span_id));
-		return (
-			spans.find((s) => !s.parent_span_id || !ids.has(s.parent_span_id)) ?? spans[0]
-		);
+		return spans.find((s) => !s.parent_span_id || !ids.has(s.parent_span_id)) ?? spans[0];
 	});
 
 	async function loadTrace() {
@@ -103,97 +98,88 @@
 	<title>Trace {traceId.slice(0, 8)} - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up">
-	<a href="/traces" class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4">
-		<ArrowLeft class="w-3.5 h-3.5" />
-		<span>traces</span>
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+	<a href="/traces" class="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+		<ArrowLeft class="h-3.5 w-3.5" />
+		<span>Back to traces</span>
 	</a>
 
 	{#if loading}
-		<div class="space-y-4">
-			<Skeleton emphasis="secondary" width="16rem" height="2rem" />
-			<Skeleton emphasis="tertiary" width="24rem" height="1.25rem" />
-			<div class="bg-card border border-border rounded-lg overflow-hidden">
+		<div class="mt-6 animate-pulse space-y-4">
+			<div class="h-8 w-64 bg-muted/50"></div>
+			<div class="h-4 w-96 bg-muted/30"></div>
+			<div class="space-y-2 pt-4">
 				{#each Array(8) as _}
-					<div class="flex items-center px-4 py-2.5 border-b border-border/20">
-						<Skeleton emphasis="secondary" width="11rem" height="0.75rem" />
-						<div class="ml-auto">
-							<Skeleton emphasis="tertiary" width="18rem" height="0.75rem" />
-						</div>
-						<div class="ml-4">
-							<Skeleton emphasis="tertiary" width="4rem" height="0.75rem" />
-						</div>
+					<div class="flex items-center gap-6 py-2.5">
+						<div class="h-3 w-44 bg-muted/40"></div>
+						<div class="ml-auto h-3 w-72 bg-muted/30"></div>
+						<div class="h-3 w-16 bg-muted/30"></div>
 					</div>
 				{/each}
 			</div>
 		</div>
 	{:else if loadError}
-		<div class="bg-card border border-border rounded-lg">
-			<EmptyState
-				title="Couldn't load trace"
-				description={loadError}
-			>
-				{#snippet icon()}
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-						<AlertCircle class="w-6 h-6 text-red-400/70" />
-					</div>
-				{/snippet}
-				{#snippet cta()}
-					<Button variant="secondary" onclick={loadTrace}>
-						<RefreshCw class="w-3.5 h-3.5" />
-						<span>Try again</span>
-					</Button>
-				{/snippet}
-			</EmptyState>
-		</div>
+		<section class="mt-6">
+			<div class="border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">Couldn't load trace</h3>
+			</div>
+			<div class="flex flex-col items-start gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+				<p class="font-mono tabular-nums text-xs text-destructive">{loadError}</p>
+				<Button variant="secondary" onclick={loadTrace}>
+					<RefreshCw class="mr-1.5 h-3.5 w-3.5" />
+					<span>Try again</span>
+				</Button>
+			</div>
+		</section>
 	{:else if spans.length === 0}
-		<div class="bg-card border border-border rounded-lg">
-			<EmptyState title="Trace not found" />
-		</div>
+		<section class="mt-6">
+			<div class="border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">Trace not found</h3>
+			</div>
+		</section>
 	{:else}
-		<div class="grid grid-cols-1 lg:grid-cols-[1fr_minmax(320px,420px)] gap-4">
-			<div class="min-w-0">
-				<!-- Header strip -->
-				<div class="mb-4">
-					<h1 class="text-lg font-semibold text-foreground font-mono">
-						{rootSpan?.name ?? 'Trace'}
-					</h1>
-					<div class="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-mono mt-0.5">
-						<span class="tabular-nums">{traceId}</span>
-						<button
-							onclick={copyTraceID}
-							class="text-muted-foreground/60 hover:text-foreground transition-colors"
-							aria-label="Copy trace_id"
-						>
-							{#if copiedTraceId}
-								<Check class="w-3 h-3 text-emerald-400" />
-							{:else}
-								<Copy class="w-3 h-3" />
-							{/if}
-						</button>
-					</div>
-					<div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs font-mono">
-						<span class="tabular-nums text-foreground">{formatDuration(totalDurationNs)}</span>
-						<span class="text-muted-foreground"><span class="tabular-nums">{spans.length}</span> spans</span>
-						<span class="text-muted-foreground"><span class="tabular-nums">{serviceCount}</span> service{serviceCount === 1 ? '' : 's'}</span>
-						{#if errorCount > 0}
-							<span class="text-red-400">● <span class="tabular-nums">{errorCount}</span> error{errorCount === 1 ? '' : 's'}</span>
-						{/if}
-						<span class="text-muted-foreground/70 ml-auto tabular-nums">
-							{formatTimeRange(traceStart, traceEnd)}
-						</span>
-					</div>
-				</div>
+		<!-- Header strip -->
+		<header class="mt-6">
+			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+				<span class="uppercase tracking-wider">Trace</span>
+				<span class="text-muted-foreground/40">·</span>
+				<span>{traceId}</span>
+				<button
+					onclick={copyTraceID}
+					class="text-muted-foreground/60 transition-colors hover:text-foreground"
+					aria-label="Copy trace_id"
+				>
+					{#if copiedTraceId}
+						<Check class="h-3 w-3 text-success" />
+					{:else}
+						<Copy class="h-3 w-3" />
+					{/if}
+				</button>
+			</div>
+			<h1 class="mt-1.5 truncate font-mono tabular-nums text-2xl font-medium text-foreground sm:text-3xl">
+				{rootSpan?.name ?? 'Trace'}
+			</h1>
+			<div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono tabular-nums text-xs">
+				<span class="text-foreground">{formatDuration(totalDurationNs)}</span>
+				<span class="text-muted-foreground"><span class="text-foreground">{spans.length}</span> spans</span>
+				<span class="text-muted-foreground"><span class="text-foreground">{serviceCount}</span> service{serviceCount === 1 ? '' : 's'}</span>
+				{#if errorCount > 0}
+					<span class="flex items-center gap-1.5 text-destructive">
+						<span class="inline-block h-1.5 w-1.5 rounded-full bg-destructive"></span>
+						<span>{errorCount}</span> error{errorCount === 1 ? '' : 's'}
+					</span>
+				{/if}
+				<span class="ml-auto text-muted-foreground/70">{formatTimeRange(traceStart, traceEnd)}</span>
+			</div>
+		</header>
 
-				<Waterfall
-					{spans}
-					{selectedSpanId}
-					onSelect={handleSpanSelect}
-				/>
+		<div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(320px,420px)]">
+			<div class="min-w-0">
+				<Waterfall {spans} {selectedSpanId} onSelect={handleSpanSelect} />
 			</div>
 
 			{#if selectedSpan}
-				<div class="lg:sticky lg:top-4 self-start">
+				<div class="self-start lg:sticky lg:top-4">
 					<SpanDetailRail span={selectedSpan} {traceStart} onClose={closeRail} />
 				</div>
 			{/if}
