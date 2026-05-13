@@ -187,7 +187,7 @@
 		<div class="flex-1 relative h-7 min-w-0">
 			{#each rulerTicks as tick, idx}
 				<div
-					class="absolute top-0 bottom-0 border-l border-border/40 flex items-center pl-1 -translate-x-px {idx > 0 && idx < 4 ? 'hidden sm:flex' : 'flex'}"
+					class="absolute top-0 bottom-0 border-l border-border/40 flex items-center pl-1 -translate-x-px {idx > 0 ? 'hidden sm:flex' : 'flex'}"
 					style="left: {tick.pct}%"
 				>
 					<span class="text-muted-foreground/70 tabular-nums">{tick.label}</span>
