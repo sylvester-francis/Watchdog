@@ -179,22 +179,23 @@
 </script>
 
 <div class="bg-card border border-border rounded-lg overflow-hidden">
-	<!-- Time-axis ruler (sticky to the top of the waterfall section) -->
-	<div class="sticky top-0 z-10 bg-card border-b border-border/30 flex items-center text-[10px] text-muted-foreground/70 font-mono">
-		<div class="w-36 shrink-0 px-2 py-2 border-r border-border/30 uppercase tracking-wider sm:w-72 sm:px-3">
+	<!-- Time-axis ruler — hidden on mobile (header dead-weight at 375px;
+	     trace total is in the meta row above, span bars still convey timing) -->
+	<div class="sticky top-0 z-10 bg-card border-b border-border/30 hidden items-center text-[10px] text-muted-foreground/70 font-mono sm:flex">
+		<div class="w-72 shrink-0 px-3 py-2 border-r border-border/30 uppercase tracking-wider">
 			Span
 		</div>
 		<div class="flex-1 relative h-7 min-w-0">
-			{#each rulerTicks as tick, idx}
+			{#each rulerTicks as tick}
 				<div
-					class="absolute top-0 bottom-0 border-l border-border/40 flex items-center pl-1 -translate-x-px {idx > 0 ? 'hidden sm:flex' : 'flex'}"
+					class="absolute top-0 bottom-0 border-l border-border/40 flex items-center pl-1 -translate-x-px"
 					style="left: {tick.pct}%"
 				>
 					<span class="text-muted-foreground/70 tabular-nums">{tick.label}</span>
 				</div>
 			{/each}
 		</div>
-		<div class="w-16 shrink-0 px-2 py-2 border-l border-border/30 text-right uppercase tracking-wider sm:w-24 sm:px-3">
+		<div class="w-24 shrink-0 px-3 py-2 border-l border-border/30 text-right uppercase tracking-wider">
 			Duration
 		</div>
 	</div>
