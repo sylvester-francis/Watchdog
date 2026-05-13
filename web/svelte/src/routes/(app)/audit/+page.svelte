@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ScrollText, ChevronLeft, ChevronRight, Download, Search, Loader2 } from 'lucide-svelte';
-	import { EmptyState } from '@sylvester-francis/watchdog-ui';
+	import { ChevronLeft, ChevronRight, Download, Search, Loader2 } from 'lucide-svelte';
 	import { system as systemApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { AuditLogEntry, PaginationMeta } from '$lib/types';
@@ -45,17 +44,14 @@
 			: logs
 	);
 
-	function actionBadgeClass(action: string): string {
-		if (action === 'login_success' || action === 'register_success') return 'bg-green-500/15 text-green-400';
-		if (action === 'login_failed' || action === 'register_blocked') return 'bg-red-500/15 text-red-400';
-		if (action.endsWith('_created')) return 'bg-blue-500/15 text-blue-400';
-		if (action.endsWith('_updated') || action === 'password_changed' || action === 'settings_changed') return 'bg-yellow-500/15 text-yellow-400';
-		if (action.endsWith('_deleted') || action.endsWith('_revoked')) return 'bg-red-500/15 text-red-400';
-		if (action.includes('acknowledged')) return 'bg-yellow-500/15 text-yellow-400';
-		if (action.includes('resolved')) return 'bg-emerald-500/15 text-emerald-400';
-		if (action.includes('maintenance')) return 'bg-purple-500/15 text-purple-400';
-		if (action === 'logout') return 'bg-muted/50 text-muted-foreground';
-		return 'bg-muted/50 text-muted-foreground';
+	function actionTextClass(action: string): string {
+		if (action === 'login_success' || action === 'register_success') return 'text-success';
+		if (action === 'login_failed' || action === 'register_blocked') return 'text-destructive';
+		if (action.endsWith('_deleted') || action.endsWith('_revoked')) return 'text-destructive';
+		if (action.endsWith('_updated') || action === 'password_changed' || action === 'settings_changed') return 'text-warning';
+		if (action.includes('acknowledged')) return 'text-warning';
+		if (action.includes('resolved')) return 'text-success';
+		return 'text-muted-foreground';
 	}
 
 	function formatDate(iso: string): string {
@@ -89,7 +85,6 @@
 
 	function handleTabChange(tab: CategoryTab) {
 		activeTab = tab;
-		// Reset action filter to first action in category, or empty for 'all'
 		selectedAction = '';
 		loadData(1);
 	}
@@ -142,38 +137,43 @@
 	onMount(() => {
 		loadData();
 	});
+
+	const inputClass =
+		'border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-0';
 </script>
 
 <svelte:head>
 	<title>Audit Log - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
 	<!-- Header -->
-	<div class="flex items-center justify-between mb-5">
-		<div>
-			<h1 class="text-lg font-semibold text-foreground">Audit Log</h1>
-			<p class="text-xs text-muted-foreground mt-0.5">
+	<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+		<div class="min-w-0">
+			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+				<span class="uppercase tracking-wider">Audit</span>
+			</div>
+			<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">
 				{meta.total} event{meta.total !== 1 ? 's' : ''} total
-			</p>
+			</h1>
 		</div>
 		<button
 			onclick={exportCSV}
-			class="flex items-center space-x-1.5 px-3 py-1.5 bg-card border border-border rounded-md text-xs text-muted-foreground hover:text-foreground transition-colors"
+			class="flex items-center gap-1 self-start text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline sm:self-auto"
 		>
-			<Download class="w-3.5 h-3.5" />
+			<Download class="h-3.5 w-3.5" />
 			<span>Export CSV</span>
 		</button>
-	</div>
+	</header>
 
 	<!-- Category tabs -->
-	<div class="flex items-center gap-1 mb-4">
+	<div class="mt-8 flex flex-wrap items-center gap-1 font-mono tabular-nums text-xs">
 		{#each tabs as tab}
 			<button
 				onclick={() => handleTabChange(tab.value)}
-				class="px-2.5 py-1 text-xs rounded-md transition-colors {activeTab === tab.value
-					? 'bg-foreground/[0.08] text-foreground font-medium'
-					: 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'}"
+				class="px-2.5 py-1 transition-colors {activeTab === tab.value
+					? 'font-medium text-foreground'
+					: 'text-muted-foreground hover:text-foreground'}"
 			>
 				{tab.label}
 			</button>
@@ -181,13 +181,12 @@
 	</div>
 
 	<!-- Filters row -->
-	<div class="flex flex-wrap items-center gap-2 mb-4">
-		<!-- Action filter dropdown (shows actions from current category) -->
+	<div class="mt-3 flex flex-wrap items-center gap-2">
 		{#if categoryActions[activeTab].length > 0}
 			<select
 				bind:value={selectedAction}
 				onchange={() => handleActionFilter(selectedAction)}
-				class="px-2.5 py-1.5 bg-card border border-border rounded-md text-xs text-foreground appearance-none cursor-pointer"
+				class="{inputClass} cursor-pointer"
 			>
 				<option value="">All {activeTab} actions</option>
 				{#each categoryActions[activeTab] as action}
@@ -196,136 +195,114 @@
 			</select>
 		{/if}
 
-		<!-- Date range -->
-		<input
-			type="date"
-			bind:value={dateFrom}
-			onchange={handleDateFilter}
-			class="px-2.5 py-1.5 bg-card border border-border rounded-md text-xs text-foreground"
-			placeholder="From"
-		/>
-		<input
-			type="date"
-			bind:value={dateTo}
-			onchange={handleDateFilter}
-			class="px-2.5 py-1.5 bg-card border border-border rounded-md text-xs text-foreground"
-			placeholder="To"
-		/>
+		<input type="date" bind:value={dateFrom} onchange={handleDateFilter} class={inputClass} placeholder="From" />
+		<input type="date" bind:value={dateTo} onchange={handleDateFilter} class={inputClass} placeholder="To" />
 
-		<!-- Client-side search -->
-		<div class="relative flex-1 min-w-[160px] max-w-[240px]">
-			<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+		<div class="relative min-w-[160px] max-w-[240px] flex-1">
+			<Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
 			<input
 				type="text"
 				bind:value={searchQuery}
 				placeholder="Search results..."
-				class="w-full pl-8 pr-3 py-1.5 bg-card border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground"
+				class="{inputClass} w-full pl-8"
 			/>
 		</div>
 	</div>
 
 	<!-- Table -->
-	{#if loading}
-		<div class="bg-card border border-border rounded-lg">
+	<div class="mt-6">
+		{#if loading}
 			<div class="flex items-center justify-center py-16">
-				<Loader2 class="w-5 h-5 text-muted-foreground animate-spin" />
+				<Loader2 class="h-5 w-5 animate-spin text-muted-foreground" />
 			</div>
-		</div>
-	{:else if filteredLogs.length === 0}
-		<div class="bg-card border border-border rounded-lg">
-			<EmptyState
-				title="No audit logs found"
-				description="Try adjusting your filters or date range."
-			>
-				{#snippet icon()}
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-						<ScrollText class="w-6 h-6 text-muted-foreground/40" />
-					</div>
-				{/snippet}
-			</EmptyState>
-		</div>
-	{:else}
-		<div class="bg-card border border-border rounded-lg overflow-x-auto">
-			<table class="w-full">
-				<thead>
-					<tr class="border-b border-border">
-						<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Time</th>
-						<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-						<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">User</th>
-						<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">IP Address</th>
-						<th class="px-4 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Details</th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-border/50">
-					{#each filteredLogs as log}
-						<tr class="hover:bg-card-elevated transition-colors">
-							<td class="px-4 py-3">
-								<div class="text-xs text-foreground">{formatDate(log.created_at)}</div>
-								<div class="text-[10px] font-mono text-muted-foreground">{formatTime(log.created_at)}</div>
-							</td>
-							<td class="px-4 py-3">
-								<span class="px-2 py-0.5 text-[10px] font-medium rounded whitespace-nowrap {actionBadgeClass(log.action)}">
-									{log.action.replace(/_/g, ' ')}
-								</span>
-							</td>
-							<td class="px-4 py-3 hidden md:table-cell">
-								<span class="text-xs text-foreground">{log.user_email || '--'}</span>
-							</td>
-							<td class="px-4 py-3 hidden lg:table-cell">
-								<span class="text-xs font-mono text-muted-foreground">{log.ip_address || '--'}</span>
-							</td>
-							<td class="px-4 py-3 hidden xl:table-cell">
-								{#if log.metadata && Object.keys(log.metadata).length > 0}
-									<div class="flex flex-wrap gap-1">
-										{#each Object.entries(log.metadata).slice(0, 3) as [key, value]}
-											<span class="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground font-mono truncate max-w-[140px]" title="{key}: {value}">
-												{key}: {value}
-											</span>
-										{/each}
-									</div>
-								{:else}
-									<span class="text-xs text-muted-foreground">--</span>
-								{/if}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-
-		<!-- Pagination -->
-		{#if meta.pages > 1}
-			<div class="flex items-center justify-between mt-4">
-				<p class="text-xs text-muted-foreground">
-					Page {meta.page} of {meta.pages} ({meta.total} total)
-				</p>
-				<div class="flex items-center space-x-1">
-					<button
-						onclick={() => goToPage(meta.page - 1)}
-						disabled={meta.page <= 1}
-						class="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-					>
-						<ChevronLeft class="w-4 h-4" />
-					</button>
-					{#each pageNumbers() as page}
-						<button
-							onclick={() => goToPage(page)}
-							class="px-2.5 py-1 text-xs rounded-md transition-colors {page === meta.page
-								? 'bg-foreground/[0.08] text-foreground font-medium'
-								: 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'}"
-						>
-							{page}
-						</button>
-					{/each}
-					<button
-						onclick={() => goToPage(meta.page + 1)}
-						disabled={meta.page >= meta.pages}
-						class="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-					>
-						<ChevronRight class="w-4 h-4" />
-					</button>
+		{:else if filteredLogs.length === 0}
+			<section>
+				<div class="border-b border-border pb-3">
+					<h3 class="text-sm font-medium text-foreground">No audit logs found</h3>
 				</div>
+				<p class="pt-4 text-xs text-muted-foreground">Try adjusting your filters or date range.</p>
+			</section>
+		{:else}
+			<div class="overflow-x-auto">
+				<table class="w-full">
+					<thead>
+						<tr class="border-b border-border">
+							<th class="py-2.5 pl-1 pr-4 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Time</th>
+							<th class="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Action</th>
+							<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground md:table-cell">User</th>
+							<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:table-cell">IP Address</th>
+							<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground xl:table-cell">Details</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-border/40">
+						{#each filteredLogs as log}
+							<tr class="transition-colors hover:bg-muted/30">
+								<td class="py-3 pl-1 pr-4 font-mono tabular-nums">
+									<div class="text-xs text-foreground">{formatDate(log.created_at)}</div>
+									<div class="text-[10px] text-muted-foreground">{formatTime(log.created_at)}</div>
+								</td>
+								<td class="whitespace-nowrap px-4 py-3 font-mono tabular-nums text-[11px] {actionTextClass(log.action)}">
+									{log.action.replace(/_/g, ' ')}
+								</td>
+								<td class="hidden px-4 py-3 font-mono tabular-nums text-xs text-foreground md:table-cell">
+									{log.user_email || '—'}
+								</td>
+								<td class="hidden px-4 py-3 font-mono tabular-nums text-xs text-muted-foreground lg:table-cell">
+									{log.ip_address || '—'}
+								</td>
+								<td class="hidden px-4 py-3 xl:table-cell">
+									{#if log.metadata && Object.keys(log.metadata).length > 0}
+										<div class="flex flex-wrap gap-2 font-mono tabular-nums text-[10px] text-muted-foreground">
+											{#each Object.entries(log.metadata).slice(0, 3) as [key, value]}
+												<span class="truncate max-w-[140px]" title="{key}: {value}">
+													{key}: {value}
+												</span>
+											{/each}
+										</div>
+									{:else}
+										<span class="text-xs text-muted-foreground/40">—</span>
+									{/if}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
 			</div>
+
+			<!-- Pagination -->
+			{#if meta.pages > 1}
+				<div class="mt-4 flex items-center justify-between">
+					<p class="font-mono tabular-nums text-xs text-muted-foreground">
+						Page {meta.page} of {meta.pages} ({meta.total} total)
+					</p>
+					<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+						<button
+							onclick={() => goToPage(meta.page - 1)}
+							disabled={meta.page <= 1}
+							class="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+						>
+							<ChevronLeft class="h-3.5 w-3.5" />
+						</button>
+						{#each pageNumbers() as page}
+							<button
+								onclick={() => goToPage(page)}
+								class="px-1 transition-colors {page === meta.page
+									? 'font-medium text-foreground'
+									: 'text-muted-foreground hover:text-foreground'}"
+							>
+								{page}
+							</button>
+						{/each}
+						<button
+							onclick={() => goToPage(meta.page + 1)}
+							disabled={meta.page >= meta.pages}
+							class="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+						>
+							<ChevronRight class="h-3.5 w-3.5" />
+						</button>
+					</div>
+				</div>
+			{/if}
 		{/if}
-	{/if}
+	</div>
 </div>
