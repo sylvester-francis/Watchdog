@@ -123,13 +123,13 @@
 	<title>Discovery - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 	<!-- Header -->
 	<header>
 		<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
 			<span class="uppercase tracking-wider">Network · Discovery</span>
 		</div>
-		<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">Network Discovery</h1>
+		<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">Network Discovery</h1>
 		<p class="mt-1 text-sm text-muted-foreground">Scan your network to find SNMP-capable devices.</p>
 	</header>
 
