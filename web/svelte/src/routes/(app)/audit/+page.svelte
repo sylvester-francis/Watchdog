@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ChevronLeft, ChevronRight, Download, Search, Loader2 } from 'lucide-svelte';
+	import { PageHero } from '@sylvester-francis/watchdog-ui';
 	import { system as systemApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import type { AuditLogEntry, PaginationMeta } from '$lib/types';
@@ -147,24 +148,20 @@
 </svelte:head>
 
 <div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
-	<!-- Header -->
-	<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-		<div class="min-w-0">
-			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
-				<span class="uppercase tracking-wider">Audit</span>
-			</div>
-			<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">
-				{meta.total} event{meta.total !== 1 ? 's' : ''} total
-			</h1>
-		</div>
-		<button
-			onclick={exportCSV}
-			class="flex items-center gap-1 self-start text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline sm:self-auto"
-		>
-			<Download class="h-3.5 w-3.5" />
-			<span>Export CSV</span>
-		</button>
-	</header>
+	<PageHero
+		meta="Audit"
+		title="{meta.total} event{meta.total !== 1 ? 's' : ''} total"
+	>
+		{#snippet action()}
+			<button
+				onclick={exportCSV}
+				class="flex items-center gap-1 self-start text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline sm:self-auto"
+			>
+				<Download class="h-3.5 w-3.5" />
+				<span>Export CSV</span>
+			</button>
+		{/snippet}
+	</PageHero>
 
 	<!-- Category tabs -->
 	<div class="mt-8 flex flex-wrap items-center gap-1 font-mono tabular-nums text-xs">
