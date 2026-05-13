@@ -314,84 +314,56 @@
 </svelte:head>
 
 {#if loading}
-	<div class="animate-fade-in-up space-y-4">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] space-y-6 px-4 py-6 sm:px-6 sm:py-10">
 		<Skeleton emphasis="secondary" width="6rem" height="1.75rem" />
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+		<div class="grid grid-cols-2 gap-px border-y border-border bg-border lg:grid-cols-4">
 			{#each Array(4) as _}
-				<Skeleton variant="card" emphasis="secondary" height="6rem" />
-			{/each}
-		</div>
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-			{#each Array(2) as _}
-				<Skeleton variant="card" emphasis="secondary" height="12rem" />
+				<div class="bg-background p-4">
+					<Skeleton emphasis="tertiary" width="4rem" height="0.625rem" />
+					<div class="mt-2">
+						<Skeleton emphasis="secondary" width="4rem" height="1.25rem" />
+					</div>
+				</div>
 			{/each}
 		</div>
 		<Skeleton variant="card" emphasis="secondary" height="16rem" />
 	</div>
 {:else if error}
-	<div class="animate-fade-in-up">
-		<div class="bg-card border border-border rounded-lg p-8 text-center">
-			<p class="text-sm text-foreground font-medium mb-1">Failed to load system info</p>
-			<p class="text-xs text-muted-foreground">{error}</p>
-		</div>
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
+		<p class="text-sm font-medium text-foreground">Failed to load system info</p>
+		<p class="mt-1 font-mono tabular-nums text-xs text-destructive">{error}</p>
 	</div>
 {:else if data}
-	<div class="animate-fade-in-up">
-		<div class="mb-5">
-			<h1 class="text-lg font-semibold text-foreground">System</h1>
-			<p class="text-xs text-muted-foreground mt-0.5">Server health, performance metrics, and audit log.</p>
-		</div>
-
-		<!-- System Health Cards -->
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-			<!-- Database -->
-			<div class="bg-card rounded-lg border border-border p-3">
-				<div class="flex items-center justify-between mb-2">
-					<p class="text-xs font-medium text-muted-foreground">Database</p>
-					<div class="w-6 h-6 rounded flex items-center justify-center {data.db.healthy ? 'bg-emerald-500/10' : 'bg-red-500/10'}">
-						<Database class="w-3 h-3 {data.db.healthy ? 'text-emerald-400' : 'text-red-400'}" />
-					</div>
-				</div>
-				<p class="text-2xl font-semibold text-foreground font-mono tracking-tight">{data.db.ping_ms.toFixed(0)}ms</p>
-				<p class="text-xs text-muted-foreground mt-1">{data.db.healthy ? 'Healthy' : 'Unreachable'} &middot; response time to database</p>
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
+		<header>
+			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+				<span class="uppercase tracking-wider">System</span>
 			</div>
+			<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">System</h1>
+			<p class="mt-1 text-sm text-muted-foreground">Server health, performance metrics, and audit log.</p>
+		</header>
 
-			<!-- Connection Pool -->
-			<div class="bg-card rounded-lg border border-border p-3">
-				<div class="flex items-center justify-between mb-2">
-					<p class="text-xs font-medium text-muted-foreground">DB Connections</p>
-					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-						<Layers class="w-3 h-3 text-muted-foreground" />
-					</div>
-				</div>
-				<p class="text-2xl font-semibold text-foreground font-mono tracking-tight">
-					{data.db.pool.acquired} <span class="text-sm font-normal text-muted-foreground">/ {data.db.pool.total}</span>
-				</p>
-				<p class="text-xs text-muted-foreground mt-1">{data.db.pool.idle} available &middot; {data.db.pool.acquired} in use right now</p>
+		<!-- System Health: hairline-separated stat columns -->
+		<div class="mt-8 grid grid-cols-2 gap-px overflow-hidden border-y border-border bg-border lg:grid-cols-4">
+			<div class="flex flex-col bg-background px-4 py-3.5">
+				<div class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Database</div>
+				<div class="mt-1 font-mono tabular-nums text-lg {data.db.healthy ? 'text-foreground' : 'text-destructive'}">{data.db.ping_ms.toFixed(0)}ms</div>
+				<div class="mt-0.5 text-[11px] text-muted-foreground">{data.db.healthy ? 'Healthy' : 'Unreachable'}</div>
 			</div>
-
-			<!-- Connected Agents -->
-			<div class="bg-card rounded-lg border border-border p-3">
-				<div class="flex items-center justify-between mb-2">
-					<p class="text-xs font-medium text-muted-foreground">Agents Online</p>
-					<div class="w-6 h-6 {data.agents_connected > 0 ? 'bg-emerald-500/10' : 'bg-muted/50'} rounded flex items-center justify-center">
-						<Server class="w-3 h-3 {data.agents_connected > 0 ? 'text-emerald-400' : 'text-muted-foreground'}" />
-					</div>
-				</div>
-				<p class="text-2xl font-semibold text-foreground font-mono tracking-tight">{data.agents_connected}</p>
-				<p class="text-xs text-muted-foreground mt-1">{data.agents_connected > 0 ? 'Reporting health checks' : 'No agents connected'}</p>
+			<div class="flex flex-col bg-background px-4 py-3.5">
+				<div class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">DB Connections</div>
+				<div class="mt-1 font-mono tabular-nums text-lg text-foreground">{data.db.pool.acquired}<span class="text-muted-foreground/60"> / {data.db.pool.total}</span></div>
+				<div class="mt-0.5 font-mono tabular-nums text-[11px] text-muted-foreground">{data.db.pool.idle} idle</div>
 			</div>
-
-			<!-- Uptime -->
-			<div class="bg-card rounded-lg border border-border p-3">
-				<div class="flex items-center justify-between mb-2">
-					<p class="text-xs font-medium text-muted-foreground">Uptime</p>
-					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-						<Clock class="w-3 h-3 text-muted-foreground" />
-					</div>
-				</div>
-				<p class="text-2xl font-semibold text-foreground font-mono tracking-tight">{data.runtime.uptime_formatted}</p>
-				<p class="text-xs text-muted-foreground mt-1">Time since server was started</p>
+			<div class="flex flex-col bg-background px-4 py-3.5">
+				<div class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Agents Online</div>
+				<div class="mt-1 font-mono tabular-nums text-lg {data.agents_connected > 0 ? 'text-success' : 'text-muted-foreground'}">{data.agents_connected}</div>
+				<div class="mt-0.5 text-[11px] text-muted-foreground">{data.agents_connected > 0 ? 'Reporting' : 'No agents'}</div>
+			</div>
+			<div class="flex flex-col bg-background px-4 py-3.5">
+				<div class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Uptime</div>
+				<div class="mt-1 font-mono tabular-nums text-lg text-foreground">{data.runtime.uptime_formatted}</div>
+				<div class="mt-0.5 text-[11px] text-muted-foreground">Since restart</div>
 			</div>
 		</div>
 
