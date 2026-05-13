@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { GitBranch, RefreshCw, Search, AlertCircle, Copy, Check, ChevronDown } from 'lucide-svelte';
-	import { Button, EmptyState, Input, Select, Skeleton, Tabs } from '@sylvester-francis/watchdog-ui';
+	import { RefreshCw, Search, Copy, Check, ChevronDown } from 'lucide-svelte';
+	import { Button, Input, Select, Tabs } from '@sylvester-francis/watchdog-ui';
 	import { traces as tracesApi } from '$lib/api';
 	import type { TraceSummary } from '$lib/types';
 
@@ -12,9 +12,6 @@
 	let loading = $state(true);
 	let loadError = $state<string | null>(null);
 
-	// Pagination state — when "Load older" is clicked we append to summaries
-	// instead of replacing. hasMore goes false once a page returns < pageSize
-	// rows, signaling the end of the data set.
 	const pageSize = 200;
 	let loadingMore = $state(false);
 	let hasMore = $state(true);
@@ -112,7 +109,6 @@
 	}
 
 	$effect(() => {
-		// Reload whenever the time range or service filter changes.
 		void timeRange;
 		void serviceFilter;
 		applyFilters();
@@ -136,8 +132,7 @@
 				copiedTraceID = null;
 			}, 1000);
 		} catch {
-			// Clipboard not available — silently noop. The user can still
-			// drag-select the visible 8-char prefix.
+			// Clipboard unavailable — user can still drag-select the visible prefix.
 		}
 	}
 
@@ -148,10 +143,9 @@
 		return `${(ns / 1_000_000_000).toFixed(2)}s`;
 	}
 
-	// Color buckets: ≤100ms muted, 100ms–1s normal, ≥1s warn, errors override.
 	function durationClass(ns: number, hasError: boolean): string {
-		if (hasError) return 'text-red-400';
-		if (ns >= 1_000_000_000) return 'text-amber-400';
+		if (hasError) return 'text-destructive';
+		if (ns >= 1_000_000_000) return 'text-warning';
 		if (ns >= 100_000_000) return 'text-foreground';
 		return 'text-muted-foreground';
 	}
@@ -182,21 +176,24 @@
 	<title>Traces - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
 	<!-- Page header -->
-	<div class="flex items-center justify-between mb-5">
-		<div>
-			<h1 class="text-lg font-semibold text-foreground">Traces</h1>
-			<p class="text-xs text-muted-foreground mt-0.5">Distributed traces ingested via OTLP</p>
+	<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+		<div class="min-w-0">
+			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+				<span class="uppercase tracking-wider">Telemetry · Traces</span>
+			</div>
+			<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">Traces</h1>
+			<p class="mt-1 text-sm text-muted-foreground">Distributed traces ingested via OTLP.</p>
 		</div>
 		<Button variant="secondary" onclick={() => applyFilters()} aria-label="Refresh">
-			<RefreshCw class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''} mr-1.5" />
+			<RefreshCw class="mr-1.5 h-3.5 w-3.5 {loading ? 'animate-spin' : ''}" />
 			Refresh
 		</Button>
-	</div>
+	</header>
 
 	<!-- Filter bar -->
-	<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+	<div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
 		<Tabs
 			options={timeTabs as Array<{ value: string; label: string }>}
 			value={timeRange}
@@ -204,25 +201,25 @@
 			onchange={(v) => { timeRange = v as TimeRange; }}
 		/>
 
-		<div class="flex items-center gap-2 sm:ml-auto">
+		<div class="flex items-center gap-3 sm:ml-auto">
 			<div class="w-44 sm:w-56">
 				<Input bind:value={serviceFilter} placeholder="Filter by service...">
 					{#snippet iconLeft()}
-						<Search class="w-3.5 h-3.5" />
+						<Search class="h-3.5 w-3.5" />
 					{/snippet}
 				</Input>
 			</div>
 
-			<label class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none">
+			<label class="flex cursor-pointer select-none items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
 				<input
 					type="checkbox"
 					bind:checked={errorsOnly}
-					class="w-3.5 h-3.5 rounded border-border bg-card focus:ring-1 focus:ring-ring accent-red-400"
+					class="h-3.5 w-3.5 border-border bg-background accent-destructive focus:ring-1 focus:ring-ring"
 				/>
 				<span>Errors only</span>
 			</label>
 
-			<div class="w-28">
+			<div class="w-24">
 				<Select bind:value={autoRefresh} size="sm" aria-label="Auto-refresh">
 					{#each refreshOptions as r}
 						<option value={r.value}>↻ {r.label}</option>
@@ -232,177 +229,154 @@
 		</div>
 	</div>
 
-	{#if loading}
-		<!-- Skeleton -->
-		<div class="bg-card border border-border rounded-lg overflow-hidden">
-			{#each Array(5) as _}
-				<div class="flex items-center px-4 py-3 border-b border-border/20">
-					<Skeleton emphasis="secondary" width="5rem" height="0.75rem" />
-					<div class="ml-6">
-						<Skeleton emphasis="tertiary" width="6rem" height="0.75rem" />
+	<div class="mt-6">
+		{#if loading}
+			<div class="space-y-2">
+				{#each Array(5) as _}
+					<div class="flex animate-pulse items-center gap-6 py-3">
+						<div class="h-3 w-20 bg-muted/50"></div>
+						<div class="h-3 w-24 bg-muted/30"></div>
+						<div class="ml-auto h-3 w-16 bg-muted/50"></div>
+						<div class="h-3 w-20 bg-muted/30"></div>
 					</div>
-					<div class="ml-auto">
-						<Skeleton emphasis="secondary" width="4rem" height="0.75rem" />
-					</div>
-					<div class="ml-4">
-						<Skeleton emphasis="tertiary" width="5rem" height="0.75rem" />
-					</div>
-				</div>
-			{/each}
-		</div>
-	{:else if loadError}
-		<div class="bg-card border border-border rounded-lg">
-			<EmptyState
-				title="Couldn't load traces"
-				description={loadError}
-			>
-				{#snippet icon()}
-					<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-						<AlertCircle class="w-6 h-6 text-red-400/70" />
-					</div>
-				{/snippet}
-				{#snippet cta()}
-					<Button variant="secondary" onclick={() => applyFilters()}>
-						<RefreshCw class="w-3.5 h-3.5" />
-						<span>Try again</span>
-					</Button>
-				{/snippet}
-			</EmptyState>
-		</div>
-	{:else if filtered.length === 0}
-		{#if summaries.length === 0}
-			<div class="bg-card border border-border rounded-lg">
-				<EmptyState title="No traces ingested in this window">
-					{#snippet icon()}
-						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-							<GitBranch class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-					<p class="text-xs text-muted-foreground mb-1">
-						Configure your OTLP exporter to point at this Hub.
-					</p>
-					<div class="inline-block text-left mt-3 bg-muted/30 border border-border rounded-md px-4 py-3 text-[11px] font-mono text-muted-foreground space-y-1">
-						<div><span class="text-muted-foreground/60">endpoint</span> &nbsp; <span class="text-foreground">/v1/traces</span></div>
-						<div><span class="text-muted-foreground/60">headers</span> &nbsp; <span class="text-foreground">Authorization: Bearer wd_…</span></div>
-						<div><span class="text-muted-foreground/60">scope</span> &nbsp;&nbsp;&nbsp;<span class="text-foreground">telemetry_ingest</span></div>
-					</div>
-				</EmptyState>
-			</div>
-		{:else}
-			<div class="bg-card border border-border rounded-lg">
-				<EmptyState
-					title="No matches"
-					description="No traces match the current filter. Try widening the time range or clearing the service filter."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-							<GitBranch class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-				</EmptyState>
-			</div>
-		{/if}
-	{:else}
-		<div class="bg-card border border-border rounded-lg overflow-hidden">
-			<!-- Column headers -->
-			<div class="flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
-				<div class="flex-1 min-w-0">Operation</div>
-				<div class="w-32 shrink-0 ml-3 hidden lg:block">Service</div>
-				<div class="w-28 shrink-0 ml-3">Trace ID</div>
-				<div class="w-16 shrink-0 text-right ml-3">Spans</div>
-				<div class="w-24 shrink-0 text-right ml-3 hidden sm:block">Duration</div>
-				<div class="w-28 shrink-0 text-right ml-3 hidden md:block">Started</div>
-				<div class="w-6 shrink-0 ml-2"></div>
-			</div>
-
-			<div class="divide-y divide-border/20">
-				{#each filtered as t (t.trace_id)}
-					<a
-						href="/traces/{t.trace_id}"
-						class="flex items-center px-4 py-3 hover:bg-card-elevated transition-colors group"
-					>
-						<!-- operation (root span name) — primary cell, sans-serif -->
-						<div class="flex-1 min-w-0 text-sm text-foreground truncate">
-							{t.root_name || 'unknown'}
-						</div>
-
-						<!-- service -->
-						<div class="w-32 shrink-0 ml-3 hidden lg:block text-xs text-muted-foreground truncate font-mono">
-							{t.service_name || '—'}
-						</div>
-
-						<!-- trace_id chip + copy button -->
-						<div class="w-28 shrink-0 ml-3 flex items-center gap-1.5">
-							<span class="text-[11px] text-muted-foreground/70 tabular-nums font-mono">{shortHex(t.trace_id)}</span>
-							<button
-								onclick={(e) => { e.preventDefault(); e.stopPropagation(); void copyTraceID(t.trace_id); }}
-								class="opacity-0 group-hover:opacity-100 text-muted-foreground/60 hover:text-foreground transition-all"
-								aria-label="Copy trace_id"
-								title="Copy trace_id"
-							>
-								{#if copiedTraceID === t.trace_id}
-									<Check class="w-3 h-3 text-emerald-400" />
-								{:else}
-									<Copy class="w-3 h-3" />
-								{/if}
-							</button>
-						</div>
-
-						<!-- spans -->
-						<div class="w-16 shrink-0 text-right ml-3 tabular-nums text-xs text-muted-foreground font-mono">
-							{t.span_count}
-						</div>
-
-						<!-- duration -->
-						<div class="w-24 shrink-0 text-right ml-3 hidden sm:block tabular-nums text-xs {durationClass(t.duration_ns, t.has_error)} font-mono">
-							{formatDuration(t.duration_ns)}
-						</div>
-
-						<!-- started -->
-						<div class="w-28 shrink-0 text-right ml-3 hidden md:block tabular-nums text-xs text-muted-foreground/80 font-mono">
-							{relativeTime(t.start_time)}
-						</div>
-
-						<!-- error dot -->
-						<div class="w-6 shrink-0 ml-2 flex justify-end">
-							{#if t.has_error}
-								<span
-									class="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_4px_rgba(239,68,68,0.6)]"
-									aria-label="Has errors"
-								></span>
-							{/if}
-						</div>
-					</a>
 				{/each}
 			</div>
-
-			<div class="px-4 py-2 border-t border-border/30 text-[10px] text-muted-foreground/70 font-mono flex items-center justify-between gap-3">
-				<span>{filtered.length} trace{filtered.length === 1 ? '' : 's'}</span>
-				{#if errorsOnly && summaries.length > filtered.length}
-					<span>{summaries.length - filtered.length} hidden by errors-only filter</span>
-				{/if}
-			</div>
-		</div>
-
-		<!-- Pagination control: dedicated row below the table for visibility. -->
-		<div class="mt-4 flex justify-center">
-			{#if hasMore}
-				<Button
-					variant="outline"
-					disabled={loadingMore}
-					onclick={() => void loadMore()}
-				>
-					{#if loadingMore}
-						<RefreshCw class="w-3.5 h-3.5 animate-spin" />
-						<span>Loading older traces…</span>
-					{:else}
-						<ChevronDown class="w-3.5 h-3.5" />
-						<span>Load older traces</span>
-					{/if}
-				</Button>
+		{:else if loadError}
+			<section>
+				<div class="border-b border-border pb-3">
+					<h3 class="text-sm font-medium text-foreground">Couldn't load traces</h3>
+				</div>
+				<div class="flex flex-col items-start gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+					<p class="font-mono tabular-nums text-xs text-destructive">{loadError}</p>
+					<Button variant="secondary" onclick={() => applyFilters()}>
+						<RefreshCw class="mr-1.5 h-3.5 w-3.5" />
+						<span>Try again</span>
+					</Button>
+				</div>
+			</section>
+		{:else if filtered.length === 0}
+			{#if summaries.length === 0}
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">No traces ingested in this window</h3>
+					</div>
+					<div class="pt-4">
+						<p class="text-xs text-muted-foreground">Configure your OTLP exporter to point at this Hub.</p>
+						<div class="mt-3 inline-block border border-border bg-background px-4 py-3 font-mono tabular-nums text-[11px] text-muted-foreground">
+							<div class="grid grid-cols-[6rem_1fr] gap-x-2 gap-y-1">
+								<span class="text-muted-foreground/60">endpoint</span>
+								<span class="text-foreground">/v1/traces</span>
+								<span class="text-muted-foreground/60">headers</span>
+								<span class="text-foreground">Authorization: Bearer wd_…</span>
+								<span class="text-muted-foreground/60">scope</span>
+								<span class="text-foreground">telemetry_ingest</span>
+							</div>
+						</div>
+					</div>
+				</section>
 			{:else}
-				<span class="text-[11px] text-muted-foreground/60 font-mono">— end of {timeRange} window —</span>
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">No matches</h3>
+					</div>
+					<p class="pt-4 text-xs text-muted-foreground">
+						No traces match the current filter. Try widening the time range or clearing the service filter.
+					</p>
+				</section>
 			{/if}
-		</div>
-	{/if}
+		{:else}
+			<section>
+				<div class="flex items-baseline justify-between gap-2 border-b border-border pb-3">
+					<div class="flex items-baseline gap-2">
+						<h3 class="text-sm font-medium text-foreground">Traces</h3>
+						<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{filtered.length}</span>
+					</div>
+					{#if errorsOnly && summaries.length > filtered.length}
+						<span class="font-mono tabular-nums text-[11px] text-muted-foreground">
+							{summaries.length - filtered.length} hidden by errors-only filter
+						</span>
+					{/if}
+				</div>
+
+				<!-- Column headers -->
+				<div class="hidden items-center pb-2 pt-3 text-[9px] font-medium uppercase tracking-wider text-muted-foreground sm:flex">
+					<div class="min-w-0 flex-1">Operation</div>
+					<div class="ml-3 hidden w-32 shrink-0 lg:block">Service</div>
+					<div class="ml-3 w-28 shrink-0">Trace ID</div>
+					<div class="ml-3 w-16 shrink-0 text-right">Spans</div>
+					<div class="ml-3 w-24 shrink-0 text-right">Duration</div>
+					<div class="ml-3 hidden w-28 shrink-0 text-right md:block">Started</div>
+					<div class="ml-2 w-4 shrink-0"></div>
+				</div>
+
+				<div class="divide-y divide-border/40">
+					{#each filtered as t (t.trace_id)}
+						<a
+							href="/traces/{t.trace_id}"
+							class="group flex items-center py-3 transition-colors hover:bg-muted/30"
+						>
+							<div class="min-w-0 flex-1 truncate text-sm text-foreground transition-colors group-hover:text-accent">
+								{t.root_name || 'unknown'}
+							</div>
+
+							<div class="ml-3 hidden w-32 shrink-0 truncate font-mono tabular-nums text-xs text-muted-foreground lg:block">
+								{t.service_name || '—'}
+							</div>
+
+							<div class="ml-3 flex w-28 shrink-0 items-center gap-1.5">
+								<span class="font-mono tabular-nums text-[11px] text-muted-foreground/70">{shortHex(t.trace_id)}</span>
+								<button
+									onclick={(e) => { e.preventDefault(); e.stopPropagation(); void copyTraceID(t.trace_id); }}
+									class="text-muted-foreground/60 opacity-0 transition-all hover:text-foreground group-hover:opacity-100"
+									aria-label="Copy trace_id"
+									title="Copy trace_id"
+								>
+									{#if copiedTraceID === t.trace_id}
+										<Check class="h-3 w-3 text-success" />
+									{:else}
+										<Copy class="h-3 w-3" />
+									{/if}
+								</button>
+							</div>
+
+							<div class="ml-3 w-16 shrink-0 text-right font-mono tabular-nums text-xs text-muted-foreground">
+								{t.span_count}
+							</div>
+
+							<div class="ml-3 w-24 shrink-0 text-right font-mono tabular-nums text-xs {durationClass(t.duration_ns, t.has_error)}">
+								{formatDuration(t.duration_ns)}
+							</div>
+
+							<div class="ml-3 hidden w-28 shrink-0 text-right font-mono tabular-nums text-xs text-muted-foreground/80 md:block">
+								{relativeTime(t.start_time)}
+							</div>
+
+							<div class="ml-2 flex w-4 shrink-0 justify-end">
+								{#if t.has_error}
+									<span class="inline-block h-1.5 w-1.5 rounded-full bg-destructive" aria-label="Has errors"></span>
+								{/if}
+							</div>
+						</a>
+					{/each}
+				</div>
+
+				<!-- Pagination control -->
+				<div class="mt-6 flex justify-center">
+					{#if hasMore}
+						<Button variant="outline" disabled={loadingMore} onclick={() => void loadMore()}>
+							{#if loadingMore}
+								<RefreshCw class="mr-1.5 h-3.5 w-3.5 animate-spin" />
+								<span>Loading older traces…</span>
+							{:else}
+								<ChevronDown class="mr-1.5 h-3.5 w-3.5" />
+								<span>Load older traces</span>
+							{/if}
+						</Button>
+					{:else}
+						<span class="font-mono tabular-nums text-[11px] text-muted-foreground/60">— end of {timeRange} window —</span>
+					{/if}
+				</div>
+			</section>
+		{/if}
+	</div>
 </div>
