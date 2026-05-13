@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { Loader2, ChevronRight, Search } from 'lucide-svelte';
 	import { formatTimeAgo, formatDuration } from '$lib/utils';
+	import { StatusPip } from '@sylvester-francis/watchdog-ui';
 	import type { Incident, MonitorSummary } from '$lib/types';
 
-	function statusPipClass(status: string): string {
-		if (status === 'open') return 'bg-destructive';
-		if (status === 'acknowledged') return 'bg-warning';
-		if (status === 'resolved') return 'bg-success';
-		return 'bg-muted-foreground/50';
+	type Tone = 'success' | 'destructive' | 'warning' | 'accent' | 'muted';
+
+	function statusTone(status: string): Tone {
+		if (status === 'open') return 'destructive';
+		if (status === 'acknowledged') return 'warning';
+		if (status === 'resolved') return 'success';
+		return 'muted';
 	}
 
 	function statusTextClass(status: string): string {
@@ -63,7 +66,7 @@
 	<!-- Status -->
 	<td class="py-3.5 pl-1 pr-4">
 		<div class="flex items-center gap-2">
-			<span class="inline-block h-1.5 w-1.5 rounded-full {statusPipClass(incident.status)} {incident.status === 'open' ? 'animate-pulse' : ''}" aria-label="Status: {incident.status}"></span>
+			<StatusPip tone={statusTone(incident.status)} pulse={incident.status === 'open'} label="Status: {incident.status}" />
 			<span class="font-mono tabular-nums text-xs uppercase tracking-wider {statusTextClass(incident.status)}">
 				{incident.status}
 			</span>

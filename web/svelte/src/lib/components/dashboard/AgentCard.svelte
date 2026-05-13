@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatTimeAgo } from '$lib/utils';
 	import type { Agent, DashboardStats } from '$lib/types';
-	import { Button } from '@sylvester-francis/watchdog-ui';
+	import { Button, SectionHeader, StatusPip } from '@sylvester-francis/watchdog-ui';
 
 	interface Props {
 		agents: Agent[];
@@ -14,17 +14,16 @@
 </script>
 
 <section>
-	<div class="flex items-center justify-between border-b border-border pb-3">
-		<div class="flex items-center gap-2">
-			<h3 class="text-sm font-medium text-foreground">Agents</h3>
-			<span class="font-mono tabular-nums text-[11px] text-muted-foreground">
-				{stats.online_agents}/{stats.total_agents} online
-			</span>
-		</div>
-		{#if canWrite}
-			<Button variant="primary" size="sm" onclick={onCreateAgent}>New Agent</Button>
-		{/if}
-	</div>
+	<SectionHeader title="Agents">
+		{#snippet meta()}
+			{stats.online_agents}/{stats.total_agents} online
+		{/snippet}
+		{#snippet action()}
+			{#if canWrite}
+				<Button variant="primary" size="sm" onclick={onCreateAgent}>New Agent</Button>
+			{/if}
+		{/snippet}
+	</SectionHeader>
 
 	{#if agents.length > 0}
 		<div class="divide-y divide-border/40">
@@ -32,7 +31,7 @@
 				<div class="flex items-center justify-between gap-3 py-3 transition-colors hover:bg-muted/30">
 					<div class="min-w-0">
 						<div class="flex items-center gap-2">
-							<span class="inline-block h-1.5 w-1.5 rounded-full {agent.status === 'online' ? 'bg-success' : 'bg-muted-foreground/50'}"></span>
+							<StatusPip tone={agent.status === 'online' ? 'success' : 'muted'} />
 							<p class="truncate text-sm text-foreground">{agent.name}</p>
 						</div>
 						<p class="mt-0.5 ml-3.5 font-mono tabular-nums text-[11px] text-muted-foreground">
