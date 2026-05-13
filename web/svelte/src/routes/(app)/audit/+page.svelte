@@ -146,14 +146,14 @@
 	<title>Audit Log - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 	<!-- Header -->
 	<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
 		<div class="min-w-0">
 			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
 				<span class="uppercase tracking-wider">Audit</span>
 			</div>
-			<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">
+			<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">
 				{meta.total} event{meta.total !== 1 ? 's' : ''} total
 			</h1>
 		</div>
