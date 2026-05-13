@@ -176,14 +176,14 @@
 	<title>Traces - WatchDog</title>
 </svelte:head>
 
-<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
+<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-6 sm:px-6 sm:py-10">
 	<!-- Page header -->
 	<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
 		<div class="min-w-0">
 			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
 				<span class="uppercase tracking-wider">Telemetry · Traces</span>
 			</div>
-			<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">Traces</h1>
+			<h1 class="mt-1.5 text-xl font-medium text-foreground sm:text-2xl md:text-3xl">Traces</h1>
 			<p class="mt-1 text-sm text-muted-foreground">Distributed traces ingested via OTLP.</p>
 		</div>
 		<Button variant="secondary" onclick={() => applyFilters()} aria-label="Refresh">

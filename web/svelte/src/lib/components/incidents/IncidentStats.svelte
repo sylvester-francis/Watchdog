@@ -12,7 +12,7 @@
 	const valueClass = 'mt-1 font-mono tabular-nums text-lg';
 </script>
 
-<section class="grid grid-cols-3 gap-px overflow-hidden border-y border-border bg-border">
+<section class="grid grid-cols-1 gap-px overflow-hidden border-y border-border bg-border sm:grid-cols-3">
 	<div class={cellClass}>
 		<div class={labelClass}>Open</div>
 		<div class="{valueClass} {open > 0 ? 'text-destructive' : 'text-foreground'}">{open}</div>
