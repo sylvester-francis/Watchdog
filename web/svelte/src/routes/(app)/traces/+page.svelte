@@ -201,8 +201,8 @@
 			onchange={(v) => { timeRange = v as TimeRange; }}
 		/>
 
-		<div class="flex items-center gap-3 sm:ml-auto">
-			<div class="w-44 sm:w-56">
+		<div class="flex flex-wrap items-center gap-3 sm:ml-auto sm:flex-nowrap">
+			<div class="w-full min-w-0 sm:w-56">
 				<Input bind:value={serviceFilter} placeholder="Filter by service...">
 					{#snippet iconLeft()}
 						<Search class="h-3.5 w-3.5" />
@@ -302,9 +302,9 @@
 				<div class="hidden items-center pb-2 pt-3 text-[9px] font-medium uppercase tracking-wider text-muted-foreground sm:flex">
 					<div class="min-w-0 flex-1">Operation</div>
 					<div class="ml-3 hidden w-32 shrink-0 lg:block">Service</div>
-					<div class="ml-3 w-28 shrink-0">Trace ID</div>
-					<div class="ml-3 w-16 shrink-0 text-right">Spans</div>
-					<div class="ml-3 w-24 shrink-0 text-right">Duration</div>
+					<div class="ml-3 hidden w-28 shrink-0 sm:block">Trace ID</div>
+					<div class="ml-3 hidden w-16 shrink-0 text-right sm:block">Spans</div>
+					<div class="ml-3 w-16 shrink-0 text-right sm:w-24">Duration</div>
 					<div class="ml-3 hidden w-28 shrink-0 text-right md:block">Started</div>
 					<div class="ml-2 w-4 shrink-0"></div>
 				</div>
@@ -323,7 +323,7 @@
 								{t.service_name || '—'}
 							</div>
 
-							<div class="ml-3 flex w-28 shrink-0 items-center gap-1.5">
+							<div class="ml-3 hidden w-28 shrink-0 items-center gap-1.5 sm:flex">
 								<span class="font-mono tabular-nums text-[11px] text-muted-foreground/70">{shortHex(t.trace_id)}</span>
 								<button
 									onclick={(e) => { e.preventDefault(); e.stopPropagation(); void copyTraceID(t.trace_id); }}
@@ -339,11 +339,11 @@
 								</button>
 							</div>
 
-							<div class="ml-3 w-16 shrink-0 text-right font-mono tabular-nums text-xs text-muted-foreground">
-								{t.span_count}
+							<div class="ml-3 hidden w-16 shrink-0 text-right font-mono tabular-nums text-xs text-muted-foreground sm:block">
+								<span class="text-muted-foreground/60">{t.span_count}</span> spans
 							</div>
 
-							<div class="ml-3 w-24 shrink-0 text-right font-mono tabular-nums text-xs {durationClass(t.duration_ns, t.has_error)}">
+							<div class="ml-3 w-16 shrink-0 text-right font-mono tabular-nums text-xs sm:w-24 {durationClass(t.duration_ns, t.has_error)}">
 								{formatDuration(t.duration_ns)}
 							</div>
 
