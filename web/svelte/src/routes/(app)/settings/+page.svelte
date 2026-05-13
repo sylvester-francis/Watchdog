@@ -15,7 +15,7 @@
 		AlertTriangle,
 		X
 	} from 'lucide-svelte';
-	import { Alert, Skeleton } from '@sylvester-francis/watchdog-ui';
+	import { Alert, InlineEditRow, Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { settings as settingsApi, maintenance as maintenanceApi } from '$lib/api';
 	import { getToasts } from '$lib/stores/toast.svelte';
 	import { getAuth } from '$lib/stores/auth.svelte';
@@ -578,33 +578,20 @@
 
 			<div class="divide-y divide-border">
 				<!-- Username row -->
-				<div class="py-4">
-					{#if !editingUsername}
-						<div class="flex items-center justify-between gap-4">
-							<div class="min-w-0">
-								<div class="text-sm text-muted-foreground">Username</div>
-								<div class="mt-1 flex items-baseline gap-2">
-									<span
-										class="font-mono tabular-nums text-sm text-muted-foreground/60"
-									>usewatchdog.dev/status/@</span>
-									<span class="font-mono tabular-nums text-sm text-foreground">{username || '—'}</span>
-								</div>
-							</div>
-							<button
-								onclick={startEditUsername}
-								class="shrink-0 text-sm text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
-							>
-								Edit
-							</button>
+				<InlineEditRow
+					label="Username"
+					editing={editingUsername}
+					onEdit={startEditUsername}
+					success={usernameSuccess}
+				>
+					{#snippet display()}
+						<div class="flex items-baseline gap-2">
+							<span class="font-mono tabular-nums text-sm text-muted-foreground/60">usewatchdog.dev/status/@</span>
+							<span class="font-mono tabular-nums text-sm text-foreground">{username || '—'}</span>
 						</div>
-						{#if usernameSuccess}
-							<p class="mt-2 font-mono tabular-nums text-xs text-success">
-								<span aria-hidden="true">●</span> {usernameSuccess}
-							</p>
-						{/if}
-					{:else}
+					{/snippet}
+					{#snippet edit()}
 						<form onsubmit={handleUsernameSubmit} class="space-y-3">
-							<div class="text-sm text-muted-foreground">Username</div>
 							<div class="flex items-center gap-2">
 								<span
 									class="hidden font-mono tabular-nums text-sm text-muted-foreground/60 sm:inline"
@@ -642,8 +629,8 @@
 								</Alert>
 							{/if}
 						</form>
-					{/if}
-				</div>
+					{/snippet}
+				</InlineEditRow>
 
 				<!-- Password row -->
 				<div class="py-4">
