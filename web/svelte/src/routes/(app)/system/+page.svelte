@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
 
-	import { Database, Layers, Server, Clock, HeartPulse, HardDrive, ArrowUpCircle, ScrollText, Users, KeyRound, Copy, Check, AlertTriangle, Trash2, Activity, Wifi, CircleDot } from 'lucide-svelte';
-	import { EmptyState, Skeleton } from '@sylvester-francis/watchdog-ui';
+	import { KeyRound, Copy, Check, Trash2 } from 'lucide-svelte';
+	import { Skeleton } from '@sylvester-francis/watchdog-ui';
 	import { system as systemApi } from '$lib/api';
 	import { getAuth } from '$lib/stores/auth.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -260,15 +260,11 @@
 		return `${days}d ago`;
 	}
 
-	function actionBadgeClass(action: string): string {
-		if (action === 'login_success') return 'bg-green-500/15 text-green-400';
-		if (action === 'login_failed') return 'bg-red-500/15 text-red-400';
-		if (action.endsWith('_created')) return 'bg-blue-500/15 text-blue-400';
-		if (action.endsWith('_updated')) return 'bg-yellow-500/15 text-yellow-400';
-		if (action.endsWith('_deleted') || action.endsWith('_revoked')) return 'bg-red-500/15 text-red-400';
-		if (action.startsWith('incident_')) return 'bg-orange-500/15 text-orange-400';
-		if (action === 'settings_changed') return 'bg-purple-500/15 text-purple-400';
-		return 'bg-muted text-muted-foreground';
+	function actionTextClass(action: string): string {
+		if (action === 'login_success') return 'text-success';
+		if (action === 'login_failed' || action.endsWith('_deleted') || action.endsWith('_revoked')) return 'text-destructive';
+		if (action.endsWith('_updated') || action.startsWith('incident_')) return 'text-warning';
+		return 'text-muted-foreground';
 	}
 
 	onMount(async () => {
@@ -368,250 +364,208 @@
 		</div>
 
 		<!-- Hub Metrics (Prometheus) -->
-		<div class="mb-6">
-			<div class="flex items-center space-x-2 mb-1">
-				<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-					<Activity class="w-3 h-3 text-muted-foreground" />
-				</div>
-				<h2 class="text-sm font-medium text-foreground">Hub Metrics</h2>
-				<span class="text-[10px] text-muted-foreground">Auto-refreshes every 10s</span>
+		<section class="mt-10">
+			<div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">Hub Metrics</h3>
+				<span class="font-mono tabular-nums text-[11px] text-muted-foreground">Auto-refresh · 10s</span>
 			</div>
-			<p class="text-[10px] text-muted-foreground mb-3 ml-8">Live performance data from the hub server. Use these to spot bottlenecks before they become outages.</p>
+			<p class="pt-3 text-xs text-muted-foreground">Live performance data from the hub server. Use these to spot bottlenecks before they become outages.</p>
 
 			{#if metrics}
 				{@const cur = metrics.current}
-				<!-- Live Gauges -->
-				<div class="grid grid-cols-3 gap-3 mb-4">
-					<div class="bg-card border border-border rounded-lg px-4 py-3">
-						<div class="flex items-center space-x-2 mb-1">
-							<Wifi class="w-3 h-3 text-muted-foreground" />
-							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">WS Connections</span>
-						</div>
-						<span class="text-xl font-semibold font-mono text-foreground">{cur.ws_connections}</span>
-						<p class="text-[9px] text-muted-foreground/60 mt-0.5">Agents connected right now</p>
+				<!-- Live Gauges: hairline columns -->
+				<div class="mt-4 grid grid-cols-1 gap-px overflow-hidden border-y border-border bg-border sm:grid-cols-3">
+					<div class="flex flex-col bg-background px-4 py-3.5">
+						<div class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">WS Connections</div>
+						<div class="mt-1 font-mono tabular-nums text-lg text-foreground">{cur.ws_connections}</div>
+						<div class="mt-0.5 text-[11px] text-muted-foreground">Agents connected right now</div>
 					</div>
-					<div class="bg-card border border-border rounded-lg px-4 py-3">
-						<div class="flex items-center space-x-2 mb-1">
-							<Database class="w-3 h-3 text-muted-foreground" />
-							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">DB Pool Active</span>
-						</div>
-						<span class="text-xl font-semibold font-mono text-foreground">{cur.db_pool_active}</span>
-						<p class="text-[9px] text-muted-foreground/60 mt-0.5">Database connections in use</p>
+					<div class="flex flex-col bg-background px-4 py-3.5">
+						<div class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">DB Pool Active</div>
+						<div class="mt-1 font-mono tabular-nums text-lg text-foreground">{cur.db_pool_active}</div>
+						<div class="mt-0.5 text-[11px] text-muted-foreground">Database connections in use</div>
 					</div>
-					<div class="bg-card border border-border rounded-lg px-4 py-3">
-						<div class="flex items-center space-x-2 mb-1">
-							<CircleDot class="w-3 h-3 text-muted-foreground" />
-							<span class="text-[10px] text-muted-foreground uppercase tracking-wider">Active Incidents</span>
-						</div>
-						<div class="flex items-baseline space-x-2">
-							<span class="text-xl font-semibold font-mono {cur.incidents_open > 0 ? 'text-red-400' : 'text-foreground'}">{cur.incidents_open}</span>
+					<div class="flex flex-col bg-background px-4 py-3.5">
+						<div class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Active Incidents</div>
+						<div class="mt-1 flex items-baseline gap-2">
+							<span class="font-mono tabular-nums text-lg {cur.incidents_open > 0 ? 'text-destructive' : 'text-foreground'}">{cur.incidents_open}</span>
 							{#if cur.incidents_acked > 0}
-								<span class="text-xs text-muted-foreground font-mono">+{cur.incidents_acked} ack'd</span>
+								<span class="font-mono tabular-nums text-[11px] text-muted-foreground">+{cur.incidents_acked} ack'd</span>
 							{/if}
 						</div>
-						<p class="text-[9px] text-muted-foreground/60 mt-0.5">Unresolved problems</p>
+						<div class="mt-0.5 text-[11px] text-muted-foreground">Unresolved problems</div>
 					</div>
 				</div>
 
 				<!-- Time-series Charts -->
 				{#if metrics.history && metrics.history.length >= 2}
-					<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-						<div class="bg-card border border-border rounded-lg">
-							<div class="px-4 py-2.5 border-b border-border">
-								<span class="text-xs font-medium text-foreground">HTTP Latency</span>
-								<p class="text-[10px] text-muted-foreground mt-0.5">How fast the hub responds to API requests. Lower is better.</p>
+					<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+						<div>
+							<div class="border-b border-border pb-2">
+								<h4 class="text-sm font-medium text-foreground">HTTP Latency</h4>
+								<p class="mt-0.5 text-xs text-muted-foreground">How fast the hub responds to API requests. Lower is better.</p>
 							</div>
-							<div class="px-4 py-3 h-[200px]">
+							<div class="h-[200px] pt-3">
 								<canvas bind:this={httpLatencyCanvas}></canvas>
 							</div>
 						</div>
-						<div class="bg-card border border-border rounded-lg">
-							<div class="px-4 py-2.5 border-b border-border">
-								<span class="text-xs font-medium text-foreground">Heartbeat Processing</span>
-								<p class="text-[10px] text-muted-foreground mt-0.5">Time to process each health check from agents. Spikes mean the hub is overloaded.</p>
+						<div>
+							<div class="border-b border-border pb-2">
+								<h4 class="text-sm font-medium text-foreground">Heartbeat Processing</h4>
+								<p class="mt-0.5 text-xs text-muted-foreground">Time to process each health check from agents. Spikes mean the hub is overloaded.</p>
 							</div>
-							<div class="px-4 py-3 h-[200px]">
+							<div class="h-[200px] pt-3">
 								<canvas bind:this={heartbeatCanvas}></canvas>
 							</div>
 						</div>
-						<div class="bg-card border border-border rounded-lg lg:col-span-2">
-							<div class="px-4 py-2.5 border-b border-border">
-								<span class="text-xs font-medium text-foreground">Request Rate</span>
-								<p class="text-[10px] text-muted-foreground mt-0.5">Total API requests per second hitting the hub. Helps size capacity and spot traffic anomalies.</p>
+						<div class="lg:col-span-2">
+							<div class="border-b border-border pb-2">
+								<h4 class="text-sm font-medium text-foreground">Request Rate</h4>
+								<p class="mt-0.5 text-xs text-muted-foreground">Total API requests per second hitting the hub. Helps size capacity and spot traffic anomalies.</p>
 							</div>
-							<div class="px-4 py-3 h-[180px]">
+							<div class="h-[180px] pt-3">
 								<canvas bind:this={requestRateCanvas}></canvas>
 							</div>
 						</div>
 					</div>
 				{:else}
-					<div class="bg-card border border-border rounded-lg p-6 text-center">
-						<p class="text-xs text-muted-foreground">Collecting data... charts will appear after ~20s of history.</p>
-					</div>
+					<p class="pt-4 text-xs text-muted-foreground">Collecting data… charts will appear after ~20s of history.</p>
 				{/if}
 			{/if}
-		</div>
+		</section>
 
 		<!-- Operational Metrics -->
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+		<div class="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-2">
 			<!-- Heartbeat Throughput -->
-			<div class="bg-card rounded-lg border border-border">
-				<div class="px-4 py-3 border-b border-border flex items-center space-x-2">
-					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-						<HeartPulse class="w-3 h-3 text-muted-foreground" />
-					</div>
-					<h2 class="text-sm font-medium text-foreground">Heartbeat Throughput</h2>
+			<section>
+				<div class="border-b border-border pb-3">
+					<h3 class="text-sm font-medium text-foreground">Heartbeat Throughput</h3>
 				</div>
-				<div class="px-4 py-3">
-					<div class="flex items-center justify-between py-2">
+				<div class="divide-y divide-border/40">
+					<div class="flex items-center justify-between py-3">
 						<span class="text-xs text-muted-foreground">Checks per minute</span>
-						<span class="text-sm font-medium text-foreground font-mono">{data.heartbeats.per_minute.toFixed(1)}/min</span>
+						<span class="font-mono tabular-nums text-sm text-foreground">{data.heartbeats.per_minute.toFixed(1)}/min</span>
 					</div>
-					<div class="border-t border-border/30"></div>
-					<div class="flex items-center justify-between py-2">
+					<div class="flex items-center justify-between py-3">
 						<span class="text-xs text-muted-foreground">Total checks in last hour</span>
-						<span class="text-sm font-medium text-foreground font-mono">{data.heartbeats.total_last_hour}</span>
+						<span class="font-mono tabular-nums text-sm text-foreground">{data.heartbeats.total_last_hour}</span>
 					</div>
-					<div class="border-t border-border/30"></div>
-					<div class="flex items-center justify-between py-2">
+					<div class="flex items-center justify-between py-3">
 						<span class="text-xs text-muted-foreground">Failed checks in last hour</span>
-						<span class="text-sm font-medium font-mono {data.heartbeats.errors_last_hour > 0 ? 'text-red-400' : 'text-green-400'}">
+						<span class="font-mono tabular-nums text-sm {data.heartbeats.errors_last_hour > 0 ? 'text-destructive' : 'text-success'}">
 							{data.heartbeats.errors_last_hour}
 						</span>
 					</div>
 				</div>
-			</div>
+			</section>
 
 			<!-- Storage & Runtime -->
-			<div class="bg-card rounded-lg border border-border">
-				<div class="px-4 py-3 border-b border-border flex items-center space-x-2">
-					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-						<HardDrive class="w-3 h-3 text-muted-foreground" />
-					</div>
-					<h2 class="text-sm font-medium text-foreground">Storage & Runtime</h2>
+			<section>
+				<div class="border-b border-border pb-3">
+					<h3 class="text-sm font-medium text-foreground">Storage & Runtime</h3>
 				</div>
-				<div class="px-4 py-3">
-					<div class="flex items-center justify-between py-2">
+				<div class="divide-y divide-border/40">
+					<div class="flex items-center justify-between py-3">
 						<span class="text-xs text-muted-foreground">Total disk used by database</span>
-						<span class="text-sm font-medium text-foreground font-mono">{data.db.size}</span>
+						<span class="font-mono tabular-nums text-sm text-foreground">{data.db.size}</span>
 					</div>
-					<div class="border-t border-border/30"></div>
-					<div class="flex items-center justify-between py-2">
+					<div class="flex items-center justify-between py-3">
 						<span class="text-xs text-muted-foreground">Active background tasks</span>
-						<span class="text-sm font-medium text-foreground font-mono">{data.runtime.goroutines}</span>
+						<span class="font-mono tabular-nums text-sm text-foreground">{data.runtime.goroutines}</span>
 					</div>
-					<div class="border-t border-border/30"></div>
-					<div class="flex items-center justify-between py-2">
+					<div class="flex items-center justify-between py-3">
 						<span class="text-xs text-muted-foreground">Memory in use</span>
-						<span class="text-sm font-medium text-foreground font-mono">{data.runtime.heap_mb} MB</span>
+						<span class="font-mono tabular-nums text-sm text-foreground">{data.runtime.heap_mb} MB</span>
 					</div>
-					<div class="border-t border-border/30"></div>
-					<div class="flex items-center justify-between py-2">
+					<div class="flex items-center justify-between py-3">
 						<span class="text-xs text-muted-foreground">Last garbage collection pause</span>
-						<span class="text-sm font-medium text-foreground font-mono">{data.runtime.gc_pause_ms} ms</span>
+						<span class="font-mono tabular-nums text-sm text-foreground">{data.runtime.gc_pause_ms} ms</span>
 					</div>
 				</div>
-			</div>
+			</section>
 		</div>
 
 		<!-- Table Sizes -->
 		{#if data.db.table_sizes.length > 0}
-			<div class="bg-card rounded-lg border border-border mb-6">
-				<div class="px-4 py-3 border-b border-border flex items-center justify-between">
-					<div class="flex items-center space-x-2">
-						<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-							<Database class="w-3 h-3 text-muted-foreground" />
-						</div>
-						<h2 class="text-sm font-medium text-foreground">Table Sizes</h2>
-					</div>
-					<span class="text-[10px] text-muted-foreground font-mono">Largest 5 tables by disk space</span>
+			<section class="mt-10">
+				<div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
+					<h3 class="text-sm font-medium text-foreground">Table Sizes</h3>
+					<span class="font-mono tabular-nums text-[11px] text-muted-foreground">Largest 5 tables by disk space</span>
 				</div>
-				<div class="px-4 py-2">
-					{#each data.db.table_sizes as table, i}
-						{#if i > 0}
-							<div class="border-t border-border/30"></div>
-						{/if}
-						<div class="flex items-center justify-between py-2">
-							<span class="text-xs text-muted-foreground font-mono">{table.name}</span>
-							<span class="text-xs font-medium text-foreground font-mono">{table.size}</span>
+				<div class="divide-y divide-border/40">
+					{#each data.db.table_sizes as table}
+						<div class="flex items-center justify-between py-3">
+							<span class="font-mono tabular-nums text-xs text-muted-foreground">{table.name}</span>
+							<span class="font-mono tabular-nums text-xs text-foreground">{table.size}</span>
 						</div>
 					{/each}
 				</div>
-			</div>
+			</section>
 		{/if}
 
 		<!-- Migration Status -->
-		<div class="bg-card rounded-lg border border-border mb-6">
-			<div class="px-4 py-3 border-b border-border flex items-center space-x-2">
-				<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-					<ArrowUpCircle class="w-3 h-3 text-muted-foreground" />
-				</div>
-				<h2 class="text-sm font-medium text-foreground">Migration Status</h2>
+		<section class="mt-10">
+			<div class="border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">Migration Status</h3>
 			</div>
-			<div class="px-4 py-3 flex items-center space-x-4">
-				<div class="flex items-center space-x-2">
-					<span class="text-xs text-muted-foreground">Schema version</span>
-					<span class="text-sm font-medium text-foreground font-mono">{data.db.migration.version}</span>
-				</div>
-				<div class="w-px h-4 bg-border/50"></div>
-				<div class="flex items-center space-x-2">
-					<span class="text-xs text-muted-foreground">Failed migration</span>
+			<div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 font-mono tabular-nums text-xs text-muted-foreground">
+				<span>Schema version <span class="text-foreground">{data.db.migration.version}</span></span>
+				<span class="text-muted-foreground/40">·</span>
+				<span class="flex items-center gap-1.5">
+					Failed migration
 					{#if data.db.migration.dirty}
-						<span class="px-2 py-0.5 text-[10px] font-medium rounded bg-red-500/15 text-red-400">Yes</span>
+						<span class="text-destructive">Yes</span>
 					{:else}
-						<span class="px-2 py-0.5 text-[10px] font-medium rounded bg-green-500/15 text-green-400">No</span>
+						<span class="text-success">No</span>
 					{/if}
-				</div>
+				</span>
 			</div>
-		</div>
+		</section>
 
 		{#if isAdmin}
 		<!-- Reset Password Banner (shown after admin reset) -->
 		{#if resetPassword}
-			<div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
-				<div class="flex items-start justify-between mb-2">
-					<div class="flex items-center space-x-2">
-						<KeyRound class="w-4 h-4 text-yellow-400" />
+			<section class="mt-10 border border-warning/40 bg-warning/[0.04] p-4">
+				<div class="flex items-start justify-between gap-3">
+					<div class="flex items-center gap-2">
+						<KeyRound class="h-4 w-4 shrink-0 text-warning" />
 						<span class="text-sm font-medium text-foreground">Password Reset</span>
 					</div>
 					<button
 						onclick={dismissResetPassword}
-						class="text-muted-foreground hover:text-foreground transition-colors text-xs"
+						class="text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
 					>
 						Dismiss
 					</button>
 				</div>
-				<p class="text-xs text-muted-foreground mb-1">Temporary password for <span class="text-foreground font-medium">{resetUserEmail}</span>:</p>
-				<p class="text-xs text-muted-foreground mb-2">Copy this password now. You won't be able to see it again. The user will be required to change it on next login.</p>
-				<div class="flex items-center space-x-2">
-					<code class="flex-1 text-xs font-mono bg-card border border-border rounded px-3 py-2 text-foreground break-all select-all">{resetPassword}</code>
+				<p class="mt-2 text-xs text-muted-foreground">
+					Temporary password for <span class="font-mono tabular-nums text-foreground">{resetUserEmail}</span>.
+					Copy now — you won't see it again. The user will be required to change it on next login.
+				</p>
+				<div class="mt-3 flex items-center gap-2">
+					<code class="flex-1 select-all break-all border border-border bg-background px-3 py-2 font-mono text-xs text-foreground">{resetPassword}</code>
 					<button
 						onclick={copyPasswordToClipboard}
-						class="p-2 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+						class="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
 						aria-label="Copy password"
 					>
 						{#if copiedPassword}
-							<Check class="w-4 h-4 text-emerald-400" />
+							<Check class="h-4 w-4 text-success" />
 						{:else}
-							<Copy class="w-4 h-4" />
+							<Copy class="h-4 w-4" />
 						{/if}
 					</button>
 				</div>
-			</div>
+			</section>
 		{/if}
 
 		<!-- Users -->
-		<div class="bg-card rounded-lg border border-border mb-6">
-			<div class="px-4 py-3 border-b border-border flex items-center justify-between">
-				<div class="flex items-center space-x-2">
-					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-						<Users class="w-3 h-3 text-muted-foreground" />
-					</div>
-					<h2 class="text-sm font-medium text-foreground">Users</h2>
-					{#if users.length > 0}
-						<span class="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">{users.length}</span>
-					{/if}
-				</div>
+		<section class="mt-10">
+			<div class="flex items-baseline gap-2 border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">Users</h3>
+				{#if users.length > 0}
+					<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{users.length}</span>
+				{/if}
 			</div>
 
 			{#if users.length > 0}
@@ -619,50 +573,50 @@
 					<table class="w-full">
 						<thead>
 							<tr class="border-b border-border">
-								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Username</th>
-								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Plan</th>
-								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Agents</th>
-								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Monitors</th>
-								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Joined</th>
-								<th class="px-4 py-2.5 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+								<th class="py-2.5 pl-1 pr-4 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Email</th>
+								<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:table-cell">Username</th>
+								<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground md:table-cell">Plan</th>
+								<th class="hidden px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:table-cell">Agents</th>
+								<th class="hidden px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wider text-muted-foreground lg:table-cell">Monitors</th>
+								<th class="hidden px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground md:table-cell">Joined</th>
+								<th class="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-border/30">
+						<tbody class="divide-y divide-border/40">
 							{#each users as u (u.id)}
-								<tr class="hover:bg-muted/20 transition-colors">
-									<td class="px-4 py-2.5 text-xs text-foreground">
-										<div class="flex items-center space-x-2">
-											<span>{u.email}</span>
+								<tr class="transition-colors hover:bg-muted/30">
+									<td class="py-3 pl-1 pr-4">
+										<div class="flex items-center gap-2">
+											<span class="font-mono tabular-nums text-xs text-foreground">{u.email}</span>
 											{#if u.is_admin}
-												<span class="px-1.5 py-0.5 text-[9px] font-medium rounded bg-yellow-500/15 text-yellow-400 uppercase">Admin</span>
+												<span class="font-mono tabular-nums text-[10px] uppercase tracking-wider text-warning">Admin</span>
 											{/if}
 										</div>
 									</td>
-									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden sm:table-cell font-mono">{u.username}</td>
-									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell capitalize">{u.plan}</td>
-									<td class="px-4 py-2.5 text-xs text-muted-foreground font-mono hidden lg:table-cell">{u.agent_count}</td>
-									<td class="px-4 py-2.5 text-xs text-muted-foreground font-mono hidden lg:table-cell">{u.monitor_count}</td>
-									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell">{timeAgo(u.created_at)}</td>
-									<td class="px-4 py-2.5 text-right">
+									<td class="hidden px-4 py-3 font-mono tabular-nums text-xs text-muted-foreground sm:table-cell">{u.username}</td>
+									<td class="hidden px-4 py-3 text-xs capitalize text-muted-foreground md:table-cell">{u.plan}</td>
+									<td class="hidden px-4 py-3 text-right font-mono tabular-nums text-xs text-muted-foreground lg:table-cell">{u.agent_count}</td>
+									<td class="hidden px-4 py-3 text-right font-mono tabular-nums text-xs text-muted-foreground lg:table-cell">{u.monitor_count}</td>
+									<td class="hidden px-4 py-3 font-mono tabular-nums text-xs text-muted-foreground md:table-cell">{timeAgo(u.created_at)}</td>
+									<td class="px-4 py-3 text-right">
 										{#if u.id !== auth.user?.id}
-											<div class="flex items-center justify-end space-x-1.5">
+											<div class="flex items-center justify-end gap-3 text-xs">
 												<button
 													onclick={() => handleResetPassword(u)}
-													class="px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
+													class="text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
 												>
-													Reset Password
+													Reset
 												</button>
 												<button
 													onclick={() => handleDeleteUser(u)}
-													class="inline-flex items-center space-x-1 px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-destructive bg-muted/50 hover:bg-destructive/10 rounded-md transition-colors"
+													class="flex items-center gap-1 text-destructive underline-offset-4 transition-colors hover:underline"
 												>
-													<Trash2 class="w-3 h-3" />
+													<Trash2 class="h-3 w-3" />
 													<span>Delete</span>
 												</button>
 											</div>
 										{:else}
-											<span class="text-[10px] text-muted-foreground/40">You</span>
+											<span class="text-[11px] text-muted-foreground/40">You</span>
 										{/if}
 									</td>
 								</tr>
@@ -671,30 +625,16 @@
 					</table>
 				</div>
 			{:else}
-				<EmptyState
-					title="No users found"
-					description="Registered users will appear here."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
-							<Users class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-				</EmptyState>
+				<p class="pt-4 text-xs text-muted-foreground">No users found. Registered users will appear here.</p>
 			{/if}
-		</div>
+		</section>
 		{/if}
 
 		<!-- Audit Log -->
-		<div class="bg-card rounded-lg border border-border">
-			<div class="px-4 py-3 border-b border-border flex items-center justify-between">
-				<div class="flex items-center space-x-2">
-					<div class="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-						<ScrollText class="w-3 h-3 text-muted-foreground" />
-					</div>
-					<h2 class="text-sm font-medium text-foreground">Audit Log</h2>
-				</div>
-				<span class="text-[10px] text-muted-foreground font-mono">Last 50 events</span>
+		<section class="mt-10">
+			<div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
+				<h3 class="text-sm font-medium text-foreground">Audit Log</h3>
+				<span class="font-mono tabular-nums text-[11px] text-muted-foreground">Last 50 events</span>
 			</div>
 
 			{#if data.audit_logs.length > 0}
@@ -709,36 +649,28 @@
 								<th class="px-4 py-2.5 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Details</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-border/30">
+						<tbody class="divide-y divide-border/40">
 							{#each data.audit_logs as log}
-								<tr class="hover:bg-muted/20 transition-colors">
-									<td class="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap font-mono">{timeAgo(log.created_at)}</td>
-									<td class="px-4 py-2.5">
-										<span class="px-2 py-0.5 text-[10px] font-medium rounded whitespace-nowrap {actionBadgeClass(log.action)}">
-											{log.action}
-										</span>
+								<tr class="transition-colors hover:bg-muted/30">
+									<td class="whitespace-nowrap py-3 pl-1 pr-4 font-mono tabular-nums text-xs text-muted-foreground">{timeAgo(log.created_at)}</td>
+									<td class="whitespace-nowrap px-4 py-3 font-mono tabular-nums text-[11px] uppercase tracking-wider {actionTextClass(log.action)}">
+										{log.action}
 									</td>
-									<td class="px-4 py-2.5 text-xs text-foreground">
-										{#if log.user_email}
-											{log.user_email}
-										{:else}
-											<span class="text-muted-foreground/40">&mdash;</span>
-										{/if}
+									<td class="px-4 py-3 font-mono tabular-nums text-xs text-foreground">
+										{log.user_email || '—'}
 									</td>
-									<td class="px-4 py-2.5 text-xs text-muted-foreground font-mono hidden sm:table-cell">
-										{#if log.ip_address}
-											{log.ip_address}
-										{:else}
-											<span class="text-muted-foreground/40">&mdash;</span>
-										{/if}
+									<td class="hidden px-4 py-3 font-mono tabular-nums text-xs text-muted-foreground sm:table-cell">
+										{log.ip_address || '—'}
 									</td>
-									<td class="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell max-w-xs truncate">
+									<td class="hidden max-w-xs truncate px-4 py-3 md:table-cell">
 										{#if log.metadata && Object.keys(log.metadata).length > 0}
-											{#each Object.entries(log.metadata) as [k, v]}
-												<span class="inline-block mr-2"><span class="text-muted-foreground/50">{k}:</span> {v}</span>
-											{/each}
+											<span class="font-mono tabular-nums text-[10px] text-muted-foreground">
+												{#each Object.entries(log.metadata) as [k, v]}
+													<span class="mr-2"><span class="text-muted-foreground/50">{k}:</span> {v}</span>
+												{/each}
+											</span>
 										{:else}
-											<span class="text-muted-foreground/40">&mdash;</span>
+											<span class="text-xs text-muted-foreground/40">—</span>
 										{/if}
 									</td>
 								</tr>
@@ -747,18 +679,9 @@
 					</table>
 				</div>
 			{:else}
-				<EmptyState
-					title="No audit log entries yet"
-					description="Events will appear here as users interact with the system."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
-							<ScrollText class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-				</EmptyState>
+				<p class="pt-4 text-xs text-muted-foreground">No audit log entries yet. Events will appear here as users interact with the system.</p>
 			{/if}
-		</div>
+		</section>
 	</div>
 
 	<ConfirmModal
