@@ -71,7 +71,7 @@
 			</div>
 			<span class="text-base font-semibold text-foreground tracking-tight">WatchDog</span>
 		</a>
-		<button class="lg:hidden ml-auto p-1.5 rounded-md text-muted-foreground hover:text-foreground" onclick={closeMobile}>
+		<button class="lg:hidden ml-auto p-1.5 rounded-md text-muted-foreground hover:text-foreground" onclick={closeMobile} aria-label="Close navigation menu">
 			<X class="w-4 h-4" />
 		</button>
 	</div>
