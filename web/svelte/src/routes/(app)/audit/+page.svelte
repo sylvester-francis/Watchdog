@@ -139,7 +139,7 @@
 	});
 
 	const inputClass =
-		'border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-0';
+		'border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/30';
 </script>
 
 <svelte:head>

@@ -262,7 +262,7 @@
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search monitors..."
-					class="w-full border border-border bg-background pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-0 sm:w-56"
+					class="w-full border border-border bg-background pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/30 sm:w-56"
 				/>
 			</div>
 		</div>
