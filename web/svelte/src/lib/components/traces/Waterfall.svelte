@@ -186,12 +186,14 @@
 			Span
 		</div>
 		<div class="flex-1 relative h-7 min-w-0">
-			{#each rulerTicks as tick}
+			{#each rulerTicks as tick, idx}
 				<div
 					class="absolute top-0 bottom-0 border-l border-border/40 flex items-center pl-1 -translate-x-px"
 					style="left: {tick.pct}%"
 				>
-					<span class="text-muted-foreground/70 tabular-nums">{tick.label}</span>
+					{#if idx < rulerTicks.length - 1}
+						<span class="text-muted-foreground/70 tabular-nums">{tick.label}</span>
+					{/if}
 				</div>
 			{/each}
 		</div>
