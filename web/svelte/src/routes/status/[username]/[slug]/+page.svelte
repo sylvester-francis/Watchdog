@@ -203,14 +203,14 @@
 										<span class="truncate text-sm font-medium text-foreground">{m.name}</span>
 										<span class="hidden font-mono tabular-nums text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">{m.type}</span>
 									</div>
-									<div class="flex shrink-0 items-center gap-4 font-mono tabular-nums text-xs">
+									<div class="flex shrink-0 flex-col items-end gap-0.5 font-mono tabular-nums text-xs sm:flex-row sm:items-center sm:gap-4">
 										{#if m.metric_value}
-											<span class="hidden text-muted-foreground sm:inline">{m.metric_value}</span>
+											<span class="text-muted-foreground">{m.metric_value}</span>
 										{:else if m.has_latency}
-											<span class="hidden text-muted-foreground sm:inline">{m.latency_ms}ms</span>
+											<span class="text-muted-foreground">{m.latency_ms}ms</span>
 										{/if}
 										{#if m.uptime_percent >= 0}
-											<span class="hidden font-medium sm:inline {uptimePercentClass(m.uptime_percent)}">{formatPercent(m.uptime_percent)}%</span>
+											<span class="font-medium {uptimePercentClass(m.uptime_percent)}">{formatPercent(m.uptime_percent)}%</span>
 										{/if}
 										<span class="uppercase tracking-wider {statusTextClass(m.status)}">
 											{statusLabel(m)}

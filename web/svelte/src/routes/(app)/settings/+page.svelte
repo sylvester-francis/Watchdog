@@ -91,7 +91,7 @@
 	});
 
 	const inlineInputClass =
-		'w-full px-2.5 py-1.5 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/30 focus:ring-0';
+		'w-full px-2.5 py-1.5 bg-background border border-border rounded text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/30';
 
 	const usernameRegex = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
@@ -997,14 +997,14 @@
 										<span class="text-muted-foreground/60">no expiry</span>
 									{/if}
 									{#if token.last_used_at}
-										<span class="hidden sm:inline">last used {timeAgo(token.last_used_at)}</span>
+										<span>last used {timeAgo(token.last_used_at)}</span>
 										{#if token.last_used_ip}
-											<span class="hidden text-muted-foreground/60 sm:inline">
+											<span class="text-muted-foreground/60">
 												from {token.last_used_ip}
 											</span>
 										{/if}
 									{:else}
-										<span class="hidden text-muted-foreground/60 sm:inline">never used</span>
+										<span class="text-muted-foreground/60">never used</span>
 									{/if}
 								</div>
 							</div>

@@ -107,15 +107,15 @@
 
 	<!-- Actions -->
 	<td class="px-1 py-3.5 pr-1 sm:px-4" onclick={(e) => e.stopPropagation()}>
-		<div class="flex items-center justify-end gap-3">
+		<div class="flex items-center justify-end gap-2 sm:gap-3">
 			{#if onInvestigate}
 				<button
 					onclick={() => onInvestigate(incident.id)}
-					class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+					class="inline-flex min-h-[36px] items-center gap-1 -my-1.5 px-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
 					title="Investigate"
 				>
 					<Search class="h-3 w-3" />
-					<span class="hidden sm:inline">Investigate</span>
+					<span>Investigate</span>
 				</button>
 			{/if}
 			{#if incident.status !== 'resolved' && canWrite}
@@ -123,7 +123,7 @@
 					<button
 						onclick={handleAcknowledge}
 						disabled={ackLoading || resolveLoading}
-						class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-50"
+						class="inline-flex min-h-[36px] items-center gap-1 -my-1.5 px-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-50"
 					>
 						{#if ackLoading}<Loader2 class="h-3 w-3 animate-spin" />{/if}
 						Ack
@@ -132,7 +132,7 @@
 				<button
 					onclick={handleResolve}
 					disabled={ackLoading || resolveLoading}
-					class="flex items-center gap-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-50"
+					class="inline-flex min-h-[36px] items-center gap-1 -my-1.5 px-1 text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-50"
 				>
 					{#if resolveLoading}<Loader2 class="h-3 w-3 animate-spin" />{/if}
 					Resolve

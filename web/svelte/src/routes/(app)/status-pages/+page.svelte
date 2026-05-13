@@ -174,36 +174,36 @@
 								</div>
 
 								<!-- Actions -->
-								<div class="flex shrink-0 items-center gap-3 text-xs">
+								<div class="flex shrink-0 items-center gap-2 text-xs sm:gap-3">
 									{#if sp.is_public && username}
 										<a
 											href={publicUrl(sp)}
 											target="_blank"
 											rel="noopener noreferrer"
-											class="flex items-center gap-1 text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+											class="inline-flex min-h-[36px] items-center gap-1 -my-1.5 px-1 text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
 											title="View status page"
 										>
 											<ExternalLink class="h-3 w-3" />
-											<span class="hidden sm:inline">View</span>
+											<span>View</span>
 										</a>
 									{/if}
 
 									<a
 										href="/status-pages/{sp.id}/edit"
-										class="flex items-center gap-1 text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+										class="inline-flex min-h-[36px] items-center gap-1 -my-1.5 px-1 text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
 										title="Edit status page"
 									>
 										<Pencil class="h-3 w-3" />
-										<span class="hidden sm:inline">Edit</span>
+										<span>Edit</span>
 									</a>
 
 									<button
 										onclick={() => handleDelete(sp.id)}
-										class="flex items-center gap-1 text-destructive underline-offset-4 transition-colors hover:underline"
+										class="inline-flex min-h-[36px] items-center gap-1 -my-1.5 px-1 text-destructive underline-offset-4 transition-colors hover:underline"
 										title="Delete status page"
 									>
 										<Trash2 class="h-3 w-3" />
-										<span class="hidden sm:inline">Delete</span>
+										<span>Delete</span>
 									</button>
 								</div>
 							</div>
