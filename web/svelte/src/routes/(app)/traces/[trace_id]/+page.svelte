@@ -106,14 +106,14 @@
 
 	{#if loading}
 		<div class="mt-6 animate-pulse space-y-4">
-			<div class="h-8 w-64 bg-muted/50"></div>
-			<div class="h-4 w-96 bg-muted/30"></div>
+			<div class="h-8 w-48 bg-muted/50 sm:w-64"></div>
+			<div class="h-4 w-full max-w-md bg-muted/30"></div>
 			<div class="space-y-2 pt-4">
 				{#each Array(8) as _}
-					<div class="flex items-center gap-6 py-2.5">
-						<div class="h-3 w-44 bg-muted/40"></div>
-						<div class="ml-auto h-3 w-72 bg-muted/30"></div>
-						<div class="h-3 w-16 bg-muted/30"></div>
+					<div class="flex items-center gap-3 py-2.5 sm:gap-6">
+						<div class="h-3 w-24 shrink-0 bg-muted/40 sm:w-44"></div>
+						<div class="ml-auto h-3 min-w-0 flex-1 max-w-[180px] bg-muted/30 sm:max-w-[18rem]"></div>
+						<div class="h-3 w-12 shrink-0 bg-muted/30 sm:w-16"></div>
 					</div>
 				{/each}
 			</div>
@@ -140,13 +140,13 @@
 	{:else}
 		<!-- Header strip -->
 		<header class="mt-6">
-			<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+			<div class="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono tabular-nums text-xs text-muted-foreground">
 				<span class="uppercase tracking-wider">Trace</span>
 				<span class="text-muted-foreground/40">·</span>
-				<span>{traceId}</span>
+				<span class="break-all min-w-0">{traceId}</span>
 				<button
 					onclick={copyTraceID}
-					class="text-muted-foreground/60 transition-colors hover:text-foreground"
+					class="inline-flex min-h-[28px] items-center text-muted-foreground/60 transition-colors hover:text-foreground"
 					aria-label="Copy trace_id"
 				>
 					{#if copiedTraceId}
