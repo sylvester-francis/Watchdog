@@ -1,20 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		Plus,
-		Search,
-		Activity,
-		Globe,
-		HardDrive,
-		MoreHorizontal,
-		Eye,
-		Trash2
-	} from 'lucide-svelte';
+	import { Plus, Search, MoreHorizontal } from 'lucide-svelte';
 	import { monitors as monitorsApi, agents as agentsApi } from '$lib/api';
 	import { formatPercent, uptimeColor, isInfraMonitor } from '$lib/utils';
 	import type { MonitorSummary, Agent, MonitorType } from '$lib/types';
 	import UptimeChecks from '$lib/components/dashboard/UptimeChecks.svelte';
-	import { Button, EmptyState, Pill, Skeleton, Sparkline, StatusDot } from '@sylvester-francis/watchdog-ui';
+	import { Button, Skeleton, Sparkline } from '@sylvester-francis/watchdog-ui';
 	import CreateMonitorModal from '$lib/components/monitors/CreateMonitorModal/index.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { getToasts } from '$lib/stores/toast.svelte';
@@ -51,26 +42,22 @@
 		{ value: 'docker', label: 'Docker' },
 		{ value: 'database', label: 'Database' },
 		{ value: 'system', label: 'System' },
-		{ value: 'service', label: 'Service' }
+		{ value: 'service', label: 'Service' },
+		{ value: 'port_scan', label: 'Port Scan' }
 	];
 
 	// Filtered monitors
 	let filtered = $derived.by(() => {
 		let result = summaries;
-
-		// Type filter
 		if (activeFilter !== 'all') {
 			result = result.filter((m) => m.type === activeFilter);
 		}
-
-		// Search filter
 		if (searchQuery.trim()) {
 			const q = searchQuery.trim().toLowerCase();
 			result = result.filter(
 				(m) => m.name.toLowerCase().includes(q) || m.target.toLowerCase().includes(q)
 			);
 		}
-
 		return result;
 	});
 
@@ -120,6 +107,10 @@
 	function infraValue(m: MonitorSummary): string {
 		if (m.type === 'docker') return m.status === 'up' ? 'Running' : 'Stopped';
 		if (m.type === 'service') return m.status === 'up' ? 'Running' : 'Stopped';
+		if (m.type === 'port_scan') {
+			if (m.latest_value) return m.latest_value;
+			return m.status === 'up' ? 'Clean' : 'Drift';
+		}
 		if (m.type === 'database' && m.latencies?.length > 0)
 			return m.latencies[m.latencies.length - 1] + 'ms';
 		if (m.type === 'system') {
@@ -132,21 +123,26 @@
 	}
 
 	function infraValueClass(m: MonitorSummary): string {
-		if (m.type === 'docker' || m.type === 'service') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
-		if (m.type === 'system') return m.status === 'up' ? 'text-emerald-400' : 'text-red-400';
+		if (m.type === 'docker' || m.type === 'service')
+			return m.status === 'up' ? 'text-success' : 'text-destructive';
+		if (m.type === 'port_scan' || m.type === 'system')
+			return m.status === 'up' ? 'text-success' : 'text-destructive';
 		return 'text-muted-foreground';
+	}
+
+	function statusPipClass(status: string): string {
+		if (status === 'up') return 'bg-success';
+		if (status === 'down') return 'bg-destructive';
+		if (status === 'warn') return 'bg-warning';
+		return 'bg-muted-foreground/50';
 	}
 
 	function toggleDropdown(id: string) {
 		openDropdownId = openDropdownId === id ? null : id;
 	}
 
-	function closeDropdown() {
-		openDropdownId = null;
-	}
-
 	function handleDelete(id: string) {
-		const monitor = summaries.find(m => m.id === id);
+		const monitor = summaries.find((m) => m.id === id);
 		openDropdownId = null;
 		confirmModal = { open: true, monitorId: id, monitorName: monitor?.name ?? 'this monitor' };
 	}
@@ -184,16 +180,13 @@
 		}
 	}
 
-	function handleMonitorCreated() {
-		loadData();
+	async function handleMonitorCreated() {
+		await loadData();
 		toast.success('Monitor created');
 	}
 
-	// Close dropdown when clicking outside
 	function handleWindowClick() {
-		if (openDropdownId) {
-			openDropdownId = null;
-		}
+		if (openDropdownId) openDropdownId = null;
 	}
 
 	onMount(() => {
@@ -209,66 +202,53 @@
 <svelte:window onclick={handleWindowClick} />
 
 {#if loading}
-	<!-- Skeleton loading state -->
-	<div class="animate-fade-in-up space-y-4">
-		<!-- Header skeleton -->
-		<div class="flex items-center justify-between">
-			<Skeleton emphasis="secondary" width="8rem" height="1.75rem" />
-			<Skeleton emphasis="secondary" width="8rem" height="2.25rem" />
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] space-y-8 px-4 py-8 sm:px-6 sm:py-10">
+		<div class="space-y-2">
+			<Skeleton emphasis="tertiary" width="6rem" height="0.75rem" />
+			<Skeleton emphasis="secondary" width="14rem" height="2rem" />
+			<Skeleton emphasis="tertiary" width="10rem" height="0.875rem" />
 		</div>
-		<!-- Filter bar skeleton -->
-		<div class="flex items-center space-x-2">
-			{#each Array(5) as _}
-				<Skeleton emphasis="secondary" width="4rem" height="1.75rem" />
+		<div class="flex flex-wrap items-center gap-2">
+			{#each Array(6) as _}
+				<Skeleton emphasis="tertiary" width="4rem" height="1.5rem" />
 			{/each}
 		</div>
-		<!-- Table skeleton -->
-		<div class="bg-card border border-border rounded-lg">
+		<div class="space-y-2">
 			{#each Array(5) as _}
-				<div class="flex items-center px-4 py-4 border-b border-border/20">
-					<div class="w-2.5 h-2.5 bg-muted/50 rounded-full mr-3"></div>
-					<div class="flex-1 space-y-1.5">
-						<Skeleton emphasis="secondary" width="10rem" height="1rem" />
-						<Skeleton emphasis="tertiary" width="14rem" height="0.75rem" />
-					</div>
-					<div class="hidden md:block">
-						<Skeleton emphasis="secondary" width="7rem" height="1rem" />
-					</div>
-					<div class="hidden md:block ml-4">
-						<Skeleton emphasis="secondary" width="3.5rem" height="1rem" />
-					</div>
-				</div>
+				<Skeleton emphasis="tertiary" width="100%" height="3rem" />
 			{/each}
 		</div>
 	</div>
 {:else}
-	<div class="animate-fade-in-up">
+	<div class="animate-fade-in-up mx-auto max-w-[1080px] px-4 py-8 sm:px-6 sm:py-10">
 		<!-- Page header -->
-		<div class="flex items-center justify-between mb-5">
-			<div>
-				<h1 class="text-lg font-semibold text-foreground">Monitors</h1>
-				<p class="text-xs text-muted-foreground mt-0.5">
+		<header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+			<div class="min-w-0">
+				<div class="flex items-center gap-2 font-mono tabular-nums text-xs text-muted-foreground">
+					<span class="uppercase tracking-wider">Monitors</span>
+				</div>
+				<h1 class="mt-1.5 text-2xl font-medium text-foreground sm:text-3xl">
 					{summaries.length} monitor{summaries.length !== 1 ? 's' : ''} configured
-				</p>
+				</h1>
 			</div>
 			<Button variant="primary" size="sm" onclick={() => { showCreateModal = true; }}>
 				<span class="flex items-center gap-1.5">
-					<Plus class="w-3.5 h-3.5" />
+					<Plus class="h-3.5 w-3.5" />
 					<span>New Monitor</span>
 				</span>
 			</Button>
-		</div>
+		</header>
 
 		<!-- Filter bar -->
-		<div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+		<div class="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
 			<!-- Type filter tabs -->
-			<div class="flex items-center flex-wrap gap-1">
+			<div class="flex flex-wrap items-center gap-1">
 				{#each filterTabs as tab}
 					<button
 						onclick={() => { activeFilter = tab.value; }}
-						class="px-2.5 py-1 text-xs rounded-md transition-colors {activeFilter === tab.value
-							? 'bg-foreground/[0.08] text-foreground font-medium'
-							: 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]'}"
+						class="px-2.5 py-1 text-xs transition-colors {activeFilter === tab.value
+							? 'font-medium text-foreground'
+							: 'text-muted-foreground hover:text-foreground'}"
 					>
 						{tab.label}
 					</button>
@@ -276,282 +256,251 @@
 			</div>
 
 			<!-- Search input -->
-			<div class="relative w-full sm:w-auto sm:ml-auto">
-				<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+			<div class="relative w-full sm:ml-auto sm:w-auto">
+				<Search class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
 				<input
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search monitors..."
-					class="w-full sm:w-56 pl-8 pr-3 py-1.5 bg-card border border-border rounded-md text-xs text-foreground placeholder-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+					class="w-full border border-border bg-background pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:outline-none focus:ring-0 sm:w-56"
 				/>
 			</div>
 		</div>
 
-		{#if summaries.length === 0}
-			<!-- Empty state: no monitors at all -->
-			<div class="bg-card border border-border rounded-lg">
-				<EmptyState
-					title="No monitors yet"
-					description="Create a monitor to start tracking your services and infrastructure."
-				>
-					{#snippet icon()}
-						<div class="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center">
-							<Activity class="w-6 h-6 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-					{#snippet cta()}
-						<Button variant="primary" size="md" onclick={() => { showCreateModal = true; }}>
-							<span class="inline-flex items-center gap-1.5">
-								<Plus class="w-3.5 h-3.5" />
+		<div class="mt-6">
+			{#if summaries.length === 0}
+				<!-- Empty state: no monitors at all -->
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">No monitors yet</h3>
+					</div>
+					<div class="flex flex-col items-start gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+						<p class="text-xs text-muted-foreground">Create a monitor to start tracking your services and infrastructure.</p>
+						<Button variant="primary" size="sm" onclick={() => { showCreateModal = true; }}>
+							<span class="flex items-center gap-1.5">
+								<Plus class="h-3.5 w-3.5" />
 								<span>Create Monitor</span>
 							</span>
 						</Button>
-					{/snippet}
-				</EmptyState>
-			</div>
-		{:else if filtered.length === 0}
-			<!-- Empty state: filters returned nothing -->
-			<div class="bg-card border border-border rounded-lg">
-				<EmptyState
-					title="No matches"
-					description="No monitors match the current filter. Try adjusting your search or filter."
-				>
-					{#snippet icon()}
-						<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center">
-							<Search class="w-5 h-5 text-muted-foreground/40" />
-						</div>
-					{/snippet}
-					{#snippet cta()}
+					</div>
+				</section>
+			{:else if filtered.length === 0}
+				<!-- Empty state: filters returned nothing -->
+				<section>
+					<div class="border-b border-border pb-3">
+						<h3 class="text-sm font-medium text-foreground">No matches</h3>
+					</div>
+					<div class="flex flex-col items-start gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+						<p class="text-xs text-muted-foreground">No monitors match the current filter. Try adjusting your search or filter.</p>
 						<button
 							onclick={() => { activeFilter = 'all'; searchQuery = ''; }}
-							class="text-xs text-accent hover:underline"
+							class="text-xs text-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
 						>
 							Clear filters
 						</button>
-					{/snippet}
-				</EmptyState>
-			</div>
-		{:else}
-			<!-- Services section -->
-			{#if services.length > 0}
-				<div class="bg-card border border-border rounded-lg mb-4">
-					<div class="px-4 py-3 border-b border-border flex items-center space-x-2">
-						<Globe class="w-4 h-4 text-muted-foreground" />
-						<h2 class="text-sm font-medium text-foreground">Services</h2>
-						<span class="text-[10px] text-muted-foreground font-mono">{services.length}</span>
 					</div>
-
-					<!-- Column headers -->
-					<div class="hidden sm:flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
-						<div class="w-5 shrink-0"></div>
-						<div class="flex-1 min-w-0 ml-2">Service</div>
-						<div class="w-36 shrink-0 text-center hidden md:block">Uptime (24h)</div>
-						<div class="w-14 shrink-0 text-right hidden md:block ml-2">Uptime</div>
-						<div class="w-16 shrink-0 text-right hidden md:block ml-3">Latency</div>
-						<div class="w-14 shrink-0 text-right hidden md:block ml-2">Response</div>
-						<div class="w-12 shrink-0 text-right hidden md:block ml-2">Interval</div>
-						<div class="w-8 shrink-0"></div>
-					</div>
-
-					<!-- Rows -->
-					<div class="divide-y divide-border/20">
-						{#each services as m (m.id)}
-							<div class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group relative">
-								<!-- Status dot -->
-								<div class="w-5 shrink-0 flex justify-center">
-									<StatusDot status={m.status === 'up' || m.status === 'down' || m.status === 'warn' ? m.status : 'unknown'} pulse={m.status === 'up'} />
-								</div>
-
-								<!-- Name + type + target (clickable link) -->
-								<a href="/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
-									<div class="flex items-center space-x-2">
-										<span class="text-sm text-foreground truncate group-hover:text-accent transition-colors">{m.name}</span>
-										<Pill tone="neutral">
-											<span class="text-[9px] font-mono uppercase">{m.type}</span>
-										</Pill>
-									</div>
-									<p class="text-[10px] text-muted-foreground font-mono truncate mt-0.5 hidden sm:block">{m.target}</p>
-								</a>
-
-								<!-- Uptime checks -->
-								<div class="w-36 shrink-0 hidden md:flex items-center justify-center mx-2">
-									{#if m.total > 0}
-										<UptimeChecks checkResults={checkResults(m)} />
-									{:else}
-										<span class="text-[9px] text-muted-foreground">No data</span>
-									{/if}
-								</div>
-
-								<!-- Uptime % -->
-								<div class="w-14 shrink-0 hidden md:flex items-center justify-end ml-2">
-									<span class="text-xs font-mono font-medium {uptimeColor(uptimePercent(m))}">{formatPercent(uptimePercent(m))}%</span>
-								</div>
-
-								<!-- Sparkline -->
-								<div class="w-16 shrink-0 hidden md:flex items-center justify-end ml-3">
-									{#if m.latencies?.length > 0}
-										<Sparkline data={m.latencies} color={sparkColor(m.status)} />
-									{:else}
-										<span class="text-[9px] text-muted-foreground">No data</span>
-									{/if}
-								</div>
-
-								<!-- Response time -->
-								<div class="w-14 shrink-0 hidden md:flex items-center justify-end ml-2">
-									<span class="text-xs font-mono text-muted-foreground">{lastLatency(m)}</span>
-								</div>
-
-								<!-- Interval -->
-								<div class="w-12 shrink-0 hidden md:flex items-center justify-end ml-2">
-									<span class="text-[10px] font-mono text-muted-foreground/70">{formatInterval(m.interval_seconds)}</span>
-								</div>
-
-								<!-- Actions dropdown -->
-								<div class="w-8 shrink-0 flex justify-end relative">
-									<button
-										onclick={(e) => { e.stopPropagation(); toggleDropdown(m.id); }}
-										class="p-1 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-										aria-label="Actions"
-									>
-										<MoreHorizontal class="w-4 h-4" />
-									</button>
-
-									{#if openDropdownId === m.id}
-										<div
-											class="absolute right-0 top-8 z-20 w-40 bg-card border border-border rounded-md shadow-lg py-1"
-											onclick={(e) => e.stopPropagation()}
-											onkeydown={(e) => e.stopPropagation()}
-											role="menu"
-											tabindex="-1"
-										>
-											<a
-												href="/monitors/{m.id}"
-												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-foreground hover:bg-muted/50 transition-colors"
-											>
-												<Eye class="w-3.5 h-3.5 text-muted-foreground" />
-												<span>View Details</span>
-											</a>
-											<button
-												onclick={() => handleDelete(m.id)}
-												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors w-full text-left"
-											>
-												<Trash2 class="w-3.5 h-3.5" />
-												<span>Delete</span>
-											</button>
-										</div>
-									{/if}
-								</div>
+				</section>
+			{:else}
+				<div class="space-y-10">
+					<!-- Services section -->
+					{#if services.length > 0}
+						<section>
+							<div class="flex items-baseline gap-2 border-b border-border pb-3">
+								<h3 class="text-sm font-medium text-foreground">Services</h3>
+								<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{services.length}</span>
 							</div>
-						{/each}
-					</div>
+
+							<!-- Column headers -->
+							<div class="mt-3 hidden items-center pb-2 text-[9px] font-medium uppercase tracking-wider text-muted-foreground sm:flex">
+								<div class="w-4 shrink-0"></div>
+								<div class="ml-2 min-w-0 flex-1">Service</div>
+								<div class="hidden w-36 shrink-0 text-center md:block">Uptime (24h)</div>
+								<div class="ml-2 hidden w-14 shrink-0 text-right md:block">Uptime</div>
+								<div class="ml-3 hidden w-16 shrink-0 text-right md:block">Latency</div>
+								<div class="ml-2 hidden w-14 shrink-0 text-right md:block">Response</div>
+								<div class="ml-2 hidden w-12 shrink-0 text-right md:block">Interval</div>
+								<div class="w-8 shrink-0"></div>
+							</div>
+
+							<!-- Rows -->
+							<div class="divide-y divide-border/40">
+								{#each services as m (m.id)}
+									<div class="group relative flex items-center py-3 transition-colors hover:bg-muted/30">
+										<!-- Status pip -->
+										<div class="flex w-4 shrink-0 justify-center">
+											<span class="inline-block h-1.5 w-1.5 rounded-full {statusPipClass(m.status)}" aria-label="Status: {m.status}"></span>
+										</div>
+
+										<a href="/monitors/{m.id}" class="ml-2 min-w-0 flex-1">
+											<div class="flex items-center gap-2">
+												<span class="truncate text-sm text-foreground transition-colors group-hover:text-accent">{m.name}</span>
+												<span class="font-mono tabular-nums text-[10px] uppercase tracking-wider text-muted-foreground">{m.type}</span>
+											</div>
+											<p class="mt-0.5 hidden truncate font-mono tabular-nums text-[10px] text-muted-foreground sm:block">{m.target}</p>
+										</a>
+
+										<div class="mx-2 hidden w-36 shrink-0 items-center justify-center md:flex">
+											{#if m.total > 0}
+												<UptimeChecks checkResults={checkResults(m)} />
+											{:else}
+												<span class="text-[9px] text-muted-foreground">No data</span>
+											{/if}
+										</div>
+
+										<div class="ml-2 hidden w-14 shrink-0 items-center justify-end md:flex">
+											<span class="font-mono tabular-nums text-xs {uptimeColor(uptimePercent(m))}">{formatPercent(uptimePercent(m))}%</span>
+										</div>
+
+										<div class="ml-3 hidden w-16 shrink-0 items-center justify-end md:flex">
+											{#if m.latencies?.length > 0}
+												<Sparkline data={m.latencies} color={sparkColor(m.status)} />
+											{:else}
+												<span class="text-[9px] text-muted-foreground">No data</span>
+											{/if}
+										</div>
+
+										<div class="ml-2 hidden w-14 shrink-0 items-center justify-end md:flex">
+											<span class="font-mono tabular-nums text-xs text-muted-foreground">{lastLatency(m)}</span>
+										</div>
+
+										<div class="ml-2 hidden w-12 shrink-0 items-center justify-end md:flex">
+											<span class="font-mono tabular-nums text-[10px] text-muted-foreground/70">{formatInterval(m.interval_seconds)}</span>
+										</div>
+
+										<!-- Actions dropdown -->
+										<div class="relative flex w-8 shrink-0 justify-end">
+											<button
+												onclick={(e) => { e.stopPropagation(); toggleDropdown(m.id); }}
+												class="p-1 text-muted-foreground/40 transition-colors hover:text-foreground"
+												aria-label="Actions"
+											>
+												<MoreHorizontal class="h-4 w-4" />
+											</button>
+
+											{#if openDropdownId === m.id}
+												<div
+													class="absolute right-0 top-8 z-20 w-40 border border-border bg-background py-1 shadow-lg"
+													onclick={(e) => e.stopPropagation()}
+													onkeydown={(e) => e.stopPropagation()}
+													role="menu"
+													tabindex="-1"
+												>
+													<a
+														href="/monitors/{m.id}"
+														class="block px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted/40"
+													>
+														View Details
+													</a>
+													<button
+														onclick={() => handleDelete(m.id)}
+														class="block w-full px-3 py-1.5 text-left text-xs text-destructive transition-colors hover:bg-destructive/10"
+													>
+														Delete
+													</button>
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
+						</section>
+					{/if}
+
+					<!-- Infrastructure section -->
+					{#if infra.length > 0}
+						<section>
+							<div class="flex items-baseline gap-2 border-b border-border pb-3">
+								<h3 class="text-sm font-medium text-foreground">Infrastructure</h3>
+								<span class="font-mono tabular-nums text-[11px] text-muted-foreground">{infra.length}</span>
+							</div>
+
+							<!-- Column headers -->
+							<div class="mt-3 hidden items-center pb-2 text-[9px] font-medium uppercase tracking-wider text-muted-foreground sm:flex">
+								<div class="w-4 shrink-0"></div>
+								<div class="ml-2 min-w-0 flex-1">Service</div>
+								<div class="hidden w-36 shrink-0 text-center md:block">Health (24h)</div>
+								<div class="ml-2 hidden w-14 shrink-0 text-right md:block">Uptime</div>
+								<div class="ml-3 hidden w-20 shrink-0 text-right md:block">Value</div>
+								<div class="ml-2 hidden w-12 shrink-0 text-right md:block">Interval</div>
+								<div class="w-8 shrink-0"></div>
+							</div>
+
+							<!-- Rows -->
+							<div class="divide-y divide-border/40">
+								{#each infra as m (m.id)}
+									<div class="group relative flex items-center py-3 transition-colors hover:bg-muted/30">
+										<div class="flex w-4 shrink-0 justify-center">
+											<span class="inline-block h-1.5 w-1.5 rounded-full {statusPipClass(m.status)}" aria-label="Status: {m.status}"></span>
+										</div>
+
+										<a href="/monitors/{m.id}" class="ml-2 min-w-0 flex-1">
+											<div class="flex items-center gap-2">
+												<span class="truncate text-sm text-foreground transition-colors group-hover:text-accent">{m.name}</span>
+												<span class="font-mono tabular-nums text-[10px] uppercase tracking-wider text-muted-foreground">{m.type}</span>
+											</div>
+											<p class="mt-0.5 hidden truncate font-mono tabular-nums text-[10px] text-muted-foreground sm:block">{m.target}</p>
+										</a>
+
+										<div class="mx-2 hidden w-36 shrink-0 items-center justify-center md:flex">
+											{#if m.total > 0}
+												<UptimeChecks checkResults={checkResults(m)} />
+											{:else}
+												<span class="text-[9px] text-muted-foreground">No data</span>
+											{/if}
+										</div>
+
+										<div class="ml-2 hidden w-14 shrink-0 items-center justify-end md:flex">
+											<span class="font-mono tabular-nums text-xs {uptimeColor(uptimePercent(m))}">{formatPercent(uptimePercent(m))}%</span>
+										</div>
+
+										<div class="ml-3 hidden w-20 shrink-0 items-center justify-end md:flex">
+											<span class="font-mono tabular-nums text-xs {infraValueClass(m)}">{infraValue(m)}</span>
+										</div>
+
+										<div class="ml-2 hidden w-12 shrink-0 items-center justify-end md:flex">
+											<span class="font-mono tabular-nums text-[10px] text-muted-foreground/70">{formatInterval(m.interval_seconds)}</span>
+										</div>
+
+										<div class="relative flex w-8 shrink-0 justify-end">
+											<button
+												onclick={(e) => { e.stopPropagation(); toggleDropdown(m.id); }}
+												class="p-1 text-muted-foreground/40 transition-colors hover:text-foreground"
+												aria-label="Actions"
+											>
+												<MoreHorizontal class="h-4 w-4" />
+											</button>
+
+											{#if openDropdownId === m.id}
+												<div
+													class="absolute right-0 top-8 z-20 w-40 border border-border bg-background py-1 shadow-lg"
+													onclick={(e) => e.stopPropagation()}
+													onkeydown={(e) => e.stopPropagation()}
+													role="menu"
+													tabindex="-1"
+												>
+													<a
+														href="/monitors/{m.id}"
+														class="block px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted/40"
+													>
+														View Details
+													</a>
+													<button
+														onclick={() => handleDelete(m.id)}
+														class="block w-full px-3 py-1.5 text-left text-xs text-destructive transition-colors hover:bg-destructive/10"
+													>
+														Delete
+													</button>
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
+						</section>
+					{/if}
 				</div>
 			{/if}
-
-			<!-- Infrastructure section -->
-			{#if infra.length > 0}
-				<div class="bg-card border border-border rounded-lg mb-4">
-					<div class="px-4 py-3 border-b border-border flex items-center space-x-2">
-						<HardDrive class="w-4 h-4 text-muted-foreground" />
-						<h2 class="text-sm font-medium text-foreground">Infrastructure</h2>
-						<span class="text-[10px] text-muted-foreground font-mono">{infra.length}</span>
-					</div>
-
-					<!-- Column headers -->
-					<div class="hidden sm:flex items-center px-4 py-2 border-b border-border/30 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
-						<div class="w-5 shrink-0"></div>
-						<div class="flex-1 min-w-0 ml-2">Service</div>
-						<div class="w-36 shrink-0 text-center hidden md:block">Health (24h)</div>
-						<div class="w-14 shrink-0 text-right hidden md:block ml-2">Uptime</div>
-						<div class="w-20 shrink-0 text-right hidden md:block ml-3">Value</div>
-						<div class="w-12 shrink-0 text-right hidden md:block ml-2">Interval</div>
-						<div class="w-8 shrink-0"></div>
-					</div>
-
-					<!-- Rows -->
-					<div class="divide-y divide-border/20">
-						{#each infra as m (m.id)}
-							<div class="flex items-center px-4 py-3.5 hover:bg-card-elevated transition-colors group relative">
-								<!-- Status dot -->
-								<div class="w-5 shrink-0 flex justify-center">
-									<StatusDot status={m.status === 'up' || m.status === 'down' || m.status === 'warn' ? m.status : 'unknown'} pulse={m.status === 'up'} />
-								</div>
-
-								<!-- Name + type + target -->
-								<a href="/monitors/{m.id}" class="flex-1 min-w-0 ml-2">
-									<div class="flex items-center space-x-2">
-										<span class="text-sm text-foreground truncate group-hover:text-accent transition-colors">{m.name}</span>
-										<Pill tone="neutral">
-											<span class="text-[9px] font-mono uppercase">{m.type}</span>
-										</Pill>
-									</div>
-									<p class="text-[10px] text-muted-foreground font-mono truncate mt-0.5 hidden sm:block">{m.target}</p>
-								</a>
-
-								<!-- Health checks -->
-								<div class="w-36 shrink-0 hidden md:flex items-center justify-center mx-2">
-									{#if m.total > 0}
-										<UptimeChecks checkResults={checkResults(m)} />
-									{:else}
-										<span class="text-[9px] text-muted-foreground">No data</span>
-									{/if}
-								</div>
-
-								<!-- Uptime % -->
-								<div class="w-14 shrink-0 hidden md:flex items-center justify-end ml-2">
-									<span class="text-xs font-mono font-medium {uptimeColor(uptimePercent(m))}">{formatPercent(uptimePercent(m))}%</span>
-								</div>
-
-								<!-- Value column -->
-								<div class="w-20 shrink-0 hidden md:flex items-center justify-end ml-3">
-									<span class="text-xs font-mono {infraValueClass(m)}">{infraValue(m)}</span>
-								</div>
-
-								<!-- Interval -->
-								<div class="w-12 shrink-0 hidden md:flex items-center justify-end ml-2">
-									<span class="text-[10px] font-mono text-muted-foreground/70">{formatInterval(m.interval_seconds)}</span>
-								</div>
-
-								<!-- Actions dropdown -->
-								<div class="w-8 shrink-0 flex justify-end relative">
-									<button
-										onclick={(e) => { e.stopPropagation(); toggleDropdown(m.id); }}
-										class="p-1 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-										aria-label="Actions"
-									>
-										<MoreHorizontal class="w-4 h-4" />
-									</button>
-
-									{#if openDropdownId === m.id}
-										<div
-											class="absolute right-0 top-8 z-20 w-40 bg-card border border-border rounded-md shadow-lg py-1"
-											onclick={(e) => e.stopPropagation()}
-											onkeydown={(e) => e.stopPropagation()}
-											role="menu"
-											tabindex="-1"
-										>
-											<a
-												href="/monitors/{m.id}"
-												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-foreground hover:bg-muted/50 transition-colors"
-											>
-												<Eye class="w-3.5 h-3.5 text-muted-foreground" />
-												<span>View Details</span>
-											</a>
-											<button
-												onclick={() => handleDelete(m.id)}
-												class="flex items-center space-x-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors w-full text-left"
-											>
-												<Trash2 class="w-3.5 h-3.5" />
-												<span>Delete</span>
-											</button>
-										</div>
-									{/if}
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-		{/if}
+		</div>
 	</div>
 
 	<CreateMonitorModal
