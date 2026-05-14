@@ -42,6 +42,17 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
       SERVER_SECURE_COOKIES: "true"
       ALLOWED_ORIGINS: https://usewatchdog.dev
+      # Transactional email (forgot-password reset). All optional — when
+      # SMTP_HOST + SMTP_FROM are empty, the password reset routes simply
+      # don't register and the /forgot-password link 404s.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # Public URL used to build reset links in email bodies. Falls back to
+      # the first ALLOWED_ORIGIN if unset.
+      PUBLIC_URL: ${PUBLIC_URL:-https://usewatchdog.dev}
     depends_on:
       postgres:
         condition: service_healthy
