@@ -156,7 +156,7 @@
 					<div>
 						<div class="flex items-center justify-between mb-1.5">
 							<label for="password" class="block text-xs font-medium text-muted-foreground">Password</label>
-							<span class="text-[10px] text-muted-foreground/40 cursor-default" title="Coming soon">Forgot password?</span>
+							<a href="/forgot-password" class="text-[10px] text-muted-foreground hover:text-accent transition-colors">Forgot password?</a>
 						</div>
 						<FormField htmlFor="password">
 							<input

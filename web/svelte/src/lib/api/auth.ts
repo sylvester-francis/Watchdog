@@ -33,3 +33,19 @@ export function setup(email: string, password: string, confirm_password: string)
 export function needsSetup(): Promise<NeedsSetupResponse> {
 	return api.get<NeedsSetupResponse>('/api/v1/auth/needs-setup');
 }
+
+export interface PasswordResetMessage {
+	message: string;
+}
+
+// Always returns a generic 200 message — backend doesn't reveal whether the
+// email matches a real user (anti-enumeration).
+export function requestPasswordReset(email: string): Promise<PasswordResetMessage> {
+	return api.post<PasswordResetMessage>('/api/v1/auth/password/request', { email });
+}
+
+// Validates the reset token, updates the password, invalidates existing sessions.
+// 400 means the link is no good (expired, used, or wrong) — request a new one.
+export function completePasswordReset(token: string, new_password: string): Promise<PasswordResetMessage> {
+	return api.post<PasswordResetMessage>('/api/v1/auth/password/reset', { token, new_password });
+}

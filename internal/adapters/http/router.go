@@ -13,12 +13,14 @@ import (
 	echomw "github.com/labstack/echo/v4/middleware"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
+	"github.com/sylvester-francis/watchdog/internal/adapters/email"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
 	"github.com/sylvester-francis/watchdog/internal/config"
 	"github.com/sylvester-francis/watchdog/core/ports"
 	"github.com/sylvester-francis/watchdog/internal/core/realtime"
+	"github.com/sylvester-francis/watchdog/internal/core/services"
 	"github.com/sylvester-francis/watchdog/core/registry"
 	"github.com/sylvester-francis/watchdog/internal/crypto"
 )
@@ -67,6 +69,7 @@ type Router struct {
 	apiHandler           *handlers.APIHandler
 	apiV1Handler         *handlers.APIV1Handler
 	authAPIHandler       *handlers.AuthAPIHandler
+	passwordResetHandler *handlers.PasswordResetHandler
 	settingsAPIHandler   *handlers.SettingsAPIHandler
 	statusPageAPIHandler *handlers.StatusPageAPIHandler
 	systemAPIHandler     *handlers.SystemAPIHandler
@@ -128,6 +131,34 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	r.apiHandler = handlers.NewAPIHandler(deps.HeartbeatRepo, deps.MonitorRepo, deps.AgentRepo, deps.IncidentService)
 	r.apiV1Handler = handlers.NewAPIV1Handler(deps.AgentRepo, deps.MonitorRepo, deps.HeartbeatRepo, deps.CertDetailsRepo, deps.IncidentService, deps.MonitorService, deps.AgentAuthService, deps.Hub, deps.AuditService)
 	r.authAPIHandler = handlers.NewAuthAPIHandler(deps.UserAuthService, deps.UserRepo, loginLimiter, registerLimiter, deps.AuditService, sessionTracker)
+
+	// Password reset (forgot-password flow) — wired only if SMTP is configured.
+	// The TransactionalSender uses the same SMTP env vars as alert email but
+	// sends to per-user recipients (bypasses SMTP_TO which is alert-channel-only).
+	passwordResetMailer := email.NewTransactionalSender(email.Config{
+		Host:     deps.Config.Notify.SMTPHost,
+		Port:     deps.Config.Notify.SMTPPort,
+		Username: deps.Config.Notify.SMTPUsername,
+		Password: deps.Config.Notify.SMTPPassword,
+		From:     deps.Config.Notify.SMTPFrom,
+	})
+	if passwordResetMailer.Configured() {
+		passwordResetRepo := repository.NewPasswordResetTokenRepository(deps.DB)
+		appURL := deps.Config.Server.PublicURL
+		if appURL == "" {
+			// Fallback for self-host operators who haven't set PUBLIC_URL —
+			// use the first allowed origin (which is typically the canonical UI URL).
+			if len(deps.AllowedOrigins) > 0 {
+				appURL = deps.AllowedOrigins[0]
+			}
+		}
+		passwordResetSvc := services.NewPasswordResetService(passwordResetRepo, deps.UserRepo, passwordResetMailer, deps.Hasher, appURL)
+		r.passwordResetHandler = handlers.NewPasswordResetHandler(passwordResetSvc, loginLimiter, deps.AuditService)
+		logger.Info("password reset endpoints enabled", slog.String("app_url", appURL))
+	} else {
+		logger.Info("password reset endpoints disabled (SMTP_HOST/SMTP_FROM not set)")
+	}
+
 	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
 	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
 	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.AuditService, deps.Hasher, deps.StartTime)
@@ -244,6 +275,13 @@ func (r *Router) RegisterRoutes() {
 	v1Public.POST("/auth/setup", r.authAPIHandler.Setup, authRL)
 	v1Public.POST("/auth/logout", r.authAPIHandler.Logout)
 	v1Public.GET("/auth/needs-setup", r.authAPIHandler.NeedsSetup)
+
+	// Self-serve password reset. Routes only register if SMTP is configured
+	// (passwordResetHandler is nil otherwise — see NewRouter).
+	if r.passwordResetHandler != nil {
+		v1Public.POST("/auth/password/request", r.passwordResetHandler.RequestReset, authRL, loginLLJSON)
+		v1Public.POST("/auth/password/reset", r.passwordResetHandler.CompleteReset, authRL, loginLLJSON)
+	}
 
 	// Public status page API (no auth required)
 	v1Public.GET("/public/status/:username/:slug", r.statusPageAPIHandler.PublicView)

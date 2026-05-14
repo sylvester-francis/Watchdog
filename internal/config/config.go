@@ -76,6 +76,10 @@ type ServerConfig struct {
 	IdleTimeout    time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"60s"`
 	SecureCookies  bool          `envconfig:"SERVER_SECURE_COOKIES" default:"false"`
 	AllowedOrigins []string      `envconfig:"ALLOWED_ORIGINS"`
+	// PublicURL is the externally-reachable base URL of the hub, used to
+	// build links sent in emails (e.g. password reset). Falls back to the
+	// first ALLOWED_ORIGIN if unset.
+	PublicURL string `envconfig:"PUBLIC_URL"`
 }
 
 // Address returns the server address in host:port format.
