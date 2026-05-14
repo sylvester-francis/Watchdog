@@ -52,12 +52,13 @@ type NotifyConfig struct {
 	WebhookURL        string `envconfig:"WEBHOOK_URL"`
 
 	// Email (SMTP)
-	SMTPHost     string `envconfig:"SMTP_HOST"`
-	SMTPPort     int    `envconfig:"SMTP_PORT" default:"587"`
-	SMTPUsername string `envconfig:"SMTP_USERNAME"`
-	SMTPPassword string `envconfig:"SMTP_PASSWORD"`
-	SMTPFrom     string `envconfig:"SMTP_FROM"`
-	SMTPTo       string `envconfig:"SMTP_TO"`
+	SMTPHost               string `envconfig:"SMTP_HOST"`
+	SMTPPort               int    `envconfig:"SMTP_PORT" default:"587"`
+	SMTPUsername           string `envconfig:"SMTP_USERNAME"`
+	SMTPPassword           string `envconfig:"SMTP_PASSWORD"`
+	SMTPFrom               string `envconfig:"SMTP_FROM"`
+	SMTPTo                 string `envconfig:"SMTP_TO"`
+	SMTPTLSInsecureSkipVerify bool `envconfig:"SMTP_TLS_INSECURE_SKIP_VERIFY"`
 
 	// Telegram
 	TelegramBotToken string `envconfig:"TELEGRAM_BOT_TOKEN"`

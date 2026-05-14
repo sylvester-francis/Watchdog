@@ -50,6 +50,10 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # Set to "true" when relaying to a trusted local Postfix addressed by
+      # IP whose cert is for a different hostname (matches EE Kratos's
+      # `?skip_ssl_verify=true` flag). Default false = strict cert verify.
+      SMTP_TLS_INSECURE_SKIP_VERIFY: ${SMTP_TLS_INSECURE_SKIP_VERIFY:-false}
       # Public URL used to build reset links in email bodies. Falls back to
       # the first ALLOWED_ORIGIN if unset.
       PUBLIC_URL: ${PUBLIC_URL:-https://usewatchdog.dev}
