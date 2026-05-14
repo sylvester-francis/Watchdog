@@ -19,7 +19,7 @@ Monitor services behind firewalls, across data centers, and inside private netwo
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 
-[Quick Start](#quick-start) · [Features](#features) · [CLI](#cli) · [API](#api) · [Configuration](#configuration) · [Deployment](#deployment)
+[Quick Start](#quick-start) · [Features](#features) · [API](#scripting-with-the-api) · [Configuration](#configuration) · [Deployment](#deployment)
 
 ---
 
@@ -60,11 +60,10 @@ graph LR
 - **Port Scanning** — Multi-port scanning with banner grabbing and service detection
 - **Configurable Failure Threshold** — Default 3 consecutive failures before alerting (configurable 1-10 per monitor), eliminating false positives from transient network issues
 - **Incident Lifecycle** — Automatic incident creation, acknowledgment workflow, and resolution with TTR tracking
-- **Real-Time Dashboard** — Live status updates via SSE and HTMX, no page refresh needed
+- **Real-Time Dashboard** — Live status updates via SSE, no page refresh needed (SvelteKit frontend)
 - **Public Status Pages** — Create branded status pages with custom slugs for your users
 - **Zero-Config Agents** — Agents need only an API key. All monitoring tasks are pushed from the Hub
 - **Full REST API (v1)** — Complete CRUD for monitors, agents, and incidents with Bearer token auth
-- **CLI Tool** — Manage monitors, agents, and incidents from the command line
 - **Interactive API Docs** — Swagger UI at `/docs` with OpenAPI 3.0 spec
 - **6 Alert Channels** — Slack, Discord, Email (SMTP), Telegram, PagerDuty, and generic webhooks
 - **Security Audit Logging** — All CRUD operations tracked with viewer in System dashboard
@@ -131,13 +130,7 @@ graph TB
     DBCheck --> T1
 ```
 
-The system is split across three repositories:
-
-| Repository | Description | License |
-|------------|-------------|---------|
-| [watchdog](https://github.com/sylvester-francis/watchdog) (this repo) | Hub server — dashboard, API, alerting, data storage | AGPL-3.0 |
-| [watchdog-agent](https://github.com/sylvester-francis/watchdog-agent) | Lightweight monitoring agent binary | MIT |
-| [watchdog-proto](https://github.com/sylvester-francis/watchdog-proto) | Shared WebSocket message protocol | MIT |
+See [Related Repositories](#related-repositories) at the end of this README for the full list (hub, agent, shared protocol, and the published UI primitive package).
 
 ## Quick Start
 
@@ -287,42 +280,9 @@ exporters:
       Authorization: "Bearer wd_..."
 ```
 
-## API
+### Interactive docs and token format
 
-WatchDog exposes a REST API at `/api/v1` for programmatic access. Authenticate with a Bearer token generated from **Settings > API Tokens**.
-
-```bash
-# List all monitors
-curl -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/monitors
-
-# Create a monitor
-curl -X POST -H "Authorization: Bearer wd_a1b2c3..." -H "Content-Type: application/json" \
-  -d '{"name":"My API","type":"http","target":"https://api.example.com","agent_id":"..."}' \
-  https://usewatchdog.dev/api/v1/monitors
-
-# Update a monitor
-curl -X PUT -H "Authorization: Bearer wd_a1b2c3..." -H "Content-Type: application/json" \
-  -d '{"name":"Updated Name"}' \
-  https://usewatchdog.dev/api/v1/monitors/{id}
-
-# Delete a monitor
-curl -X DELETE -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/monitors/{id}
-
-# Acknowledge an incident
-curl -X POST -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/incidents/{id}/acknowledge
-
-# Resolve an incident
-curl -X POST -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/incidents/{id}/resolve
-
-# Dashboard stats
-curl -H "Authorization: Bearer wd_a1b2c3..." https://usewatchdog.dev/api/v1/dashboard/stats
-```
-
-Interactive API documentation is available at `/docs` (Swagger UI).
-
-### API Token Format
-
-Tokens use the format `wd_<32 hex chars>`. Only the SHA-256 hash is stored — the plaintext is shown once at creation and cannot be retrieved. Tokens are scoped (`admin` or `read_only`) and track the last-used IP address.
+Interactive API documentation is available at `/docs` (Swagger UI), and the OpenAPI 3.0 spec is published alongside it. Tokens use the format `wd_<32 hex chars>`. Only the SHA-256 hash is stored — the plaintext is shown once at creation and cannot be retrieved. Each token is bound to one of the three scopes listed above and the hub records its `last_used_at` and `last_used_ip`.
 
 ## Configuration
 
@@ -426,18 +386,6 @@ make sec              # gosec security scan
 make vuln             # govulncheck
 ```
 
-## Current Status
-
-WatchDog is in active development. All features are available to all users:
-
-- Up to 10 agents per account
-- Unlimited monitors and status pages
-- All check types: HTTP, TCP, Ping, DNS, TLS, Docker, Database, System, Service, Port Scan, SNMP, Network Discovery
-- All 6 alert channels
-- Full REST API access with scoped tokens
-- Security audit logging with System dashboard viewer
-- Agent fingerprinting for device identity verification
-
 ## Tech Stack
 
 | Component | Technology |
@@ -445,14 +393,13 @@ WatchDog is in active development. All features are available to all users:
 | Language | Go 1.25 |
 | Web Framework | Echo v4 |
 | Database | PostgreSQL 16 + TimescaleDB |
-| Frontend | SvelteKit + Tailwind CSS + Chart.js + Lucide Icons |
+| Frontend | SvelteKit + Tailwind CSS + Chart.js + Lucide |
 | UI Primitives | `@sylvester-francis/watchdog-ui@0.2.0` (Svelte 5, typed design tokens) |
 | Real-Time | WebSockets (agents) + SSE (dashboard) |
 | Auth | Argon2id passwords + AES-256-GCM encryption + gorilla/sessions |
-| API Auth | SHA-256 hashed Bearer tokens (`wd_` prefix) |
-| API Docs | OpenAPI 3.0 + Swagger UI |
-| CLI | Pure Go (zero external dependencies) |
-| Icons | Lucide |
+| API Auth | SHA-256 hashed Bearer tokens (`wd_` prefix), three scopes (admin / read_only / telemetry_ingest) |
+| API Docs | OpenAPI 3.0 + Swagger UI at `/docs` |
+| Telemetry | Native OTLP/HTTP receivers (`/v1/traces`, `/v1/logs`) — built-in trace explorer, no Tempo/Loki/Jaeger required |
 | Deployment | Docker Compose + Caddy on VPS |
 
 ## Related Repositories
