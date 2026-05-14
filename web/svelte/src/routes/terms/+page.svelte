@@ -21,7 +21,7 @@
 
 			<section>
 				<h2 class="text-base font-semibold text-foreground mb-2">2. Service Description</h2>
-				<p>WatchDog is an open-source, agent-based infrastructure monitoring platform. You deploy a lightweight agent binary inside your network. The agent performs outbound-only network checks (HTTP, TCP, ping, DNS, TLS) against targets you configure and reports results to the WatchDog hub over WebSocket. The agent does not access file systems, credentials, or user data on the machines where it runs.</p>
+				<p>WatchDog is an open-source, agent-based infrastructure monitoring platform. You deploy a lightweight agent binary inside your network. The agent performs outbound-only health checks against targets you configure — HTTP, TCP, Ping, DNS, TLS certificate inspection, Docker container state, database connectivity (PostgreSQL/MySQL/Redis), local system metrics (CPU/memory/disk), systemd or Windows service state, multi-port scanning, and SNMP v2c/v3 device polling — and reports the results to the WatchDog hub over WebSocket. The agent only collects what you configure and does not access file system contents, secrets, or any user data on the machines where it runs beyond those specific check results. See the <a href="/privacy" class="text-accent hover:underline">Privacy Policy</a> for the per-check-type detail.</p>
 			</section>
 
 			<section>

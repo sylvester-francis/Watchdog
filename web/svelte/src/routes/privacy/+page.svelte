@@ -27,15 +27,21 @@
 
 			<section>
 				<h2 class="text-base font-semibold text-foreground mb-2">2. What the Agent Collects</h2>
-				<p>The WatchDog agent performs <strong class="text-foreground">network checks only</strong>. Specifically:</p>
+				<p>The WatchDog agent performs <strong class="text-foreground">network and infrastructure health checks only</strong>. Depending on the monitor types you configure, the agent may collect:</p>
 				<ul class="list-disc list-inside mt-2 space-y-1 ml-2">
 					<li>HTTP response codes and latency</li>
 					<li>TCP connection success/failure and latency</li>
-					<li>ICMP ping round-trip times</li>
+					<li>ICMP-style ping round-trip times</li>
 					<li>DNS resolution results</li>
-					<li>TLS certificate metadata (expiry dates, issuer)</li>
+					<li>TLS certificate metadata (expiry dates, issuer, chain validity, key strength)</li>
+					<li>Docker container health/state for containers you explicitly monitor (via the local Docker socket)</li>
+					<li>Database connectivity status for endpoints you configure (PostgreSQL, MySQL, Redis — a single connectivity-only query, no row data is read)</li>
+					<li>Local system metrics — CPU, memory, and disk usage on the agent host — only when you configure a System monitor against the host</li>
+					<li>Service running-state for systemd or Windows services you explicitly monitor</li>
+					<li>Port scan results (open/closed status, optional banner strings) for hosts you explicitly scan</li>
+					<li>SNMP-polled metrics for network devices you explicitly monitor (v2c community string or v3 username — credentials are encrypted at rest on the hub)</li>
 				</ul>
-				<p class="mt-2">The agent does <strong class="text-foreground">not</strong> access file systems, credentials, environment variables, or any user data on the machines where it runs. The agent binary is open-source and fully auditable.</p>
+				<p class="mt-2">The agent <strong class="text-foreground">only collects what you configure</strong>. It does not access file system contents, environment variables, secrets, or any user data on the machines where it runs beyond the specific data points listed above. The agent binary is open-source and fully auditable.</p>
 			</section>
 
 			<section>
