@@ -51,7 +51,7 @@ graph LR
 
 - **Private Agent Architecture** — Monitor internal databases, APIs, and services without exposing them to the internet
 - **Distributed traces & logs (OTLP)** — Native OTLP/HTTP receivers at `/v1/traces` and `/v1/logs`. Any OpenTelemetry collector or SDK can push directly. Built-in trace explorer with waterfall, span detail, and logs correlated by `trace_id`. gzip Content-Encoding accepted. No Tempo, Loki, or Jaeger required.
-- **12 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), System metrics (CPU, memory, disk), Service monitoring (systemd/Windows services), Port Scanning with service detection, and SNMP device monitoring (v2c/v3)
+- **11 Check Types** — HTTP, TCP, Ping, DNS, TLS/SSL certificates, Docker containers, Databases (PostgreSQL, MySQL, Redis), System metrics (CPU, memory, disk), Service monitoring (systemd/Windows services), Port Scanning with service detection, and SNMP device monitoring (v2c/v3)
 - **SNMP Device Monitoring** — Monitor network devices with built-in templates for Cisco IOS, HP ProCurve, MikroTik, Ubiquiti, APC UPS, and generic SNMP devices
 - **Network Discovery** — Scan IP ranges to discover SNMP-enabled devices with automatic device type detection
 - **TLS Certificate Monitoring** — Track certificate expiry, get alerted before certs expire
@@ -71,7 +71,8 @@ graph LR
 - **API Key Scoping** — Admin, read-only, and telemetry-ingest token scopes with IP tracking
 - **Agent Fingerprinting** — Device identity verification on connect
 - **Brute Force Protection** — Per-IP and per-email login rate limiting with lockout
-- **Security Headers** — CSP, X-Frame-Options, HSTS, Permissions-Policy
+- **Security Headers** — CSP (nonce-based `script-src`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`, `object-src 'none'`), X-Frame-Options DENY, HSTS, Referrer-Policy, Permissions-Policy
+- **Outbound Webhook Signing** — Optional HMAC-SHA256 signing for webhook channels with timestamp + nonce headers for receiver-side replay protection (see [docs/webhooks.md](docs/webhooks.md))
 - **System Dashboard** — Audit log viewer, system health, migration status, runtime config overview
 
 ## Comparison
@@ -81,7 +82,7 @@ graph LR
 | Architecture | Distributed agents | Single server | Single server | SaaS |
 | Monitor private networks | Yes (agent runs locally) | Requires VPN/tunnels | Requires VPN/tunnels | No |
 | Inbound firewall rules | None needed | Needed for targets | Needed for targets | N/A |
-| Check types | 12 (HTTP, TCP, Ping, DNS, TLS, Docker, DB, System, Service, Port Scan, SNMP, Discovery) | HTTP, TCP, Ping, DNS, and more | HTTP, TCP, DNS, SSH, and more | HTTP, Ping, Port |
+| Check types | 11 + Network Discovery (HTTP, TCP, Ping, DNS, TLS, Docker, DB, System, Service, Port Scan, SNMP, plus SNMP-discovery scan) | HTTP, TCP, Ping, DNS, and more | HTTP, TCP, DNS, SSH, and more | HTTP, Ping, Port |
 | Agent configuration | Zero-config (hub pushes tasks) | N/A | Config file | N/A |
 | Public status pages | Yes | Yes | Yes | Paid |
 | REST API | Yes | Yes | No | Paid |
@@ -445,6 +446,7 @@ WatchDog is in active development. All features are available to all users:
 | Web Framework | Echo v4 |
 | Database | PostgreSQL 16 + TimescaleDB |
 | Frontend | SvelteKit + Tailwind CSS + Chart.js + Lucide Icons |
+| UI Primitives | `@sylvester-francis/watchdog-ui@0.2.0` (Svelte 5, typed design tokens) |
 | Real-Time | WebSockets (agents) + SSE (dashboard) |
 | Auth | Argon2id passwords + AES-256-GCM encryption + gorilla/sessions |
 | API Auth | SHA-256 hashed Bearer tokens (`wd_` prefix) |
@@ -459,6 +461,7 @@ WatchDog is in active development. All features are available to all users:
 |------------|-------------|---------|
 | [watchdog-agent](https://github.com/sylvester-francis/watchdog-agent) | Lightweight monitoring agent binary | MIT |
 | [watchdog-proto](https://github.com/sylvester-francis/watchdog-proto) | Shared WebSocket message protocol | MIT |
+| [watchdog-ui](https://github.com/sylvester-francis/watchdog-ui) | Svelte 5 design primitives + typed tokens (`@sylvester-francis/watchdog-ui`) | AGPL-3.0 |
 
 ## License
 

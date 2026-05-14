@@ -372,7 +372,7 @@
 						<Radar class="w-5 h-5 text-muted-foreground" />
 					</div>
 					<h3 class="text-sm font-semibold text-foreground mb-1.5">2. Agent runs checks</h3>
-					<p class="text-sm text-muted-foreground leading-relaxed">HTTP, TCP, Ping, DNS, TLS, Docker, database, system metrics, service, and port scan. The hub pushes monitor configs to the agent over WebSocket. The agent reports back.</p>
+					<p class="text-sm text-muted-foreground leading-relaxed">HTTP, TCP, Ping, DNS, TLS, Docker, database, system metrics, service, port scan, and SNMP. The hub pushes monitor configs to the agent over WebSocket. The agent reports back.</p>
 				</div>
 				<div class="text-center relative">
 					<div class="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3 relative z-10">

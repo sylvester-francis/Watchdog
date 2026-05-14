@@ -96,12 +96,16 @@ OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<api_key>
 - **Logs**: every `slog` log record (Info, Warn, Error, Debug) is emitted to both stdout/stderr (Docker-friendly) AND the OTel logs exporter when an endpoint is configured. The bridge captures structured attributes (`slog.String`, `slog.Int`, etc.) as OTel log attributes.
 - **Metrics**: HTTP request latency (`watchdog_http_request_duration_seconds`), heartbeat processing latency (`watchdog_heartbeat_processing_seconds`), active WebSocket agents (`watchdog_ws_connections_active`), DB pool acquired connections (`watchdog_db_pool_active_connections`), and active incidents by status (`watchdog_incidents_active`). The OTel meter is the single source of truth — values flow out to the Prometheus `/metrics` endpoint via the otelprom reader and to OTLP receivers via the periodic push reader when telemetry is enabled.
 
+### Agent-side instrumentation
+
+The agent (`watchdog-agent`) shares the same gate semantics — set `OTEL_EXPORTER_OTLP_ENDPOINT` and traces+logs flow. Each monitor check runs inside an INTERNAL parent span named `monitor.check` with attributes `monitor.id`, `monitor.type`, `monitor.target`, `monitor.status`, `monitor.latency_ms`. HTTP probes nest an `otelhttp` CLIENT child span (`HTTP GET`). Heartbeat log records inherit the active span's `trace_id`/`span_id` automatically via the `otelslog` bridge — the hub's `/traces/<id>` page shows them under "Logs in this trace" without manual correlation. Failed checks set `span.SetStatus(codes.Error, errMsg)`. See `watchdog-agent/docs/telemetry-otel.md` for the full per-check-type matrix.
+
 ## What's not instrumented yet (planned)
 
 - Outbound DB queries (pgx instrumentation)
 - WebSocket heartbeat processing spans
 - Workflow job execution
-- Agent-side spans, logs, and metrics (separate milestone)
+- Per-check-type child spans inside the agent runners (TCP, ICMP, DNS, TLS, Docker, Database, System, Service, SNMP, port-scan) — only the parent `monitor.check` span exists today
 
 ## Verifying the pipeline
 

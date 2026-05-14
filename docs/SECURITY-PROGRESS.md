@@ -25,8 +25,8 @@ Tracking sheet for all items from `watchdog-security-spec.md`.
 | ID | Item | Status | Notes |
 |----|------|--------|-------|
 | R-1 | Cert expiry auto-alerting (< 14 days) | Deferred | Needs alert channel integration for cert-specific triggers |
-| R-2 | Webhook signature verification (HMAC-SHA256) | Deferred | Outbound webhook signing for consumers |
+| R-2 | Webhook signature verification (HMAC-SHA256) | Done | PR #119 — outbound HMAC-SHA256 + timestamp + nonce headers, replay-protected. Verification recipes in `docs/webhooks.md` |
 | R-3 | IP allowlisting for API tokens | Deferred | Per-token CIDR list |
 | R-4 | Agent binary signing / checksum verification | Deferred | Needs release pipeline integration |
-| R-5 | Full audit log viewer in admin UI | Deferred | Data is being collected; needs admin page |
+| R-5 | Full audit log viewer in admin UI | Done | PR #194 — `/admin/audit` page with category filters, action filters, date range, pagination, mono semantic-color action labels |
 | R-6 | SOC 2 / compliance documentation | Deferred | Process documentation |
