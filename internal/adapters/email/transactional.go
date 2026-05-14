@@ -9,6 +9,7 @@ package email
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/smtp"
 )
@@ -20,6 +21,11 @@ type Config struct {
 	Username string
 	Password string
 	From     string
+	// InsecureSkipVerify disables TLS certificate verification on the
+	// STARTTLS upgrade. Use this when relaying to a trusted local Postfix
+	// reached by IP whose cert is for a different hostname (matches the
+	// `?skip_ssl_verify=true` flag the EE Kratos courier uses).
+	InsecureSkipVerify bool
 }
 
 // TransactionalSender sends plain-text emails to dynamic recipients via SMTP.
@@ -38,7 +44,10 @@ func NewTransactionalSender(cfg Config) *TransactionalSender {
 	return s
 }
 
-// Send delivers a plain-text message to a single recipient.
+// Send delivers a plain-text message to a single recipient. Drives the SMTP
+// conversation manually (rather than calling smtp.SendMail) so we can pass a
+// custom *tls.Config to StartTLS — needed when the relay's cert hostname
+// doesn't match how we address it (e.g. dialing by IP).
 func (s *TransactionalSender) Send(_ context.Context, to, subject, body string) error {
 	if s.cfg.Host == "" || s.cfg.From == "" {
 		return fmt.Errorf("transactional email not configured (SMTP_HOST/SMTP_FROM missing)")
@@ -48,10 +57,53 @@ func (s *TransactionalSender) Send(_ context.Context, to, subject, body string) 
 		s.cfg.From, to, subject, body,
 	)
 	addr := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.Port)
-	if err := smtp.SendMail(addr, s.auth, s.cfg.From, []string{to}, []byte(msg)); err != nil {
-		return fmt.Errorf("send transactional mail: %w", err)
+
+	c, err := smtp.Dial(addr)
+	if err != nil {
+		return fmt.Errorf("smtp dial %s: %w", addr, err)
 	}
-	return nil
+	defer c.Close()
+
+	if err := c.Hello("localhost"); err != nil {
+		return fmt.Errorf("smtp hello: %w", err)
+	}
+
+	// Upgrade to TLS if the server advertises STARTTLS (most modern relays do).
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		tlsCfg := &tls.Config{
+			ServerName:         s.cfg.Host,
+			InsecureSkipVerify: s.cfg.InsecureSkipVerify, //nolint:gosec // intentional for local-network relays addressed by IP
+		}
+		if err := c.StartTLS(tlsCfg); err != nil {
+			return fmt.Errorf("smtp starttls: %w", err)
+		}
+	}
+
+	if s.auth != nil {
+		if ok, _ := c.Extension("AUTH"); ok {
+			if err := c.Auth(s.auth); err != nil {
+				return fmt.Errorf("smtp auth: %w", err)
+			}
+		}
+	}
+
+	if err := c.Mail(s.cfg.From); err != nil {
+		return fmt.Errorf("smtp mail from: %w", err)
+	}
+	if err := c.Rcpt(to); err != nil {
+		return fmt.Errorf("smtp rcpt: %w", err)
+	}
+	w, err := c.Data()
+	if err != nil {
+		return fmt.Errorf("smtp data: %w", err)
+	}
+	if _, err := w.Write([]byte(msg)); err != nil {
+		return fmt.Errorf("smtp write: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return fmt.Errorf("smtp close data: %w", err)
+	}
+	return c.Quit()
 }
 
 // Configured reports whether the sender has the minimum SMTP_HOST + SMTP_FROM

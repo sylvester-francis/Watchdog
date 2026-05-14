@@ -136,11 +136,12 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 	// The TransactionalSender uses the same SMTP env vars as alert email but
 	// sends to per-user recipients (bypasses SMTP_TO which is alert-channel-only).
 	passwordResetMailer := email.NewTransactionalSender(email.Config{
-		Host:     deps.Config.Notify.SMTPHost,
-		Port:     deps.Config.Notify.SMTPPort,
-		Username: deps.Config.Notify.SMTPUsername,
-		Password: deps.Config.Notify.SMTPPassword,
-		From:     deps.Config.Notify.SMTPFrom,
+		Host:               deps.Config.Notify.SMTPHost,
+		Port:               deps.Config.Notify.SMTPPort,
+		Username:           deps.Config.Notify.SMTPUsername,
+		Password:           deps.Config.Notify.SMTPPassword,
+		From:               deps.Config.Notify.SMTPFrom,
+		InsecureSkipVerify: deps.Config.Notify.SMTPTLSInsecureSkipVerify,
 	})
 	if passwordResetMailer.Configured() {
 		passwordResetRepo := repository.NewPasswordResetTokenRepository(deps.DB)
