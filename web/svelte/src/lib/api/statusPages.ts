@@ -53,3 +53,10 @@ export function deleteStatusPage(id: string): Promise<void> {
 export function getPublicStatusPage(username: string, slug: string): Promise<PublicStatusPageData> {
 	return api.get<PublicStatusPageData>(`/api/v1/public/status/${username}/${slug}`);
 }
+
+export function subscribeToStatusPage(username: string, slug: string, email: string): Promise<{ message: string }> {
+	return api.post<{ message: string }>(
+		`/api/v1/public/status/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/subscribe`,
+		{ email }
+	);
+}

@@ -13,18 +13,28 @@ import (
 	"github.com/sylvester-francis/watchdog/internal/workflows"
 )
 
+// IncidentOpenedNotifier is an optional hook called when a new incident fires.
+// Implemented by *StatusPageSubscriberService (and anything else that wants to
+// react to incident-opened events without coupling through the alert pipeline).
+// Implementations should be fire-and-forget — they cannot block the alert path
+// and must not return errors.
+type IncidentOpenedNotifier interface {
+	OnIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor)
+}
+
 // IncidentService implements ports.IncidentService for incident lifecycle management.
 type IncidentService struct {
-	incidentRepo     ports.IncidentRepository
-	monitorRepo      ports.MonitorRepository
-	agentRepo        ports.AgentRepository
-	heartbeatRepo    ports.HeartbeatRepository
-	alertChannelRepo ports.AlertChannelRepository
-	notifier         ports.Notifier         // global notifier (env-based, server admin fallback)
-	notifierFactory  ports.NotifierFactory  // builds per-user notifiers from alert channels
-	workflowEngine   ports.WorkflowEngine   // optional: durable alert dispatch
-	transactor       ports.Transactor
-	logger           *slog.Logger
+	incidentRepo       ports.IncidentRepository
+	monitorRepo        ports.MonitorRepository
+	agentRepo          ports.AgentRepository
+	heartbeatRepo      ports.HeartbeatRepository
+	alertChannelRepo   ports.AlertChannelRepository
+	notifier           ports.Notifier         // global notifier (env-based, server admin fallback)
+	notifierFactory    ports.NotifierFactory  // builds per-user notifiers from alert channels
+	workflowEngine     ports.WorkflowEngine   // optional: durable alert dispatch
+	subscriberNotifier IncidentOpenedNotifier // optional: status page subscriber emails
+	transactor         ports.Transactor
+	logger             *slog.Logger
 }
 
 // NewIncidentService creates a new IncidentService.
@@ -60,6 +70,13 @@ func NewIncidentService(
 // If nil, falls back to direct dispatch (backward-compatible).
 func (s *IncidentService) SetWorkflowEngine(engine ports.WorkflowEngine) {
 	s.workflowEngine = engine
+}
+
+// SetSubscriberNotifier registers an optional incident-opened hook for
+// status page subscriber notifications. Called fire-and-forget alongside
+// the regular alert dispatch path.
+func (s *IncidentService) SetSubscriberNotifier(notifier IncidentOpenedNotifier) {
+	s.subscriberNotifier = notifier
 }
 
 // GetIncident retrieves an incident by ID.
@@ -383,6 +400,12 @@ func (s *IncidentService) NotifyAgentMaintenance(ctx context.Context, agentID uu
 // dispatchAlert routes notifications through the workflow engine if available,
 // falling back to direct dispatch for backward compatibility.
 func (s *IncidentService) dispatchAlert(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor, opened bool) {
+	// Status page subscriber notifications run alongside the regular alert
+	// pipeline (workflow OR direct dispatch below). Fire-and-forget: failures
+	// here are logged inside the notifier and don't block alert dispatch.
+	if opened && s.subscriberNotifier != nil {
+		go s.subscriberNotifier.OnIncidentOpened(context.Background(), incident, monitor)
+	}
 	if s.workflowEngine != nil {
 		s.submitAlertWorkflow(ctx, incident, monitor, opened)
 		return

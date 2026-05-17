@@ -666,6 +666,7 @@ type MockStatusPageRepository struct {
 	SetMonitorsFn          func(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
 	SetMonitorsInTenantFn  func(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
 	GetMonitorIDsFn        func(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
+	FindPagesByMonitorIDFn func(ctx context.Context, monitorID uuid.UUID) ([]*domain.StatusPage, error)
 	SlugExistsForUserFn    func(ctx context.Context, userID uuid.UUID, slug string) (bool, error)
 }
 
@@ -735,6 +736,13 @@ func (m *MockStatusPageRepository) SetMonitorsInTenant(ctx context.Context, page
 func (m *MockStatusPageRepository) GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error) {
 	if m.GetMonitorIDsFn != nil {
 		return m.GetMonitorIDsFn(ctx, pageID)
+	}
+	return nil, nil
+}
+
+func (m *MockStatusPageRepository) FindPagesByMonitorID(ctx context.Context, monitorID uuid.UUID) ([]*domain.StatusPage, error) {
+	if m.FindPagesByMonitorIDFn != nil {
+		return m.FindPagesByMonitorIDFn(ctx, monitorID)
 	}
 	return nil, nil
 }
