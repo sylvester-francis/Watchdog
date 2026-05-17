@@ -13,7 +13,7 @@ import (
 	echomw "github.com/labstack/echo/v4/middleware"
 
 	"github.com/sylvester-francis/watchdog/core/domain"
-	"github.com/sylvester-francis/watchdog/internal/adapters/email"
+	"github.com/sylvester-francis/watchdog/email"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/handlers"
 	"github.com/sylvester-francis/watchdog/internal/adapters/http/middleware"
 	"github.com/sylvester-francis/watchdog/internal/adapters/repository"
