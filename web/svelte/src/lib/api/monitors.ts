@@ -1,6 +1,25 @@
 import { api } from './client';
 import type { Monitor, MonitorSummary, HeartbeatPoint, LatencyPoint, DashboardStats, CertDetails, SLAResponse, DeviceTemplate } from '$lib/types';
 
+export interface LatencyAnomaly {
+	monitor_id: string;
+	agent_id: string;
+	time: string;
+	latency_ms: number;
+	z_score: number;
+	method: 'zscore' | 'iqr' | 'both';
+}
+
+export function getMonitorAnomalies(monitorId: string, windowSeconds?: number): Promise<{ data: LatencyAnomaly[] }> {
+	const q = windowSeconds ? `?window=${windowSeconds}` : '';
+	return api.get<{ data: LatencyAnomaly[] }>(`/api/v1/monitors/${monitorId}/anomalies${q}`);
+}
+
+export function getMonitorAnomalyCount(monitorId: string, windowSeconds?: number): Promise<{ count: number }> {
+	const q = windowSeconds ? `?window=${windowSeconds}` : '';
+	return api.get<{ count: number }>(`/api/v1/monitors/${monitorId}/anomalies/count${q}`);
+}
+
 interface MonitorListResponse {
 	data: Monitor[];
 }

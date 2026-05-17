@@ -9,6 +9,7 @@
 	import MonitorHeader from '$lib/components/monitors/MonitorHeader.svelte';
 	import MonitorStats from '$lib/components/monitors/MonitorStats.svelte';
 	import LatencyChart from '$lib/components/monitors/LatencyChart.svelte';
+	import AnomalyList from '$lib/components/monitors/AnomalyList.svelte';
 	import MetricChart from '$lib/components/monitors/MetricChart.svelte';
 	import StatusChart from '$lib/components/monitors/StatusChart.svelte';
 	import CertExpiryChart from '$lib/components/monitors/CertExpiryChart.svelte';
@@ -199,6 +200,8 @@
 			{/if}
 
 			<RecentChecks {monitorId} monitorType={monitor.type} />
+
+			<AnomalyList {monitorId} />
 
 			<DangerZone {monitorId} />
 		</div>
