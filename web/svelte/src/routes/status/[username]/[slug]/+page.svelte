@@ -13,6 +13,28 @@
 	let username = $derived((page.params as Record<string, string>).username?.replace(/^@/, '') ?? '');
 	let slug = $derived((page.params as Record<string, string>).slug ?? '');
 
+	// Subscribe form state — anti-enumeration means we always show the same
+	// success message regardless of whether the email is new / pending / active.
+	let subscriberEmail = $state('');
+	let subscribeSubmitting = $state(false);
+	let subscribeMessage = $state('');
+
+	async function handleSubscribe(e: Event) {
+		e.preventDefault();
+		if (!subscriberEmail) return;
+		subscribeSubmitting = true;
+		try {
+			const res = await statusPagesApi.subscribeToStatusPage(username, slug, subscriberEmail);
+			subscribeMessage = res.message;
+		} catch {
+			// Backend always returns 200 — any error here is a network failure.
+			// Fall back to the same generic message (don't leak diagnostic info).
+			subscribeMessage = 'If that email is valid, we’ve sent a confirmation link.';
+		} finally {
+			subscribeSubmitting = false;
+		}
+	}
+
 	function statusPipClass(status: string): string {
 		if (status === 'up') return 'bg-success';
 		if (status === 'down') return 'bg-destructive';
@@ -284,9 +306,27 @@
 						<Bell class="mr-1 inline-block h-3 w-3" />
 						Get notified when something goes wrong.
 					</p>
-					<button disabled class="cursor-not-allowed border border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-						Coming Soon
-					</button>
+					{#if subscribeMessage}
+						<p class="text-xs text-success">{subscribeMessage}</p>
+					{:else}
+						<form onsubmit={handleSubscribe} class="flex w-full max-w-md gap-2 sm:w-auto">
+							<input
+								type="email"
+								bind:value={subscriberEmail}
+								required
+								placeholder="you@example.com"
+								disabled={subscribeSubmitting}
+								class="flex-1 border border-border bg-card-elevated px-3 py-1.5 text-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:opacity-50"
+							/>
+							<button
+								type="submit"
+								disabled={subscribeSubmitting}
+								class="border border-border bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90 disabled:opacity-50"
+							>
+								{subscribeSubmitting ? 'Sending…' : 'Subscribe'}
+							</button>
+						</form>
+					{/if}
 				</div>
 			</section>
 
