@@ -75,6 +75,36 @@ func (r *StatusPageRepository) GetByUserAndSlug(ctx context.Context, username, s
 	return page, nil
 }
 
+// FindPagesByMonitorID returns all status pages that contain the given monitor.
+// Used by the incident-opened hook to fan out subscriber notifications. Tenant
+// scoping is implicit: a monitor exists in exactly one tenant, so the join
+// can only return pages from that same tenant.
+func (r *StatusPageRepository) FindPagesByMonitorID(ctx context.Context, monitorID uuid.UUID) ([]*domain.StatusPage, error) {
+	q := r.db.Querier(ctx)
+
+	rows, err := q.Query(ctx,
+		`SELECT DISTINCT sp.id, sp.user_id, sp.name, sp.slug, sp.description, sp.is_public, sp.created_at, sp.updated_at
+		 FROM status_pages sp
+		 JOIN status_page_monitors spm ON spm.status_page_id = sp.id
+		 WHERE spm.monitor_id = $1`,
+		monitorID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("find pages by monitor: %w", err)
+	}
+	defer rows.Close()
+
+	var pages []*domain.StatusPage
+	for rows.Next() {
+		p := &domain.StatusPage{}
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.Slug, &p.Description, &p.IsPublic, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan status page: %w", err)
+		}
+		pages = append(pages, p)
+	}
+	return pages, rows.Err()
+}
+
 // GetByUserID returns all status pages for a user.
 func (r *StatusPageRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.StatusPage, error) {
 	q := r.db.Querier(ctx)

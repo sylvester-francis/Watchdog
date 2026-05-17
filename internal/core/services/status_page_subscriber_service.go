@@ -26,18 +26,22 @@ type StatusPageSubscriberMailer interface {
 // StatusPageSubscriberService orchestrates the subscribe / confirm / unsubscribe
 // / notify flows. Anti-enumerating on Subscribe; idempotent on Confirm + Unsubscribe.
 type StatusPageSubscriberService struct {
-	repo   ports.StatusPageSubscriberRepository
-	mailer StatusPageSubscriberMailer
-	appURL string
+	repo        ports.StatusPageSubscriberRepository
+	statusPages ports.StatusPageRepository // for resolving monitor → pages in OnIncidentOpened
+	mailer      StatusPageSubscriberMailer
+	appURL      string
 }
 
-// NewStatusPageSubscriberService constructs the service.
+// NewStatusPageSubscriberService constructs the service. statusPages is
+// optional — pass nil if the consumer only needs Subscribe / Confirm /
+// Unsubscribe (e.g. tests that don't exercise the incident hook).
 func NewStatusPageSubscriberService(
 	repo ports.StatusPageSubscriberRepository,
+	statusPages ports.StatusPageRepository,
 	mailer StatusPageSubscriberMailer,
 	appURL string,
 ) *StatusPageSubscriberService {
-	return &StatusPageSubscriberService{repo: repo, mailer: mailer, appURL: appURL}
+	return &StatusPageSubscriberService{repo: repo, statusPages: statusPages, mailer: mailer, appURL: appURL}
 }
 
 // Subscribe generates (or refreshes) a subscriber row + sends a confirmation
@@ -158,6 +162,34 @@ func (s *StatusPageSubscriberService) NotifyIncidentOpened(
 		}
 	}
 	return nil
+}
+
+// OnIncidentOpened is the hook IncidentService calls when a new incident
+// fires. Resolves which status pages contain the monitor, then notifies the
+// active subscribers on each page. No-op if statusPages wasn't injected.
+// Fire-and-forget from the caller's perspective — failures logged not returned.
+func (s *StatusPageSubscriberService) OnIncidentOpened(ctx context.Context, incident *domain.Incident, monitor *domain.Monitor) {
+	if s.statusPages == nil || monitor == nil {
+		return
+	}
+	pages, err := s.statusPages.FindPagesByMonitorID(ctx, monitor.ID)
+	if err != nil {
+		slog.Error("subscriber notify: find pages",
+			slog.String("monitor_id", monitor.ID.String()),
+			slog.String("error", err.Error()))
+		return
+	}
+	errMsg := ""
+	if incident != nil && incident.AlertContext != nil {
+		errMsg = incident.AlertContext.ErrorMessage
+	}
+	for _, page := range pages {
+		if err := s.NotifyIncidentOpened(ctx, page.ID, page.Name, monitor, errMsg); err != nil {
+			slog.Error("subscriber notify: page fan-out failed",
+				slog.String("page_id", page.ID.String()),
+				slog.String("error", err.Error()))
+		}
+	}
 }
 
 // rotateToken generates a fresh plaintext token, hashes + persists it on the

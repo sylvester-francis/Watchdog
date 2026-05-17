@@ -99,7 +99,7 @@ func (m *recordingMailer) Send(_ context.Context, to, subject, body string) erro
 func TestSubscribe_FirstTime_SendsConfirmationEmail(t *testing.T) {
 	repo := newFakeSubRepo()
 	mailer := &recordingMailer{}
-	svc := NewStatusPageSubscriberService(repo, mailer, "https://app.test")
+	svc := NewStatusPageSubscriberService(repo, nil, mailer, "https://app.test")
 
 	require.NoError(t, svc.Subscribe(context.Background(), uuid.New(), "Page A", "alice@example.com"))
 	require.Len(t, mailer.calls, 1)
@@ -112,7 +112,7 @@ func TestSubscribe_AlreadyActive_IsNoOp(t *testing.T) {
 	pageID := uuid.New()
 	repo := newFakeSubRepo()
 	mailer := &recordingMailer{}
-	svc := NewStatusPageSubscriberService(repo, mailer, "https://app.test")
+	svc := NewStatusPageSubscriberService(repo, nil, mailer, "https://app.test")
 
 	// First subscribe + confirm.
 	require.NoError(t, svc.Subscribe(context.Background(), pageID, "Page A", "bob@example.com"))
@@ -128,7 +128,7 @@ func TestSubscribe_AlreadyActive_IsNoOp(t *testing.T) {
 func TestConfirm_ValidToken(t *testing.T) {
 	pageID := uuid.New()
 	repo := newFakeSubRepo()
-	svc := NewStatusPageSubscriberService(repo, &recordingMailer{}, "https://app.test")
+	svc := NewStatusPageSubscriberService(repo, nil, &recordingMailer{}, "https://app.test")
 
 	sub, plaintext, _ := domain.GenerateStatusPageSubscriber(pageID, "carol@example.com")
 	repo.Upsert(context.Background(), sub)
@@ -139,7 +139,7 @@ func TestConfirm_ValidToken(t *testing.T) {
 }
 
 func TestConfirm_InvalidToken(t *testing.T) {
-	svc := NewStatusPageSubscriberService(newFakeSubRepo(), &recordingMailer{}, "")
+	svc := NewStatusPageSubscriberService(newFakeSubRepo(), nil, &recordingMailer{}, "")
 	err := svc.Confirm(context.Background(), "wd_sub_garbage")
 	assert.True(t, errors.Is(err, ErrInvalidSubscriberToken))
 }
@@ -147,7 +147,7 @@ func TestConfirm_InvalidToken(t *testing.T) {
 func TestConfirm_Idempotent(t *testing.T) {
 	pageID := uuid.New()
 	repo := newFakeSubRepo()
-	svc := NewStatusPageSubscriberService(repo, &recordingMailer{}, "")
+	svc := NewStatusPageSubscriberService(repo, nil, &recordingMailer{}, "")
 
 	sub, plaintext, _ := domain.GenerateStatusPageSubscriber(pageID, "dan@example.com")
 	repo.Upsert(context.Background(), sub)
@@ -159,7 +159,7 @@ func TestConfirm_Idempotent(t *testing.T) {
 func TestUnsubscribe_Idempotent(t *testing.T) {
 	pageID := uuid.New()
 	repo := newFakeSubRepo()
-	svc := NewStatusPageSubscriberService(repo, &recordingMailer{}, "")
+	svc := NewStatusPageSubscriberService(repo, nil, &recordingMailer{}, "")
 
 	sub, plaintext, _ := domain.GenerateStatusPageSubscriber(pageID, "eve@example.com")
 	repo.Upsert(context.Background(), sub)
@@ -170,7 +170,7 @@ func TestUnsubscribe_Idempotent(t *testing.T) {
 }
 
 func TestUnsubscribe_InvalidToken(t *testing.T) {
-	svc := NewStatusPageSubscriberService(newFakeSubRepo(), &recordingMailer{}, "")
+	svc := NewStatusPageSubscriberService(newFakeSubRepo(), nil, &recordingMailer{}, "")
 	err := svc.Unsubscribe(context.Background(), "wd_sub_garbage")
 	assert.True(t, errors.Is(err, ErrInvalidSubscriberToken))
 }
@@ -179,7 +179,7 @@ func TestNotifyIncidentOpened_FansOutToActive(t *testing.T) {
 	pageID := uuid.New()
 	repo := newFakeSubRepo()
 	mailer := &recordingMailer{}
-	svc := NewStatusPageSubscriberService(repo, mailer, "https://app.test")
+	svc := NewStatusPageSubscriberService(repo, nil, mailer, "https://app.test")
 
 	// Three subs: confirmed+active (x2), confirmed+unsubscribed (skipped).
 	for _, email := range []string{"active1@x.co", "active2@x.co"} {
@@ -206,7 +206,7 @@ func TestNotifyIncidentOpened_FansOutToActive(t *testing.T) {
 
 func TestNotifyIncidentOpened_NoSubscribers(t *testing.T) {
 	repo := newFakeSubRepo()
-	svc := NewStatusPageSubscriberService(repo, &recordingMailer{}, "")
+	svc := NewStatusPageSubscriberService(repo, nil, &recordingMailer{}, "")
 
 	err := svc.NotifyIncidentOpened(context.Background(), uuid.New(), "Empty Page", &domain.Monitor{Name: "x"}, "")
 	assert.NoError(t, err)

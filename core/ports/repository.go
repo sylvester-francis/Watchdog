@@ -147,6 +147,9 @@ type StatusPageRepository interface {
 	SetMonitors(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
 	SetMonitorsInTenant(ctx context.Context, pageID uuid.UUID, monitorIDs []uuid.UUID) error
 	GetMonitorIDs(ctx context.Context, pageID uuid.UUID) ([]uuid.UUID, error)
+	// FindPagesByMonitorID returns all status pages that include the given
+	// monitor. Used by the incident-opened hook to fan out subscriber emails.
+	FindPagesByMonitorID(ctx context.Context, monitorID uuid.UUID) ([]*domain.StatusPage, error)
 	SlugExistsForUser(ctx context.Context, userID uuid.UUID, slug string) (bool, error)
 }
 

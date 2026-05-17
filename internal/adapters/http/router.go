@@ -68,9 +68,10 @@ type Router struct {
 	wsHandler            *handlers.WSHandler
 	apiHandler           *handlers.APIHandler
 	apiV1Handler         *handlers.APIV1Handler
-	authAPIHandler       *handlers.AuthAPIHandler
-	passwordResetHandler *handlers.PasswordResetHandler
-	anomalyHandler       *handlers.AnomalyHandler
+	authAPIHandler              *handlers.AuthAPIHandler
+	passwordResetHandler        *handlers.PasswordResetHandler
+	anomalyHandler              *handlers.AnomalyHandler
+	statusPageSubscriberHandler *handlers.StatusPageSubscriberHandler
 	settingsAPIHandler   *handlers.SettingsAPIHandler
 	statusPageAPIHandler *handlers.StatusPageAPIHandler
 	systemAPIHandler     *handlers.SystemAPIHandler
@@ -157,8 +158,25 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 		passwordResetSvc := services.NewPasswordResetService(passwordResetRepo, deps.UserRepo, passwordResetMailer, deps.Hasher, appURL)
 		r.passwordResetHandler = handlers.NewPasswordResetHandler(passwordResetSvc, loginLimiter, deps.AuditService)
 		logger.Info("password reset endpoints enabled", slog.String("app_url", appURL))
+
+		// Status page subscriber emails — reuses the same SMTP transport.
+		// Hooks into IncidentService via OnIncidentOpened so a fired incident
+		// fans out per-subscriber notifications for each status page that
+		// contains the monitor.
+		subRepo := repository.NewStatusPageSubscriberRepository(deps.DB)
+		subSvc := services.NewStatusPageSubscriberService(subRepo, deps.StatusPageRepo, passwordResetMailer, appURL)
+		r.statusPageSubscriberHandler = handlers.NewStatusPageSubscriberHandler(subSvc, deps.StatusPageRepo, loginLimiter)
+		if setter, ok := deps.IncidentService.(interface {
+			SetSubscriberNotifier(notifier services.IncidentOpenedNotifier)
+		}); ok {
+			setter.SetSubscriberNotifier(subSvc)
+			logger.Info("status page subscriber notifications wired into incident service")
+		} else {
+			logger.Warn("IncidentService does not expose SetSubscriberNotifier — subscriber notifications won't fire on incidents")
+		}
+		logger.Info("status page subscriber endpoints enabled")
 	} else {
-		logger.Info("password reset endpoints disabled (SMTP_HOST/SMTP_FROM not set)")
+		logger.Info("password reset + status page subscriber endpoints disabled (SMTP_HOST/SMTP_FROM not set)")
 	}
 
 	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
@@ -287,6 +305,13 @@ func (r *Router) RegisterRoutes() {
 	if r.passwordResetHandler != nil {
 		v1Public.POST("/auth/password/request", r.passwordResetHandler.RequestReset, authRL, loginLLJSON)
 		v1Public.POST("/auth/password/reset", r.passwordResetHandler.CompleteReset, authRL, loginLLJSON)
+	}
+
+	// Public status page subscriber endpoints (same SMTP gate as above).
+	if r.statusPageSubscriberHandler != nil {
+		v1Public.POST("/public/status/:username/:slug/subscribe", r.statusPageSubscriberHandler.Subscribe, authRL, loginLLJSON)
+		v1Public.GET("/public/status-subscriber/confirm", r.statusPageSubscriberHandler.Confirm)
+		v1Public.GET("/public/status-subscriber/unsubscribe", r.statusPageSubscriberHandler.Unsubscribe)
 	}
 
 	// Public status page API (no auth required)
