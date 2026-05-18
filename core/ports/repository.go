@@ -106,6 +106,8 @@ type HeartbeatRepository interface {
 	GetRecentFailures(ctx context.Context, monitorID uuid.UUID, count int) ([]*domain.Heartbeat, error)
 	GetUptimePercent(ctx context.Context, monitorID uuid.UUID, since time.Time) (float64, error)
 	GetLatencyHistory(ctx context.Context, monitorID uuid.UUID, since time.Time, bucketInterval string) ([]domain.LatencyPoint, error)
+	GetLatencyPercentiles(ctx context.Context, monitorID uuid.UUID, from, to time.Time, bucketInterval string) ([]domain.LatencyPercentilePoint, error)
+	GetLatencyPercentileSummary(ctx context.Context, monitorID uuid.UUID, from, to time.Time) (domain.LatencyTrendSummary, error)
 	DeleteOlderThan(ctx context.Context, before time.Time) (int64, error)
 }
 

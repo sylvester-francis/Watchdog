@@ -1,23 +1,33 @@
 import { api } from './client';
 import type { Monitor, MonitorSummary, HeartbeatPoint, LatencyPoint, DashboardStats, CertDetails, SLAResponse, DeviceTemplate } from '$lib/types';
 
-export interface LatencyAnomaly {
-	monitor_id: string;
-	agent_id: string;
+export type TrendWindow = '7d' | '30d' | '90d';
+
+export interface LatencyPercentilePoint {
 	time: string;
-	latency_ms: number;
-	z_score: number;
-	method: 'zscore' | 'iqr' | 'both';
+	p50: number;
+	p95: number;
+	p99: number;
+	sample_count: number;
 }
 
-export function getMonitorAnomalies(monitorId: string, windowSeconds?: number): Promise<{ data: LatencyAnomaly[] }> {
-	const q = windowSeconds ? `?window=${windowSeconds}` : '';
-	return api.get<{ data: LatencyAnomaly[] }>(`/api/v1/monitors/${monitorId}/anomalies${q}`);
+export interface LatencyTrendSummary {
+	p50: number;
+	p95: number;
+	p99: number;
+	sample_count: number;
 }
 
-export function getMonitorAnomalyCount(monitorId: string, windowSeconds?: number): Promise<{ count: number }> {
-	const q = windowSeconds ? `?window=${windowSeconds}` : '';
-	return api.get<{ count: number }>(`/api/v1/monitors/${monitorId}/anomalies/count${q}`);
+export interface LatencyTrend {
+	window_seconds: number;
+	bucket_interval: string;
+	points: LatencyPercentilePoint[];
+	current: LatencyTrendSummary;
+	previous: LatencyTrendSummary;
+}
+
+export function getLatencyTrend(monitorId: string, window: TrendWindow = '7d'): Promise<LatencyTrend> {
+	return api.get<LatencyTrend>(`/api/v1/monitors/${monitorId}/latency-trend?window=${window}`);
 }
 
 interface MonitorListResponse {

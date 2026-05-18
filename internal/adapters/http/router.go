@@ -70,7 +70,7 @@ type Router struct {
 	apiV1Handler         *handlers.APIV1Handler
 	authAPIHandler              *handlers.AuthAPIHandler
 	passwordResetHandler        *handlers.PasswordResetHandler
-	anomalyHandler              *handlers.AnomalyHandler
+	latencyTrendHandler         *handlers.LatencyTrendHandler
 	statusPageSubscriberHandler *handlers.StatusPageSubscriberHandler
 	settingsAPIHandler   *handlers.SettingsAPIHandler
 	statusPageAPIHandler *handlers.StatusPageAPIHandler
@@ -181,9 +181,9 @@ func NewRouter(e *echo.Echo, deps Dependencies) (*Router, error) {
 
 	r.settingsAPIHandler = handlers.NewSettingsAPIHandler(deps.APITokenRepo, deps.AlertChannelRepo, deps.UserRepo, deps.AuditService, deps.Hasher)
 
-	// Anomaly detection: pure-stats on existing heartbeat hypertable, no extra
-	// dependencies. Two GET endpoints under /api/v1/monitors/:id.
-	r.anomalyHandler = handlers.NewAnomalyHandler(services.NewAnomalyService(deps.HeartbeatRepo))
+	// Latency trend: TimescaleDB percentile_cont aggregates over the heartbeat
+	// hypertable. Single GET endpoint /api/v1/monitors/:id/latency-trend.
+	r.latencyTrendHandler = handlers.NewLatencyTrendHandler(services.NewLatencyTrendService(deps.HeartbeatRepo))
 	r.statusPageAPIHandler = handlers.NewStatusPageAPIHandler(deps.StatusPageRepo, deps.MonitorRepo, deps.AgentRepo, deps.HeartbeatRepo, deps.IncidentService)
 	r.systemAPIHandler = handlers.NewSystemAPIHandler(deps.DB, deps.Hub, deps.Config, deps.AuditLogRepo, deps.UserRepo, deps.AgentRepo, deps.MonitorRepo, deps.AuditService, deps.Hasher, deps.StartTime)
 
@@ -369,8 +369,7 @@ func (r *Router) RegisterRoutes() {
 	v1.DELETE("/monitors/:id", r.apiV1Handler.DeleteMonitor)
 	v1.GET("/monitors/:id/certificate", r.apiV1Handler.GetMonitorCertificate)
 	v1.GET("/monitors/:id/sla", r.apiV1Handler.GetMonitorSLA)
-	v1.GET("/monitors/:id/anomalies", r.anomalyHandler.ListAnomalies)
-	v1.GET("/monitors/:id/anomalies/count", r.anomalyHandler.CountAnomalies)
+	v1.GET("/monitors/:id/latency-trend", r.latencyTrendHandler.GetLatencyTrend)
 	v1.GET("/certificates/expiring", r.apiV1Handler.GetExpiringCertificates)
 
 	// SNMP device templates (read-only)

@@ -427,8 +427,10 @@ type MockHeartbeatRepository struct {
 	GetLatestByMonitorIDFn  func(ctx context.Context, monitorID uuid.UUID) (*domain.Heartbeat, error)
 	GetRecentFailuresFn     func(ctx context.Context, monitorID uuid.UUID, count int) ([]*domain.Heartbeat, error)
 	GetUptimePercentFn      func(ctx context.Context, monitorID uuid.UUID, since time.Time) (float64, error)
-	GetLatencyHistoryFn     func(ctx context.Context, monitorID uuid.UUID, since time.Time, bucketInterval string) ([]domain.LatencyPoint, error)
-	DeleteOlderThanFn       func(ctx context.Context, before time.Time) (int64, error)
+	GetLatencyHistoryFn           func(ctx context.Context, monitorID uuid.UUID, since time.Time, bucketInterval string) ([]domain.LatencyPoint, error)
+	GetLatencyPercentilesFn       func(ctx context.Context, monitorID uuid.UUID, from, to time.Time, bucketInterval string) ([]domain.LatencyPercentilePoint, error)
+	GetLatencyPercentileSummaryFn func(ctx context.Context, monitorID uuid.UUID, from, to time.Time) (domain.LatencyTrendSummary, error)
+	DeleteOlderThanFn             func(ctx context.Context, before time.Time) (int64, error)
 }
 
 func (m *MockHeartbeatRepository) Create(ctx context.Context, heartbeat *domain.Heartbeat) error {
@@ -485,6 +487,20 @@ func (m *MockHeartbeatRepository) GetLatencyHistory(ctx context.Context, monitor
 		return m.GetLatencyHistoryFn(ctx, monitorID, since, bucketInterval)
 	}
 	return nil, nil
+}
+
+func (m *MockHeartbeatRepository) GetLatencyPercentiles(ctx context.Context, monitorID uuid.UUID, from, to time.Time, bucketInterval string) ([]domain.LatencyPercentilePoint, error) {
+	if m.GetLatencyPercentilesFn != nil {
+		return m.GetLatencyPercentilesFn(ctx, monitorID, from, to, bucketInterval)
+	}
+	return nil, nil
+}
+
+func (m *MockHeartbeatRepository) GetLatencyPercentileSummary(ctx context.Context, monitorID uuid.UUID, from, to time.Time) (domain.LatencyTrendSummary, error) {
+	if m.GetLatencyPercentileSummaryFn != nil {
+		return m.GetLatencyPercentileSummaryFn(ctx, monitorID, from, to)
+	}
+	return domain.LatencyTrendSummary{}, nil
 }
 
 func (m *MockHeartbeatRepository) DeleteOlderThan(ctx context.Context, before time.Time) (int64, error) {
