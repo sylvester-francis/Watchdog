@@ -239,6 +239,74 @@ func (r *HeartbeatRepository) GetLatencyHistory(ctx context.Context, monitorID u
 	return points, rows.Err()
 }
 
+// GetLatencyPercentiles returns p50/p95/p99 per time bucket over a window.
+// Buckets are computed via TimescaleDB time_bucket(); the caller picks bucket
+// size to keep the rendered chart at ~100-200 points (see domain.TrendWindow).
+// Only successful checks (status=up) with non-null latency contribute.
+func (r *HeartbeatRepository) GetLatencyPercentiles(ctx context.Context, monitorID uuid.UUID, from, to time.Time, bucketInterval string) ([]domain.LatencyPercentilePoint, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `
+		SELECT time_bucket($3::interval, time) AS bucket,
+			percentile_cont(0.50) WITHIN GROUP (ORDER BY latency_ms) AS p50,
+			percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95,
+			percentile_cont(0.99) WITHIN GROUP (ORDER BY latency_ms) AS p99,
+			COUNT(*) AS samples
+		FROM heartbeats
+		WHERE monitor_id = $1 AND tenant_id = $2
+		  AND time >= $4 AND time < $5
+		  AND status = 'up' AND latency_ms IS NOT NULL
+		GROUP BY bucket
+		ORDER BY bucket`
+
+	rows, err := q.Query(ctx, query, monitorID, tenantID, bucketInterval, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("heartbeatRepo.GetLatencyPercentiles(%s): %w", monitorID, err)
+	}
+	defer rows.Close()
+
+	points := []domain.LatencyPercentilePoint{}
+	for rows.Next() {
+		var p domain.LatencyPercentilePoint
+		var p50, p95, p99 float64
+		if err := rows.Scan(&p.Time, &p50, &p95, &p99, &p.SampleCount); err != nil {
+			return nil, fmt.Errorf("scan latency percentile row: %w", err)
+		}
+		p.P50, p.P95, p.P99 = int(p50), int(p95), int(p99)
+		points = append(points, p)
+	}
+	return points, rows.Err()
+}
+
+// GetLatencyPercentileSummary returns p50/p95/p99 + sample count aggregated
+// over the entire window — used for the "current vs previous period" delta
+// callout above the chart.
+func (r *HeartbeatRepository) GetLatencyPercentileSummary(ctx context.Context, monitorID uuid.UUID, from, to time.Time) (domain.LatencyTrendSummary, error) {
+	q := r.db.Querier(ctx)
+	tenantID := TenantIDFromContext(ctx)
+
+	query := `
+		SELECT
+			COALESCE(percentile_cont(0.50) WITHIN GROUP (ORDER BY latency_ms), 0) AS p50,
+			COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms), 0) AS p95,
+			COALESCE(percentile_cont(0.99) WITHIN GROUP (ORDER BY latency_ms), 0) AS p99,
+			COUNT(*) AS samples
+		FROM heartbeats
+		WHERE monitor_id = $1 AND tenant_id = $2
+		  AND time >= $3 AND time < $4
+		  AND status = 'up' AND latency_ms IS NOT NULL`
+
+	var s domain.LatencyTrendSummary
+	var p50, p95, p99 float64
+	err := q.QueryRow(ctx, query, monitorID, tenantID, from, to).Scan(&p50, &p95, &p99, &s.SampleCount)
+	if err != nil {
+		return s, fmt.Errorf("heartbeatRepo.GetLatencyPercentileSummary(%s): %w", monitorID, err)
+	}
+	s.P50, s.P95, s.P99 = int(p50), int(p95), int(p99)
+	return s, nil
+}
+
 // DeleteOlderThan removes heartbeats older than the specified time.
 // Returns the number of rows deleted.
 func (r *HeartbeatRepository) DeleteOlderThan(ctx context.Context, before time.Time) (int64, error) {
