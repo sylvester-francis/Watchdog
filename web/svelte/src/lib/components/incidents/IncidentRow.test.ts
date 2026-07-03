@@ -1,5 +1,5 @@
-import { render } from '@testing-library/svelte';
-import { describe, it, expect } from 'vitest';
+import { render, fireEvent } from '@testing-library/svelte';
+import { describe, it, expect, vi } from 'vitest';
 import IncidentRow from './IncidentRow.svelte';
 
 const mkIncident = (over: Record<string, unknown> = {}) => ({
@@ -49,5 +49,26 @@ describe('IncidentRow', () => {
     });
     expect(container.textContent).not.toContain('Ack');
     expect(container.textContent).not.toContain('Resolve');
+  });
+
+  // Regression: incident detail is an in-place InvestigationDrawer, not an
+  // /incidents/:id route. Clicking the row must open the drawer via
+  // onInvestigate, never navigate to a route that does not exist in CE.
+  it('opens the investigation drawer via onInvestigate when the row is clicked', async () => {
+    const onInvestigate = vi.fn();
+    const { container } = render(IncidentRow, {
+      props: { incident: mkIncident({ id: 'i1' }), monitor: mkMonitor(), onAcknowledge: async () => {}, onResolve: async () => {}, onInvestigate },
+    });
+    const row = container.querySelector('tr');
+    expect(row).not.toBeNull();
+    await fireEvent.click(row!);
+    expect(onInvestigate).toHaveBeenCalledWith('i1');
+  });
+
+  it('does not link to a nonexistent /incidents/:id detail route', () => {
+    const { container } = render(IncidentRow, {
+      props: { incident: mkIncident(), monitor: mkMonitor(), onAcknowledge: async () => {}, onResolve: async () => {}, onInvestigate: () => {} },
+    });
+    expect(container.querySelector('a[href^="/incidents/"]')).toBeNull();
   });
 });

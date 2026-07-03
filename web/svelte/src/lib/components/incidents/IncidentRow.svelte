@@ -62,7 +62,7 @@
 	}
 </script>
 
-<tr class="group cursor-pointer transition-colors hover:bg-muted/30" onclick={() => window.location.href = `/incidents/${incident.id}`}>
+<tr class="group cursor-pointer transition-colors hover:bg-muted/30" onclick={() => onInvestigate?.(incident.id)}>
 	<!-- Status -->
 	<td class="py-3.5 pl-1 pr-4">
 		<div class="flex items-center gap-2">
@@ -76,14 +76,14 @@
 	<!-- Monitor name + type -->
 	<td class="px-4 py-3.5">
 		{#if monitor}
-			<a href="/incidents/{incident.id}" class="group/link" onclick={(e) => e.stopPropagation()}>
+			<span class="group/link">
 				<span class="text-sm font-medium text-foreground transition-colors group-hover/link:text-accent">{monitor.name}</span>
 				<span class="ml-2 hidden font-mono tabular-nums text-[10px] uppercase tracking-wider text-muted-foreground lg:inline">{monitor.type}</span>
-			</a>
+			</span>
 		{:else}
-			<a href="/incidents/{incident.id}" class="text-sm text-muted-foreground transition-colors hover:text-accent" onclick={(e) => e.stopPropagation()}>
+			<span class="text-sm text-muted-foreground transition-colors group-hover:text-accent">
 				{incident.monitor_name || 'Unknown Monitor'}
-			</a>
+			</span>
 		{/if}
 	</td>
 
